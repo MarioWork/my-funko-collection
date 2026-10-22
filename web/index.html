@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>MyFunkoCollection</title>
+    <meta name="description" content="Track your Funko Pop collection" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e8f4fc" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#041420" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Funkos" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <script>
+      // Applies the stored or system theme before the first paint, so there is no flash. Mirrors themeUtils.ts.
+      (function () {
+        try {
+          var stored = localStorage.getItem('funkos.theme');
+          var system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          var theme = stored === 'light' || stored === 'dark' ? stored : system;
+          document.documentElement.classList.add(theme);
+        } catch (e) {
+          /* storage blocked: the provider decides after mount */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

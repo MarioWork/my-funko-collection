@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      # The Yarn release is committed in .yarn/releases; Corepack only reads packageManager and hands over to it.
+      - run: corepack enable
+
+      - run: yarn install --immutable
+
+      - run: yarn lint
+
+      - run: yarn build
+
+      - run: yarn test

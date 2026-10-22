@@ -1,0 +1,25 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ],
+  "compilerOptions": {
+    "paths": {
+      "@api/*": ["./src/common/api/*"],
+      "@services/*": ["./src/common/api/services/*"],
+      "@application/*": ["./src/application/*"],
+      "@app-types/*": ["./src/types/*"],
+      "@utils/*": ["./src/common/utils/*"],
+      "@pages/*": ["./src/pages/*"],
+      "@components/*": ["./src/common/components/*"],
+      "@hooks/*": ["./src/common/hookUtils/*"],
+      "@mocks/*": ["./src/mocks/*"],
+      "@test-utils": ["./src/testUtils.tsx"]
+    }
+  }
+}

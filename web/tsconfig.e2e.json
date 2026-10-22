@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+
+    /* The specs pull in src (mocks, types), so this project resolves the app's aliases too. */
+    "paths": {
+      "@api/*": ["./src/common/api/*"],
+      "@services/*": ["./src/common/api/services/*"],
+      "@application/*": ["./src/application/*"],
+      "@app-types/*": ["./src/types/*"],
+      "@utils/*": ["./src/common/utils/*"],
+      "@pages/*": ["./src/pages/*"],
+      "@components/*": ["./src/common/components/*"],
+      "@hooks/*": ["./src/common/hookUtils/*"],
+      "@mocks/*": ["./src/mocks/*"],
+      "@test-utils": ["./src/testUtils.tsx"]
+    }
+  },
+  /* vite-env.d.ts carries the vite/client reference that types import.meta.env. */
+  "include": ["e2e", "src/types/**/*.d.ts", "src/vite-env.d.ts"]
+}

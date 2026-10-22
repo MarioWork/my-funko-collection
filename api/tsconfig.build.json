@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/setupTests.ts",
+    "src/testFixtures.ts",
+    "src/db/testDb.ts",
+    "src/db/seed.ts",
+    "src/db/pruneImages.ts"
+  ]
+}

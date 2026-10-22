@@ -1,0 +1,49 @@
+import { Outlet } from 'react-router';
+import { SidebarInset, SidebarProvider } from '@components/ui/sidebar';
+import { Toaster } from '@components/ui/toast';
+import { useIsDesktop } from '@hooks/useMediaQuery';
+import AppSidebar from './components/AppSidebar';
+import BottomNav from './components/BottomNav';
+import SearchPalette from './components/SearchPalette';
+import TopBar from './components/TopBar';
+import { useCommandPalette } from './hooks/useCommandPalette';
+
+// Viewport breakpoints pick the shell; everything inside <main> uses container queries (@container).
+const MOBILE_SHELL_STYLE = { '--bottom-nav-height': '4rem' } as React.CSSProperties;
+// shadcn's sidebar is a fixed column; this is as wide as the logo (mark + wordmark), not the 16rem default.
+const SIDEBAR_STYLE = { '--sidebar-width': '15rem' } as React.CSSProperties;
+
+function AppShell() {
+  const isDesktop = useIsDesktop();
+  const palette = useCommandPalette();
+
+  if (isDesktop) {
+    return (
+      <SidebarProvider style={SIDEBAR_STYLE}>
+        <AppSidebar />
+        <SidebarInset>
+          <TopBar isDesktop />
+          {/* SidebarInset is the <main>; this is only the container-query root. */}
+          <div className="@container mx-auto w-full max-w-7xl flex-1 p-6">
+            <Outlet />
+          </div>
+        </SidebarInset>
+        <SearchPalette isOpen={palette.isOpen} onOpenChange={palette.setIsOpen} />
+        <Toaster />
+      </SidebarProvider>
+    );
+  }
+
+  return (
+    <div className="flex min-h-svh flex-col" style={MOBILE_SHELL_STYLE}>
+      <TopBar isDesktop={false} />
+      <main className="@container flex-1 px-4 pt-4 pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1.5rem)]">
+        <Outlet />
+      </main>
+      <BottomNav />
+      <Toaster />
+    </div>
+  );
+}
+
+export default AppShell;

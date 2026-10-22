@@ -1,0 +1,27 @@
+# The home-server front door: HTTPS with Caddy's own local CA (the camera and "Add to Home Screen" need a secure
+# context), the built app as static files, and the API plus its image files proxied on the same origin.
+{$SITE_ADDRESS}
+
+tls internal
+encode zstd gzip
+
+# /api/<path> → api:3000/<path>  (the prefix is stripped; the app is built with VITE_BASE_API_URL='/api')
+handle_path /api/* {
+	reverse_proxy api:3000
+}
+
+# Image files keep their path: the API serves them under /uploads too.
+handle /uploads/* {
+	reverse_proxy api:3000
+}
+
+# Hashed build assets never change: cache them for a year.
+@assets path /assets/*
+header @assets Cache-Control "public, max-age=31536000, immutable"
+
+# Everything else is the single-page app.
+handle {
+	root * /srv
+	try_files {path} /index.html
+	file_server
+}

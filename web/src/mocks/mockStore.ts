@@ -1,0 +1,347 @@
+// The in-memory data behind every mock handler. One store per page load (and per test, through resetMockStore()),
+// so an add or a delete changes the next list the way the real API would.
+import type { FunkoImageApiModel } from '@app-types/models';
+import {
+  FunkoTypeUtil,
+  ItemConditionUtil,
+  type FunkoTypeUtil as FunkoType,
+  type ItemConditionUtil as ItemCondition,
+} from '@app-types/utility';
+import { createMockImageUrls } from './mockImageUtils';
+
+export type MockCategoryRow = { id: number; name: string; createdAt: string; updatedAt: string };
+export type MockTagRow = { id: number; name: string; notes: string | null; createdAt: string; updatedAt: string };
+export type MockCollectionRow = {
+  id: number;
+  name: string;
+  notes: string | null;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+export type MockFunkoRow = {
+  id: number;
+  name: string;
+  number: string;
+  type: FunkoType;
+  categoryId: number;
+  isChase: boolean;
+  exclusive: string;
+  barcode: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+export type MockImageRow = FunkoImageApiModel & { funkoId: number };
+export type MockItemRow = {
+  id: number;
+  collectionId: number;
+  funkoId: number;
+  quantity: number;
+  condition: ItemCondition | null;
+  purchasePriceCents: number | null;
+  purchaseCurrency: string;
+  purchasedAt: string | null;
+  notes: string | null;
+  tagIds: number[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MockStore = {
+  categories: MockCategoryRow[];
+  tags: MockTagRow[];
+  collections: MockCollectionRow[];
+  funkos: MockFunkoRow[];
+  images: MockImageRow[];
+  items: MockItemRow[];
+};
+
+const FIRST_DATE = Date.UTC(2026, 0, 5, 9, 30);
+const DAY_MS = 24 * 60 * 60 * 1000;
+export const DEFAULT_CURRENCY = 'EUR';
+export const MOCK_FUNKO_COUNT = 30;
+
+export function mockDate(index: number): string {
+  return new Date(FIRST_DATE + index * DAY_MS).toISOString();
+}
+
+const CATEGORY_NAMES = ['Pop! Marvel', 'Pop! Television', 'Star Wars', 'Pop! Animation', 'Pop! Games'];
+const TAG_NAMES = ['Box 1', 'Box 2', 'Display shelf'];
+
+type SeedFunko = {
+  name: string;
+  number: string;
+  category: number;
+  type?: FunkoType;
+  isChase?: boolean;
+  exclusive?: string;
+  barcode?: string;
+};
+
+// Mirrors api/src/db/seed.ts so mock mode and a seeded API look alike.
+const SEED_FUNKOS: SeedFunko[] = [
+  { name: 'Spider-Man', number: '03', category: 1, barcode: '889698624008' },
+  { name: 'Iron Man', number: '04', category: 1 },
+  { name: 'Captain America', number: '06', category: 1 },
+  { name: 'Deadpool', number: '20', category: 1 },
+  { name: 'Thanos', number: '78', category: 1 },
+  { name: 'Thanos', number: '78', category: 1, isChase: true },
+  { name: 'Groot', number: '1203', category: 1 },
+  { name: 'Spider-Man (Integrated Suit)', number: '913', category: 1, exclusive: 'Walmart' },
+  { name: 'Eleven', number: '421', category: 2 },
+  { name: 'Eddie Munson', number: '1250', category: 2 },
+  { name: 'Dustin', number: '424', category: 2 },
+  { name: 'Vecna', number: '1312', category: 2 },
+  { name: 'Walter White', number: '162', category: 2 },
+  { name: 'Darth Vader', number: '01', category: 3 },
+  { name: 'Boba Fett', number: '08', category: 3 },
+  { name: 'Grogu', number: '368', category: 3 },
+  { name: 'The Mandalorian', number: '345', category: 3 },
+  { name: 'Ahsoka Tano', number: '464', category: 3 },
+  { name: 'Darth Maul', number: '09', category: 3, exclusive: 'SDCC 2024' },
+  { name: 'Goku', number: '09', category: 4 },
+  { name: 'Super Saiyan Goku', number: '14', category: 4 },
+  { name: 'Naruto', number: '71', category: 4 },
+  { name: 'Luffy', number: '98', category: 4 },
+  { name: 'Tanjiro', number: '867', category: 4 },
+  { name: 'Rick and Morty on Spaceship', number: '32', category: 4, type: FunkoTypeUtil.POP_RIDES },
+  { name: 'Link', number: '1026', category: 5 },
+  { name: 'Mario', number: '09', category: 5 },
+  { name: 'Pikachu', number: '353', category: 5 },
+  { name: 'Master Chief', number: '07', category: 5 },
+  { name: 'Kratos', number: '25', category: 5, type: FunkoTypeUtil.POP_DELUXE },
+];
+
+type SeedItem = {
+  funkoId: number;
+  collectionId: number;
+  quantity?: number;
+  condition?: ItemCondition;
+  priceCents?: number;
+  purchasedAt?: string;
+  tagIds?: number[];
+  notes?: string;
+};
+
+const SEED_ITEMS: SeedItem[] = [
+  {
+    funkoId: 1,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1499,
+    purchasedAt: '2024-03-02',
+    tagIds: [3],
+  },
+  {
+    funkoId: 2,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1299,
+    purchasedAt: '2024-03-02',
+    tagIds: [1],
+  },
+  {
+    funkoId: 4,
+    collectionId: 1,
+    quantity: 2,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1599,
+    purchasedAt: '2024-05-18',
+    tagIds: [1],
+  },
+  {
+    funkoId: 5,
+    collectionId: 1,
+    condition: ItemConditionUtil.OUT_OF_BOX,
+    priceCents: 999,
+    purchasedAt: '2023-11-11',
+    tagIds: [3],
+    notes: 'Box recycled',
+  },
+  {
+    funkoId: 9,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1499,
+    purchasedAt: '2024-07-20',
+    tagIds: [2],
+  },
+  {
+    funkoId: 10,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1799,
+    purchasedAt: '2024-07-20',
+    tagIds: [2],
+  },
+  {
+    funkoId: 14,
+    collectionId: 1,
+    condition: ItemConditionUtil.BOX_DAMAGED,
+    priceCents: 899,
+    purchasedAt: '2022-12-24',
+    tagIds: [1],
+    notes: 'Corner dent',
+  },
+  {
+    funkoId: 16,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1499,
+    purchasedAt: '2023-06-01',
+    tagIds: [3],
+  },
+  {
+    funkoId: 17,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1499,
+    purchasedAt: '2023-06-01',
+    tagIds: [3],
+  },
+  {
+    funkoId: 20,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1399,
+    purchasedAt: '2024-01-15',
+    tagIds: [2],
+  },
+  {
+    funkoId: 22,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1399,
+    purchasedAt: '2024-01-15',
+    tagIds: [2],
+  },
+  {
+    funkoId: 26,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1599,
+    purchasedAt: '2024-09-09',
+    tagIds: [3],
+  },
+  {
+    funkoId: 28,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 1299,
+    purchasedAt: '2024-09-09',
+    tagIds: [1],
+  },
+  {
+    funkoId: 30,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 2499,
+    purchasedAt: '2025-02-14',
+    tagIds: [3],
+  },
+  {
+    funkoId: 25,
+    collectionId: 1,
+    condition: ItemConditionUtil.MINT_IN_BOX,
+    priceCents: 2999,
+    purchasedAt: '2025-02-14',
+    tagIds: [2],
+  },
+  { funkoId: 12, collectionId: 2 },
+  { funkoId: 18, collectionId: 2 },
+  { funkoId: 23, collectionId: 2 },
+  { funkoId: 29, collectionId: 2 },
+  { funkoId: 7, collectionId: 2, notes: 'Wait for a sale' },
+];
+
+const IMAGES_PER_FUNKO = 2;
+
+function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
+  let nextId = 1;
+
+  return funkos.flatMap((funko, index) =>
+    Array.from({ length: IMAGES_PER_FUNKO }, (_, position) => {
+      const id = nextId;
+
+      nextId += 1;
+
+      return {
+        id,
+        funkoId: funko.id,
+        position,
+        sizeBytes: 350_000,
+        createdAt: mockDate(index),
+        ...createMockImageUrls(funko.name, index * IMAGES_PER_FUNKO + position),
+      };
+    }),
+  );
+}
+
+export function createMockStore(): MockStore {
+  const categories = CATEGORY_NAMES.map((name, index) => ({
+    id: index + 1,
+    name,
+    createdAt: mockDate(index),
+    updatedAt: mockDate(index),
+  }));
+  const tags = TAG_NAMES.map((name, index) => ({
+    id: index + 1,
+    name,
+    notes: null,
+    createdAt: mockDate(index),
+    updatedAt: mockDate(index),
+  }));
+  const collections: MockCollectionRow[] = [
+    {
+      id: 1,
+      name: 'Owned',
+      notes: 'Everything on the shelves and in the boxes',
+      isDefault: true,
+      createdAt: mockDate(0),
+      updatedAt: mockDate(0),
+    },
+    { id: 2, name: 'Wishlist', notes: 'Next buys', isDefault: false, createdAt: mockDate(1), updatedAt: mockDate(1) },
+  ];
+  const funkos: MockFunkoRow[] = SEED_FUNKOS.map((seed, index) => ({
+    id: index + 1,
+    name: seed.name,
+    number: seed.number,
+    type: seed.type ?? FunkoTypeUtil.POP,
+    categoryId: seed.category,
+    isChase: seed.isChase ?? false,
+    exclusive: seed.exclusive ?? '',
+    barcode: seed.barcode ?? null,
+    createdAt: mockDate(index),
+    updatedAt: mockDate(index),
+  }));
+  const items: MockItemRow[] = SEED_ITEMS.map((seed, index) => ({
+    id: index + 1,
+    collectionId: seed.collectionId,
+    funkoId: seed.funkoId,
+    quantity: seed.quantity ?? 1,
+    condition: seed.condition ?? null,
+    purchasePriceCents: seed.priceCents ?? null,
+    purchaseCurrency: DEFAULT_CURRENCY,
+    purchasedAt: seed.purchasedAt ?? null,
+    notes: seed.notes ?? null,
+    tagIds: seed.tagIds ?? [],
+    createdAt: mockDate(index),
+    updatedAt: mockDate(index),
+  }));
+
+  return { categories, tags, collections, funkos, images: createImages(funkos), items };
+}
+
+export let mockStore: MockStore = createMockStore();
+
+export function resetMockStore(): void {
+  mockStore = createMockStore();
+}
+
+export function nextId(rows: { id: number }[]): number {
+  return rows.reduce((highest, row) => Math.max(highest, row.id), 0) + 1;
+}
+
+export function nowIso(): string {
+  return new Date().toISOString();
+}

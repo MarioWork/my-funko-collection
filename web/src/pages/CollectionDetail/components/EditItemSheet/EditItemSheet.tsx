@@ -1,0 +1,88 @@
+import { yupResolver } from '@hookform/resolvers/yup';
+import { useEffect } from 'react';
+import { useFetcher, useLoaderData, useNavigate } from 'react-router';
+import type { CollectionItemApiModel } from '@app-types/models';
+import { HttpVerbsUtil, type JSONResponseUtil, type LoaderDataUtil } from '@app-types/utility';
+import InlineAlert from '@components/InlineAlert';
+import ItemFormFields from '@components/ItemFormFields';
+import {
+  itemFormSchema,
+  itemToFormValues,
+  toItemPayload,
+  type ItemFormValues,
+} from '@components/ItemFormFields/itemFormUtils';
+import { Button } from '@components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@components/ui/sheet';
+import { Spinner } from '@components/ui/spinner';
+import { useFormCompat } from '@hooks/useFormCompat';
+import { useIsDesktop } from '@hooks/useMediaQuery';
+import { createFormData } from '@utils/formDataUtils';
+import type { loader } from './editItemSheetLoader';
+
+const FORM_ID = 'edit-item';
+const BACK = -1;
+
+// Routed under /collections/:id/items/:itemId/edit. Owns its loader and action; closing goes back.
+function EditItemSheet() {
+  const { item, tags } = useLoaderData<LoaderDataUtil<typeof loader>>();
+  const fetcher = useFetcher<JSONResponseUtil<CollectionItemApiModel>>();
+  const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
+  const { control, handleSubmit } = useFormCompat<ItemFormValues>({
+    defaultValues: itemToFormValues(item),
+    resolver: yupResolver(itemFormSchema),
+  });
+  const isSubmitting = fetcher.state !== 'idle';
+  const failure = fetcher.data?.success === false ? fetcher.data.error : undefined;
+
+  const close = () => void navigate(BACK);
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.success) close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher.state, fetcher.data]);
+
+  const onSubmit = handleSubmit((values) => {
+    void fetcher.submit(createFormData({ item: toItemPayload(values) }), { method: HttpVerbsUtil.PATCH });
+  });
+
+  return (
+    <Sheet open onOpenChange={(open) => (open ? undefined : close())}>
+      <SheetContent
+        side={isDesktop ? 'right' : 'bottom'}
+        className="flex max-h-dvh flex-col gap-0 overflow-hidden sm:max-w-lg"
+      >
+        <SheetHeader>
+          <SheetTitle>
+            {item.funko.name} in {item.collection.name}
+          </SheetTitle>
+          <SheetDescription>Your copy: how many, in what state, what you paid, where it is.</SheetDescription>
+        </SheetHeader>
+        <form
+          id={FORM_ID}
+          onSubmit={(event) => void onSubmit(event)}
+          noValidate
+          className="flex-1 overflow-y-auto px-4 pb-4"
+        >
+          <ItemFormFields control={control} tags={tags} idPrefix={FORM_ID} />
+          {failure ? (
+            <InlineAlert tone="error" className="mt-4">
+              {failure.message ?? 'Something went wrong. Please try again.'}
+            </InlineAlert>
+          ) : null}
+        </form>
+        <SheetFooter className="border-t pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+          <Button type="submit" form={FORM_ID} disabled={isSubmitting}>
+            {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
+            Save changes
+          </Button>
+          <Button type="button" variant="outline" onClick={close} disabled={isSubmitting}>
+            Cancel
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export default EditItemSheet;
