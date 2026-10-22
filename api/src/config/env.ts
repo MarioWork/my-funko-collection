@@ -1,0 +1,53 @@
+import { z } from 'zod';
+
+const DEFAULT_UPLOADS_DIR = './data/uploads';
+const DEFAULT_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const DEFAULT_MAX_IMAGES_PER_FUNKO = 10;
+const DEFAULT_IMAGE_LARGE_PX = 2000;
+const DEFAULT_IMAGE_MEDIUM_PX = 1200;
+const DEFAULT_IMAGE_SMALL_PX = 480;
+
+const booleanFromString = z
+  .enum(['true', 'false'])
+  .default('false')
+  .transform((value) => value === 'true');
+
+const EnvSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  PORT: z.coerce.number().int().min(0).max(65535).default(3000),
+  // A libsql URL: `file:./data/app.db` for a local database, `:memory:` under test.
+  DATABASE_URL: z.string().min(1),
+  // Apply pending migrations before listening. On in the container, off in dev (where `yarn db:migrate` is explicit).
+  MIGRATE_ON_START: booleanFromString,
+  // Comma-separated list of allowed browser origins; never `*`.
+  CORS_ORIGINS: z
+    .string()
+    .default('')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    ),
+  // Where uploaded images live. The Docker volume mounts over it.
+  UPLOADS_DIR: z.string().min(1).default(DEFAULT_UPLOADS_DIR),
+  MAX_IMAGE_BYTES: z.coerce.number().int().positive().default(DEFAULT_MAX_IMAGE_BYTES),
+  MAX_IMAGES_PER_FUNKO: z.coerce.number().int().positive().default(DEFAULT_MAX_IMAGES_PER_FUNKO),
+  // Longest side of each generated variant, in pixels.
+  IMAGE_LARGE_PX: z.coerce.number().int().positive().default(DEFAULT_IMAGE_LARGE_PX),
+  IMAGE_MEDIUM_PX: z.coerce.number().int().positive().default(DEFAULT_IMAGE_MEDIUM_PX),
+  IMAGE_SMALL_PX: z.coerce.number().int().positive().default(DEFAULT_IMAGE_SMALL_PX),
+});
+
+export type Env = z.infer<typeof EnvSchema>;
+
+const parsed = EnvSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  // The logger depends on env, so this is the one place console is allowed.
+  console.error('Invalid environment:\n' + z.prettifyError(parsed.error));
+  process.exit(1);
+}
+
+export const env: Readonly<Env> = Object.freeze(parsed.data);

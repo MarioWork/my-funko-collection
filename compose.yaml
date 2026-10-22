@@ -1,0 +1,52 @@
+# Home server deployment. Everything worth backing up lives in ./data (SQLite file + uploaded images).
+# The web container (Caddy) is the only thing on the LAN: it serves the app over HTTPS and proxies /api and
+# /uploads to the api container, which is not published.
+services:
+  web:
+    build: ./web
+    container_name: my-funko-collection-web
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      # The address the app is opened at. A name needs a DNS/hosts entry on each device; the server's LAN IP
+      # (https://192.168.1.20) works everywhere without one. HTTPS is required for the camera scanner.
+      SITE_ADDRESS: https://funkos.home.arpa
+    volumes:
+      # Caddy's local CA lives here. Keep it, or every device has to trust a new certificate after a rebuild.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    build: ./api
+    container_name: my-funko-collection-api
+    restart: unless-stopped
+    expose:
+      - '3000'
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      PORT: 3000
+      DATABASE_URL: file:/app/data/app.db
+      UPLOADS_DIR: /app/data/uploads
+      MIGRATE_ON_START: 'true'
+      # Same origin through Caddy, so browsers never send a cross-origin request. Kept for direct API use.
+      CORS_ORIGINS: https://funkos.home.arpa
+      MAX_IMAGE_BYTES: 10485760
+      MAX_IMAGES_PER_FUNKO: 10
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:3000/ready').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  caddy_data:
+  caddy_config:

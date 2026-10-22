@@ -1,0 +1,3 @@
+# Runtime data of the home server deployment (database + images); back it up, never commit it.
+/data/
+.DS_Store

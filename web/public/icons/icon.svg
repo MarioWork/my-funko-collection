@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="My Funko Collection">
+  <rect width="512" height="512" rx="112" fill="#004cff"/>
+  <rect x="136" y="96" width="240" height="320" rx="28" fill="#e8f4fc"/>
+  <rect x="136" y="96" width="240" height="88" rx="28" fill="#3e2ad5"/>
+  <rect x="136" y="156" width="240" height="28" fill="#3e2ad5"/>
+  <circle cx="256" cy="286" r="62" fill="#004cff"/>
+  <circle cx="232" cy="276" r="12" fill="#e8f4fc"/>
+  <circle cx="280" cy="276" r="12" fill="#e8f4fc"/>
+</svg>
