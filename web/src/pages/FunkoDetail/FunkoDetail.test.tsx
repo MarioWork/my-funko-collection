@@ -71,3 +71,25 @@ it('shows the Wishlist toggle pressed at once and flips it back when the add fai
     expect(screen.getByRole('button', { name: WISHLIST_NAME })).toHaveAttribute('aria-pressed', 'false'),
   );
 });
+
+it('links to the funko that already exists when an edit makes it a copy of one', async () => {
+  const ironMan = mockStore.funkos.find((funko) => funko.name === 'Iron Man');
+  const deadpool = mockStore.funkos.find((funko) => funko.name === 'Deadpool');
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.edit(String(ironMan?.id))] });
+
+  const nameField = await screen.findByRole('textbox', { name: 'Name' });
+  const numberField = screen.getByRole('textbox', { name: 'Number' });
+  await userEvent.clear(nameField);
+  await userEvent.type(nameField, deadpool?.name ?? '');
+  await userEvent.clear(numberField);
+  await userEvent.type(numberField, deadpool?.number ?? '');
+  await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  const alert = await screen.findByRole('alert');
+
+  expect(alert).toHaveTextContent('This funko already exists');
+  expect(within(alert).getByRole('link', { name: 'Open it' })).toHaveAttribute(
+    'href',
+    FUNKO_ROUTES_PATHS.detail(String(deadpool?.id)),
+  );
+});

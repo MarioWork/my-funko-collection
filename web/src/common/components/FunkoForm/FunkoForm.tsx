@@ -8,11 +8,11 @@ import FunkoFormFields, {
   toFunkoPayload,
   type FunkoFormValues,
 } from '@components/FunkoFormFields';
-import InlineAlert from '@components/InlineAlert';
 import SubmitButton from '@components/SubmitButton';
 import { FieldSeparator } from '@components/ui/field';
 import { useFormCompat } from '@hooks/useFormCompat';
 import FunkoDestinationFields from './components/FunkoDestinationFields';
+import FunkoFormError from './components/FunkoFormError';
 import FunkoPhotoFields from './components/FunkoPhotoFields';
 import type { FunkoFormSubmission } from './types';
 import { usePendingPhotos } from './hooks/usePendingPhotos';
@@ -26,6 +26,8 @@ type Props = {
   initialTags: NamedApiModel[];
   isSubmitting: boolean;
   errorMessage?: string;
+  // Sent with a duplicate (409): the funko that already exists, linked from the error.
+  existingFunkoId?: number;
   onSubmit: (submission: FunkoFormSubmission) => void;
 };
 
@@ -40,6 +42,7 @@ function FunkoForm({
   initialTags,
   isSubmitting,
   errorMessage,
+  existingFunkoId,
   onSubmit,
 }: Props) {
   const isEdit = funko !== undefined;
@@ -97,7 +100,7 @@ function FunkoForm({
         isSubmitting={isSubmitting}
         isMissingPhotos={isMissingPhotos}
       />
-      {errorMessage ? <InlineAlert tone="error">{errorMessage}</InlineAlert> : null}
+      {errorMessage ? <FunkoFormError message={errorMessage} existingFunkoId={existingFunkoId} /> : null}
       <div className="sticky bottom-[calc(var(--bottom-nav-height,0px)+env(safe-area-inset-bottom))] -mx-4 -mb-4 border-t bg-card p-4 lg:static lg:m-0 lg:border-0 lg:p-0">
         <SubmitButton
           isSubmitting={isSubmitting}

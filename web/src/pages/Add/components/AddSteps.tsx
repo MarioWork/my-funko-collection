@@ -64,6 +64,7 @@ function CurrentStep({ flow, destinationState, categories, collections, isInDial
           initialTags={destinationState.selectedTags}
           isSubmitting={flow.isSubmitting}
           errorMessage={flow.failure?.message}
+          existingFunkoId={flow.failure?.existingId}
           onSubmit={(submission) => void flow.submitCreate(submission)}
         />
       </div>
