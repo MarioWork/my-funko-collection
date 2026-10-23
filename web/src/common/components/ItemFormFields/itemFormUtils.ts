@@ -1,7 +1,7 @@
 import { array, number, object, string, type InferType } from 'yup';
 import type { CollectionItemApiModel } from '@app-types/models';
 import type { ItemConditionUtil } from '@app-types/utility';
-import type { UpdateCollectionItem } from '@services/collectionItemService/collectionItemService.type';
+import type { CreateCollectionItem } from '@services/collectionItemService/collectionItemService.type';
 import { itemQuantitySchema } from '@utils/itemUtils';
 import { centsToUnits, DEFAULT_CURRENCY, unitsToCents } from '@utils/moneyUtils';
 
@@ -23,6 +23,18 @@ export const itemFormSchema = object({
 
 export type ItemFormValues = InferType<typeof itemFormSchema>;
 
+const NEW_ITEM_QUANTITY = 1;
+
+// A copy being added: one of it, nothing else known yet, and the given tags.
+export const newItemFormValues = (tagIds: number[] = []): ItemFormValues => ({
+  quantity: NEW_ITEM_QUANTITY,
+  condition: '',
+  price: '',
+  purchasedAt: '',
+  notes: '',
+  tagIds,
+});
+
 export const itemToFormValues = (item: CollectionItemApiModel): ItemFormValues => ({
   quantity: item.quantity,
   condition: item.condition ?? '',
@@ -32,7 +44,8 @@ export const itemToFormValues = (item: CollectionItemApiModel): ItemFormValues =
   tagIds: item.tags.map((tag) => tag.id),
 });
 
-export const toItemPayload = (values: ItemFormValues): UpdateCollectionItem => ({
+// Every field set, so it serves a new item as well as a change to one.
+export const toItemPayload = (values: ItemFormValues): Omit<CreateCollectionItem, 'funkoId'> => ({
   quantity: values.quantity,
   condition: values.condition === '' ? null : values.condition,
   purchasePriceCents: values.price === '' ? null : unitsToCents(values.price.replace(',', '.')),

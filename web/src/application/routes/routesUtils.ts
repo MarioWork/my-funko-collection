@@ -25,9 +25,6 @@ export const FUNKO_ROUTES_PATHS = {
 export const ADD_ROUTES_PATHS = {
   BASE: '/add',
   MANUAL: '/add/manual',
-  // Children of a page (Home, Funkos): the same flow as a dialog over that page on desktop.
-  NESTED_FORM: 'add',
-  NESTED_SCAN: 'scan',
 };
 
 export const COLLECTION_ROUTES_PATHS = {

@@ -6,7 +6,7 @@ import { FunkoDetailPage } from '../pages/FunkoDetailPage.page';
 const PHOTOS = ['front.png', 'back.png'].map((file) => path.join(import.meta.dirname, '../fixtures/photos', file));
 const SEED_SPIDER_MAN_BARCODE = '889698624008';
 
-test('adds a funko by hand with two photos into two collections in one save', async ({ page }) => {
+test('adds a funko by hand with two photos into two collections, each with its own details, in one save', async ({ page }) => {
   const add = new AddPage(page);
   const detail = new FunkoDetailPage(page);
 
@@ -18,6 +18,8 @@ test('adds a funko by hand with two photos into two collections in one save', as
   await expect(add.pickedCollections()).toHaveText(['Owned']);
 
   await add.pickCollection('Wishlist');
+  await expect(add.pickedCollections()).toHaveText(['Owned', 'Wishlist']);
+  await add.fillPrice('Owned', '14.99');
   await add.save();
 
   await expect(add.savedCard).toContainText('Test Pop');
@@ -28,6 +30,7 @@ test('adds a funko by hand with two photos into two collections in one save', as
 
   await expect(detail.title).toHaveText('Test Pop');
   await expect(page.getByText('#999', { exact: true })).toBeVisible();
+  await expect(page.getByRole('main')).toContainText('14,99');
 });
 
 test('"Add another" opens an empty form that keeps the collections picked last time', async ({ page }) => {

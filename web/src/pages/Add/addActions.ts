@@ -3,6 +3,7 @@ import { ValidationError } from 'yup';
 import type { FunkoApiModel } from '@app-types/models';
 import { DEFAULT_FIRST_PAGE, type JSONResponseUtil } from '@app-types/utility';
 import collectionItemService, { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
+import { CreateCollectionItemSchema } from '@services/collectionItemService/collectionItemService.type';
 import funkoImageService from '@services/funkoImageService/funkoImageService';
 import funkoService from '@services/funkoService/funkoService';
 import { CreateFunkoSchema, type CreateFunko } from '@services/funkoService/funkoService.type';
@@ -10,12 +11,13 @@ import { type AddDestination } from '@utils/addDestinationUtils';
 import { parseFormData } from '@utils/formDataUtils';
 import { newItemPayload } from '@utils/newItemUtils';
 import { PHOTO_FIELD } from '@utils/pendingPhotoUtils';
-import { AddIntentUtil, destinationSchema, incrementSchema, type AddResult } from './addUtils';
+import { AddIntentUtil, collectionIdSchema, incrementSchema, type AddItem, type AddResult } from './addUtils';
 
 type CreateFormData = {
   intent: typeof AddIntentUtil.CREATE;
   funko: CreateFunko;
-  destination: AddDestination;
+  // One per chosen collection; none means the catalog only.
+  items: AddItem[];
 };
 
 type IncrementFormData = {
@@ -30,6 +32,7 @@ const MIN_PHOTOS = 1;
 // The funko's item, if any, is the one match: a funko sits in a collection at most once.
 const SINGLE_ITEM_PAGE_SIZE = '1';
 const PHOTOS_REQUIRED = 'Add at least one image.';
+const NEW_ITEM_DETAILS_SCHEMA = CreateCollectionItemSchema.omit(['funkoId']);
 const PHOTOS_FAILED = 'The images did not upload, so nothing was saved. Please try again.';
 const COLLECTION_FAILED = 'It could not be added to one of the lists, so nothing was saved. Please try again.';
 // The undo itself failed: the funko is there without everything, and the error links to it (existingId).
@@ -45,10 +48,18 @@ async function uploadPhotos(funkoId: number, photos: File[]): Promise<StepResult
   return { success: false, message: uploaded.error?.message ?? PHOTOS_FAILED };
 }
 
-async function fileInCollections(funkoId: number, { collectionIds, tagIds }: AddDestination): Promise<StepResult> {
+// Checked before anything is written: a bad item must stop the save before the funko exists.
+async function validateItem({ collectionId, ...details }: AddItem): Promise<AddItem> {
+  const validCollectionId = await collectionIdSchema.validate(collectionId);
+  const validDetails = await NEW_ITEM_DETAILS_SCHEMA.validate(details);
+
+  return { ...validDetails, collectionId: validCollectionId };
+}
+
+async function fileInCollections(funkoId: number, items: AddItem[]): Promise<StepResult> {
   const results = await Promise.all(
-    collectionIds.map((collectionId) =>
-      collectionItemService.addCollectionItem(collectionId, newItemPayload(funkoId, tagIds)),
+    items.map(({ collectionId, ...details }) =>
+      collectionItemService.addCollectionItem(collectionId, { ...details, funkoId }),
     ),
   );
   const hasFailure = results.some((result) => !result.success);
@@ -95,10 +106,10 @@ async function latestFunko(fallback: FunkoApiModel): Promise<FunkoApiModel> {
 }
 
 // Needs at least one photo. Creates the funko first (the photos and items need its id), then uploads the photos and
-// files it in every chosen collection. All or nothing: if a later step fails, the funko is deleted again.
-async function createAndFile({ funko, destination }: CreateFormData, photos: File[]): Promise<AddActionData> {
+// files it in every chosen collection, each with its own details. All or nothing: if a later step fails, the funko is deleted again.
+async function createAndFile({ funko, items }: CreateFormData, photos: File[]): Promise<AddActionData> {
   const validFunko = await CreateFunkoSchema.validate(funko);
-  const validDestination = await destinationSchema.validate(destination);
+  const validItems = await Promise.all(items.map(validateItem));
 
   if (photos.length < MIN_PHOTOS) return { success: false, error: { message: PHOTOS_REQUIRED } };
 
@@ -111,7 +122,7 @@ async function createAndFile({ funko, destination }: CreateFormData, photos: Fil
 
   if (!photosResult.success) return undoCreate(funkoId, photosResult.message);
 
-  const collectionsResult = await fileInCollections(funkoId, validDestination);
+  const collectionsResult = await fileInCollections(funkoId, validItems);
 
   if (!collectionsResult.success) return undoCreate(funkoId, collectionsResult.message);
 

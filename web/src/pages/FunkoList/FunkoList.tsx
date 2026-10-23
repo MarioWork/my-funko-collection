@@ -1,6 +1,5 @@
 import { Package, ScanBarcode } from 'lucide-react';
 import { PAGE_ICONS } from '@utils/navigationUtils';
-import { Outlet } from 'react-router';
 import type { FunkoApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
@@ -34,11 +33,11 @@ function funkosPageOf(loaderData: unknown) {
 function DesktopActions() {
   return (
     <>
-      <LinkButton to={ADD_ROUTES_PATHS.NESTED_SCAN} variant="outline">
+      <LinkButton to={ADD_ROUTES_PATHS.BASE} variant="outline">
         <ScanBarcode data-icon="inline-start" aria-hidden="true" />
         Scan
       </LinkButton>
-      <LinkButton to={ADD_ROUTES_PATHS.NESTED_FORM} aria-label="New funko">
+      <LinkButton to={ADD_ROUTES_PATHS.MANUAL} aria-label="New funko">
         <Package data-icon="inline-start" aria-hidden="true" />
         New
       </LinkButton>
@@ -102,7 +101,6 @@ function FunkoList() {
         />
       </div>
       <AddFab />
-      <Outlet />
     </div>
   );
 }

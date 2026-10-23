@@ -33,11 +33,11 @@ function FunkoListEmpty({ isFiltered, onClearFilters }: Props) {
 
   return (
     <EmptyState pose="waiting" title="No funkos yet" description="Scan a box or type the first one in.">
-      <LinkButton to={ADD_ROUTES_PATHS.NESTED_SCAN}>
+      <LinkButton to={ADD_ROUTES_PATHS.BASE}>
         <ScanBarcode data-icon="inline-start" aria-hidden="true" />
         Scan
       </LinkButton>
-      <LinkButton to={ADD_ROUTES_PATHS.NESTED_FORM} variant="outline" aria-label="New funko">
+      <LinkButton to={ADD_ROUTES_PATHS.MANUAL} variant="outline" aria-label="New funko">
         <Package data-icon="inline-start" aria-hidden="true" />
         New
       </LinkButton>

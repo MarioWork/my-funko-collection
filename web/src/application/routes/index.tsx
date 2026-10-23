@@ -2,7 +2,7 @@ import { Navigate, type RouteObject } from 'react-router';
 import AppLoading from '@application/layout/AppLoading';
 import RouteError from '@pages/Error/RouteError';
 import { authMiddleware } from './authMiddleware';
-import { addRoutes, nestedAddRoutes } from './featureRoutes/addRoutes';
+import { addRoutes } from './featureRoutes/addRoutes';
 import { authRoutes, securityRoutes } from './featureRoutes/authRoutes';
 import { categoryRoutes } from './featureRoutes/categoryRoutes';
 import { collectionRoutes } from './featureRoutes/collectionRoutes';
@@ -36,7 +36,6 @@ const routes: RouteObject[] = [
           {
             path: BASE_ROUTES_PATHS.HOME,
             lazy: () => import('@pages/Home/Home.route'),
-            children: nestedAddRoutes,
           },
           {
             path: BASE_ROUTES_PATHS.SEARCH,

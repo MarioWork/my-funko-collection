@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useFetcher } from 'react-router';
 import { HttpVerbsUtil } from '@app-types/utility';
-import type { FunkoFormSubmission } from '@components/FunkoForm/types';
 import funkoService from '@services/funkoService/funkoService';
 import { type AddDestination } from '@utils/addDestinationUtils';
 import { createFormData } from '@utils/formDataUtils';
 import { prepareUpload } from '@utils/pendingPhotoUtils';
 import type { AddActionData } from '../addActions';
+import type { AddFunkoSubmission } from '../components/AddFunkoForm/types';
 import { AddIntentUtil, AddStepUtil, ScanResultKindUtil, type ScanResult } from '../addUtils';
 
 type Options = {
@@ -73,14 +73,18 @@ export function useAddFlow({ isManual, destination, rememberDestination, remembe
     }
   };
 
-  // One request: the funko, where it goes, and the photos (resized on the device first).
-  const submitCreate = async ({ funko, destination: chosen, photos }: FunkoFormSubmission) => {
+  // One request: the funko, its item in each chosen collection, and the photos (resized on the device first).
+  // The collections and the first item's tags are remembered as the starting point for the next funko.
+  const submitCreate = async ({ funko, items, photos }: AddFunkoSubmission) => {
     rememberCategory(String(funko.categoryId));
-    rememberDestination(chosen);
+    rememberDestination({
+      collectionIds: items.map((item) => item.collectionId),
+      tagIds: items[0]?.tagIds ?? [],
+    });
     setIsPreparing(true);
 
     const body = await prepareUpload(photos);
-    const fields = createFormData({ intent: AddIntentUtil.CREATE, funko, destination: chosen });
+    const fields = createFormData({ intent: AddIntentUtil.CREATE, funko, items });
 
     setIsPreparing(false);
     fields.forEach((value, key) => body.append(key, value));

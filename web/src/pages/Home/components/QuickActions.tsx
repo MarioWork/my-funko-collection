@@ -6,7 +6,7 @@ import LinkButton from '@components/LinkButton';
 function QuickActions() {
   return (
     <section aria-label="Quick actions" className="flex flex-wrap gap-2">
-      <LinkButton to={ADD_ROUTES_PATHS.NESTED_SCAN}>
+      <LinkButton to={ADD_ROUTES_PATHS.BASE}>
         <ScanBarcode data-icon="inline-start" aria-hidden="true" />
         Scan
       </LinkButton>
