@@ -3,6 +3,7 @@ import type { CollectionItemApiModel, FunkoDetailApiModel } from '@app-types/mod
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import ConfirmDialog from '@components/ConfirmDialog';
+import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 import { createFormData } from '@utils/formDataUtils';
 
 type Props = {
@@ -11,6 +12,9 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
 };
+
+// The confirm dialog's answer: whether the extra "also remove it from its collections" box was ticked.
+type ConfirmChoice = { isChecked: boolean };
 
 const CONFLICT_STATUS = 409;
 
@@ -22,7 +26,7 @@ function FunkoDeleteDialog({ funko, items, isOpen, onClose }: Props) {
   const hasConflict = fetcher.data?.success === false && fetcher.data.error?.statusCode === CONFLICT_STATUS;
   const hasOtherFailure = fetcher.data?.success === false && !hasConflict;
 
-  const confirm = ({ isChecked }: { isChecked: boolean }) =>
+  const confirm = ({ isChecked }: ConfirmChoice) =>
     void fetcher.submit(createFormData({ force: isChecked }), {
       method: HttpVerbsUtil.DELETE,
       action: FUNKO_ROUTES_PATHS.delete(String(funko.id)),
@@ -36,7 +40,7 @@ function FunkoDeleteDialog({ funko, items, isOpen, onClose }: Props) {
         <>
           Its images are deleted too. This cannot be undone.
           {hasConflict ? ' It is still in a collection: tick the box below to remove it from there as well.' : ''}
-          {hasOtherFailure ? ' Something went wrong. Please try again.' : ''}
+          {hasOtherFailure ? ` ${GENERIC_WRITE_ERROR}` : ''}
         </>
       }
       confirmLabel="Delete"

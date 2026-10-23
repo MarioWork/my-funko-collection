@@ -82,4 +82,6 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
 - `LinkButton` keeps `role="link"` (Base UI would announce a button); the desktop `<main>` is shadcn's
   `SidebarInset`, so the content wrapper is a `div`.
 - Mock mode: `src/mocks/mockStore.ts` is an in-memory copy of the API seed; `resetMockStore()` runs after each
-  Vitest test and before each Playwright test.
+  Vitest test and before each Playwright test. Handlers read and write that store, so mocks behave like a database;
+  there are no per-handler `create*MockModel` factories (decided 2026-10-23, overriding the mocks skill here).
+  `yarn dev:big` adds 300 generated funkos (`VITE_MOCK_EXTRA_FUNKOS`), never in tests.

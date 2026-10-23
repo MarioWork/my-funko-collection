@@ -1,11 +1,12 @@
 import type { LoaderFunctionArgs } from 'react-router';
-import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE, SortingDirectionUtil } from '@app-types/utility';
+import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE } from '@app-types/utility';
 import imageService, {
   DEFAULT_IMAGE_SORT_DIRECTION,
   DEFAULT_IMAGE_SORT_FIELD,
   ImageApiSearchFields,
   ImageApiSortingFields,
 } from '@services/imageService/imageService';
+import { readSearchFields, readSortDirection, readSortField } from '@utils/listParamsUtils';
 import {
   DEFAULT_IMAGE_VIEW,
   IMAGE_GROUP_PAGE_SIZE,
@@ -14,22 +15,8 @@ import {
   ImageViewUtil,
 } from './imageListUtils';
 
-const SORT_FIELDS = new Set<string>(Object.values(ImageApiSortingFields));
-const DIRECTIONS = new Set<string>(Object.values(SortingDirectionUtil));
-
-type SearchFields = Partial<Record<ImageApiSearchFields, string>>;
-
-function readSearchFields(searchParams: URLSearchParams): SearchFields {
-  const fields: SearchFields = {};
-
-  for (const field of Object.values(ImageApiSearchFields)) {
-    const value = searchParams.get(field);
-
-    if (value) fields[field] = value;
-  }
-
-  return fields;
-}
+const SORT_FIELDS = Object.values(ImageApiSortingFields);
+const SEARCH_FIELDS = Object.values(ImageApiSearchFields);
 
 // Reads the list state from the URL (view, search, filter, sort, page) and loads that page: of images, or of
 // funko groups when the list is grouped by funko.
@@ -37,10 +24,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const searchParams = new URL(request.url).searchParams;
   const sortParam = searchParams.get(ApiUrlParamsUtil.sorting_fields) ?? '';
   const directionParam = searchParams.get(ApiUrlParamsUtil.sortingDirection) ?? '';
-  const sortField = SORT_FIELDS.has(sortParam) ? (sortParam as ImageApiSortingFields) : DEFAULT_IMAGE_SORT_FIELD;
-  const direction = DIRECTIONS.has(directionParam)
-    ? (directionParam as SortingDirectionUtil)
-    : DEFAULT_IMAGE_SORT_DIRECTION;
+  const sortField = readSortField(sortParam, SORT_FIELDS) ?? DEFAULT_IMAGE_SORT_FIELD;
+  const direction = readSortDirection(directionParam) ?? DEFAULT_IMAGE_SORT_DIRECTION;
   const page = searchParams.get(ApiUrlParamsUtil.page) ?? DEFAULT_FIRST_PAGE;
   const viewParam = searchParams.get(IMAGE_VIEW_PARAM) ?? DEFAULT_IMAGE_VIEW;
   const isGrouped = viewParam !== ImageViewUtil.IMAGES;
@@ -49,7 +34,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     pagination: { page, size: pageSize },
     sortingField: sortField,
     direction,
-    ...readSearchFields(searchParams),
+    ...readSearchFields(searchParams, SEARCH_FIELDS),
   };
 
   const [imagesResponse, groupsResponse] = isGrouped

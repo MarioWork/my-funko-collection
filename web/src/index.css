@@ -92,6 +92,11 @@
   --color-accent-soft-foreground: var(--accent-soft-foreground);
   --color-selected: var(--selected);
   --color-selected-foreground: var(--selected-foreground);
+  --color-media: var(--media);
+  --color-media-foreground: var(--media-foreground);
+  --color-image-ring: var(--image-ring);
+  /* The camera viewfinder's dimmed surround: a huge spread shadow around the read window. */
+  --shadow-viewfinder: 0 0 0 9999px color-mix(in oklab, var(--media) 45%, transparent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -139,6 +144,12 @@
   --accent-soft-foreground: var(--color-teal-800);
   --selected: var(--color-teal-50);
   --selected-foreground: var(--color-teal-800);
+  /* Photo and camera surfaces (the full-screen viewer, the scanner): black in both themes, so a photo looks the
+     same whatever the theme, with white controls on it. */
+  --media: #000000;
+  --media-foreground: #ffffff;
+  /* The hairline around a photo: none on light surfaces. */
+  --image-ring: transparent;
   --destructive: #c62828;
   --destructive-foreground: #ffffff;
   --success: #1b7f3b;
@@ -188,6 +199,10 @@
   --accent-soft-foreground: var(--color-teal-300);
   --selected: var(--color-teal-900);
   --selected-foreground: var(--color-teal-200);
+  --media: #000000;
+  --media-foreground: #ffffff;
+  /* On dark surfaces a white box background needs a faint edge. */
+  --image-ring: color-mix(in oklab, #ffffff 10%, transparent);
   --destructive: #ef6a6a;
   --destructive-foreground: var(--color-stone-950);
   --success: #5fcf84;

@@ -7,8 +7,10 @@ import {
   type FunkoTypeUtil as FunkoType,
   type ItemConditionUtil as ItemCondition,
 } from '@app-types/utility';
-import { createMockImageUrls } from './mockImageUtils';
+import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from './mockImageUtils';
 
+export type MockRowWithId = { id: number };
+export type MockNamedRow = { id: number; name: string };
 export type MockCategoryRow = { id: number; name: string; createdAt: string; updatedAt: string };
 export type MockSeriesRow = { id: number; name: string; createdAt: string; updatedAt: string };
 export type MockTagRow = { id: number; name: string; notes: string | null; createdAt: string; updatedAt: string };
@@ -63,6 +65,8 @@ const FIRST_DATE = Date.UTC(2026, 0, 5, 9, 30);
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const DEFAULT_CURRENCY = 'EUR';
 export const MOCK_FUNKO_COUNT = 30;
+const OWNED_COLLECTION_ID = 1;
+const WISHLIST_COLLECTION_ID = 2;
 
 export function mockDate(index: number): string {
   return new Date(FIRST_DATE + index * DAY_MS).toISOString();
@@ -324,8 +328,8 @@ function createExtraImages(funkos: MockFunkoRow[], startId: number): MockImageRo
 // Every other generated funko is owned, every seventh wishlisted.
 function createExtraItems(funkos: MockFunkoRow[], startId: number): MockItemRow[] {
   const memberships = funkos.flatMap((funko, funkoIndex) => [
-    ...(funkoIndex % EXTRA_OWNED_EVERY === 0 ? [{ funko, collectionId: 1 }] : []),
-    ...(funkoIndex % EXTRA_WISHLIST_EVERY === 0 ? [{ funko, collectionId: 2 }] : []),
+    ...(funkoIndex % EXTRA_OWNED_EVERY === 0 ? [{ funko, collectionId: OWNED_COLLECTION_ID }] : []),
+    ...(funkoIndex % EXTRA_WISHLIST_EVERY === 0 ? [{ funko, collectionId: WISHLIST_COLLECTION_ID }] : []),
   ]);
 
   return memberships.map(({ funko, collectionId }, offset) => ({
@@ -357,7 +361,7 @@ function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
         id,
         funkoId: funko.id,
         position,
-        sizeBytes: 350_000,
+        sizeBytes: MOCK_IMAGE_SIZE_BYTES,
         createdAt: mockDate(index),
         ...createMockImageUrls(funko.name, index * IMAGES_PER_FUNKO + position),
       };
@@ -446,7 +450,7 @@ export function resetMockStore(): void {
   mockStore = createMockStore();
 }
 
-export function nextId(rows: { id: number }[]): number {
+export function nextId(rows: MockRowWithId[]): number {
   return rows.reduce((highest, row) => Math.max(highest, row.id), 0) + 1;
 }
 

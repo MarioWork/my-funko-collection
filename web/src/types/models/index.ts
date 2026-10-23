@@ -2,18 +2,18 @@ export type { ApiError, ApiErrorIssue } from './apiError.type';
 export type { CategoryApiModel, CategoryId } from './categoryApiModel.type';
 export type { SeriesApiModel, SeriesId } from './seriesApiModel.type';
 export type { TagApiModel, TagId } from './tagApiModel.type';
-export type {
-  FunkoApiModel,
-  FunkoDetailApiModel,
-  FunkoId,
-  FunkoImageApiModel,
-  FunkoImageId,
-  FunkoSummaryApiModel,
-  NamedApiModel,
-  PrimaryImageApiModel,
-} from './funkoApiModel.type';
+export type { NamedApiModel } from './namedApiModel.type';
+export type { PrimaryImageApiModel } from './primaryImageApiModel.type';
+export type { FunkoSummaryApiModel } from './funkoSummaryApiModel.type';
+export type { FunkoApiModel, FunkoId } from './funkoApiModel.type';
+export type { FunkoImageApiModel, FunkoImageId } from './funkoImageApiModel.type';
+export type { FunkoDetailApiModel } from './funkoDetailApiModel.type';
 export type { CollectionApiModel, CollectionId } from './collectionApiModel.type';
 export type { CollectionItemApiModel, CollectionItemId } from './collectionItemApiModel.type';
-export type { CategoryStatsApiModel, CollectionStatsApiModel, StatsApiModel } from './statsApiModel.type';
+export type { CategoryStatsApiModel } from './categoryStatsApiModel.type';
+export type { CollectionStatsApiModel } from './collectionStatsApiModel.type';
+export type { StatsApiModel } from './statsApiModel.type';
 export type { SuggestApiModel } from './suggestApiModel.type';
-export type { ImageGroupApiModel, ImageListEntryApiModel, ImageListEntryKey } from './imageListEntryApiModel.type';
+export type { ImageFunkoApiModel } from './imageFunkoApiModel.type';
+export type { ImageListEntryApiModel, ImageListEntryKey } from './imageListEntryApiModel.type';
+export type { ImageGroupApiModel } from './imageGroupApiModel.type';

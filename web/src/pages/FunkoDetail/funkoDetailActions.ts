@@ -1,10 +1,10 @@
 import { redirect, type ActionFunctionArgs } from 'react-router';
-import { ValidationError } from 'yup';
-import type { JSONResponseUtil } from '@app-types/utility';
-import { HttpVerbsUtil } from '@app-types/utility';
+import { number, ValidationError } from 'yup';
+import { DEFAULT_FIRST_PAGE, HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { PHOTO_FIELD } from '@utils/pendingPhotoUtils';
 import collectionItemService, { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
+import { CreateCollectionItemSchema } from '@services/collectionItemService/collectionItemService.type';
 import funkoImageService from '@services/funkoImageService/funkoImageService';
 import { ReorderImagesSchema, RotateImageSchema } from '@services/funkoImageService/funkoImageService.type';
 import funkoService from '@services/funkoService/funkoService';
@@ -15,6 +15,11 @@ type DeleteFunkoFormData = { force?: boolean };
 type MembershipFormData = { collectionId: number };
 type ReorderFormData = { imageIds: number[] };
 type RotateFormData = { degrees: number };
+
+// The funko's item, if any, is the one match: a funko sits in a collection at most once.
+const SINGLE_ITEM_PAGE_SIZE = '1';
+
+const collectionIdSchema = number().integer().positive().required();
 
 // DELETE /funkos/:funkoId, with `force` from the confirm dialog's checkbox. Success leaves the page.
 export const deleteFunkoAction = async ({
@@ -27,24 +32,40 @@ export const deleteFunkoAction = async ({
   return result.success ? redirect(FUNKO_ROUTES_PATHS.BASE) : result;
 };
 
-// POST adds the funko to a collection, DELETE removes it: the detail page's Owned toggle and Lists menu.
-export const membershipAction = async ({ request, params }: ActionFunctionArgs): Promise<JSONResponseUtil> => {
-  const funkoId = Number(params.funkoId);
-  const { collectionId } = parseFormData<MembershipFormData>(await request.formData());
-
-  if (request.method === HttpVerbsUtil.POST) {
-    return collectionItemService.addCollectionItem(collectionId, newItemPayload(funkoId));
-  }
-
-  const items = await collectionItemService.getCollectionItems(collectionId, {
-    pagination: { page: '1', size: '1' },
+// The funko's one item in that collection, removed. Nothing to remove is a failure.
+async function removeFromCollection(funkoId: number, collectionId: number): Promise<JSONResponseUtil> {
+  const fields = {
+    pagination: { page: DEFAULT_FIRST_PAGE, size: SINGLE_ITEM_PAGE_SIZE },
     [ItemApiSearchFields.FUNKO_ID]: String(funkoId),
-  });
+  };
+  const items = await collectionItemService.getCollectionItems(collectionId, fields);
   const item = items.data[0];
 
   if (!item) return { success: false };
 
   return collectionItemService.deleteCollectionItem(collectionId, item.id);
+}
+
+// POST adds the funko to a collection, DELETE removes it: the detail page's Owned toggle and Lists menu.
+export const membershipAction = async ({ request, params }: ActionFunctionArgs): Promise<JSONResponseUtil> => {
+  const funkoId = Number(params.funkoId);
+  const { collectionId } = parseFormData<MembershipFormData>(await request.formData());
+
+  try {
+    const validCollectionId = await collectionIdSchema.validate(collectionId);
+
+    if (request.method === HttpVerbsUtil.POST) {
+      const validItem = await CreateCollectionItemSchema.validate(newItemPayload(funkoId));
+
+      return await collectionItemService.addCollectionItem(validCollectionId, validItem);
+    }
+
+    return await removeFromCollection(funkoId, validCollectionId);
+  } catch (error) {
+    if (error instanceof ValidationError) return { success: false };
+
+    throw error;
+  }
 };
 
 // POST uploads photos (multipart, field "file"); PATCH reorders them.

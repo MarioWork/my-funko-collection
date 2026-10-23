@@ -1,4 +1,4 @@
-import type { CollectionApiModel } from '@app-types/models';
+import type { CollectionApiModel, CollectionId, TagId } from '@app-types/models';
 
 // Where new funkos go, remembered across visits: "Owned, Wishlist · Box 3". Also edited in Settings.
 // The collection key holds a comma list of ids (older visits stored a single id, which still parses).
@@ -11,8 +11,8 @@ export const CATALOG_ONLY_VALUE = 'none';
 
 // An empty `collectionIds` means "just the catalog": the funko is created, no item is filed anywhere.
 export type AddDestination = {
-  collectionIds: number[];
-  tagIds: number[];
+  collectionIds: CollectionId[];
+  tagIds: TagId[];
 };
 
 export function parseStoredIds(raw: string): number[] {
@@ -22,6 +22,6 @@ export function parseStoredIds(raw: string): number[] {
     .filter((id) => Number.isInteger(id) && id > 0);
 }
 
-export function defaultCollectionId(collections: CollectionApiModel[]): number | undefined {
+export function defaultCollectionId(collections: CollectionApiModel[]): CollectionId | undefined {
   return (collections.find((collection) => collection.isDefault) ?? collections[0])?.id;
 }

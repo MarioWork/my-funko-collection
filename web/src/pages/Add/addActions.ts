@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs } from 'react-router';
 import { ValidationError } from 'yup';
 import type { FunkoApiModel } from '@app-types/models';
-import type { JSONResponseUtil } from '@app-types/utility';
+import { DEFAULT_FIRST_PAGE, type JSONResponseUtil } from '@app-types/utility';
 import collectionItemService, { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
 import funkoImageService from '@services/funkoImageService/funkoImageService';
 import funkoService from '@services/funkoService/funkoService';
@@ -27,6 +27,8 @@ type IncrementFormData = {
 export type AddActionData = JSONResponseUtil<AddResult>;
 
 const MIN_PHOTOS = 1;
+// The funko's item, if any, is the one match: a funko sits in a collection at most once.
+const SINGLE_ITEM_PAGE_SIZE = '1';
 const PHOTOS_REQUIRED = 'Add at least one image.';
 const PHOTOS_WARNING = 'The images did not upload. Add them from its page.';
 const COLLECTION_WARNING = 'It could not be added to one of the lists. Add it from its page.';
@@ -52,10 +54,11 @@ async function fileInCollections(funkoId: number, { collectionIds, tagIds }: Add
 
 // A box already in the list gets one more; a list without it gets a new item with the chosen tags.
 async function incrementInCollection(funkoId: number, collectionId: number, tagIds: number[]) {
-  const existing = await collectionItemService.getCollectionItems(collectionId, {
-    pagination: { page: '1', size: '1' },
+  const fields = {
+    pagination: { page: DEFAULT_FIRST_PAGE, size: SINGLE_ITEM_PAGE_SIZE },
     [ItemApiSearchFields.FUNKO_ID]: String(funkoId),
-  });
+  };
+  const existing = await collectionItemService.getCollectionItems(collectionId, fields);
   const item = existing.data[0];
 
   if (!item) return collectionItemService.addCollectionItem(collectionId, newItemPayload(funkoId, tagIds));

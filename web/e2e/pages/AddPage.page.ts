@@ -65,10 +65,6 @@ export class AddPage {
     await input.press('Backspace');
   }
 
-  photosError() {
-    return this.main.getByText('Add at least one image');
-  }
-
   async addAnother() {
     await this.savedCard.getByRole('button', { name: 'Add another' }).click();
   }

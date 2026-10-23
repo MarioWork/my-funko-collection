@@ -1,4 +1,4 @@
-import { boolean, object, string, type InferType } from 'yup';
+import { boolean, object, type InferType } from 'yup';
 import type { CollectionApiModel } from '@app-types/models';
 import type { CreateCollection } from '@services/collectionService/collectionService.type';
 import { collectionNameSchema, collectionNotesSchema } from '@utils/collectionUtils';
@@ -22,5 +22,3 @@ export const toCollectionPayload = (values: CollectionFormValues): CreateCollect
   notes: values.notes ? values.notes : null,
   isDefault: values.isDefault,
 });
-
-export const notesSchema = string();

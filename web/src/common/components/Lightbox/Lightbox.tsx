@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FunkoImageApiModel } from '@app-types/models';
 import IconButton from '@components/IconButton';
 import { Dialog, DialogContent, DialogTitle } from '@components/ui/dialog';
+import { LARGE_IMAGE_WIDTH_PX, MEDIUM_IMAGE_WIDTH_PX } from '@utils/imageSizeUtils';
 
 type Props = {
   images: FunkoImageApiModel[];
@@ -42,6 +43,8 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
     window.addEventListener('keydown', onKeyDown);
 
     return () => window.removeEventListener('keydown', onKeyDown);
+    // showPrevious / showNext are new functions each render, but they only read `count` (already a dependency) and
+    // call setIndex with an updater, so listing them would only re-subscribe on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, count]);
 
@@ -64,7 +67,7 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
     <Dialog open={isOpen} onOpenChange={(open) => (open ? undefined : onClose())}>
       <DialogContent
         showCloseButton={false}
-        className="h-dvh max-h-dvh w-screen max-w-none rounded-none border-0 bg-black p-0 text-white sm:max-w-none"
+        className="h-dvh max-h-dvh w-screen max-w-none rounded-none border-0 bg-media p-0 text-media-foreground sm:max-w-none"
       >
         <DialogTitle className="sr-only">
           {title}, image {index + 1} of {count}
@@ -79,7 +82,7 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
           <img
             key={image.id}
             src={image.url}
-            srcSet={`${image.mediumUrl} 1200w, ${image.url} 2000w`}
+            srcSet={`${image.mediumUrl} ${MEDIUM_IMAGE_WIDTH_PX}w, ${image.url} ${LARGE_IMAGE_WIDTH_PX}w`}
             sizes="100vw"
             alt={`${title}, ${index + 1} of ${count}`}
             width={image.width}
@@ -89,7 +92,7 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
           <IconButton
             aria-label="Close"
             variant="ghost"
-            className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 text-white hover:bg-white/10 hover:text-white"
+            className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 text-media-foreground hover:bg-media-foreground/10 hover:text-media-foreground"
             onClick={onClose}
           >
             <X aria-hidden="true" />
@@ -100,7 +103,7 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
                 aria-label="Previous image"
                 variant="ghost"
                 size="lg"
-                className="absolute left-2 text-white hover:bg-white/10 hover:text-white"
+                className="absolute left-2 text-media-foreground hover:bg-media-foreground/10 hover:text-media-foreground"
                 onClick={showPrevious}
               >
                 <ChevronLeft aria-hidden="true" />
@@ -109,12 +112,12 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
                 aria-label="Next image"
                 variant="ghost"
                 size="lg"
-                className="absolute right-2 text-white hover:bg-white/10 hover:text-white"
+                className="absolute right-2 text-media-foreground hover:bg-media-foreground/10 hover:text-media-foreground"
                 onClick={showNext}
               >
                 <ChevronRight aria-hidden="true" />
               </IconButton>
-              <p className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] text-sm text-white/80 tabular-nums">
+              <p className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] text-sm text-media-foreground/80 tabular-nums">
                 {index + 1} / {count}
               </p>
             </>

@@ -1,10 +1,12 @@
 import { useLoaderData } from 'react-router';
+import type { NamedApiModel } from '@app-types/models';
 import { ApiUrlParamsUtil, FUNKO_TYPE_LABELS, type FunkoTypeUtil, type LoaderDataUtil } from '@app-types/utility';
 import type { FilterChip } from '@components/FilterChips';
 import type { SortOption } from '@components/SortSelect';
 import { useListParams } from '@hooks/useListParams';
 import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
 import type { loader } from '../funkoListLoader';
+import { TRUE_VALUE } from '../funkoListUtils';
 
 const FILTER_FIELDS = [
   FunkoApiSearchFields.CATEGORY_ID,
@@ -27,7 +29,7 @@ type FilterUpdates = Partial<Record<FilterField, string | undefined>>;
 export function useFunkoListParams() {
   const data = useLoaderData<LoaderDataUtil<typeof loader>>();
   const { getParam, setParams, clearParams } = useListParams();
-  const nameOf = (rows: { id: number; name: string }[], id: string | undefined) =>
+  const nameOf = (rows: NamedApiModel[], id: string | undefined) =>
     rows.find((row) => String(row.id) === id)?.name ?? id ?? '';
 
   const query = getParam(FunkoApiSearchFields.QUERY) ?? '';
@@ -48,13 +50,13 @@ export function useFunkoListParams() {
     [FunkoApiSearchFields.CATEGORY_ID]: (value) => `Category: ${nameOf(data.categories, value)}`,
     [FunkoApiSearchFields.SERIES_ID]: (value) => `Series: ${nameOf(data.series, value)}`,
     [FunkoApiSearchFields.TYPE]: (value) => `Type: ${FUNKO_TYPE_LABELS[value as FunkoTypeUtil] ?? value}`,
-    [FunkoApiSearchFields.IS_CHASE]: (value) => (value === 'true' ? 'Chase only' : 'No chase'),
-    [FunkoApiSearchFields.HAS_SERIES]: (value) => (value === 'true' ? 'Has a series' : 'No series'),
+    [FunkoApiSearchFields.IS_CHASE]: (value) => (value === TRUE_VALUE ? 'Chase only' : 'No chase'),
+    [FunkoApiSearchFields.HAS_SERIES]: (value) => (value === TRUE_VALUE ? 'Has a series' : 'No series'),
     [FunkoApiSearchFields.COLLECTION_ID]: (value) => `In: ${nameOf(data.collections, value)}`,
-    [FunkoApiSearchFields.HAS_COLLECTIONS]: (value) => (value === 'true' ? 'In a collection' : 'No collections'),
+    [FunkoApiSearchFields.HAS_COLLECTIONS]: (value) => (value === TRUE_VALUE ? 'In a collection' : 'No collections'),
     [FunkoApiSearchFields.TAG_ID]: (value) => `Tag: ${nameOf(data.tags, value)}`,
-    [FunkoApiSearchFields.HAS_TAGS]: (value) => (value === 'true' ? 'Has tags' : 'No tags'),
-    [FunkoApiSearchFields.HAS_IMAGES]: (value) => (value === 'true' ? 'Has images' : 'No images'),
+    [FunkoApiSearchFields.HAS_TAGS]: (value) => (value === TRUE_VALUE ? 'Has tags' : 'No tags'),
+    [FunkoApiSearchFields.HAS_IMAGES]: (value) => (value === TRUE_VALUE ? 'Has images' : 'No images'),
   };
 
   const chips: FilterChip[] = FILTER_FIELDS.flatMap((field) => {

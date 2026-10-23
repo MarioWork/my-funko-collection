@@ -68,12 +68,17 @@ export function paginateMockList<T>(
     ordered.reverse();
   }
 
+  return pageMockList(params, ordered);
+}
+
+// The paging step alone, for a handler that has to order its rows itself (grouped rows, a fixed last group).
+export function pageMockList<T>(params: URLSearchParams, rows: T[]): ResponseWithPaginationUtil<T> {
   const page = Number(params.get(ApiUrlParamsUtil.page) ?? DEFAULT_PAGE);
   const size = Number(params.get(ApiUrlParamsUtil.pageSize) ?? DEFAULT_PAGE_SIZE);
 
   return {
-    data: ordered.slice((page - 1) * size, page * size),
-    totalResultNumber: ordered.length,
+    data: rows.slice((page - 1) * size, page * size),
+    totalResultNumber: rows.length,
     currentPage: page,
   };
 }

@@ -1,6 +1,11 @@
-import { Settings } from 'lucide-react';
 import { Link, NavLink, useLocation } from 'react-router';
-import { APP_NAME, MANAGE_ITEMS, NAVIGATION_ITEMS, type NavigationItem } from '@application/layout/navigationUtils';
+import {
+  APP_NAME,
+  MANAGE_ITEMS,
+  NAVIGATION_ITEMS,
+  SETTINGS_ITEM,
+  type NavigationItem,
+} from '@application/layout/navigationUtils';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AppLogo from '@components/AppLogo';
 import ThemeToggle from '@components/ThemeToggle';
@@ -38,8 +43,6 @@ function NavigationEntry({ item: { label, to, icon: Icon }, isActive, size = 'de
     </SidebarMenuItem>
   );
 }
-
-const SETTINGS_ITEM: NavigationItem = { label: 'Settings', to: BASE_ROUTES_PATHS.SETTINGS, icon: Settings };
 
 // Desktop navigation: the four destinations, the two manage pages, then Settings and the theme toggle in the
 // footer. Adding lives in the page headers (Funkos, a collection, Home), not here. Collapses to icons from the top-bar toggle, never hides; the edge is not draggable.

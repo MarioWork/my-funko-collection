@@ -3,9 +3,14 @@ import type { FetcherWithComponents } from 'react-router';
 import type { JSONResponseUtil } from '@app-types/utility';
 import { toast } from '@components/ui/toast';
 
+type UndoAction = {
+  label?: string;
+  onUndo: () => void;
+};
+
 type Options = {
   successMessage: string | ((data: unknown) => string);
-  undo?: { label?: string; onUndo: () => void };
+  undo?: UndoAction;
 };
 
 const UNDO_TOAST_MS = 7000;

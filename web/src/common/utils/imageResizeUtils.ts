@@ -6,12 +6,18 @@ export const UPLOAD_JPEG_QUALITY = 0.85;
 const JPEG_TYPE = 'image/jpeg';
 const JPEG_EXTENSION = '.jpg';
 const RELEASE_SIZE_PX = 1;
+const FILE_EXTENSION_PATTERN = /\.[^.]+$/;
+
+type ImageDimensions = {
+  width: number;
+  height: number;
+};
 
 function hasResizeSupport(): boolean {
   return typeof createImageBitmap === 'function' && typeof OffscreenCanvas === 'function';
 }
 
-async function readDimensions(file: File): Promise<{ width: number; height: number }> {
+async function readDimensions(file: File): Promise<ImageDimensions> {
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   const dimensions = { width: bitmap.width, height: bitmap.height };
 
@@ -20,7 +26,7 @@ async function readDimensions(file: File): Promise<{ width: number; height: numb
   return dimensions;
 }
 
-function targetSize(width: number, height: number) {
+function targetSize(width: number, height: number): ImageDimensions {
   const longEdge = Math.max(width, height);
 
   if (longEdge <= UPLOAD_LONG_EDGE_PX) return { width, height };
@@ -31,7 +37,7 @@ function targetSize(width: number, height: number) {
 }
 
 function jpegName(name: string): string {
-  return name.replace(/\.[^.]+$/, '') + JPEG_EXTENSION;
+  return name.replace(FILE_EXTENSION_PATTERN, '') + JPEG_EXTENSION;
 }
 
 // Returns the original file untouched when the browser cannot resize or the photo is already small enough.

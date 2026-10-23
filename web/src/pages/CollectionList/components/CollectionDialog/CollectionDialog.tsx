@@ -1,26 +1,23 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useEffect } from 'react';
-import { Controller } from 'react-hook-form';
 import { useFetcher, useLoaderData, useNavigate } from 'react-router';
 import type { CollectionApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil, type LoaderDataUtil } from '@app-types/utility';
 import InlineAlert from '@components/InlineAlert';
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@components/ui/field';
-import { Input } from '@components/ui/input';
-import { Switch } from '@components/ui/switch';
-import { Textarea } from '@components/ui/textarea';
+import { FieldGroup } from '@components/ui/field';
+import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
 import { useFormCompat } from '@hooks/useFormCompat';
+import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import { collectionFormSchema, getInitialCollectionValues, toCollectionPayload } from './collectionFormUtils';
 import type { loader } from './collectionDialogLoader';
 import SubmitButton from '@components/SubmitButton';
 import CancelButton from '@components/CancelButton';
 import FormPanel from '@components/FormPanel';
-import DisabledReason from '@components/DisabledReason';
-import { reasonWhen } from '@utils/disabledReasonUtils';
+import CollectionDefaultField from './components/CollectionDefaultField';
+import CollectionNameField from './components/CollectionNameField';
+import CollectionNotesField from './components/CollectionNotesField';
 
 const FORM_ID = 'collection-form';
-const DEFAULT_SWITCH_REASON = 'This is the default. Make another collection the default to change it.';
 const BACK = -1;
 
 // Routed under /collections/add and /collections/:id/edit; closing goes back to the list.
@@ -38,10 +35,7 @@ function CollectionDialog() {
 
   const close = () => void navigate(BACK);
 
-  useEffect(() => {
-    if (fetcher.state === 'idle' && fetcher.data?.success) close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher.state, fetcher.data]);
+  useCloseOnSuccess(fetcher, close);
 
   const onSubmit = handleSubmit((values) => {
     const payload = toCollectionPayload(values);
@@ -75,56 +69,17 @@ function CollectionDialog() {
     >
       <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate>
         <FieldGroup>
-          <Controller
+          <CollectionNameField control={control} idPrefix={FORM_ID} />
+          <CollectionNotesField control={control} idPrefix={FORM_ID} />
+          <CollectionDefaultField
             control={control}
-            name="name"
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid || undefined}>
-                <FieldLabel htmlFor={`${FORM_ID}-name`}>Name</FieldLabel>
-                <Input {...field} id={`${FORM_ID}-name`} aria-invalid={fieldState.invalid || undefined} />
-                <FieldError errors={fieldState.error ? [fieldState.error] : undefined} />
-              </Field>
-            )}
-          />
-          <Controller
-            control={control}
-            name="notes"
-            render={({ field: { value, ...field }, fieldState }) => (
-              <Field data-invalid={fieldState.invalid || undefined}>
-                <FieldLabel htmlFor={`${FORM_ID}-notes`}>Notes (optional)</FieldLabel>
-                <Textarea {...field} value={value ?? ''} id={`${FORM_ID}-notes`} rows={2} />
-                <FieldError errors={fieldState.error ? [fieldState.error] : undefined} />
-              </Field>
-            )}
-          />
-          <Controller
-            control={control}
-            name="isDefault"
-            render={({ field: { value, onChange, ...field } }) => (
-              <Field orientation="horizontal">
-                <DisabledReason
-                  reason={reasonWhen(collection?.isDefault === true, DEFAULT_SWITCH_REASON)}
-                  mode="wrapper"
-                >
-                  <Switch
-                    {...field}
-                    id={`${FORM_ID}-default`}
-                    checked={value}
-                    onCheckedChange={onChange}
-                    disabled={collection?.isDefault}
-                  />
-                </DisabledReason>
-                <div className="flex flex-col gap-0.5">
-                  <FieldLabel htmlFor={`${FORM_ID}-default`}>Default collection</FieldLabel>
-                  <FieldDescription>Used when Add has no collection picked.</FieldDescription>
-                </div>
-              </Field>
-            )}
+            idPrefix={FORM_ID}
+            isCurrentDefault={collection?.isDefault === true}
           />
         </FieldGroup>
         {failure ? (
           <InlineAlert tone="error" className="mt-4">
-            {failure.message ?? 'Something went wrong. Please try again.'}
+            {failure.message ?? GENERIC_WRITE_ERROR}
           </InlineAlert>
         ) : null}
       </form>

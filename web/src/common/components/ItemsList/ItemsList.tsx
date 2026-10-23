@@ -1,9 +1,10 @@
 import type { ComponentProps, ReactNode } from 'react';
 import type { CategoryApiModel, CollectionApiModel, CollectionItemApiModel, TagApiModel } from '@app-types/models';
-import type { ResponseWithPaginationUtil, SortingDirectionUtil } from '@app-types/utility';
+import type { ResponseWithPaginationUtil } from '@app-types/utility';
 import FunkoGrid from '@components/FunkoGrid';
 import ListPagination from '@components/ListPagination';
 import PageHeader from '@components/PageHeader';
+import type { SortOption } from '@components/SortSelect';
 import { useIsRefreshing } from '@hooks/useIsRefreshing';
 import { useItemActions } from '@hooks/useItemActions';
 import { useItemListParams } from '@hooks/useItemListParams';
@@ -23,7 +24,7 @@ type Props = {
   itemsResponse: ResponseWithPaginationUtil<CollectionItemApiModel>;
   page: number;
   pageSize: number;
-  sort: { field: string; direction: SortingDirectionUtil };
+  sort: SortOption;
   categories: CategoryApiModel[];
   tags: TagApiModel[];
   collections: CollectionApiModel[];
@@ -121,7 +122,7 @@ function ItemsList({
           <ItemTable
             items={itemsResponse.data}
             collections={collections}
-            showCollection={hasCollectionFilter}
+            hasCollectionColumn={hasCollectionFilter}
             busyItemId={busyItemId}
             onMove={move}
             onRemove={remove}
@@ -134,7 +135,7 @@ function ItemsList({
                 key={item.id}
                 item={item}
                 collections={collections}
-                showCollection={hasCollectionFilter}
+                hasCollectionColumn={hasCollectionFilter}
                 isBusy={busyItemId === item.id}
                 onMove={move}
                 onRemove={remove}

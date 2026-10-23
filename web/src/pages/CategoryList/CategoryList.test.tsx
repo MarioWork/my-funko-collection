@@ -38,7 +38,9 @@ it('renames a category inline', async () => {
 
   await userEvent.click(await screen.findByRole('button', { name: 'Rename Star Wars' }));
 
-  const nameField = screen.getByDisplayValue('Star Wars');
+  const nameField = screen.getByRole('textbox', { name: 'Name' });
+
+  expect(nameField).toHaveValue('Star Wars');
 
   await userEvent.clear(nameField);
   await userEvent.type(nameField, 'Pop! Star Wars');

@@ -7,8 +7,9 @@ import IconButton from '@components/IconButton';
 import InlineAlert from '@components/InlineAlert';
 import { useActionToast } from '@hooks/useActionToast';
 import { createFormData, isSamePayload } from '@utils/formDataUtils';
-import type { ManageEntityFormData, ManageFormValues, ManageRow } from '../manageListUtils';
-import ManageForm from './ManageForm';
+import ManageForm, { type ManageEntityFormData, type ManageFormValues } from '@components/ManageForm';
+import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
+import type { ManageRow } from '../manageListUtils';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 import { cn } from '@utils/classNameUtils';
 import { FADE_IN_CLASS } from '@utils/motionUtils';
@@ -111,9 +112,7 @@ function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
           <Trash2 aria-hidden="true" />
         </IconButton>
       </div>
-      {failure ? (
-        <InlineAlert tone="error">{failure.message ?? 'Something went wrong. Please try again.'}</InlineAlert>
-      ) : null}
+      {failure ? <InlineAlert tone="error">{failure.message ?? GENERIC_WRITE_ERROR}</InlineAlert> : null}
       <ConfirmDialog
         isOpen={isDeleteOpen}
         title={`Delete ${row.name}?`}

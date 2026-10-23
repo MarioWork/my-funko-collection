@@ -1,13 +1,13 @@
 import { http, HttpResponse } from 'msw/http';
 import { TEST_BASE_API_URL, server } from '@mocks/server';
-import suggestService from './suggestService';
+import suggestService, { SUGGEST_QUERY_PARAM } from './suggestService';
 
 describe('getSuggestions', () => {
   it('sends the query under q', async () => {
     let receivedQuery = '';
     server.use(
       http.get(`${TEST_BASE_API_URL}/suggest`, ({ request }) => {
-        receivedQuery = new URL(request.url).searchParams.get('q') ?? '';
+        receivedQuery = new URL(request.url).searchParams.get(SUGGEST_QUERY_PARAM) ?? '';
 
         return HttpResponse.json({ funkos: [], categories: [], collections: [], tags: [] });
       }),

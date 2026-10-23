@@ -12,7 +12,10 @@ export async function fetchEveryPage<Item>(fetchPage: PageFetcher<Item>): Promis
   const size = String(MAX_PAGE_SIZE);
   const firstPage = await fetchPage({ page: String(FIRST_PAGE), size });
   const pageCount = Math.ceil(firstPage.totalResultNumber / MAX_PAGE_SIZE);
-  const laterPageNumbers = Array.from({ length: Math.max(0, pageCount - FIRST_PAGE) }, (_, index) => index + 2);
+  const laterPageNumbers = Array.from(
+    { length: Math.max(0, pageCount - FIRST_PAGE) },
+    (_, index) => FIRST_PAGE + 1 + index,
+  );
   const laterPages = await Promise.all(laterPageNumbers.map((page) => fetchPage({ page: String(page), size })));
 
   return [firstPage, ...laterPages].flatMap((response) => response.data);

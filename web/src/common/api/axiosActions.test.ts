@@ -7,10 +7,12 @@ import { axiosActions } from './axiosActions';
 const TEST_PATH = '/actions-test';
 const TEST_URL = `${TEST_BASE_API_URL}${TEST_PATH}`;
 
+type CreatedRecord = { id: number };
+
 it('wraps the response data as a success', async () => {
   server.use(http.post(TEST_URL, () => HttpResponse.json({ id: 7 })));
 
-  const result = await axiosActions<{ id: number }>({ url: TEST_PATH, method: HttpVerbsUtil.POST });
+  const result = await axiosActions<CreatedRecord>({ url: TEST_PATH, method: HttpVerbsUtil.POST });
 
   expect(result).toEqual({ success: true, data: { id: 7 } });
 });

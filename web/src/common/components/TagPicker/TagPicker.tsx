@@ -32,7 +32,11 @@ type TagOption = NamedApiModel & { isCreate?: boolean };
 // Never a real id: marks the "Create “…”" entry.
 const CREATE_OPTION_ID = -1;
 
-function OptionLabel({ option }: { option: TagOption }) {
+type OptionLabelProps = {
+  option: TagOption;
+};
+
+function OptionLabel({ option }: OptionLabelProps) {
   if (!option.isCreate) return <>{option.name}</>;
 
   return (

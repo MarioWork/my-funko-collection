@@ -1,6 +1,6 @@
 import { FolderInput, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router';
-import type { CollectionApiModel, CollectionItemApiModel } from '@app-types/models';
+import type { CollectionApiModel, CollectionId, CollectionItemApiModel } from '@app-types/models';
 import IconButton from '@components/IconButton';
 import {
   DropdownMenu,
@@ -20,7 +20,7 @@ type Props = {
   collections: CollectionApiModel[];
   editPath: string;
   isBusy: boolean;
-  onMove: (toCollectionId: number) => void;
+  onMove: (toCollectionId: CollectionId) => void;
   onRemove: () => void;
   // Over a grid card's photo: a filled, smaller trigger so it stays visible on any picture.
   isOnPhoto?: boolean;

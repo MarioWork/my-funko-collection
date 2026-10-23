@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
 import { useFetcher, useLoaderData, useNavigate } from 'react-router';
 import type { FunkoApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil, type LoaderDataUtil } from '@app-types/utility';
 import FormPanel from '@components/FormPanel';
 import FunkoForm from '@components/FunkoForm';
 import type { FunkoFormSubmission } from '@components/FunkoForm/funkoFormSubmission.type';
-import { funkoToFormValues, toFunkoPayload } from '@components/FunkoFormFields/funkoFormUtils';
+import { funkoToFormValues, toFunkoPayload } from '@components/FunkoFormFields';
+import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
+import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import type { loader } from './funkoEditLoader';
 
@@ -22,10 +23,7 @@ function FunkoEdit() {
 
   const close = () => void navigate(BACK);
 
-  useEffect(() => {
-    if (fetcher.state === 'idle' && fetcher.data?.success) close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher.state, fetcher.data]);
+  useCloseOnSuccess(fetcher, close);
 
   const savedCollectionIds = items.map((item) => item.collection.id);
 
@@ -59,7 +57,7 @@ function FunkoEdit() {
         initialCollectionIds={savedCollectionIds}
         initialTags={[]}
         isSubmitting={isSubmitting}
-        errorMessage={failure ? (failure.message ?? 'Something went wrong. Please try again.') : undefined}
+        errorMessage={failure ? (failure.message ?? GENERIC_WRITE_ERROR) : undefined}
         onSubmit={submit}
       />
     </FormPanel>

@@ -1,5 +1,7 @@
 import { createFormData, parseFormData } from './formDataUtils';
 
+type FileForm = { file: File };
+
 describe('createFormData', () => {
   it('round-trips strings, numbers, booleans and objects', () => {
     const data = { name: 'Notebook', quantity: 3, isActive: true, item: { name: 'Pen' } };
@@ -20,7 +22,7 @@ describe('parseFormData', () => {
   it('keeps a file as a file', () => {
     const file = new File(['content'], 'notes.txt');
 
-    const parsed = parseFormData<{ file: File }>(createFormData({ file }));
+    const parsed = parseFormData<FileForm>(createFormData({ file }));
 
     expect(parsed.file).toBeInstanceOf(File);
     expect(parsed.file.name).toBe('notes.txt');

@@ -35,8 +35,9 @@ function ItemFormFields({ control, tags, idPrefix }: Props) {
                 inputMode="numeric"
                 min={1}
                 aria-invalid={fieldState.invalid || undefined}
+                aria-describedby={fieldState.error ? `${id('quantity')}-error` : undefined}
               />
-              <FieldError errors={fieldState.error ? [fieldState.error] : undefined} />
+              <FieldError id={`${id('quantity')}-error`} errors={fieldState.error ? [fieldState.error] : undefined} />
             </Field>
           )}
         />
@@ -71,8 +72,9 @@ function ItemFormFields({ control, tags, idPrefix }: Props) {
                 inputMode="decimal"
                 placeholder="14.99"
                 aria-invalid={fieldState.invalid || undefined}
+                aria-describedby={fieldState.error ? `${id('price')}-error` : undefined}
               />
-              <FieldError errors={fieldState.error ? [fieldState.error] : undefined} />
+              <FieldError id={`${id('price')}-error`} errors={fieldState.error ? [fieldState.error] : undefined} />
             </Field>
           )}
         />
@@ -109,8 +111,14 @@ function ItemFormFields({ control, tags, idPrefix }: Props) {
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid || undefined}>
             <FieldLabel htmlFor={id('notes')}>Notes</FieldLabel>
-            <Textarea {...field} id={id('notes')} rows={3} aria-invalid={fieldState.invalid || undefined} />
-            <FieldError errors={fieldState.error ? [fieldState.error] : undefined} />
+            <Textarea
+              {...field}
+              id={id('notes')}
+              rows={3}
+              aria-invalid={fieldState.invalid || undefined}
+              aria-describedby={fieldState.error ? `${id('notes')}-error` : undefined}
+            />
+            <FieldError id={`${id('notes')}-error`} errors={fieldState.error ? [fieldState.error] : undefined} />
           </Field>
         )}
       />

@@ -1,3 +1,5 @@
+import { Moon, Sun, SunMoon, type LucideIcon } from 'lucide-react';
+
 export const THEME_STORAGE_KEY = 'funkos.theme';
 
 export const ThemeUtil = {
@@ -6,6 +8,19 @@ export const ThemeUtil = {
   SYSTEM: 'system',
 } as const;
 export type ThemeUtil = (typeof ThemeUtil)[keyof typeof ThemeUtil];
+
+export type ThemeOption = {
+  value: ThemeUtil;
+  label: string;
+  icon: LucideIcon;
+};
+
+// The three choices, in the order every theme control lists them.
+export const THEME_OPTIONS: ThemeOption[] = [
+  { value: ThemeUtil.LIGHT, label: 'Light', icon: Sun },
+  { value: ThemeUtil.DARK, label: 'Dark', icon: Moon },
+  { value: ThemeUtil.SYSTEM, label: 'System', icon: SunMoon },
+];
 
 const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 const TRANSITION_CLASS = 'theme-transition';

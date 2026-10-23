@@ -15,6 +15,11 @@ import { Spinner } from '@components/ui/spinner';
 import DisabledReason from '@components/DisabledReason';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 
+// What the user chose besides confirming: the optional extra consent.
+type ConfirmChoice = {
+  isChecked: boolean;
+};
+
 type Props = {
   isOpen: boolean;
   title: string;
@@ -24,7 +29,7 @@ type Props = {
   isPending?: boolean;
   // An optional extra consent, e.g. "Also remove it from Owned and Wishlist" for a forced delete.
   checkboxLabel?: string;
-  onConfirm: (options: { isChecked: boolean }) => void;
+  onConfirm: (choice: ConfirmChoice) => void;
   onClose: () => void;
 };
 

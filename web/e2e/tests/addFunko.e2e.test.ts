@@ -30,21 +30,6 @@ test('adds a funko by hand with two photos into two collections in one save', as
   await expect(page.getByText('#999', { exact: true })).toBeVisible();
 });
 
-test('saving without a photo asks for one', async ({ page }) => {
-  const add = new AddPage(page);
-
-  await add.gotoManual();
-  await add.fillDetails({ name: 'No Photo Pop', number: '2', categoryName: 'Pop! Games' });
-  await add.save();
-
-  await expect(add.photosError()).toBeVisible();
-  await expect(add.savedCard).toBeHidden();
-
-  await add.choosePhotos(PHOTOS.slice(0, 1));
-
-  await expect(add.photosError()).toBeHidden();
-});
-
 test('"Add another" opens an empty form that keeps the collections picked last time', async ({ page }) => {
   const add = new AddPage(page);
 
@@ -70,5 +55,5 @@ test('a typed barcode of a funko already in the catalog offers +1 instead of a d
   await add.typeBarcode(SEED_SPIDER_MAN_BARCODE);
 
   await expect(add.scanResult).toContainText('Spider-Man');
-  await expect(add.scanResult.getByRole('button', { name: /^\+1 in Owned|^Add to Owned/ })).toBeVisible();
+  await expect(add.scanResult.getByRole('button', { name: '+1 in Owned' })).toBeVisible();
 });

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import type { CollectionApiModel, CollectionItemApiModel } from '@app-types/models';
+import type { CollectionApiModel, CollectionId, CollectionItemApiModel } from '@app-types/models';
 import { COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoImage from '@components/FunkoImage';
 import { Badge } from '@components/ui/badge';
@@ -12,16 +12,16 @@ import { DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
 type Props = {
   item: CollectionItemApiModel;
   collections: CollectionApiModel[];
-  showCollection: boolean;
+  hasCollectionColumn: boolean;
   isBusy: boolean;
-  onMove: (item: CollectionItemApiModel, toCollectionId: number) => void;
+  onMove: (item: CollectionItemApiModel, toCollectionId: CollectionId) => void;
   onRemove: (item: CollectionItemApiModel) => void;
 };
 
 const THUMB_SIZES = '72px';
 
 // The phone layout of a row: thumbnail, name, number, the facts in one line, tags, the menu.
-function ItemCard({ item, collections, showCollection, isBusy, onMove, onRemove }: Props) {
+function ItemCard({ item, collections, hasCollectionColumn, isBusy, onMove, onRemove }: Props) {
   return (
     <li
       className={cn(
@@ -53,7 +53,7 @@ function ItemCard({ item, collections, showCollection, isBusy, onMove, onRemove 
           >
             {item.funko.category.name}
           </Link>
-          {showCollection ? ` · ${item.collection.name}` : ''}
+          {hasCollectionColumn ? ` · ${item.collection.name}` : ''}
         </p>
         <p className="text-xs text-muted-foreground">{getItemFacts(item).join(' · ')}</p>
         {item.tags.length > 0 ? (

@@ -7,6 +7,8 @@ const MEDIUM_PX = 1200;
 const SMALL_PX = 480;
 const PLACEHOLDER_PX = 24;
 const BOX_RATIO = 4 / 3;
+// The file size every mock image reports (a typical 2000 px WebP).
+export const MOCK_IMAGE_SIZE_BYTES = 350_000;
 
 function svgDataUri(label: string, hue: number, px: number): string {
   const height = Math.round(px * BOX_RATIO);

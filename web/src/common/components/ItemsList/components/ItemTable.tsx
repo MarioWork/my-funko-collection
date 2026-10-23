@@ -1,6 +1,6 @@
 import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-table';
 import { Link } from 'react-router';
-import type { CollectionApiModel, CollectionItemApiModel } from '@app-types/models';
+import type { CollectionApiModel, CollectionId, CollectionItemApiModel, CollectionItemId } from '@app-types/models';
 import { ITEM_CONDITION_LABELS } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoImage from '@components/FunkoImage';
@@ -15,15 +15,15 @@ import { cn } from '@utils/classNameUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
 
 type ItemActions = {
-  busyItemId: number | undefined;
-  onMove: (item: CollectionItemApiModel, toCollectionId: number) => void;
+  busyItemId: CollectionItemId | undefined;
+  onMove: (item: CollectionItemApiModel, toCollectionId: CollectionId) => void;
   onRemove: (item: CollectionItemApiModel) => void;
 };
 
 type Props = ItemActions & {
   items: CollectionItemApiModel[];
   collections: CollectionApiModel[];
-  showCollection: boolean;
+  hasCollectionColumn: boolean;
 };
 
 type ActionsCellProps = ItemActions & {
@@ -149,14 +149,14 @@ const tagsColumn = columnHelper.display({
   ),
 });
 
-function buildColumns(collections: CollectionApiModel[], showCollection: boolean, actions: ItemActions) {
+function buildColumns(collections: CollectionApiModel[], hasCollectionColumn: boolean, actions: ItemActions) {
   const actionsColumn = columnHelper.display({
     id: 'actions',
     header: () => <span className="sr-only">Actions</span>,
     cell: ({ row }) => <ActionsCell item={row.original} collections={collections} {...actions} />,
   });
 
-  const leading = showCollection ? [photoColumn, nameColumn, collectionColumn] : [photoColumn, nameColumn];
+  const leading = hasCollectionColumn ? [photoColumn, nameColumn, collectionColumn] : [photoColumn, nameColumn];
 
   return columnHelper.columns([
     ...leading,
@@ -172,8 +172,8 @@ function buildColumns(collections: CollectionApiModel[], showCollection: boolean
 }
 
 // The desktop layout of the list: a real table on TanStack's row model, sticky header.
-function ItemTable({ items, collections, showCollection, busyItemId, onMove, onRemove }: Props) {
-  const columns = buildColumns(collections, showCollection, { busyItemId, onMove, onRemove });
+function ItemTable({ items, collections, hasCollectionColumn, busyItemId, onMove, onRemove }: Props) {
+  const columns = buildColumns(collections, hasCollectionColumn, { busyItemId, onMove, onRemove });
   const table = useTable({ features, columns, data: items });
 
   return (

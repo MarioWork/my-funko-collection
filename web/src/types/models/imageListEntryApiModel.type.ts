@@ -1,4 +1,4 @@
-import type { NamedApiModel } from './funkoApiModel.type';
+import type { ImageFunkoApiModel } from './imageFunkoApiModel.type';
 
 // One stored image as GET /images lists it: an image row with its funko, or a loose file on disk no funko uses.
 export interface ImageListEntryApiModel {
@@ -6,7 +6,7 @@ export interface ImageListEntryApiModel {
   key: string;
   // The funko image row; null for a loose file.
   id: number | null;
-  funko: (NamedApiModel & { number: string }) | null;
+  funko: ImageFunkoApiModel | null;
   fileName: string;
   width: number | null;
   height: number | null;
@@ -22,13 +22,3 @@ export interface ImageListEntryApiModel {
 }
 
 export type ImageListEntryKey = ImageListEntryApiModel['key'];
-
-// One funko's images with their totals, as GET /images/groups lists them. The loose files share one group, "loose".
-export interface ImageGroupApiModel {
-  key: string;
-  funko: (NamedApiModel & { number: string }) | null;
-  imageCount: number;
-  sizeBytes: number;
-  newestCreatedAt: string;
-  images: ImageListEntryApiModel[];
-}

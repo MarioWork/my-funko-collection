@@ -2,13 +2,12 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { Save } from 'lucide-react';
 import { useState } from 'react';
 import type { CategoryApiModel, CollectionId, FunkoDetailApiModel, NamedApiModel } from '@app-types/models';
-import FunkoFormFields from '@components/FunkoFormFields';
-import {
+import FunkoFormFields, {
   funkoFormSchema,
   getInitialFunkoValues,
   toFunkoPayload,
   type FunkoFormValues,
-} from '@components/FunkoFormFields/funkoFormUtils';
+} from '@components/FunkoFormFields';
 import InlineAlert from '@components/InlineAlert';
 import SubmitButton from '@components/SubmitButton';
 import { FieldSeparator } from '@components/ui/field';

@@ -1,4 +1,15 @@
-import { Book, FolderHeart, House, Images, Library, Package, Search, Tag, type LucideIcon } from 'lucide-react';
+import {
+  Book,
+  FolderHeart,
+  House,
+  Images,
+  Library,
+  Package,
+  Search,
+  Settings,
+  Tag,
+  type LucideIcon,
+} from 'lucide-react';
 import {
   BASE_ROUTES_PATHS,
   CATEGORY_ROUTES_PATHS,
@@ -31,5 +42,7 @@ export const MANAGE_ITEMS: NavigationItem[] = [
   { label: 'Images', to: IMAGE_ROUTES_PATHS.BASE, icon: Images },
 ];
 
+// Settings: the sidebar's footer on desktop, the last entry of the phone menu.
+export const SETTINGS_ITEM: NavigationItem = { label: 'Settings', to: BASE_ROUTES_PATHS.SETTINGS, icon: Settings };
+
 export const APP_NAME = 'MyFunkoCollection';
-export const APP_SHORT_NAME = 'Funkos';

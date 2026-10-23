@@ -11,8 +11,10 @@ import TopBar from './components/TopBar';
 import { useCommandPalette } from './hooks/useCommandPalette';
 
 // Viewport breakpoints pick the shell; everything inside <main> uses container queries (@container).
-const MOBILE_SHELL_STYLE = { '--bottom-nav-height': '4rem' } as React.CSSProperties;
-// shadcn's sidebar is a fixed column; this is as wide as the logo (mark + wordmark), not the 16rem default.
+// The phone shell's bottom bar height, read by everything that has to clear it.
+const MOBILE_SHELL_CLASS = 'flex min-h-svh flex-col [--bottom-nav-height:4rem]';
+// shadcn's sidebar is a fixed column; this is as wide as the logo (mark + wordmark), not the 16rem default. A style
+// prop, not a class: SidebarProvider sets its own --sidebar-width inline and merges only `style` over it.
 const SIDEBAR_STYLE = { '--sidebar-width': '15rem' } as React.CSSProperties;
 // The sidebar opens and closes at once. Animated, the page beside it reflows on every frame (its grids cross
 // container-query breakpoints mid-way) and the labels and logo swap before the width catches up: the UI bounces.
@@ -41,7 +43,7 @@ function AppShell() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col" style={MOBILE_SHELL_STYLE}>
+    <div className={MOBILE_SHELL_CLASS}>
       <NavigationProgress />
       <DemoBanner />
       <TopBar isDesktop={false} />

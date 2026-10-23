@@ -19,6 +19,7 @@ import {
   type MockCollectionRow,
   type MockFunkoRow,
   type MockItemRow,
+  type MockNamedRow,
   type MockTagRow,
 } from './mockStore';
 
@@ -51,14 +52,14 @@ function toSeriesRef(seriesId: number | null): NamedApiModel | null {
   return series ? { id: series.id, name: series.name } : null;
 }
 
-function named(row: { id: number; name: string } | undefined): NamedApiModel {
+function named(row: MockNamedRow | undefined): NamedApiModel {
   return row ? { id: row.id, name: row.name } : { id: 0, name: 'Unknown' };
 }
 
 export function toFunkoSummary(row: MockFunkoRow): FunkoSummaryApiModel {
   const primary = mockStore.images
     .filter((image) => image.funkoId === row.id)
-    .sort((a, b) => a.position - b.position || a.id - b.id)[0];
+    .sort((first, second) => first.position - second.position || first.id - second.id)[0];
 
   return {
     id: row.id,
@@ -92,7 +93,7 @@ export function toFunkoDetail(row: MockFunkoRow): FunkoDetailApiModel {
     ...toFunkoModel(row),
     images: mockStore.images
       .filter((image) => image.funkoId === row.id)
-      .sort((a, b) => a.position - b.position || a.id - b.id)
+      .sort((first, second) => first.position - second.position || first.id - second.id)
       .map(({ funkoId: _funkoId, ...image }) => image),
   };
 }

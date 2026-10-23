@@ -16,14 +16,14 @@ export default (baseUrl: string) => [
       imageCount: mockStore.images.length,
       imageBytes: mockStore.images.reduce((sum, image) => sum + image.sizeBytes, 0),
       collections: [...mockStore.collections]
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .sort((first, second) => first.name.localeCompare(second.name))
         .map((row) => {
           const { id, name, isDefault, itemCount, totalQuantity, totalSpentCents } = toCollectionModel(row);
 
           return { id, name, isDefault, itemCount, totalQuantity, totalSpentCents };
         }),
       byCategory: [...mockStore.categories]
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .sort((first, second) => first.name.localeCompare(second.name))
         .map((category) => ({
           id: category.id,
           name: category.name,

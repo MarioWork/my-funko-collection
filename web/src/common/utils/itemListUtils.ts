@@ -1,7 +1,9 @@
 import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE, SortingDirectionUtil } from '@app-types/utility';
-import type { SortField } from '@components/SortSelect';
+import type { SortField, SortOption } from '@components/SortSelect';
 import { DATE_LABELS, ALPHABETICAL_LABELS, NUMERIC_LABELS } from '@utils/sortUtils';
 import {
+  DEFAULT_ITEM_SORT_DIRECTION,
+  DEFAULT_ITEM_SORT_FIELD,
   ItemApiSearchFields,
   ItemApiSortingFields,
   type GetItemsFields,
@@ -47,7 +49,7 @@ export const ITEM_SORT_FIELDS: SortField[] = [
 
 export type ItemListState = {
   fields: GetItemsFields;
-  sort: { field: ItemApiSortingFields; direction: SortingDirectionUtil };
+  sort: SortOption;
   page: number;
   pageSize: number;
 };
@@ -56,12 +58,10 @@ export type ItemListState = {
 export function readItemListState(searchParams: URLSearchParams): ItemListState {
   const sortParam = searchParams.get(ApiUrlParamsUtil.sorting_fields) ?? '';
   const directionParam = searchParams.get(ApiUrlParamsUtil.sortingDirection) ?? '';
-  const sortingField = SORT_FIELDS.has(sortParam)
-    ? (sortParam as ItemApiSortingFields)
-    : ItemApiSortingFields.CREATION_DATE;
+  const sortingField = SORT_FIELDS.has(sortParam) ? (sortParam as ItemApiSortingFields) : DEFAULT_ITEM_SORT_FIELD;
   const direction = DIRECTIONS.has(directionParam)
     ? (directionParam as SortingDirectionUtil)
-    : SortingDirectionUtil.DESC;
+    : DEFAULT_ITEM_SORT_DIRECTION;
   const page = searchParams.get(ApiUrlParamsUtil.page) ?? DEFAULT_FIRST_PAGE;
   const searchFields: Partial<Record<ItemApiSearchFields, string>> = {};
 

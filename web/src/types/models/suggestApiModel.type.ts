@@ -1,4 +1,5 @@
-import type { FunkoSummaryApiModel, NamedApiModel } from './funkoApiModel.type';
+import type { FunkoSummaryApiModel } from './funkoSummaryApiModel.type';
+import type { NamedApiModel } from './namedApiModel.type';
 
 export interface SuggestApiModel {
   funkos: FunkoSummaryApiModel[];

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { PrimaryImageApiModel } from '@app-types/models';
 import { cn } from '@utils/classNameUtils';
+import { MEDIUM_IMAGE_WIDTH_PX, SMALL_IMAGE_WIDTH_PX } from '@utils/imageSizeUtils';
 import FunkoFigureArt from '@components/FunkoFigureArt';
 
 type Props = {
@@ -13,9 +14,6 @@ type Props = {
   isPriority?: boolean;
   className?: string;
 };
-
-const SMALL_WIDTH = 480;
-const MEDIUM_WIDTH = 1200;
 
 type LoadedImageProps = {
   image: PrimaryImageApiModel;
@@ -43,7 +41,7 @@ function LoadedImage({ image, alt, sizes, fit, isPriority }: LoadedImageProps) {
     <img
       ref={markIfComplete}
       src={image.smallUrl}
-      srcSet={`${image.smallUrl} ${SMALL_WIDTH}w, ${image.mediumUrl} ${MEDIUM_WIDTH}w`}
+      srcSet={`${image.smallUrl} ${SMALL_IMAGE_WIDTH_PX}w, ${image.mediumUrl} ${MEDIUM_IMAGE_WIDTH_PX}w`}
       sizes={sizes}
       alt={alt}
       width={image.width}
@@ -79,10 +77,7 @@ function FunkoImage({ image, alt, sizes, fit = 'cover', isPriority = false, clas
   return (
     <span
       style={{ backgroundImage: `url(${image.placeholder})` }}
-      className={cn(
-        'block overflow-hidden bg-cover bg-center dark:ring-1 dark:ring-white/10 dark:brightness-90',
-        className,
-      )}
+      className={cn('block overflow-hidden bg-cover bg-center ring-1 ring-image-ring dark:brightness-90', className)}
     >
       <LoadedImage key={image.smallUrl} image={image} alt={alt} sizes={sizes} fit={fit} isPriority={isPriority} />
     </span>

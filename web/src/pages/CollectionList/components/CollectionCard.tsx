@@ -4,6 +4,7 @@ import { Link, useFetcher } from 'react-router';
 import type { CollectionApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
+import CollectionSummaryCard from '@components/CollectionSummaryCard';
 import ConfirmDialog from '@components/ConfirmDialog';
 import IconButton from '@components/IconButton';
 import {
@@ -18,7 +19,6 @@ import { useActionToast } from '@hooks/useActionToast';
 import DisabledReason from '@components/DisabledReason';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 import { CollectionLayoutUtil } from '../collectionListUtils';
-import CollectionCardView from './CollectionCardView';
 import CollectionTableRow from './CollectionTableRow';
 
 type Props = {
@@ -33,6 +33,7 @@ type MenuProps = {
   onDelete: () => void;
 };
 
+const NO_NOTES = 'No notes';
 const IS_DEFAULT_REASON = 'This is already the default collection.';
 const DELETE_DEFAULT_REASON = 'The default collection cannot be deleted. Make another one the default first.';
 
@@ -131,7 +132,7 @@ function CollectionCard({ collection, layout }: Props) {
 
   return (
     <li>
-      <CollectionCardView collection={collection} menu={menu} />
+      <CollectionSummaryCard collection={collection} description={collection.notes ?? NO_NOTES} menu={menu} />
       {confirmDelete}
     </li>
   );

@@ -2,7 +2,7 @@ import type { ActionFunctionArgs } from 'react-router';
 import { ValidationError } from 'yup';
 import type { SeriesApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
-import type { ManageEntityFormData } from '@components/ManageList/manageListUtils';
+import type { ManageEntityFormData } from '@components/ManageForm';
 import seriesService from '@services/seriesService/seriesService';
 import { CreateSeriesSchema, UpdateSeriesSchema } from '@services/seriesService/seriesService.type';
 import { parseFormData } from '@utils/formDataUtils';
