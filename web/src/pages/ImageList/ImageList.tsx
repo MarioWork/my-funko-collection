@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import type { ImageListEntryApiModel } from '@app-types/models';
+import type { ImageGroupApiModel, ImageListEntryApiModel } from '@app-types/models';
+import type { LoaderDataUtil, ResponseWithPaginationUtil } from '@app-types/utility';
 import EmptyState from '@components/EmptyState';
-import ListPagination from '@components/ListPagination';
+import InfiniteListFooter from '@components/InfiniteListFooter';
 import PageHeader from '@components/PageHeader';
 import { Button } from '@components/ui/button';
+import { useInfiniteList } from '@hooks/useInfiniteList';
 import { useIsRefreshing } from '@hooks/useIsRefreshing';
 import { cn } from '@utils/classNameUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS } from '@utils/motionUtils';
@@ -12,7 +14,21 @@ import ImageListToolbar from './components/ImageListToolbar';
 import ImagePreviewDialog from './components/ImagePreviewDialog';
 import ImageTable from './components/ImageTable';
 import { useImageListParams } from './hooks/useImageListParams';
+import type { loader } from './imageListLoader';
 import { ImageViewUtil } from './imageListUtils';
+
+type ImageLoaderData = LoaderDataUtil<typeof loader> | undefined;
+
+const NO_IMAGES: ResponseWithPaginationUtil<ImageListEntryApiModel> = {
+  data: [],
+  totalResultNumber: 0,
+  currentPage: 1,
+};
+const NO_GROUPS: ResponseWithPaginationUtil<ImageGroupApiModel> = { data: [], totalResultNumber: 0, currentPage: 1 };
+
+const keyOfEntry = (entry: ImageListEntryApiModel | ImageGroupApiModel) => entry.key;
+const imagesPageOf = (loaderData: unknown) => (loaderData as ImageLoaderData)?.imagesResponse;
+const groupsPageOf = (loaderData: unknown) => (loaderData as ImageLoaderData)?.groupsResponse;
 
 type TotalDescriber = (total: number, isFiltered: boolean) => string;
 
@@ -29,6 +45,10 @@ function ImageList() {
   const isRefreshing = useIsRefreshing();
   const [openImage, setOpenImage] = useState<ImageListEntryApiModel | null>(null);
   const { imagesResponse, groupsResponse, total } = data;
+  // Both lists exist as hooks; only the view's own one has a page to show.
+  const images = useInfiniteList({ firstPage: imagesResponse ?? NO_IMAGES, pageOf: imagesPageOf, keyOf: keyOfEntry });
+  const groups = useInfiniteList({ firstPage: groupsResponse ?? NO_GROUPS, pageOf: groupsPageOf, keyOf: keyOfEntry });
+  const shown = imagesResponse ? images : groups;
   const isFiltered = query.length > 0 || chips.length > 0;
   const hasImages = total > 0;
 
@@ -50,8 +70,12 @@ function ImageList() {
           isRefreshing && DIMMED_CLASS,
         )}
       >
-        {imagesResponse && hasImages ? <ImageTable images={imagesResponse.data} onOpen={setOpenImage} /> : null}
-        {groupsResponse && hasImages ? <ImageGroupTable groups={groupsResponse.data} onOpen={setOpenImage} /> : null}
+        {imagesResponse && hasImages ? (
+          <ImageTable images={images.items} onOpen={setOpenImage} isLoadingMore={images.isLoading} />
+        ) : null}
+        {groupsResponse && hasImages ? (
+          <ImageGroupTable groups={groups.items} onOpen={setOpenImage} isLoadingMore={groups.isLoading} />
+        ) : null}
         {hasImages ? null : (
           <EmptyState
             pose={isFiltered ? 'notFound' : 'waiting'}
@@ -65,7 +89,14 @@ function ImageList() {
             ) : null}
           </EmptyState>
         )}
-        <ListPagination page={data.page} size={data.pageSize} total={total} />
+        <InfiniteListFooter
+          shownCount={shown.items.length}
+          total={shown.total}
+          hasMore={shown.hasMore}
+          isLoading={shown.isLoading}
+          noun={imagesResponse ? 'images' : 'groups'}
+          onLoadMore={shown.loadMore}
+        />
       </div>
       <ImagePreviewDialog image={openImage} onClose={() => setOpenImage(null)} />
     </div>

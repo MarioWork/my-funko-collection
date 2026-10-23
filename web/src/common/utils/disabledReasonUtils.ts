@@ -2,6 +2,7 @@
 export const DISABLED_REASONS = {
   SAVING: 'Saving, one moment.',
   DOWNLOADING: 'Preparing the download, one moment.',
+  LOADING: 'Loading more, one moment.',
   WORKING: 'Finishing the last change, one moment.',
   UPLOADING: 'Uploading the images, one moment.',
 } as const;
