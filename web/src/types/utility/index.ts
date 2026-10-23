@@ -9,3 +9,6 @@ export { SortingDirectionUtil } from './sortingDirectionUtil.type';
 export { FUNKO_TYPE_LABELS, FunkoTypeUtil } from './funkoTypeUtil.type';
 export { ITEM_CONDITION_LABELS, ItemConditionUtil } from './itemConditionUtil.type';
 export { FUNKO_MATCH_FIELD_LABELS, FunkoMatchFieldUtil } from './funkoMatchFieldUtil.type';
+export { AuthStateUtil } from './authStateUtil.type';
+export { PasskeyCeremonyFailureUtil } from './passkeyCeremonyFailureUtil.type';
+export type { AuthFailureMessagesUtil } from './authFailureMessagesUtil.type';

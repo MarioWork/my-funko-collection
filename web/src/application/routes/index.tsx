@@ -1,48 +1,60 @@
 import { Navigate, type RouteObject } from 'react-router';
 import AppLoading from '@application/layout/AppLoading';
-import AppShell from '@application/layout/AppShell';
 import RouteError from '@pages/Error/RouteError';
+import { authMiddleware } from './authMiddleware';
 import { addRoutes, nestedAddRoutes } from './featureRoutes/addRoutes';
+import { authRoutes, securityRoutes } from './featureRoutes/authRoutes';
 import { categoryRoutes } from './featureRoutes/categoryRoutes';
 import { collectionRoutes } from './featureRoutes/collectionRoutes';
 import { funkoRoutes } from './featureRoutes/funkoRoutes';
 import { imageRoutes } from './featureRoutes/imageRoutes';
 import { seriesRoutes } from './featureRoutes/seriesRoutes';
 import { tagRoutes } from './featureRoutes/tagRoutes';
-import { BASE_ROUTES_PATHS, defaultRedirectRoute } from './routesUtils';
+import { APP_SHELL_ROUTE_ID, BASE_ROUTES_PATHS, defaultRedirectRoute } from './routesUtils';
 
 const routes: RouteObject[] = [
   {
     path: BASE_ROUTES_PATHS.ROOT,
-    element: <AppShell />,
     errorElement: <RouteError />,
     // Shown while the first page's lazy module and loader resolve on the initial load.
     hydrateFallbackElement: <AppLoading />,
+    // Any 401 from a loader or an action, anywhere below, becomes a trip to the login page.
+    middleware: [authMiddleware],
     children: [
+      ...authRoutes,
       {
-        index: true,
-        element: <Navigate to={defaultRedirectRoute} />,
+        // Every app page needs a signed-in user: the shell's loader checks once, then sends the user to the first
+        // run or the login page if needed.
+        id: APP_SHELL_ROUTE_ID,
+        lazy: () => import('@application/layout/AppShell/AppShell.route'),
+        children: [
+          {
+            index: true,
+            element: <Navigate to={defaultRedirectRoute} />,
+          },
+          {
+            path: BASE_ROUTES_PATHS.HOME,
+            lazy: () => import('@pages/Home/Home.route'),
+            children: nestedAddRoutes,
+          },
+          {
+            path: BASE_ROUTES_PATHS.SEARCH,
+            lazy: () => import('@pages/Search/Search.route'),
+          },
+          {
+            path: BASE_ROUTES_PATHS.SETTINGS,
+            lazy: () => import('@pages/Settings/Settings.route'),
+          },
+          ...funkoRoutes,
+          ...addRoutes,
+          ...collectionRoutes,
+          ...categoryRoutes,
+          ...seriesRoutes,
+          ...tagRoutes,
+          ...imageRoutes,
+          ...securityRoutes,
+        ],
       },
-      {
-        path: BASE_ROUTES_PATHS.HOME,
-        lazy: () => import('@pages/Home/Home.route'),
-        children: nestedAddRoutes,
-      },
-      {
-        path: BASE_ROUTES_PATHS.SEARCH,
-        lazy: () => import('@pages/Search/Search.route'),
-      },
-      {
-        path: BASE_ROUTES_PATHS.SETTINGS,
-        lazy: () => import('@pages/Settings/Settings.route'),
-      },
-      ...funkoRoutes,
-      ...addRoutes,
-      ...collectionRoutes,
-      ...categoryRoutes,
-      ...seriesRoutes,
-      ...tagRoutes,
-      ...imageRoutes,
     ],
   },
 ];

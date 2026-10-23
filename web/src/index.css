@@ -59,6 +59,45 @@
       transform: scale(1.15);
     }
   }
+
+  /* The sign-in pages' logo: a slow idle bob with a little sway, as a figure on a shelf, and its shadow below
+     shrinking as it rises. Used with motion-safe: only. */
+  --animate-float: float 4s var(--ease-standard) infinite;
+  --animate-float-shadow: float-shadow 4s var(--ease-standard) infinite;
+  /* The sparkles beside it. */
+  --animate-twinkle: twinkle 2.8s var(--ease-standard) infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-3deg);
+    }
+    50% {
+      transform: translateY(-10px) rotate(3deg);
+    }
+  }
+  @keyframes float-shadow {
+    0%,
+    100% {
+      transform: scaleX(1);
+      opacity: 0.6;
+    }
+    50% {
+      transform: scaleX(0.7);
+      opacity: 0.3;
+    }
+  }
+  @keyframes twinkle {
+    0%,
+    100% {
+      transform: scale(0.75) rotate(0deg);
+      opacity: 0.35;
+    }
+    50% {
+      transform: scale(1.1) rotate(15deg);
+      opacity: 1;
+    }
+  }
 }
 
 /* Semantic tokens: the values that switch with the theme. shadcn's @theme inline block below maps each to a

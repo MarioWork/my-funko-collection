@@ -1,3 +1,4 @@
+import { authMockHandlers } from './auth';
 import { categoryMockHandlers } from './category';
 import { imageMockHandlers } from './image';
 import { seriesMockHandlers } from './series';
@@ -14,6 +15,8 @@ import { tagMockHandlers } from './tag';
 const MOCK_DELAY = 200;
 
 export const getHandlers = (baseUrl: string) => [
+  // First: without a session, every other route answers 401, as the API does.
+  ...authMockHandlers(baseUrl),
   ...categoryMockHandlers(baseUrl),
   ...seriesMockHandlers(baseUrl),
   ...tagMockHandlers(baseUrl),

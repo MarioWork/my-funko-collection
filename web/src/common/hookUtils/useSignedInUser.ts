@@ -1,0 +1,14 @@
+import { useRouteLoaderData } from 'react-router';
+import type { AuthUserApiModel } from '@app-types/models';
+import type { LoaderDataUtil } from '@app-types/utility';
+import type { loader } from '@application/layout/AppShell/appShellLoader';
+import { APP_SHELL_ROUTE_ID } from '@application/routes/routesUtils';
+
+const UNKNOWN_USER: AuthUserApiModel = { name: '' };
+
+// The signed-in user, from the app shell's loader. Any page inside the shell can read it without another request.
+export function useSignedInUser(): AuthUserApiModel {
+  const shellData = useRouteLoaderData<LoaderDataUtil<typeof loader>>(APP_SHELL_ROUTE_ID);
+
+  return shellData?.user ?? UNKNOWN_USER;
+}

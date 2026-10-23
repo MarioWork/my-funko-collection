@@ -84,4 +84,23 @@ export const TAG_ROUTES_PATHS = {
   update: (tagId?: string) => (tagId ? `/tags/${tagId}` : '/tags/:tagId'),
 };
 
+// Sign-in and first run render outside the app shell; the rest are action-only routes behind Settings → Security.
+export const AUTH_ROUTES_PATHS = {
+  LOGIN: '/login',
+  SETUP: '/setup',
+  SIGN_OUT: '/sign-out',
+  SIGN_OUT_EVERYWHERE: '/sign-out-everywhere',
+  PASSKEYS: '/settings/passkeys',
+  passkey: (passkeyId?: string) => (passkeyId ? `/settings/passkeys/${passkeyId}` : '/settings/passkeys/:passkeyId'),
+};
+
+// Search params of the auth pages: where to go back to after signing in, and the first-run setup code.
+export const AUTH_SEARCH_PARAMS = {
+  REDIRECT_TO: 'redirectTo',
+  CODE: 'code',
+} as const;
+
+// The app shell's route: its loader holds the signed-in user (useSignedInUser).
+export const APP_SHELL_ROUTE_ID = 'app';
+
 export const defaultRedirectRoute = BASE_ROUTES_PATHS.HOME;

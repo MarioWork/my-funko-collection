@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_USE_MOCKS: string;
   // Mock mode only: this many generated funkos on top of the seed, to try long lists (`yarn dev:big`).
   readonly VITE_MOCK_EXTRA_FUNKOS?: string;
+  // Mock mode only: open signed out (`signedOut`) or before the first run (`setup`) instead of signed in.
+  readonly VITE_MOCK_AUTH_STATE?: string;
   // The public demo build (GitHub Pages): shows the "changes are not saved" banner.
   readonly VITE_DEMO?: string;
 }

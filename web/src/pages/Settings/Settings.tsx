@@ -7,10 +7,11 @@ import AppearanceSection from './components/AppearanceSection';
 import ConfigurationSection from './components/ConfigurationSection';
 import DataSection from './components/DataSection';
 import DefaultCollectionSection from './components/DefaultCollectionSection';
+import SecuritySection from './components/SecuritySection';
 import type { loader } from './settingsLoader';
 
 function Settings() {
-  const { collections, tags } = useLoaderData<LoaderDataUtil<typeof loader>>();
+  const { collections, tags, passkeys } = useLoaderData<LoaderDataUtil<typeof loader>>();
 
   return (
     <div className="flex flex-col gap-4">
@@ -19,6 +20,7 @@ function Settings() {
         <AppearanceSection />
         <DefaultCollectionSection collections={collections} />
         <AddDefaultsSection collections={collections} tags={tags} />
+        <SecuritySection passkeys={passkeys} />
         <ConfigurationSection />
         <DataSection />
         <AboutSection />

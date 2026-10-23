@@ -38,9 +38,21 @@ export function deferred<T>(): Deferred<T> {
 
 type RenderRoutesOptions = RenderOptions & { initialEntries?: string[] };
 
+// React Router clears each resolved entry of an object-form `lazy` ({ action: () => import(...) }) in place, on
+// the route table's own object. A table shared by several tests would lose its actions after the first, so every
+// render gets its own copies.
+function withFreshLazy(routes: RouteObject[]): RouteObject[] {
+  return routes.map((route) => {
+    const lazy = typeof route.lazy === 'object' ? { ...route.lazy } : route.lazy;
+    const children = route.children ? withFreshLazy(route.children) : undefined;
+
+    return { ...route, lazy, children } as RouteObject;
+  });
+}
+
 // Real route objects, so a page's loader and action run as they do in the app.
 export function renderRoutes(routes: RouteObject[], { initialEntries = ['/'], ...options }: RenderRoutesOptions = {}) {
-  const router = createMemoryRouter(routes, { initialEntries });
+  const router = createMemoryRouter(withFreshLazy(routes), { initialEntries });
 
   return render(<RouterProvider router={router} />, options);
 }

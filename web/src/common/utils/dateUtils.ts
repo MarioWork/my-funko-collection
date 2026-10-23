@@ -14,3 +14,10 @@ export function formatIsoDate(isoDate: string): string {
 export function formatDateTime(isoDateTime: string): string {
   return new Intl.DateTimeFormat(LOCALE, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(isoDateTime));
 }
+
+// An instant, as its calendar day only, in the same style as formatIsoDate: "5 jan. 2026".
+export function formatDate(isoDateTime: string): string {
+  return new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' }).format(
+    new Date(isoDateTime),
+  );
+}

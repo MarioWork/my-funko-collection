@@ -17,3 +17,8 @@ export type { SuggestApiModel } from './suggestApiModel.type';
 export type { ImageFunkoApiModel } from './imageFunkoApiModel.type';
 export type { ImageListEntryApiModel, ImageListEntryKey } from './imageListEntryApiModel.type';
 export type { ImageGroupApiModel } from './imageGroupApiModel.type';
+export type { AuthUserApiModel } from './authUserApiModel.type';
+export type { AuthStatusApiModel } from './authStatusApiModel.type';
+export type { AuthSessionApiModel } from './authSessionApiModel.type';
+export type { PasskeyApiModel, PasskeyId } from './passkeyApiModel.type';
+export type { PasskeyListApiModel } from './passkeyListApiModel.type';
