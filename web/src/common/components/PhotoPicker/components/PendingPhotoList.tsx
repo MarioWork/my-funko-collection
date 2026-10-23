@@ -6,17 +6,20 @@ import type { PendingPhoto } from '@utils/pendingPhotoUtils';
 import { cn } from '@utils/classNameUtils';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 import { LINK_FOCUS_CLASS } from '@utils/focusUtils';
+import MainPhotoControl from './MainPhotoControl';
 
 type Props = {
   photos: PendingPhoto[];
   isDisabled: boolean;
   onRemove: (photo: PendingPhoto) => void;
+  // Set when the first photo is the main one and another can be made main.
+  onMakeMain?: (photo: PendingPhoto) => void;
 };
 
 const LIST_LABEL = 'Images to upload';
 
-// The picked photos as thumbnails: click one to see it big (and flip through the rest), or remove it.
-function PendingPhotoList({ photos, isDisabled, onRemove }: Props) {
+// The picked photos as thumbnails: click one to see it big (and flip through the rest), make it main, or remove it.
+function PendingPhotoList({ photos, isDisabled, onRemove, onMakeMain }: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const viewerImages = photos.map((photo) => ({ id: photo.id, url: photo.previewUrl }));
 
@@ -35,6 +38,9 @@ function PendingPhotoList({ photos, isDisabled, onRemove }: Props) {
             >
               <img src={photo.previewUrl} alt="" className="size-full object-cover" />
             </button>
+            {onMakeMain ? (
+              <MainPhotoControl photo={photo} isMain={index === 0} isDisabled={isDisabled} onMakeMain={onMakeMain} />
+            ) : null}
             <IconButton
               aria-label={`Remove ${photo.file.name}`}
               size="sm"

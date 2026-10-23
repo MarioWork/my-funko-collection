@@ -12,6 +12,8 @@ type Props = {
   isDisabled: boolean;
   onAdd: (files: File[]) => void;
   onRemove: (photo: PendingPhoto) => void;
+  // Set when the order matters (a new funko): the first photo is the main one, and any other can be made main.
+  onMakeMain?: (photo: PendingPhoto) => void;
   // When the caller needs a photo and has none: the id of the message to link to the pick button.
   errorId?: string;
   // Rendered after the pick buttons, e.g. an Upload button.
@@ -20,7 +22,7 @@ type Props = {
 
 // Pick from the library (several) or take one photo, and see previews. Holds no photos itself: the caller decides
 // when they are sent.
-function PhotoPicker({ photos, isDisabled, onAdd, onRemove, errorId, children }: Props) {
+function PhotoPicker({ photos, isDisabled, onAdd, onRemove, onMakeMain, errorId, children }: Props) {
   const libraryInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const canAddMore = photos.length < MAX_PHOTOS_PER_BATCH;
@@ -76,7 +78,7 @@ function PhotoPicker({ photos, isDisabled, onAdd, onRemove, errorId, children }:
         />
         {children}
       </div>
-      <PendingPhotoList photos={photos} isDisabled={isDisabled} onRemove={onRemove} />
+      <PendingPhotoList photos={photos} isDisabled={isDisabled} onRemove={onRemove} onMakeMain={onMakeMain} />
     </div>
   );
 }
