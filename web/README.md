@@ -45,6 +45,8 @@ Node version: see `.node-version` (fnm reads it).
 | -------------------- | -------------------------------------------------------------------- |
 | `yarn dev`           | Starts the dev server (copies the scanner's `.wasm` first)           |
 | `yarn build`         | Type-checks, then builds to `dist/`                                  |
+| `yarn build:demo`    | The public demo: mock data in the browser, a demo banner, `404.html` |
+| `yarn dev:big`       | Mock mode with 300 extra generated funkos, to try long lists         |
 | `yarn preview`       | Serves the built app                                                 |
 | `yarn lint`          | Runs ESLint and the Prettier check                                   |
 | `yarn format`        | Formats every file with Prettier                                     |
@@ -59,12 +61,19 @@ Node version: see `.node-version` (fnm reads it).
 
 Set in `.env` (all modes) and `.env.development` (dev only). Values are read at build time.
 
-| Variable            | Meaning                                                             |
-| ------------------- | ------------------------------------------------------------------- |
-| `VITE_PROJECT_PATH` | Base path the app is served from (`/` by default)                   |
-| `VITE_BASE_API_URL` | Base URL for every API call: `/api`, same origin, proxied by Caddy  |
-| `VITE_USE_MOCKS`    | `true` starts MSW in the browser (off by default; on for mock mode) |
-| `VITE_PLAYWRIGHT`   | `true` under Playwright, which brings its own mocks                 |
+| Variable                 | Meaning                                                             |
+| ------------------------ | ------------------------------------------------------------------- |
+| `VITE_PROJECT_PATH`      | Base path the app is served from (`/` by default)                   |
+| `VITE_BASE_API_URL`      | Base URL for every API call: `/api`, same origin, proxied by Caddy  |
+| `VITE_USE_MOCKS`         | `true` starts MSW in the browser (off by default; on for mock mode) |
+| `VITE_PLAYWRIGHT`        | `true` under Playwright, which brings its own mocks                 |
+| `VITE_DEMO`              | `true` in the demo build: shows the "changes are not saved" banner  |
+| `VITE_MOCK_EXTRA_FUNKOS` | Mock mode only: generated funkos added to the seed (`dev:big`)      |
+
+**Demo on GitHub Pages.** `.github/workflows/pages.yml` builds `yarn build:demo` with
+`VITE_PROJECT_PATH=/<repo>/` and publishes `dist/`. It runs by hand only (Actions tab), once the repo's Pages
+source is set to "GitHub Actions". `404.html` is a copy of `index.html`, so a deep link or a refresh still opens
+the app.
 
 ## Folder structure
 
