@@ -28,8 +28,7 @@ type Props = {
 };
 
 // The fields (name, optional notes) and, unless a FormPanel footer carries them, ✓ / ✕ icon buttons (named Save /
-// Cancel for assistive tech and in their tooltips). Renames inline in a
-// row; adds inside ManageAddPanel.
+// Cancel for assistive tech and in their tooltips). Renames inline in a row; adds inside ManageAddPanel.
 function ManageForm({
   idPrefix,
   defaultValues,

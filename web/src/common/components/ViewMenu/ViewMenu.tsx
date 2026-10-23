@@ -36,7 +36,7 @@ function ViewMenuItem<Value extends string>({ option }: ItemProps<Value>) {
   const Icon = option.icon;
 
   return (
-    <DropdownMenuRadioItem value={option.value} className="items-start gap-2.5 py-2">
+    <DropdownMenuRadioItem value={option.value} closeOnClick className="items-start gap-2.5 py-2">
       <Icon aria-hidden="true" className="mt-0.5 text-muted-foreground" />
       <span className="flex flex-col">
         <span className="font-medium">{option.label}</span>

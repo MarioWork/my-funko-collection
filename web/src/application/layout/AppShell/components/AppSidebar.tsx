@@ -46,7 +46,7 @@ function NavigationEntry({ item: { label, to, icon: Icon }, isActive, size = 'de
 }
 
 // Desktop navigation: the four destinations, the two manage pages, then Settings and the theme toggle in the
-// footer. Adding lives in the page headers (Funkos, a collection, Home), not here. Collapses to icons from the top-bar toggle, never hides; the edge is not draggable.
+// footer. Adding lives in the page headers (Funkos, a collection, Home), not here. Collapses to icons from its edge (SidebarEdgeToggle), never hides; the edge is not draggable.
 function AppSidebar() {
   const { pathname } = useLocation();
 

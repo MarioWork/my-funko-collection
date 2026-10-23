@@ -13,6 +13,7 @@ import { funkosInCategoryPath } from '@utils/funkoLinkUtils';
 import { TABLE_HEADER_ROW_CLASS } from '@utils/tableUtils';
 import { cn } from '@utils/classNameUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
+import { LINK_FOCUS_CLASS } from '@utils/focusUtils';
 
 type ItemActions = {
   busyItemId: CollectionItemId | undefined;
@@ -71,7 +72,7 @@ const nameColumn = columnHelper.accessor((item) => item.funko.name, {
     <Link
       viewTransition
       to={FUNKO_ROUTES_PATHS.detail(String(row.original.funko.id))}
-      className="font-medium underline-offset-4 hover:underline"
+      className={cn('font-medium underline-offset-4 hover:underline', LINK_FOCUS_CLASS)}
     >
       {getValue()}
     </Link>
@@ -96,7 +97,7 @@ const categoryColumn = columnHelper.accessor((item) => item.funko.category.name,
     <Link
       viewTransition
       to={funkosInCategoryPath(row.original.funko.category.id)}
-      className="underline-offset-4 hover:underline"
+      className={cn('underline-offset-4 hover:underline', LINK_FOCUS_CLASS)}
     >
       {getValue()}
     </Link>

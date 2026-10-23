@@ -33,12 +33,6 @@ export default {
     return response.data;
   },
 
-  getCategory: async (id: CategoryId): Promise<CategoryApiModel> => {
-    const response = await axios.get<CategoryApiModel>(`${BASE_CATEGORIES_URL}/${id}`);
-
-    return response.data;
-  },
-
   addCategory: async (fields: CreateCategory): Promise<JSONResponseUtil<CategoryApiModel>> =>
     axiosActions<CategoryApiModel>({ url: BASE_CATEGORIES_URL, method: HttpVerbsUtil.POST, data: fields }),
 

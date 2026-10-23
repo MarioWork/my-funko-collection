@@ -1,7 +1,7 @@
 import { Camera, ImagePlus } from 'lucide-react';
 import { useRef, type ChangeEvent } from 'react';
 import { Button } from '@components/ui/button';
-import { LIBRARY_ACCEPT, MAX_PHOTOS_PER_BATCH, type PendingPhoto } from '@utils/pendingPhotoUtils';
+import { CAMERA_ACCEPT, LIBRARY_ACCEPT, MAX_PHOTOS_PER_BATCH, type PendingPhoto } from '@utils/pendingPhotoUtils';
 import PendingPhotoList from './components/PendingPhotoList';
 import DisabledReason from '@components/DisabledReason';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
@@ -43,15 +43,18 @@ function PhotoPicker({ photos, isDisabled, onAdd, onRemove, errorId, children }:
         accept={LIBRARY_ACCEPT}
         multiple
         className="sr-only"
+        // Opened by the visible buttons below; out of the tab order so focus never lands on an invisible input.
+        tabIndex={-1}
         aria-label="Image files"
         onChange={addFiles}
       />
       <input
         ref={cameraInput}
         type="file"
-        accept="image/jpeg"
+        accept={CAMERA_ACCEPT}
         capture="environment"
         className="sr-only"
+        tabIndex={-1}
         aria-label="Camera photo"
         onChange={addFiles}
       />

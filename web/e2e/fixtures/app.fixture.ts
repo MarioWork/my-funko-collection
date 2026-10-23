@@ -1,6 +1,5 @@
 import { defineNetworkFixture, type NetworkFixture, type NetworkFixtureOptions } from '@msw/playwright';
 import { test as base, expect } from '@playwright/test';
-import { http, HttpResponse } from 'msw/http';
 import { AuthStateUtil } from '../../src/types/utility/authStateUtil.type';
 import { getHandlers } from '../../src/mocks/handlers';
 import { resetMockStore, setMockAuthState } from '../../src/mocks/mockStore';
@@ -61,4 +60,4 @@ export const test = base.extend<Fixtures>({
   ],
 });
 
-export { expect, http, HttpResponse };
+export { expect };

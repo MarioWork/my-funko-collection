@@ -33,12 +33,6 @@ export default {
     return response.data;
   },
 
-  getTag: async (id: TagId): Promise<TagApiModel> => {
-    const response = await axios.get<TagApiModel>(`${BASE_TAGS_URL}/${id}`);
-
-    return response.data;
-  },
-
   addTag: async (fields: CreateTag): Promise<JSONResponseUtil<TagApiModel>> =>
     axiosActions<TagApiModel>({ url: BASE_TAGS_URL, method: HttpVerbsUtil.POST, data: fields }),
 

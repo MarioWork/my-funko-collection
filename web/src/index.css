@@ -276,6 +276,14 @@
        sideways when it appears. */
     scrollbar-gutter: stable;
   }
+  /* Phones: a focused control scrolled into view stops clear of the sticky top bar (h-14) and the fixed bottom bar
+     (4rem + the safe area), so neither ever covers it (WCAG 2.2 "Focus not obscured"). */
+  @media (width < 64rem) {
+    html {
+      scroll-padding-top: 3.5rem;
+      scroll-padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    }
+  }
   body {
     @apply bg-background text-foreground;
   }

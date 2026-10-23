@@ -1,0 +1,7 @@
+{
+  "colorize": true,
+  "translateTime": "SYS:HH:MM:ss",
+  "ignore": "pid,hostname,module,reqId,method,route,statusCode,durationMs",
+  "messageFormat": "{if module}[{module}] {end}{msg}{if method} {method} {route} → {statusCode} ({durationMs} ms){end}",
+  "singleLine": true
+}

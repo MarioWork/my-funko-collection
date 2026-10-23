@@ -8,6 +8,7 @@ import ItemRowMenu from './ItemRowMenu';
 import { funkosInCategoryPath } from '@utils/funkoLinkUtils';
 import { cn } from '@utils/classNameUtils';
 import { DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
+import { LINK_FOCUS_CLASS } from '@utils/focusUtils';
 
 type Props = {
   item: CollectionItemApiModel;
@@ -40,7 +41,7 @@ function ItemCard({ item, collections, hasCollectionColumn, isBusy, onMove, onRe
         <Link
           viewTransition
           to={FUNKO_ROUTES_PATHS.detail(String(item.funko.id))}
-          className="truncate text-sm font-medium underline-offset-4 hover:underline"
+          className={cn('truncate text-sm font-medium underline-offset-4 hover:underline', LINK_FOCUS_CLASS)}
         >
           {item.funko.name}
         </Link>
@@ -49,7 +50,7 @@ function ItemCard({ item, collections, hasCollectionColumn, isBusy, onMove, onRe
           <Link
             viewTransition
             to={funkosInCategoryPath(item.funko.category.id)}
-            className="underline-offset-4 hover:text-foreground hover:underline"
+            className={cn('underline-offset-4 hover:text-foreground hover:underline', LINK_FOCUS_CLASS)}
           >
             {item.funko.category.name}
           </Link>
