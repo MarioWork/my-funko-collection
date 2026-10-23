@@ -16,12 +16,17 @@ const ERROR_ID = `${SECTION_ID}-error`;
 // First on the page: the photo is what the grid shows. At least one, sent with Save.
 function AddPhotosSection({ pendingPhotos, isSubmitting, isMissingPhotos }: Props) {
   return (
-    <FormSection id={SECTION_ID} title="Images" description="At least one. The first is the one the grid shows.">
+    <FormSection
+      id={SECTION_ID}
+      title="Images"
+      description="At least one. The main one is what the grid shows; the star makes another one main."
+    >
       <PhotoPicker
         photos={pendingPhotos.photos}
         isDisabled={isSubmitting}
         onAdd={pendingPhotos.add}
         onRemove={pendingPhotos.remove}
+        onMakeMain={pendingPhotos.makeMain}
         errorId={isMissingPhotos ? ERROR_ID : undefined}
       />
       {isMissingPhotos ? <FieldError id={ERROR_ID}>{PHOTOS_REQUIRED_MESSAGE}</FieldError> : null}

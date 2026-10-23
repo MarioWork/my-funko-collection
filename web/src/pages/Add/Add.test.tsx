@@ -110,4 +110,19 @@ describe('saving without a photo', () => {
 
     expect(await screen.findByRole('dialog', { name: /Images to upload, image 1 of 1/ })).toBeVisible();
   });
+
+  it('marks the first image as main and moves another to the front when its star is pressed', async () => {
+    renderAddForm();
+
+    await userEvent.upload(await screen.findByLabelText('Image files'), [
+      new File([new Uint8Array([1])], 'front.png', { type: 'image/png' }),
+      new File([new Uint8Array([2])], 'back.png', { type: 'image/png' }),
+    ]);
+    await userEvent.click(screen.getByRole('button', { name: 'Make back.png the main image' }));
+
+    const [first] = within(screen.getByRole('list', { name: 'Images to upload' })).getAllByRole('listitem');
+
+    expect(first).toHaveTextContent('Main');
+    expect(within(first).getByRole('button', { name: 'View back.png' })).toBeVisible();
+  });
 });

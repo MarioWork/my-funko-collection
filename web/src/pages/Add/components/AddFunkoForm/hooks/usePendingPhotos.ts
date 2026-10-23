@@ -20,5 +20,9 @@ export function usePendingPhotos() {
     setPhotos((current) => current.filter((candidate) => candidate.id !== photo.id));
   };
 
-  return { photos, add, remove };
+  // The first photo is the main one (the grid shows it), so making one main moves it to the front.
+  const makeMain = (photo: PendingPhoto) =>
+    setPhotos((current) => [photo, ...current.filter((candidate) => candidate.id !== photo.id)]);
+
+  return { photos, add, remove, makeMain };
 }
