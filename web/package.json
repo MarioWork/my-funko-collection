@@ -14,6 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "test-e2e": "tsc -p tsconfig.e2e.json && playwright test -c e2e/playwright.config.ts",
     "dev:playwright": "cross-env VITE_PLAYWRIGHT=true yarn dev",
+    "dev:big": "cross-env VITE_USE_MOCKS=true VITE_MOCK_EXTRA_FUNKOS=300 yarn dev",
     "format": "prettier --write .",
     "icons": "node scripts/generateIcons.ts",
     "wasm:copy": "node scripts/copyWasm.ts",

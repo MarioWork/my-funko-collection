@@ -261,6 +261,88 @@ const SEED_ITEMS: SeedItem[] = [
 ];
 
 const IMAGES_PER_FUNKO = 2;
+// Generated funkos (`yarn dev:big`) get one to six images of varied sizes, like a real shelf.
+const EXTRA_MAX_IMAGES = 6;
+const EXTRA_BASE_IMAGE_BYTES = 120_000;
+const EXTRA_IMAGE_BYTES_STEP = 37_000;
+const EXTRA_IMAGE_BYTES_SPREAD = 9;
+const EXTRA_SERIES_EVERY = 4;
+const EXTRA_OWNED_EVERY = 2;
+const EXTRA_WISHLIST_EVERY = 7;
+const EXTRA_CHASE_EVERY = 11;
+const EXTRA_NUMBER_START = 2000;
+
+// How many generated funkos to add: none in tests and normal mock mode.
+const extraFunkoCount = Number(import.meta.env.VITE_MOCK_EXTRA_FUNKOS ?? 0) || 0;
+
+// "Iron Man 37": a seed name with a running number, in the seed's category, some with a series, a chase now and
+// then. Only for trying long lists; never in tests.
+function createExtraFunkos(startId: number, startIndex: number): MockFunkoRow[] {
+  return Array.from({ length: extraFunkoCount }, (_, offset) => {
+    const seed = SEED_FUNKOS[offset % SEED_FUNKOS.length] ?? SEED_FUNKOS[0];
+    const index = startIndex + offset;
+    const hasSeries = offset % EXTRA_SERIES_EVERY === 0;
+
+    return {
+      id: startId + offset,
+      name: `${seed?.name ?? 'Funko'} ${offset + 1}`,
+      number: String(EXTRA_NUMBER_START + offset),
+      type: seed?.type ?? FunkoTypeUtil.POP,
+      categoryId: seed?.category ?? 1,
+      seriesId: hasSeries ? (offset % SERIES_NAMES.length) + 1 : null,
+      isChase: offset % EXTRA_CHASE_EVERY === 0,
+      exclusive: '',
+      barcode: null,
+      createdAt: mockDate(index),
+      updatedAt: mockDate(index),
+    };
+  });
+}
+
+function createExtraImages(funkos: MockFunkoRow[], startId: number): MockImageRow[] {
+  let nextId = startId;
+
+  return funkos.flatMap((funko, funkoIndex) =>
+    Array.from({ length: (funkoIndex % EXTRA_MAX_IMAGES) + 1 }, (_, position) => {
+      const id = nextId;
+      const sizeSpread = (funkoIndex + position) % EXTRA_IMAGE_BYTES_SPREAD;
+
+      nextId += 1;
+
+      return {
+        id,
+        funkoId: funko.id,
+        position,
+        sizeBytes: EXTRA_BASE_IMAGE_BYTES + sizeSpread * EXTRA_IMAGE_BYTES_STEP,
+        createdAt: funko.createdAt,
+        ...createMockImageUrls(funko.name, id),
+      };
+    }),
+  );
+}
+
+// Every other generated funko is owned, every seventh wishlisted.
+function createExtraItems(funkos: MockFunkoRow[], startId: number): MockItemRow[] {
+  const memberships = funkos.flatMap((funko, funkoIndex) => [
+    ...(funkoIndex % EXTRA_OWNED_EVERY === 0 ? [{ funko, collectionId: 1 }] : []),
+    ...(funkoIndex % EXTRA_WISHLIST_EVERY === 0 ? [{ funko, collectionId: 2 }] : []),
+  ]);
+
+  return memberships.map(({ funko, collectionId }, offset) => ({
+    id: startId + offset,
+    collectionId,
+    funkoId: funko.id,
+    quantity: 1,
+    condition: null,
+    purchasePriceCents: null,
+    purchaseCurrency: DEFAULT_CURRENCY,
+    purchasedAt: null,
+    notes: null,
+    tagIds: [],
+    createdAt: funko.createdAt,
+    updatedAt: funko.updatedAt,
+  }));
+}
 
 function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
   let nextId = 1;
@@ -342,7 +424,20 @@ export function createMockStore(): MockStore {
     updatedAt: mockDate(index),
   }));
 
-  return { categories, series, tags, collections, funkos, images: createImages(funkos), items };
+  const seedImages = createImages(funkos);
+  const extraFunkos = createExtraFunkos(funkos.length + 1, funkos.length);
+  const extraImages = createExtraImages(extraFunkos, seedImages.length + 1);
+  const extraItems = createExtraItems(extraFunkos, items.length + 1);
+
+  return {
+    categories,
+    series,
+    tags,
+    collections,
+    funkos: [...funkos, ...extraFunkos],
+    images: [...seedImages, ...extraImages],
+    items: [...items, ...extraItems],
+  };
 }
 
 export let mockStore: MockStore = createMockStore();
