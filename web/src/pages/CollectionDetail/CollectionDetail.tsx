@@ -1,41 +1,38 @@
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { Outlet, useLoaderData } from 'react-router';
 import type { LoaderDataUtil } from '@app-types/utility';
-import { ADD_ROUTES_PATHS, COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
-import AddFab from '@components/AddFab';
+import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import ItemsList from '@components/ItemsList';
 import LinkButton from '@components/LinkButton';
-import PageHeader from '@components/PageHeader';
+import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import { formatCents } from '@utils/moneyUtils';
 import type { loader } from './collectionDetailLoader';
 
 function CollectionDetail() {
+  const childPage = useMobileChildPage();
   const data = useLoaderData<LoaderDataUtil<typeof loader>>();
   const { collection } = data;
   const id = String(collection.id);
-  const summary = `${collection.itemCount} funkos · ${collection.totalQuantity} pieces · ${formatCents(collection.totalSpentCents)} spent`;
+  const summary = `${collection.itemCount} funkos · ${collection.totalQuantity} pieces · ${formatCents(collection.totalSpentCents)} total`;
+
+  // On phones a form (edit the collection or an item) is its own page.
+  if (childPage) return childPage;
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={collection.name}
-        description={collection.notes ? `${collection.notes} · ${summary}` : summary}
-        backTo={COLLECTION_ROUTES_PATHS.BASE}
-        backLabel="Collections"
-        actions={
-          <>
+      <ItemsList
+        header={{
+          title: collection.name,
+          description: collection.notes ? `${collection.notes} · ${summary}` : summary,
+          backTo: COLLECTION_ROUTES_PATHS.BASE,
+          backLabel: 'Collections',
+          actions: (
             <LinkButton to={COLLECTION_ROUTES_PATHS.edit(id)} variant="outline">
               <Pencil data-icon="inline-start" aria-hidden="true" />
               Edit
             </LinkButton>
-            <LinkButton to={COLLECTION_ROUTES_PATHS.addItem(id)}>
-              <Plus data-icon="inline-start" aria-hidden="true" />
-              Add item
-            </LinkButton>
-          </>
-        }
-      />
-      <ItemsList
+          ),
+        }}
         itemsResponse={data.itemsResponse}
         page={data.page}
         pageSize={data.pageSize}
@@ -45,17 +42,8 @@ function CollectionDetail() {
         collections={data.collections}
         hasCollectionFilter={false}
         emptyTitle={`Nothing in ${collection.name} yet`}
-        emptyDescription="Scan a box or pick a funko from the catalog."
-        emptyAction={
-          <>
-            <LinkButton to={ADD_ROUTES_PATHS.BASE}>Scan a barcode</LinkButton>
-            <LinkButton to={COLLECTION_ROUTES_PATHS.addItem(id)} variant="outline">
-              Pick from the catalog
-            </LinkButton>
-          </>
-        }
+        emptyDescription="Add funkos to it from a funko's page: the bookmark and heart by its name, or ⋯ → Lists."
       />
-      <AddFab />
       <Outlet />
     </div>
   );

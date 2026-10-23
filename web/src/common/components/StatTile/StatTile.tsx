@@ -13,11 +13,15 @@ type Props = {
 };
 
 // A KPI: label on top, one big tabular number, an optional comparison line. Two per row on phone, four on desktop.
+// A linked tile gets the app's card hover: the primary outline, no background change.
 function StatTile({ label, value, hint, icon: Icon, to }: Props) {
   return (
     <Card
       size="sm"
-      className={cn('relative', to && 'transition-colors focus-within:ring-2 focus-within:ring-ring hover:bg-accent/5')}
+      className={cn(
+        'relative',
+        to && 'transition-shadow focus-within:ring-2 focus-within:ring-primary hover:ring-2 hover:ring-primary',
+      )}
     >
       <CardHeader>
         <CardDescription className="flex items-center gap-2">
@@ -30,7 +34,9 @@ function StatTile({ label, value, hint, icon: Icon, to }: Props) {
             label
           )}
         </CardDescription>
-        <CardTitle className="text-3xl font-semibold tabular-nums">{value}</CardTitle>
+        <CardTitle className="text-3xl font-semibold tabular-nums group-data-[size=sm]/card:text-3xl">
+          {value}
+        </CardTitle>
       </CardHeader>
       {hint ? <CardContent className="text-sm text-muted-foreground">{hint}</CardContent> : null}
     </Card>

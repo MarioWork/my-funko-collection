@@ -1,25 +1,35 @@
-import { renderRoutes, screen, userEvent, within } from '@test-utils';
+import { renderRoutes, screen, userEvent, waitFor, within } from '@test-utils';
 import { categoryRoutes } from '@application/routes/featureRoutes/categoryRoutes';
 import { CATEGORY_ROUTES_PATHS } from '@application/routes/routesUtils';
 
 const renderPage = () => renderRoutes(categoryRoutes, { initialEntries: [CATEGORY_ROUTES_PATHS.BASE] });
 
-it('lists the seeded categories and disables delete for the ones in use', async () => {
+it('lists the seeded categories and disables delete, with the reason, for the ones in use', async () => {
   renderPage();
 
   expect(await screen.findByText('Pop! Marvel')).toBeVisible();
-  expect(screen.getByRole('button', { name: /Delete Pop! Marvel/ })).toBeDisabled();
+  const deleteInUse = screen.getByRole('button', { name: /Delete Pop! Marvel/ });
+
+  // Kept focusable so its tooltip can say why: disabled for assistive tech, with the reason as its description.
+  expect(deleteInUse).toHaveAttribute('aria-disabled', 'true');
+  expect(deleteInUse).toHaveAccessibleDescription(/in use, so it cannot be deleted/);
 });
 
-it('adds a category through the form and shows it in the list', async () => {
+it('adds a category through the New category form and shows it in the list', async () => {
   renderPage();
 
-  const addForm = await screen.findByRole('region', { name: 'Add a category' });
+  // The header button (desktop) and the round + (phones) share the name; only one shows at a time, both go there.
+  const [newCategoryLink] = await screen.findAllByRole('link', { name: 'New category' });
+
+  await userEvent.click(newCategoryLink);
+
+  const addForm = await screen.findByRole('dialog', { name: 'New category' });
 
   await userEvent.type(within(addForm).getByLabelText('Name'), 'Pop! Rocks');
   await userEvent.click(within(addForm).getByRole('button', { name: 'Add category' }));
 
   expect(await screen.findByText('Pop! Rocks')).toBeVisible();
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New category' })).not.toBeInTheDocument());
   expect(screen.getByRole('button', { name: 'Delete Pop! Rocks' })).toBeEnabled();
 });
 

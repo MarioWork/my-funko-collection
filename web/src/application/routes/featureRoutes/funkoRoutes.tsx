@@ -1,10 +1,12 @@
 import type { RouteObject } from 'react-router';
 import { FUNKO_ROUTES_PATHS } from '../routesUtils';
+import { nestedAddRoutes } from './addRoutes';
 
 export const funkoRoutes: RouteObject[] = [
   {
     path: FUNKO_ROUTES_PATHS.BASE,
     lazy: () => import('@pages/FunkoList/FunkoList.route'),
+    children: nestedAddRoutes,
   },
   {
     path: FUNKO_ROUTES_PATHS.detail(),
@@ -12,7 +14,7 @@ export const funkoRoutes: RouteObject[] = [
     children: [
       {
         path: FUNKO_ROUTES_PATHS.edit(),
-        lazy: () => import('@pages/FunkoDetail/components/FunkoEditSheet/FunkoEditSheet.route'),
+        lazy: () => import('@pages/FunkoDetail/components/FunkoEdit/FunkoEdit.route'),
       },
     ],
   },

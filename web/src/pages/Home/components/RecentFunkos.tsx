@@ -13,7 +13,7 @@ function RecentFunkos({ funkos }: Props) {
   if (funkos.length === 0) return null;
 
   return (
-    <section aria-labelledby="recent-heading" className="flex flex-col gap-3">
+    <section aria-labelledby="recent-heading" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 id="recent-heading" className="text-lg font-semibold">
           Recently added
@@ -25,7 +25,9 @@ function RecentFunkos({ funkos }: Props) {
       </div>
       <FunkoGrid label="Recently added" density="compact">
         {funkos.map((funko) => (
-          <FunkoCard key={funko.id} funko={funko} density="compact" />
+          <li key={funko.id}>
+            <FunkoCard funko={funko} density="compact" />
+          </li>
         ))}
       </FunkoGrid>
     </section>

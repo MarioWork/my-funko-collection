@@ -51,7 +51,7 @@ yarn images:prune   # delete image files no row references
 Inside `web/`:
 
 ```
-yarn dev                         # http://localhost:5173/home, API mocked by MSW (VITE_USE_MOCKS=false for the real one)
+yarn dev                         # http://localhost:5173/home, real API on :3000 (VITE_USE_MOCKS=true for MSW mocks)
 yarn tsc -b && yarn lint && yarn test && yarn test-e2e   # the definition of green (e2e starts its own dev server on 5173)
 yarn dlx shadcn@latest add <component>                   # vendors into src/common/components/ui/ (root tsconfig holds the paths)
 ```
@@ -69,8 +69,8 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
 - `src/common/components/ui/**` is vendored shadcn code: kebab-case files, several named exports, lint overrides.
   The one exception to "file name = default export". Wrap it in team-named components; never restyle it in place.
 - Colours are semantic tokens only (`bg-background`, `text-primary`, `ring-ring`), defined in `src/index.css` from
-  Mario's five blue ramps. No `dark:` colour overrides, no hex in a component. Sapphire 500 never carries text or a
-  fill in dark mode.
+  two ramps: warm grey (stone) for everything, one teal accent from the logo for buttons, links, focus and selection.
+  No `dark:` colour overrides, no hex in a component.
 - Every write is a React Router action through `useFetcher`; `fetcher.submit` returns a promise, so `void` it.
   Forms use `useFormCompat` (`'use no memo'`) with `<Field>` + `<Controller>` + `yupResolver`.
 - List state (q, filters, sort, page) lives in the URL through `useListParams` / `useItemListParams`; the loader

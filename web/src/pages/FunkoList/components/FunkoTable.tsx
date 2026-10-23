@@ -5,6 +5,8 @@ import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoImage from '@components/FunkoImage';
 import { Badge } from '@components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip';
+import { TABLE_HEADER_ROW_CLASS } from '@utils/tableUtils';
 
 type Props = {
   funkos: FunkoApiModel[];
@@ -14,7 +16,39 @@ type RowProps = {
   funko: FunkoApiModel;
 };
 
+type CollectionNamesProps = {
+  names: string[];
+};
+
 const THUMB_SIZES = '48px';
+// More than this and the rest fold into "+N", so a funko in many collections keeps a one-line row.
+const VISIBLE_COLLECTIONS = 2;
+const NONE = '—';
+
+// The first collections by name, the rest as "+N" with the full list in its tooltip (and read out in full).
+function CollectionNames({ names }: CollectionNamesProps) {
+  if (names.length === 0) return <span className="text-muted-foreground">{NONE}</span>;
+
+  const visible = names.slice(0, VISIBLE_COLLECTIONS);
+  const hiddenCount = names.length - visible.length;
+  const allNames = names.join(', ');
+
+  return (
+    <span className="flex items-center gap-1.5 whitespace-nowrap text-muted-foreground">
+      <span className="max-w-48 truncate">{visible.join(', ')}</span>
+      {hiddenCount > 0 ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={<Badge variant="outline" tabIndex={0} aria-label={`In ${names.length} collections: ${allNames}`} />}
+          >
+            +{hiddenCount}
+          </TooltipTrigger>
+          <TooltipContent>{allNames}</TooltipContent>
+        </Tooltip>
+      ) : null}
+    </span>
+  );
+}
 
 function FunkoTableRow({ funko }: RowProps) {
   return (
@@ -48,8 +82,8 @@ function FunkoTableRow({ funko }: RowProps) {
       <TableCell className="tabular-nums">#{funko.number}</TableCell>
       <TableCell>{funko.category.name}</TableCell>
       <TableCell className="hidden @3xl:table-cell">{FUNKO_TYPE_LABELS[funko.type]}</TableCell>
-      <TableCell className="hidden text-muted-foreground @3xl:table-cell">
-        {funko.collections.map((collection) => collection.name).join(', ') || '—'}
+      <TableCell className="hidden @3xl:table-cell">
+        <CollectionNames names={funko.collections.map((collection) => collection.name)} />
       </TableCell>
     </TableRow>
   );
@@ -57,7 +91,7 @@ function FunkoTableRow({ funko }: RowProps) {
 
 function FunkoTableHead() {
   return (
-    <TableRow>
+    <TableRow className={TABLE_HEADER_ROW_CLASS}>
       <TableHead className="w-16">
         <span className="sr-only">Photo</span>
       </TableHead>

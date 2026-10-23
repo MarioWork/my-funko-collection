@@ -11,13 +11,12 @@ import {
   toItemPayload,
   type ItemFormValues,
 } from '@components/ItemFormFields/itemFormUtils';
-import { Button } from '@components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@components/ui/sheet';
-import { Spinner } from '@components/ui/spinner';
 import { useFormCompat } from '@hooks/useFormCompat';
-import { useIsDesktop } from '@hooks/useMediaQuery';
 import { createFormData } from '@utils/formDataUtils';
 import type { loader } from './editItemSheetLoader';
+import SubmitButton from '@components/SubmitButton';
+import CancelButton from '@components/CancelButton';
+import FormPanel from '@components/FormPanel';
 
 const FORM_ID = 'edit-item';
 const BACK = -1;
@@ -27,7 +26,6 @@ function EditItemSheet() {
   const { item, tags } = useLoaderData<LoaderDataUtil<typeof loader>>();
   const fetcher = useFetcher<JSONResponseUtil<CollectionItemApiModel>>();
   const navigate = useNavigate();
-  const isDesktop = useIsDesktop();
   const { control, handleSubmit } = useFormCompat<ItemFormValues>({
     defaultValues: itemToFormValues(item),
     resolver: yupResolver(itemFormSchema),
@@ -47,41 +45,29 @@ function EditItemSheet() {
   });
 
   return (
-    <Sheet open onOpenChange={(open) => (open ? undefined : close())}>
-      <SheetContent
-        side={isDesktop ? 'right' : 'bottom'}
-        className="flex max-h-dvh flex-col gap-0 overflow-hidden sm:max-w-lg"
-      >
-        <SheetHeader>
-          <SheetTitle>
-            {item.funko.name} in {item.collection.name}
-          </SheetTitle>
-          <SheetDescription>Your copy: how many, in what state, what you paid, where it is.</SheetDescription>
-        </SheetHeader>
-        <form
-          id={FORM_ID}
-          onSubmit={(event) => void onSubmit(event)}
-          noValidate
-          className="flex-1 overflow-y-auto px-4 pb-4"
-        >
-          <ItemFormFields control={control} tags={tags} idPrefix={FORM_ID} />
-          {failure ? (
-            <InlineAlert tone="error" className="mt-4">
-              {failure.message ?? 'Something went wrong. Please try again.'}
-            </InlineAlert>
-          ) : null}
-        </form>
-        <SheetFooter className="border-t pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-          <Button type="submit" form={FORM_ID} disabled={isSubmitting}>
-            {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
+    <FormPanel
+      title={`${item.funko.name} in ${item.collection.name}`}
+      description="Your copy: how many, in what state, what you paid, where it is."
+      onClose={close}
+      isWide
+      footer={
+        <>
+          <CancelButton isSubmitting={isSubmitting} onCancel={close} />
+          <SubmitButton isSubmitting={isSubmitting} form={FORM_ID}>
             Save changes
-          </Button>
-          <Button type="button" variant="outline" onClick={close} disabled={isSubmitting}>
-            Cancel
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+          </SubmitButton>
+        </>
+      }
+    >
+      <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate>
+        <ItemFormFields control={control} tags={tags} idPrefix={FORM_ID} />
+        {failure ? (
+          <InlineAlert tone="error" className="mt-4">
+            {failure.message ?? 'Something went wrong. Please try again.'}
+          </InlineAlert>
+        ) : null}
+      </form>
+    </FormPanel>
   );
 }
 

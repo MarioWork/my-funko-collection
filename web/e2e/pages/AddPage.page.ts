@@ -9,7 +9,7 @@ type FunkoDetails = {
 
 export class AddPage {
   readonly main: Locator;
-  readonly addedCard: Locator;
+  readonly savedCard: Locator;
   readonly scanResult: Locator;
 
   private readonly page: Page;
@@ -17,7 +17,7 @@ export class AddPage {
   constructor(page: Page) {
     this.page = page;
     this.main = page.getByRole('main');
-    this.addedCard = page.getByRole('region', { name: 'Added' });
+    this.savedCard = page.getByRole('region', { name: 'Saved' });
     this.scanResult = page.getByRole('region', { name: 'Scan result' });
   }
 
@@ -35,24 +35,46 @@ export class AddPage {
     await this.page.getByLabel('Category', { exact: true }).selectOption({ label: categoryName });
   }
 
-  async submitDetails() {
-    await this.main.getByRole('button', { name: 'Add funko' }).click();
+  async save() {
+    await this.main.getByRole('button', { name: 'Save funko' }).click();
   }
 
   async choosePhotos(paths: string[]) {
     await this.page.getByLabel('Photo files').setInputFiles(paths);
   }
 
-  async uploadPhotos(count: number) {
-    await this.page.getByRole('button', { name: `Upload ${count} photos` }).click();
+  photosToUpload() {
+    return this.page.getByRole('list', { name: 'Photos to upload' }).getByRole('listitem');
   }
 
-  async openAddedFunko(name: string) {
-    await this.addedCard.getByRole('link', { name: `Open ${name}` }).click();
+  // Base UI's combobox chips have no role; data-slot is the shadcn wrapper's hook for them.
+  pickedCollections() {
+    return this.main.locator('[data-slot=combobox-chip]');
   }
 
-  toastWithText(text: string) {
-    return this.page.getByRole('region', { name: 'Notifications' }).getByText(text);
+  async pickCollection(name: string) {
+    await this.main.getByRole('combobox', { name: 'Save to collections' }).fill(name);
+    await this.page.getByRole('option', { name }).click();
+  }
+
+  // Backspace in the empty input drops the last chip.
+  async dropLastCollection() {
+    const input = this.main.getByRole('combobox', { name: 'Save to collections' });
+
+    await input.fill('');
+    await input.press('Backspace');
+  }
+
+  photosError() {
+    return this.main.getByText('Add at least one photo');
+  }
+
+  async addAnother() {
+    await this.savedCard.getByRole('button', { name: 'Add another' }).click();
+  }
+
+  async openSavedFunko(name: string) {
+    await this.savedCard.getByRole('link', { name: `Open ${name}` }).click();
   }
 
   async typeBarcode(code: string) {

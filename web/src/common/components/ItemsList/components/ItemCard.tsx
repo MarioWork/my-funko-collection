@@ -5,6 +5,7 @@ import FunkoImage from '@components/FunkoImage';
 import { Badge } from '@components/ui/badge';
 import { getItemFacts } from '../itemsListUtils';
 import ItemRowMenu from './ItemRowMenu';
+import { funkosInCategoryPath } from '@utils/funkoLinkUtils';
 
 type Props = {
   item: CollectionItemApiModel;
@@ -20,7 +21,7 @@ const THUMB_SIZES = '72px';
 // The phone layout of a row: thumbnail, name, number, the facts in one line, tags, the menu.
 function ItemCard({ item, collections, showCollection, isBusy, onMove, onRemove }: Props) {
   return (
-    <li className="flex gap-3 rounded-xl border bg-card p-3">
+    <li className="flex gap-3 rounded-xl border bg-card p-3 transition-shadow focus-within:ring-2 focus-within:ring-primary hover:ring-2 hover:ring-primary">
       <FunkoImage
         image={item.funko.primaryImage}
         alt=""
@@ -35,7 +36,13 @@ function ItemCard({ item, collections, showCollection, isBusy, onMove, onRemove 
           {item.funko.name}
         </Link>
         <p className="truncate text-xs text-muted-foreground">
-          #{item.funko.number} · {item.funko.category.name}
+          #{item.funko.number} ·{' '}
+          <Link
+            to={funkosInCategoryPath(item.funko.category.id)}
+            className="underline-offset-4 hover:text-foreground hover:underline"
+          >
+            {item.funko.category.name}
+          </Link>
           {showCollection ? ` · ${item.collection.name}` : ''}
         </p>
         <p className="text-xs text-muted-foreground">{getItemFacts(item).join(' · ')}</p>

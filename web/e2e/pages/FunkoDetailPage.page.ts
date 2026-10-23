@@ -11,7 +11,11 @@ export class FunkoDetailPage {
   }
 
   async openDeleteDialog() {
-    await this.page.getByRole('main').getByRole('button', { name: 'Delete' }).click();
+    await this.page
+      .getByRole('main')
+      .getByRole('button', { name: /^Actions for / })
+      .click();
+    await this.page.getByRole('menuitem', { name: 'Delete' }).click();
   }
 
   async confirmDelete({ alsoRemoveFromCollections }: { alsoRemoveFromCollections: boolean }) {

@@ -42,7 +42,7 @@ export function useItemActions() {
     setPending({ kind: 'restore', item });
     void fetcher.submit(createFormData({ item: toSnapshot(item) }), {
       method: HttpVerbsUtil.POST,
-      action: COLLECTION_ROUTES_PATHS.addItem(String(item.collection.id)),
+      action: COLLECTION_ROUTES_PATHS.restoreItem(String(item.collection.id)),
     });
   };
 

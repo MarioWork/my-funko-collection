@@ -3,9 +3,11 @@ import type { SortingDirectionUtil } from '@app-types/utility';
 import FilterChips from '@components/FilterChips';
 import FilterPanel from '@components/FilterPanel';
 import SearchInput from '@components/SearchInput';
+import LayoutToggle from '@components/LayoutToggle';
 import SortSelect from '@components/SortSelect';
 import { useItemListParams } from '@hooks/useItemListParams';
 import { ITEM_SORT_OPTIONS } from '@utils/itemListUtils';
+import type { FunkoLayoutUtil } from '@utils/layoutUtils';
 import ItemFilters from './ItemFilters';
 
 type Props = {
@@ -15,9 +17,20 @@ type Props = {
   hasCollectionFilter: boolean;
   resultCount: number;
   sort: { field: string; direction: SortingDirectionUtil };
+  layout: FunkoLayoutUtil;
+  onLayoutChange: (layout: FunkoLayoutUtil) => void;
 };
 
-function ItemsToolbar({ categories, tags, collections, hasCollectionFilter, resultCount, sort }: Props) {
+function ItemsToolbar({
+  categories,
+  tags,
+  collections,
+  hasCollectionFilter,
+  resultCount,
+  sort,
+  layout,
+  onLayoutChange,
+}: Props) {
   const { query, filters, chips, setQuery, setFilter, setSort, clearFilters } = useItemListParams({
     categories,
     tags,
@@ -46,6 +59,9 @@ function ItemsToolbar({ categories, tags, collections, hasCollectionFilter, resu
             onChange={setFilter}
           />
         </FilterPanel>
+        <div className="@md:ml-auto">
+          <LayoutToggle value={layout} onChange={onLayoutChange} />
+        </div>
       </div>
       <FilterChips chips={chips} onClearAll={clearFilters} />
     </div>

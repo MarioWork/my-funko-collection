@@ -1,0 +1,84 @@
+import { Link } from 'react-router';
+import type { FunkoDetailApiModel } from '@app-types/models';
+import { FUNKO_TYPE_LABELS } from '@app-types/utility';
+import { Badge } from '@components/ui/badge';
+import { Separator } from '@components/ui/separator';
+import { formatDateTime } from '@utils/dateUtils';
+import { funkosInCategoryPath } from '@utils/funkoLinkUtils';
+
+type Props = {
+  funko: FunkoDetailApiModel;
+  // Top right, beside the name: the Owned / Wishlist icons and the ⋯ menu (Edit, Lists, Delete).
+  actions: React.ReactNode;
+};
+
+type HeadingProps = Pick<Props, 'funko' | 'actions'>;
+
+type RowProps = {
+  label: string;
+  children: React.ReactNode;
+};
+
+const TITLE_ID = 'funko-title';
+
+function SpecRow({ label, children }: RowProps) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-sm">{children}</dd>
+    </div>
+  );
+}
+
+// The page's one h1, its number and category (the category links to the filtered catalog), and the actions.
+function SummaryHeading({ funko, actions }: HeadingProps) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-1">
+        <h1 id={TITLE_ID} className="text-2xl font-semibold tracking-tight text-balance lg:text-3xl">
+          {funko.name}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          <span className="tabular-nums">#{funko.number}</span> ·{' '}
+          <Link
+            to={funkosInCategoryPath(funko.category.id)}
+            className="underline-offset-4 hover:text-foreground hover:underline"
+          >
+            {funko.category.name}
+          </Link>
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">{actions}</div>
+    </div>
+  );
+}
+
+// The funko at a glance, in one tile: name and actions, then the catalog facts.
+function FunkoSummary({ funko, actions }: Props) {
+  return (
+    <section aria-labelledby={TITLE_ID} className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+      <SummaryHeading funko={funko} actions={actions} />
+      <Separator />
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <SpecRow label="Type">{FUNKO_TYPE_LABELS[funko.type]}</SpecRow>
+        <SpecRow label="Variant">
+          <span className="flex flex-wrap gap-1">
+            {funko.isChase ? (
+              <Badge className="bg-accent-soft text-accent-soft-foreground" variant="secondary">
+                Chase
+              </Badge>
+            ) : null}
+            {funko.exclusive ? <Badge variant="secondary">{funko.exclusive}</Badge> : null}
+            {!funko.isChase && !funko.exclusive ? 'Regular' : null}
+          </span>
+        </SpecRow>
+        <SpecRow label="Barcode">
+          {funko.barcode ? <span className="tabular-nums">{funko.barcode}</span> : 'None yet'}
+        </SpecRow>
+        <SpecRow label="Added">{formatDateTime(funko.createdAt)}</SpecRow>
+      </dl>
+    </section>
+  );
+}
+
+export default FunkoSummary;

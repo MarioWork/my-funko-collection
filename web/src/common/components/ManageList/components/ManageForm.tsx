@@ -1,13 +1,15 @@
 import { yupResolver } from '@hookform/resolvers/yup';
+import { Check, X } from 'lucide-react';
 import { Controller } from 'react-hook-form';
 import type { ApiError } from '@app-types/models';
+import IconButton from '@components/IconButton';
 import InlineAlert from '@components/InlineAlert';
-import { Button } from '@components/ui/button';
 import { Field, FieldError, FieldLabel } from '@components/ui/field';
 import { Input } from '@components/ui/input';
 import { Spinner } from '@components/ui/spinner';
 import { useFormCompat } from '@hooks/useFormCompat';
 import { cn } from '@utils/classNameUtils';
+import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 import { manageFormSchema, type ManageFormValues } from '../manageListUtils';
 
 type Props = {
@@ -19,10 +21,14 @@ type Props = {
   failure?: ApiError;
   onSubmit: (values: ManageFormValues) => void;
   onCancel?: () => void;
+  // Set when the buttons live outside the form (a FormPanel footer submits it through this id).
+  formId?: string;
   className?: string;
 };
 
-// One row of fields (name, optional notes) and the buttons; used both to add and to rename inline.
+// The fields (name, optional notes) and, unless a FormPanel footer carries them, ✓ / ✕ icon buttons (named Save /
+// Cancel for assistive tech and in their tooltips). Renames inline in a
+// row; adds inside ManageAddPanel.
 function ManageForm({
   idPrefix,
   defaultValues,
@@ -32,8 +38,10 @@ function ManageForm({
   failure,
   onSubmit,
   onCancel,
+  formId,
   className,
 }: Props) {
+  const hasInlineButtons = formId === undefined;
   const { control, handleSubmit } = useFormCompat<ManageFormValues>({
     defaultValues,
     resolver: yupResolver(manageFormSchema),
@@ -41,7 +49,12 @@ function ManageForm({
   const submit = handleSubmit((values) => onSubmit(values));
 
   return (
-    <form onSubmit={(event) => void submit(event)} noValidate className={cn('flex flex-col gap-3', className)}>
+    <form
+      id={formId}
+      onSubmit={(event) => void submit(event)}
+      noValidate
+      className={cn('flex flex-col gap-3', className)}
+    >
       <div className="flex flex-col gap-3 @md:flex-row @md:items-start">
         <Controller
           control={control}
@@ -72,17 +85,29 @@ function ManageForm({
             )}
           />
         ) : null}
-        <div className="flex gap-2 @md:pt-6">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
-            {submitLabel}
-          </Button>
-          {onCancel ? (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-              Cancel
-            </Button>
-          ) : null}
-        </div>
+        {hasInlineButtons ? (
+          <div className="flex gap-1 @md:pt-6">
+            <IconButton
+              type="submit"
+              aria-label={submitLabel}
+              disabled={isSubmitting}
+              disabledReason={DISABLED_REASONS.SAVING}
+            >
+              {isSubmitting ? <Spinner /> : <Check aria-hidden="true" />}
+            </IconButton>
+            {onCancel ? (
+              <IconButton
+                variant="outline"
+                aria-label="Cancel"
+                onClick={onCancel}
+                disabled={isSubmitting}
+                disabledReason={DISABLED_REASONS.SAVING}
+              >
+                <X aria-hidden="true" />
+              </IconButton>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {failure ? (
         <InlineAlert tone="error">{failure.message ?? 'Something went wrong. Please try again.'}</InlineAlert>

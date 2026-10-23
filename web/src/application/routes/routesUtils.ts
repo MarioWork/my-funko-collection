@@ -20,6 +20,9 @@ export const FUNKO_ROUTES_PATHS = {
 export const ADD_ROUTES_PATHS = {
   BASE: '/add',
   MANUAL: '/add/manual',
+  // Children of a page (Home, Funkos): the same flow as a dialog over that page on desktop.
+  NESTED_FORM: 'add',
+  NESTED_SCAN: 'scan',
 };
 
 export const COLLECTION_ROUTES_PATHS = {
@@ -34,8 +37,9 @@ export const COLLECTION_ROUTES_PATHS = {
     collectionId ? `/collections/${collectionId}/default` : '/collections/:collectionId/default',
   items: (collectionId?: string) =>
     collectionId ? `/collections/${collectionId}/items` : '/collections/:collectionId/items',
-  addItem: (collectionId?: string) =>
-    collectionId ? `/collections/${collectionId}/items/add` : '/collections/:collectionId/items/add',
+  // Action only: the Undo of a removed item.
+  restoreItem: (collectionId?: string) =>
+    collectionId ? `/collections/${collectionId}/items/restore` : '/collections/:collectionId/items/restore',
   editItem: (collectionId?: string, itemId?: string) =>
     collectionId && itemId
       ? `/collections/${collectionId}/items/${itemId}/edit`
@@ -56,11 +60,13 @@ export const ITEM_ROUTES_PATHS = {
 
 export const CATEGORY_ROUTES_PATHS = {
   BASE: '/categories',
+  ADD: 'add',
   update: (categoryId?: string) => (categoryId ? `/categories/${categoryId}` : '/categories/:categoryId'),
 };
 
 export const TAG_ROUTES_PATHS = {
   BASE: '/tags',
+  ADD: 'add',
   update: (tagId?: string) => (tagId ? `/tags/${tagId}` : '/tags/:tagId'),
 };
 

@@ -1,6 +1,6 @@
-import { Package } from 'lucide-react';
 import type { PrimaryImageApiModel } from '@app-types/models';
 import { cn } from '@utils/classNameUtils';
+import MissingPhotoArt from './components/MissingPhotoArt';
 
 type Props = {
   image: PrimaryImageApiModel | null;
@@ -26,7 +26,7 @@ function FunkoImage({ image, alt, sizes, fit = 'cover', isPriority = false, clas
         aria-label={`${alt} (no photo yet)`}
         className={cn('flex items-center justify-center bg-muted text-muted-foreground', className)}
       >
-        <Package className="size-1/3" aria-hidden="true" />
+        <MissingPhotoArt className="w-1/2 max-w-32" />
       </div>
     );
   }

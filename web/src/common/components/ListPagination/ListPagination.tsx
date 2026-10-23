@@ -5,6 +5,7 @@ import { ApiUrlParamsUtil } from '@app-types/utility';
 import { Button } from '@components/ui/button';
 import { Pagination, PaginationContent, PaginationItem } from '@components/ui/pagination';
 import { useIsDesktop } from '@hooks/useMediaQuery';
+import DisabledReason from '@components/DisabledReason';
 
 type Props = {
   page: number;
@@ -17,6 +18,7 @@ type PageLinkProps = {
   label: string;
   isCurrent?: boolean;
   isDisabled?: boolean;
+  disabledReason?: string;
   children: ReactNode;
 };
 
@@ -31,20 +33,22 @@ function pageNumbers(current: number, last: number, visible: number): number[] {
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
-function PageLink({ to, label, isCurrent = false, isDisabled = false, children }: PageLinkProps) {
+function PageLink({ to, label, isCurrent = false, isDisabled = false, disabledReason, children }: PageLinkProps) {
   return (
     <PaginationItem>
-      <Button
-        variant={isCurrent ? 'outline' : 'ghost'}
-        size="icon"
-        aria-label={label}
-        aria-current={isCurrent ? 'page' : undefined}
-        disabled={isDisabled}
-        render={<Link to={to} />}
-        nativeButton={false}
-      >
-        {children}
-      </Button>
+      <DisabledReason reason={isDisabled ? disabledReason : undefined}>
+        <Button
+          variant={isCurrent ? 'outline' : 'ghost'}
+          size="icon"
+          aria-label={label}
+          aria-current={isCurrent ? 'page' : undefined}
+          disabled={isDisabled}
+          render={<Link to={to} />}
+          nativeButton={false}
+        >
+          {children}
+        </Button>
+      </DisabledReason>
     </PaginationItem>
   );
 }
@@ -63,12 +67,13 @@ function PageNumbers({ page, lastPage, linkTo }: PageNumbersProps) {
   ));
 }
 
-// "1–60 of 500" with prev/next; page numbers on desktop. Links keep every other URL param.
+// "1–60 of 500" with prev/next; page numbers on desktop. Links keep every other URL param. Nothing for an empty list:
+// the page's own empty state already says so.
 function ListPagination({ page, size, total }: Props) {
   const { search } = useLocation();
   const isDesktop = useIsDesktop();
   const lastPage = Math.max(FIRST_PAGE, Math.ceil(total / size));
-  const first = total === 0 ? 0 : (page - 1) * size + 1;
+  const first = (page - 1) * size + 1;
   const last = Math.min(page * size, total);
 
   const linkTo = (target: number): string => {
@@ -79,9 +84,9 @@ function ListPagination({ page, size, total }: Props) {
     return `?${params.toString()}`;
   };
 
-  if (total <= size) {
-    return <p className="text-sm text-muted-foreground">{total === 0 ? 'No results' : `${total} results`}</p>;
-  }
+  if (total === 0) return null;
+
+  if (total <= size) return <p className="text-sm text-muted-foreground">{total} results</p>;
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -90,11 +95,21 @@ function ListPagination({ page, size, total }: Props) {
       </p>
       <Pagination className="mx-0 w-auto">
         <PaginationContent>
-          <PageLink to={linkTo(page - 1)} label="Previous page" isDisabled={page <= FIRST_PAGE}>
+          <PageLink
+            to={linkTo(page - 1)}
+            label="Previous page"
+            isDisabled={page <= FIRST_PAGE}
+            disabledReason="You are on the first page."
+          >
             <ChevronLeft aria-hidden="true" />
           </PageLink>
           {isDesktop ? <PageNumbers page={page} lastPage={lastPage} linkTo={linkTo} /> : null}
-          <PageLink to={linkTo(page + 1)} label="Next page" isDisabled={page >= lastPage}>
+          <PageLink
+            to={linkTo(page + 1)}
+            label="Next page"
+            isDisabled={page >= lastPage}
+            disabledReason="You are on the last page."
+          >
             <ChevronRight aria-hidden="true" />
           </PageLink>
         </PaginationContent>

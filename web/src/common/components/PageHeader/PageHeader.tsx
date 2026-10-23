@@ -12,12 +12,15 @@ type Props = {
   onBack?: () => void;
   backLabel?: string;
   actions?: ReactNode;
+  // Shown under the title inside the same card, e.g. a list's search and filters.
+  children?: ReactNode;
 };
 
-// The one h1 per page, with an optional back link and an actions slot that wraps under the title on phones.
-function PageHeader({ title, description, backTo, onBack, backLabel = 'Back', actions }: Props) {
+// The one h1 per page, on a card like the page's own content, with an optional back link and an actions slot that
+// wraps under the title on phones.
+function PageHeader({ title, description, backTo, onBack, backLabel = 'Back', actions, children }: Props) {
   return (
-    <header className="flex flex-col gap-3">
+    <header className="flex flex-col gap-3 rounded-xl border bg-card p-4">
       {backTo ? (
         <LinkButton to={backTo} variant="ghost" size="sm" className="self-start">
           <ArrowLeft data-icon="inline-start" aria-hidden="true" />
@@ -37,6 +40,7 @@ function PageHeader({ title, description, backTo, onBack, backLabel = 'Back', ac
         </div>
         {actions ? <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
+      {children}
     </header>
   );
 }

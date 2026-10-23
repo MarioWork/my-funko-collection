@@ -3,19 +3,18 @@ import { ValidationError } from 'yup';
 import type { JSONResponseUtil } from '@app-types/utility';
 import { HttpVerbsUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { PHOTO_FIELD } from '@components/PhotoUploader/photoUploaderUtils';
+import { PHOTO_FIELD } from '@utils/pendingPhotoUtils';
 import collectionItemService, { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
 import funkoImageService from '@services/funkoImageService/funkoImageService';
 import { ReorderImagesSchema, RotateImageSchema } from '@services/funkoImageService/funkoImageService.type';
 import funkoService from '@services/funkoService/funkoService';
 import { parseFormData } from '@utils/formDataUtils';
+import { newItemPayload } from '@utils/newItemUtils';
 
 type DeleteFunkoFormData = { force?: boolean };
 type MembershipFormData = { collectionId: number };
 type ReorderFormData = { imageIds: number[] };
 type RotateFormData = { degrees: number };
-
-const DEFAULT_QUANTITY = 1;
 
 // DELETE /funkos/:funkoId, with `force` from the confirm dialog's checkbox. Success leaves the page.
 export const deleteFunkoAction = async ({
@@ -34,16 +33,7 @@ export const membershipAction = async ({ request, params }: ActionFunctionArgs):
   const { collectionId } = parseFormData<MembershipFormData>(await request.formData());
 
   if (request.method === HttpVerbsUtil.POST) {
-    return collectionItemService.addCollectionItem(collectionId, {
-      funkoId,
-      quantity: DEFAULT_QUANTITY,
-      condition: null,
-      purchasePriceCents: null,
-      purchaseCurrency: undefined,
-      purchasedAt: null,
-      notes: null,
-      tagIds: [],
-    });
+    return collectionItemService.addCollectionItem(collectionId, newItemPayload(funkoId));
   }
 
   const items = await collectionItemService.getCollectionItems(collectionId, {

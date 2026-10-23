@@ -13,12 +13,14 @@ type CollectionTileProps = {
   collection: CollectionStatsApiModel;
 };
 
+// Grey cards inside the white section tile; hover or keyboard focus draws the teal outline. No lift: the tile already
+// sets them apart from the page.
 function CollectionTile({ collection }: CollectionTileProps) {
   return (
     <li>
       <Card
         size="sm"
-        className="relative h-full transition-[transform,box-shadow,border-color] duration-200 focus-within:border-primary/40 hover:border-primary/40 hover:shadow-md motion-safe:hover:-translate-y-0.5"
+        className="relative h-full bg-muted transition-shadow duration-200 focus-within:ring-2 focus-within:ring-primary hover:ring-2 hover:ring-primary"
       >
         <CardHeader>
           <CardTitle>
@@ -39,7 +41,7 @@ function CollectionTile({ collection }: CollectionTileProps) {
             <strong>{collection.totalQuantity}</strong> pieces
           </span>
           <span>
-            <strong>{formatCents(collection.totalSpentCents)}</strong> spent
+            <strong>{formatCents(collection.totalSpentCents)}</strong> total
           </span>
         </CardContent>
       </Card>
@@ -51,7 +53,7 @@ function CollectionsOverview({ collections }: Props) {
   if (collections.length === 0) return null;
 
   return (
-    <section aria-labelledby="collections-heading" className="flex flex-col gap-3">
+    <section aria-labelledby="collections-heading" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
       <h2 id="collections-heading" className="text-lg font-semibold">
         Collections
       </h2>

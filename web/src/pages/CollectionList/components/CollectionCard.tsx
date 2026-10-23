@@ -6,8 +6,6 @@ import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import ConfirmDialog from '@components/ConfirmDialog';
 import IconButton from '@components/IconButton';
-import { Badge } from '@components/ui/badge';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,12 +14,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip';
 import { useActionToast } from '@hooks/useActionToast';
-import { formatCents } from '@utils/moneyUtils';
+import DisabledReason from '@components/DisabledReason';
+import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
+import { CollectionLayoutUtil } from '../collectionListUtils';
+import CollectionCardView from './CollectionCardView';
+import CollectionTableRow from './CollectionTableRow';
 
 type Props = {
   collection: CollectionApiModel;
+  layout: CollectionLayoutUtil;
 };
 
 type MenuProps = {
@@ -31,10 +33,14 @@ type MenuProps = {
   onDelete: () => void;
 };
 
-const DELETE_HINT_ID = 'collection-delete-hint';
+const IS_DEFAULT_REASON = 'This is already the default collection.';
+const DELETE_DEFAULT_REASON = 'The default collection cannot be deleted. Make another one the default first.';
 
 function CollectionMenu({ collection, isBusy, onMakeDefault, onDelete }: MenuProps) {
   const id = String(collection.id);
+  const busyReason = reasonWhen(isBusy, DISABLED_REASONS.WORKING);
+  const makeDefaultReason = collection.isDefault ? IS_DEFAULT_REASON : busyReason;
+  const deleteReason = collection.isDefault ? DELETE_DEFAULT_REASON : busyReason;
 
   return (
     <DropdownMenuContent align="end">
@@ -43,39 +49,29 @@ function CollectionMenu({ collection, isBusy, onMakeDefault, onDelete }: MenuPro
           <Pencil aria-hidden="true" />
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={collection.isDefault || isBusy} onClick={onMakeDefault}>
-          <Star aria-hidden="true" fill={collection.isDefault ? 'currentColor' : 'none'} />
-          {collection.isDefault ? 'Default' : 'Make default'}
-        </DropdownMenuItem>
+        <DisabledReason reason={makeDefaultReason} mode="wrapper" wrapperClassName="block">
+          <DropdownMenuItem disabled={collection.isDefault || isBusy} onClick={onMakeDefault}>
+            <Star aria-hidden="true" fill={collection.isDefault ? 'currentColor' : 'none'} />
+            {collection.isDefault ? 'Default' : 'Make default'}
+          </DropdownMenuItem>
+        </DisabledReason>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
-        {collection.isDefault ? (
-          // A disabled item swallows pointer events, so the tooltip hangs on a wrapper around it.
-          <Tooltip>
-            <TooltipTrigger render={<span className="block" />}>
-              <DropdownMenuItem variant="destructive" disabled aria-describedby={DELETE_HINT_ID}>
-                <Trash2 aria-hidden="true" />
-                Delete
-              </DropdownMenuItem>
-            </TooltipTrigger>
-            <TooltipContent id={DELETE_HINT_ID} side="left">
-              The default collection cannot be deleted. Make another one the default first.
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <DropdownMenuItem variant="destructive" disabled={isBusy} onClick={onDelete}>
+        <DisabledReason reason={deleteReason} mode="wrapper" wrapperClassName="block">
+          <DropdownMenuItem variant="destructive" disabled={collection.isDefault || isBusy} onClick={onDelete}>
             <Trash2 aria-hidden="true" />
             Delete
           </DropdownMenuItem>
-        )}
+        </DisabledReason>
       </DropdownMenuGroup>
     </DropdownMenuContent>
   );
 }
 
-// Name, default star, counts and money spent; the card links to the collection's items.
-function CollectionCard({ collection }: Props) {
+// One collection, as a card or a table row (same actions either way): name, default badge, counts, total and the ⋯
+// menu (edit, make default, delete); the whole card links to the collection's items.
+function CollectionCard({ collection, layout }: Props) {
   const fetcher = useFetcher<JSONResponseUtil>();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const id = String(collection.id);
@@ -86,6 +82,20 @@ function CollectionCard({ collection }: Props) {
   const remove = () =>
     void fetcher.submit(null, { method: HttpVerbsUtil.DELETE, action: COLLECTION_ROUTES_PATHS.delete(id) });
 
+  const menu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<IconButton aria-label={`Actions for ${collection.name}`} variant="ghost" />}>
+        <MoreHorizontal aria-hidden="true" />
+      </DropdownMenuTrigger>
+      <CollectionMenu
+        collection={collection}
+        isBusy={isBusy}
+        onMakeDefault={makeDefault}
+        onDelete={() => setIsDeleteOpen(true)}
+      />
+    </DropdownMenu>
+  );
+
   useActionToast(fetcher, {
     successMessage: () =>
       fetcher.formMethod === HttpVerbsUtil.DELETE
@@ -93,61 +103,36 @@ function CollectionCard({ collection }: Props) {
         : `${collection.name} is now the default`,
   });
 
+  const confirmDelete = (
+    <ConfirmDialog
+      isOpen={isDeleteOpen}
+      title={`Delete ${collection.name}?`}
+      description="Its items are removed from this list. The funkos themselves stay in your catalog."
+      confirmLabel="Delete"
+      isDestructive
+      isPending={isBusy}
+      onConfirm={() => {
+        setIsDeleteOpen(false);
+        remove();
+      }}
+      onClose={() => setIsDeleteOpen(false)}
+    />
+  );
+
+  // A table row has no list item around it; the dialog renders in a portal, so it can sit beside the row.
+  if (layout === CollectionLayoutUtil.LIST) {
+    return (
+      <>
+        <CollectionTableRow collection={collection} menu={menu} />
+        {confirmDelete}
+      </>
+    );
+  }
+
   return (
     <li>
-      <Card className="relative h-full transition-[transform,box-shadow,border-color] duration-200 focus-within:border-primary/40 hover:border-primary/40 hover:shadow-md motion-safe:hover:-translate-y-0.5">
-        <CardHeader>
-          <CardTitle>
-            <Link
-              to={COLLECTION_ROUTES_PATHS.detail(id)}
-              className="outline-none after:absolute after:inset-0 after:rounded-xl"
-            >
-              {collection.name}
-            </Link>
-            {collection.isDefault ? <Badge className="ml-2 align-middle">Default</Badge> : null}
-          </CardTitle>
-          <CardDescription>{collection.notes ?? 'No notes'}</CardDescription>
-          <CardAction className="relative z-10">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={<IconButton aria-label={`Actions for ${collection.name}`} variant="ghost" />}
-              >
-                <MoreHorizontal aria-hidden="true" />
-              </DropdownMenuTrigger>
-              <CollectionMenu
-                collection={collection}
-                isBusy={isBusy}
-                onMakeDefault={makeDefault}
-                onDelete={() => setIsDeleteOpen(true)}
-              />
-            </DropdownMenu>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="flex gap-4 text-sm tabular-nums">
-          <span>
-            <strong>{collection.itemCount}</strong> funkos
-          </span>
-          <span>
-            <strong>{collection.totalQuantity}</strong> pieces
-          </span>
-          <span>
-            <strong>{formatCents(collection.totalSpentCents)}</strong> spent
-          </span>
-        </CardContent>
-      </Card>
-      <ConfirmDialog
-        isOpen={isDeleteOpen}
-        title={`Delete ${collection.name}?`}
-        description="Its items are removed from this list. The funkos themselves stay in your catalog."
-        confirmLabel="Delete"
-        isDestructive
-        isPending={isBusy}
-        onConfirm={() => {
-          setIsDeleteOpen(false);
-          remove();
-        }}
-        onClose={() => setIsDeleteOpen(false)}
-      />
+      <CollectionCardView collection={collection} menu={menu} />
+      {confirmDelete}
     </li>
   );
 }

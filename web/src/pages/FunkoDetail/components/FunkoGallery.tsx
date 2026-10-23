@@ -1,84 +1,67 @@
 import { useState } from 'react';
-import { useFetcher } from 'react-router';
 import type { FunkoDetailApiModel } from '@app-types/models';
-import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
-import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
+import DisabledReason from '@components/DisabledReason';
 import FunkoImage from '@components/FunkoImage';
 import Lightbox from '@components/Lightbox';
-import PhotoUploader from '@components/PhotoUploader';
-import { createFormData } from '@utils/formDataUtils';
-import FunkoGalleryThumbnail from './FunkoGalleryThumbnail';
+import PhotoThumbnail from '@components/PhotoThumbnail';
+import { reasonWhen } from '@utils/disabledReasonUtils';
 
 type Props = {
   funko: FunkoDetailApiModel;
 };
 
 const HERO_SIZES = '(min-width: 1024px) 480px, 100vw';
+const NO_PHOTO_REASON = 'No photo yet. Use Edit to add one.';
+const MAIN_PHOTO_INDEX = 0;
 
-// Hero photo, the thumbnail strip, the uploader, and the lightbox. Order changes go through one PATCH.
+// The big frame, the thumbnail strip and the viewer, in a tile like the page's other sections (so the grey
+// no-photo placeholder stands out from the page). A thumbnail only previews its photo in the frame; the main photo
+// stays as it is (it changes in Edit). The frame opens the photo on show full size.
 function FunkoGallery({ funko }: Props) {
+  const [shownIndex, setShownIndex] = useState(MAIN_PHOTO_INDEX);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const orderFetcher = useFetcher<JSONResponseUtil>();
   const { images } = funko;
-  const hero = images[0];
-  const imagesPath = FUNKO_ROUTES_PATHS.images(String(funko.id));
-
-  const submitOrder = (imageIds: number[]) =>
-    void orderFetcher.submit(createFormData({ imageIds }), { method: HttpVerbsUtil.PATCH, action: imagesPath });
-
-  const move = (index: number, direction: -1 | 1) => {
-    const ids = images.map((image) => image.id);
-    const [moved] = ids.splice(index, 1);
-
-    if (moved === undefined) return;
-
-    ids.splice(index + direction, 0, moved);
-    submitOrder(ids);
-  };
-
-  const makePrimary = (index: number) => {
-    const ids = images.map((image) => image.id);
-    const [chosen] = ids.splice(index, 1);
-
-    if (chosen !== undefined) submitOrder([chosen, ...ids]);
-  };
+  // A photo deleted in Edit can leave the index past the end: fall back to the main photo.
+  const isShownIndexValid = shownIndex < images.length;
+  const heroIndex = isShownIndexValid ? shownIndex : MAIN_PHOTO_INDEX;
+  const hero = images[heroIndex];
+  const hasStrip = images.length > 1;
 
   return (
-    <section aria-label="Photos" className="flex flex-col gap-3">
-      <button
-        type="button"
-        onClick={() => (hero ? setOpenIndex(0) : undefined)}
-        disabled={!hero}
-        aria-label={hero ? 'Open photos' : undefined}
-        className="mx-auto aspect-3/4 max-h-[55svh] w-full overflow-hidden rounded-2xl bg-card shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-default @3xl:max-h-none"
-      >
-        <FunkoImage
-          image={hero ?? null}
-          alt={funko.name}
-          sizes={HERO_SIZES}
-          fit="contain"
-          isPriority
-          className="size-full"
-        />
-      </button>
-      {images.length > 0 ? (
+    <section aria-label="Photos" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+      <DisabledReason reason={reasonWhen(!hero, NO_PHOTO_REASON)} mode="wrapper" wrapperClassName="flex w-full">
+        <button
+          type="button"
+          onClick={() => (hero ? setOpenIndex(heroIndex) : undefined)}
+          disabled={!hero}
+          aria-label={hero ? `Open photo ${heroIndex + 1} of ${images.length} full size` : undefined}
+          className="mx-auto aspect-3/4 max-h-[55svh] w-full overflow-hidden rounded-2xl bg-card shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-default @3xl:max-h-120"
+        >
+          <FunkoImage
+            image={hero ?? null}
+            alt={funko.name}
+            sizes={HERO_SIZES}
+            fit="contain"
+            isPriority
+            className="size-full"
+          />
+        </button>
+      </DisabledReason>
+      {hasStrip ? (
         <ul className="-m-1 flex gap-2 overflow-x-auto p-1" aria-label="All photos">
           {images.map((image, index) => (
-            <FunkoGalleryThumbnail
-              key={image.id}
-              image={image}
-              index={index}
-              count={images.length}
-              funkoId={funko.id}
-              isPrimary={index === 0}
-              onOpen={() => setOpenIndex(index)}
-              onMove={(direction) => move(index, direction)}
-              onMakePrimary={() => makePrimary(index)}
-            />
+            <li key={image.id} className="shrink-0">
+              <PhotoThumbnail
+                image={image}
+                label={`Show photo ${index + 1} of ${images.length}${index === MAIN_PHOTO_INDEX ? ' (main photo)' : ''}`}
+                isHighlighted={index === heroIndex}
+                isPressed={index === heroIndex}
+                onClick={() => setShownIndex(index)}
+              />
+            </li>
           ))}
         </ul>
       ) : null}
-      <PhotoUploader actionPath={imagesPath} />
       <Lightbox images={images} openIndex={openIndex} title={funko.name} onClose={() => setOpenIndex(null)} />
     </section>
   );

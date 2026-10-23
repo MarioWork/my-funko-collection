@@ -21,6 +21,7 @@ type NavigationEntryProps = {
   size?: 'default' | 'lg';
 };
 
+// The current page is filled with the primary colour; hover on the others stays the quiet grey.
 function NavigationEntry({ item: { label, to, icon: Icon }, isActive, size = 'default' }: NavigationEntryProps) {
   return (
     <SidebarMenuItem>
@@ -29,7 +30,7 @@ function NavigationEntry({ item: { label, to, icon: Icon }, isActive, size = 'de
         tooltip={label}
         render={<NavLink to={to} />}
         size={size}
-        className="group-data-[collapsible=icon]:justify-center"
+        className="group-data-[collapsible=icon]:justify-center data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:hover:bg-primary-hover data-active:hover:text-sidebar-primary-foreground"
       >
         <Icon aria-hidden="true" />
         <span className="group-data-[collapsible=icon]:sr-only">{label}</span>
