@@ -30,18 +30,22 @@ const MIN_PHOTOS = 1;
 // The funko's item, if any, is the one match: a funko sits in a collection at most once.
 const SINGLE_ITEM_PAGE_SIZE = '1';
 const PHOTOS_REQUIRED = 'Add at least one image.';
-const PHOTOS_WARNING = 'The images did not upload. Add them from its page.';
-const COLLECTION_WARNING = 'It could not be added to one of the lists. Add it from its page.';
+const PHOTOS_FAILED = 'The images did not upload, so nothing was saved. Please try again.';
+const COLLECTION_FAILED = 'It could not be added to one of the lists, so nothing was saved. Please try again.';
+// The undo itself failed: the funko is there without everything, and the error links to it (existingId).
+const PARTLY_SAVED = 'It was saved, but not completely. Open it to finish.';
 
-async function uploadPhotos(funkoId: number, photos: File[]): Promise<string[]> {
-  if (photos.length === 0) return [];
+type StepResult = { success: true } | { success: false; message: string };
 
+async function uploadPhotos(funkoId: number, photos: File[]): Promise<StepResult> {
   const uploaded = await funkoImageService.addFunkoImages(funkoId, photos);
 
-  return uploaded.success ? [] : [PHOTOS_WARNING];
+  if (uploaded.success) return { success: true };
+
+  return { success: false, message: uploaded.error?.message ?? PHOTOS_FAILED };
 }
 
-async function fileInCollections(funkoId: number, { collectionIds, tagIds }: AddDestination): Promise<string[]> {
+async function fileInCollections(funkoId: number, { collectionIds, tagIds }: AddDestination): Promise<StepResult> {
   const results = await Promise.all(
     collectionIds.map((collectionId) =>
       collectionItemService.addCollectionItem(collectionId, newItemPayload(funkoId, tagIds)),
@@ -49,7 +53,19 @@ async function fileInCollections(funkoId: number, { collectionIds, tagIds }: Add
   );
   const hasFailure = results.some((result) => !result.success);
 
-  return hasFailure ? [COLLECTION_WARNING] : [];
+  if (hasFailure) return { success: false, message: COLLECTION_FAILED };
+
+  return { success: true };
+}
+
+// All or nothing: a later step failed, so the new funko goes again (force: out of any list it already reached,
+// its images with it) and the form shows why. If even that fails, the error links to the half-saved funko.
+async function undoCreate(funkoId: number, message: string): Promise<AddActionData> {
+  const removed = await funkoService.deleteFunko(funkoId, { force: true });
+
+  if (!removed.success) return { success: false, error: { message: PARTLY_SAVED, existingId: funkoId } };
+
+  return { success: false, error: { message } };
 }
 
 // A box already in the list gets one more; a list without it gets a new item with the chosen tags.
@@ -78,8 +94,8 @@ async function latestFunko(fallback: FunkoApiModel): Promise<FunkoApiModel> {
   }
 }
 
-// Needs at least one photo. Creates the funko first (the photos and items need its id), then uploads the photos and files it in every chosen
-// collection. Only a failed create is a failure; a later step that fails becomes a warning on the saved card.
+// Needs at least one photo. Creates the funko first (the photos and items need its id), then uploads the photos and
+// files it in every chosen collection. All or nothing: if a later step fails, the funko is deleted again.
 async function createAndFile({ funko, destination }: CreateFormData, photos: File[]): Promise<AddActionData> {
   const validFunko = await CreateFunkoSchema.validate(funko);
   const validDestination = await destinationSchema.validate(destination);
@@ -90,13 +106,16 @@ async function createAndFile({ funko, destination }: CreateFormData, photos: Fil
 
   if (!created.success || !created.data) return { success: false, error: created.error };
 
-  const photoWarnings = await uploadPhotos(created.data.id, photos);
-  const collectionWarnings = await fileInCollections(created.data.id, validDestination);
+  const funkoId = created.data.id;
+  const photosResult = await uploadPhotos(funkoId, photos);
 
-  return {
-    success: true,
-    data: { funko: await latestFunko(created.data), warnings: [...photoWarnings, ...collectionWarnings] },
-  };
+  if (!photosResult.success) return undoCreate(funkoId, photosResult.message);
+
+  const collectionsResult = await fileInCollections(funkoId, validDestination);
+
+  if (!collectionsResult.success) return undoCreate(funkoId, collectionsResult.message);
+
+  return { success: true, data: { funko: await latestFunko(created.data) } };
 }
 
 // "+1": a scanned box you already have bumps the quantity in each chosen list instead of creating a duplicate.
@@ -109,7 +128,7 @@ async function incrementInDestination({ funkoId, destination }: IncrementFormDat
 
   if (failed) return { success: false, error: failed.error };
 
-  return { success: true, data: { funko: await funkoService.getFunko(valid.funkoId), warnings: [] } };
+  return { success: true, data: { funko: await funkoService.getFunko(valid.funkoId) } };
 }
 
 export const addFunkoAction = async ({ request }: ActionFunctionArgs): Promise<AddActionData> => {

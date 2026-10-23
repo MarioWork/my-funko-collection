@@ -2,7 +2,6 @@ import { ExternalLink, Plus, ScanBarcode } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoImage from '@components/FunkoImage';
-import InlineAlert from '@components/InlineAlert';
 import LinkButton from '@components/LinkButton';
 import { Button } from '@components/ui/button';
 import type { AddResult } from '../addUtils';
@@ -21,9 +20,9 @@ function membershipText({ funko }: AddResult): string {
   return `Saved to ${funko.collections.map((collection) => collection.name).join(', ')}.`;
 }
 
-// After a save: what happened, anything that did not go through, then straight on to the next one.
+// After a save: what happened, then straight on to the next one.
 function SavedCard({ result, onAddAnother, onScanAnother }: Props) {
-  const { funko, warnings } = result;
+  const { funko } = result;
   const heading = useRef<HTMLHeadingElement>(null);
 
   // The form that had focus is gone; put the screen reader and keyboard on the result instead.
@@ -47,11 +46,6 @@ function SavedCard({ result, onAddAnother, onScanAnother }: Props) {
           </p>
         </div>
       </div>
-      {warnings.map((warning) => (
-        <InlineAlert key={warning} tone="error">
-          {warning}
-        </InlineAlert>
-      ))}
       <div className="grid gap-2 @md:grid-cols-3">
         <Button onClick={onAddAnother}>
           <Plus data-icon="inline-start" aria-hidden="true" />
