@@ -133,8 +133,15 @@ async function collectEntries(query: ListImagesQuery): Promise<ImageListEntry[]>
     .sort((first, second) => compare(first, second) * directionFactor || first.key.localeCompare(second.key));
 }
 
+const EVERY_IMAGE_QUERY: ListImagesQuery = { page: 1, size: 1, sorting_fields: 'NAME', direction: 'ASC' };
+
 function directionFactorOf(query: ListImagesQuery): number {
   return query.direction === 'DESC' ? -1 : 1;
+}
+
+// Every image (rows and loose files), by funko name, for the export: no paging, no filter.
+export async function getAllImages(): Promise<ImageListEntry[]> {
+  return collectEntries({ ...EVERY_IMAGE_QUERY });
 }
 
 export async function getImages(query: ListImagesQuery): Promise<ImageListResponse> {

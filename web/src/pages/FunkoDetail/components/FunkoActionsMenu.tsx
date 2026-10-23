@@ -1,8 +1,10 @@
-import { ListChecks, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Download, ListChecks, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router';
 import type { CollectionApiModel, CollectionItemApiModel, FunkoDetailApiModel } from '@app-types/models';
+import { ExportFunkosScopeUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import DisabledReason from '@components/DisabledReason';
+import ExportFormatItems from '@components/ExportFormatItems';
 import IconButton from '@components/IconButton';
 import {
   DropdownMenu,
@@ -16,6 +18,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
+import exportService from '@services/exportService/exportService';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 import { useFunkoMemberships } from '../hooks/useFunkoMemberships';
 
@@ -60,7 +63,27 @@ function ListsSubmenu({ funko, collections, items }: ListsSubmenuProps) {
   );
 }
 
-// The page header's ⋯: Edit, Lists (every collection) and Delete. Owned and Wishlist are one-tap toggles on the page.
+type ExportSubmenuProps = Pick<Props, 'funko'>;
+
+// Export → this funko as a spreadsheet (its photos embedded), CSV or JSON (links to its photos).
+function ExportSubmenu({ funko }: ExportSubmenuProps) {
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <Download aria-hidden="true" />
+        Export
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent className="w-64">
+        <ExportFormatItems
+          hrefFor={(format) => exportService.getFunkosExportUrl(format, ExportFunkosScopeUtil.FUNKO, funko.id)}
+        />
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
+// The page header's ⋯: Edit, Lists (every collection), Export and Delete. Owned and Wishlist are one-tap toggles
+// on the page.
 function FunkoActionsMenu({ funko, collections, items, onDelete }: Props) {
   return (
     <DropdownMenu>
@@ -83,6 +106,7 @@ function FunkoActionsMenu({ funko, collections, items, onDelete }: Props) {
             Edit
           </DropdownMenuItem>
           <ListsSubmenu funko={funko} collections={collections} items={items} />
+          <ExportSubmenu funko={funko} />
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

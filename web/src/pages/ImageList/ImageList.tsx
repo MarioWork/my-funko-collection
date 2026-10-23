@@ -3,7 +3,9 @@ import type { ImageGroupApiModel, ImageListEntryApiModel } from '@app-types/mode
 import type { LoaderDataUtil, ResponseWithPaginationUtil } from '@app-types/utility';
 import EmptyState from '@components/EmptyState';
 import InfiniteListFooter from '@components/InfiniteListFooter';
+import ExportMenu from '@components/ExportMenu';
 import PageHeader from '@components/PageHeader';
+import exportService from '@services/exportService/exportService';
 import { Button } from '@components/ui/button';
 import { useInfiniteList } from '@hooks/useInfiniteList';
 import { useIsRefreshing } from '@hooks/useIsRefreshing';
@@ -59,7 +61,17 @@ function ImageList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Images" description={TOTAL_DESCRIBER_MAP[data.view](total, isFiltered)}>
+      <PageHeader
+        title="Images"
+        description={TOTAL_DESCRIBER_MAP[data.view](total, isFiltered)}
+        iconActions={
+          <ExportMenu
+            label="Export all images"
+            variant="outline"
+            hrefFor={(format) => exportService.getImagesExportUrl(format)}
+          />
+        }
+      >
         <ImageListToolbar />
       </PageHeader>
       <div

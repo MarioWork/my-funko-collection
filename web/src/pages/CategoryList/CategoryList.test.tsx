@@ -49,3 +49,53 @@ it('renames a category inline', async () => {
   expect(await screen.findByText('Pop! Star Wars')).toBeVisible();
   expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
 });
+
+it('exports a category in use as a spreadsheet, CSV or JSON from its Export menu', async () => {
+  renderPage();
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Export Pop! Marvel' }));
+
+  const spreadsheet = await screen.findByRole('menuitem', { name: /Spreadsheet/ });
+
+  expect(spreadsheet).toHaveAttribute('href', expect.stringMatching(/\/export\/funkos\.xlsx\?categoryId=\d+$/));
+  expect(spreadsheet).toHaveAttribute('download');
+  expect(screen.getByRole('menuitem', { name: /CSV/ })).toHaveAttribute('href', expect.stringContaining('funkos.csv'));
+  expect(screen.getByRole('menuitem', { name: /JSON/ })).toHaveAttribute(
+    'href',
+    expect.stringContaining('funkos.json'),
+  );
+});
+
+it('disables Export, with the reason, when the category has no funkos', async () => {
+  renderPage();
+
+  const [newCategoryLink] = await screen.findAllByRole('link', { name: 'New category' });
+  await userEvent.click(newCategoryLink);
+  const addForm = await screen.findByRole('dialog', { name: 'New category' });
+  await userEvent.type(within(addForm).getByLabelText('Name'), 'Pop! Empty');
+  await userEvent.click(within(addForm).getByRole('button', { name: 'Add category' }));
+
+  const emptyExport = await screen.findByRole('button', { name: 'Export Pop! Empty' });
+
+  expect(emptyExport).toHaveAttribute('aria-disabled', 'true');
+  expect(emptyExport).toHaveAccessibleDescription('No funko is in Pop! Empty yet.');
+});
+
+it('exports every category from the header, with their funkos once the switch is on', async () => {
+  renderPage();
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Export all categories' }));
+
+  expect(await screen.findByRole('menuitem', { name: /Spreadsheet/ })).toHaveAttribute(
+    'href',
+    expect.stringMatching(/\/export\/categories\.xlsx\?includeFunkos=false$/),
+  );
+
+  await userEvent.click(screen.getByRole('menuitemcheckbox', { name: /Include their funkos/ }));
+
+  expect(screen.getByRole('menuitemcheckbox', { name: /Include their funkos/ })).toBeChecked();
+  expect(screen.getByRole('menuitem', { name: /JSON/ })).toHaveAttribute(
+    'href',
+    expect.stringMatching(/\/export\/categories\.json\?includeFunkos=true$/),
+  );
+});

@@ -1,64 +1,47 @@
-import { exportRepository } from './export.repository.ts';
-import type { ExportFunko, ExportItem, ExportResponse } from './export.schema.ts';
+import { env } from '../../config/env.ts';
+import { readVariantAsJpeg } from '../../lib/imageStorage.ts';
+import { getAllImages } from '../images/images.service.ts';
+import type { ImageListEntry } from '../images/images.type.ts';
+import {
+  toCsv,
+  toFunkoTree,
+  toImagesCsv,
+  toImagesSpreadsheet,
+  toListCsv,
+  toListSpreadsheet,
+  toSpreadsheet,
+  type SheetPhoto,
+} from './export.formats.ts';
+import {
+  buildLookups,
+  collectEntryLines,
+  collectScopedLines,
+  groupBy,
+  loadEverything,
+  toExportLine,
+  toFunkosCsvScope,
+  toListEntries,
+  type Lookups,
+} from './export.lines.ts';
+import type {
+  ExportFunko,
+  ExportFunkosQuery,
+  ExportItem,
+  ExportListKind,
+  ExportListQuery,
+  ExportResponse,
+  FunkoExportLine,
+  FunkosExportResponse,
+  ImageExport,
+  ImagesExportResponse,
+  ListExportResponse,
+} from './export.schema.ts';
 
-const CSV_SEPARATOR = ',';
-const CSV_LINE_BREAK = '\r\n';
-const CSV_HEADER = [
-  'collection',
-  'funko_id',
-  'name',
-  'number',
-  'category',
-  'series',
-  'type',
-  'is_chase',
-  'exclusive',
-  'barcode',
-  'quantity',
-  'condition',
-  'purchase_price',
-  'purchase_currency',
-  'purchased_at',
-  'tags',
-  'notes',
-] as const;
-const CENTS_PER_UNIT = 100;
-const NEEDS_QUOTING = /[",\r\n]/;
-// A cell a spreadsheet would run as a formula (=, +, -, @, or a leading tab or return). Plain numbers like -12.50
-// stay numbers.
-const FORMULA_START = /^[=+\-@\t\r]/;
-const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/;
-// The usual guard (OWASP's CSV injection advice): a leading apostrophe makes it text, which Excel and Sheets hide.
-const FORMULA_ESCAPE = "'";
+const LIST_FILE_PREFIX = 'my-funko-collection';
+const WITH_FUNKOS_SUFFIX = '-with-funkos';
+const IMAGES_FILE_BASE = 'my-funko-collection-images';
 
-function groupBy<Row, Key>(rows: Row[], keyOf: (row: Row) => Key): Map<Key, Row[]> {
-  const grouped = new Map<Key, Row[]>();
-
-  for (const row of rows) {
-    const key = keyOf(row);
-    const bucket = grouped.get(key) ?? [];
-
-    bucket.push(row);
-    grouped.set(key, bucket);
-  }
-
-  return grouped;
-}
-
-async function loadEverything() {
-  const [categories, series, funkos, images, collections, tags, items, itemTags] = await Promise.all([
-    exportRepository.categories(),
-    exportRepository.series(),
-    exportRepository.funkos(),
-    exportRepository.images(),
-    exportRepository.collections(),
-    exportRepository.tags(),
-    exportRepository.items(),
-    exportRepository.itemTags(),
-  ]);
-
-  return { categories, series, funkos, images, collections, tags, items, itemTags };
-}
+export type ExportFile<Content> = { fileName: string; content: Content };
 
 export async function getExport(): Promise<ExportResponse> {
   const data = await loadEverything();
@@ -90,67 +73,174 @@ export async function getExport(): Promise<ExportResponse> {
   };
 }
 
-// RFC 4180: quote a cell when it holds a separator, a quote or a line break; double the quotes inside. Text that
-// would run as a formula when the file is opened is defused first.
-function toCsvCell(value: string | number | boolean | null): string {
-  if (value === null) return '';
-
-  const raw = String(value);
-  const isFormula = typeof value === 'string' && FORMULA_START.test(raw) && !PLAIN_NUMBER.test(raw);
-  const text = isFormula ? `${FORMULA_ESCAPE}${raw}` : raw;
-
-  if (!NEEDS_QUOTING.test(text)) return text;
-
-  return `"${text.replaceAll('"', '""')}"`;
-}
-
-function toCsvLine(cells: (string | number | boolean | null)[]): string {
-  return cells.map(toCsvCell).join(CSV_SEPARATOR);
-}
-
-function centsToUnits(cents: number | null): string | null {
-  return cents === null ? null : (cents / CENTS_PER_UNIT).toFixed(2);
-}
-
 // One line per collection item, readable in any spreadsheet.
 export async function getItemsCsv(): Promise<string> {
   const data = await loadEverything();
-  const categoryNames = new Map(data.categories.map((category) => [category.id, category.name]));
-  const seriesNames = new Map(data.series.map((oneSeries) => [oneSeries.id, oneSeries.name]));
-  const collectionNames = new Map(data.collections.map((collection) => [collection.id, collection.name]));
-  const tagNames = new Map(data.tags.map((tag) => [tag.id, tag.name]));
+  const lookups = buildLookups(data);
   const funkosById = new Map(data.funkos.map((funko) => [funko.id, funko]));
-  const tagIdsByItem = groupBy(data.itemTags, (itemTag) => itemTag.itemId);
 
   const lines = data.items.flatMap((item) => {
     const funko = funkosById.get(item.funkoId);
 
-    if (!funko) return [];
-
-    const itemTagNames = (tagIdsByItem.get(item.id) ?? []).map((itemTag) => tagNames.get(itemTag.tagId) ?? '');
-
-    return [
-      toCsvLine([
-        collectionNames.get(item.collectionId) ?? '',
-        funko.id,
-        funko.name,
-        funko.number,
-        categoryNames.get(funko.categoryId) ?? '',
-        funko.seriesId === null ? null : (seriesNames.get(funko.seriesId) ?? ''),
-        funko.type,
-        funko.isChase,
-        funko.exclusive,
-        funko.barcode,
-        item.quantity,
-        item.condition,
-        centsToUnits(item.purchasePriceCents),
-        item.purchaseCurrency,
-        item.purchasedAt,
-        itemTagNames.join('; '),
-        item.notes,
-      ]),
-    ];
+    return funko ? [toExportLine(funko, item, lookups)] : [];
   });
 
-  return [toCsvLine([...CSV_HEADER]), ...lines].join(CSV_LINE_BREAK) + CSV_LINE_BREAK;
+  return toCsv(lines);
+}
+
+// --- The funkos of one category, series, collection or tag --------------------------------------------------------
+
+async function getScopedLines(query: ExportFunkosQuery) {
+  const data = await loadEverything();
+  const lookups = buildLookups(data);
+  const scope = toFunkosCsvScope(query, data, lookups);
+
+  return { scope, lines: collectScopedLines(scope, data, lookups), lookups };
+}
+
+// One funko's photos for the spreadsheet, main first, at the 480 px size (sharp enough at the size shown, and it
+// keeps the file small). A file missing on disk is left out.
+async function loadSheetPhotos(funkoId: number, lookups: Lookups): Promise<SheetPhoto[]> {
+  const images = lookups.imagesByFunko.get(funkoId) ?? [];
+  const photos = await Promise.all(images.map((image) => readVariantAsJpeg(funkoId, image.fileKey, 'small')));
+
+  return photos.filter((photo) => photo !== undefined);
+}
+
+export async function getFunkosCsv(query: ExportFunkosQuery): Promise<ExportFile<string>> {
+  const { scope, lines } = await getScopedLines(query);
+
+  return { fileName: `${scope.fileBase}.csv`, content: toCsv(lines) };
+}
+
+// A single funko's spreadsheet also carries its photos, on a sheet of their own; a bigger scope only links them.
+export async function getFunkosSpreadsheet(query: ExportFunkosQuery): Promise<ExportFile<Buffer>> {
+  const { scope, lines, lookups } = await getScopedLines(query);
+  const photos = query.funkoId === undefined ? [] : await loadSheetPhotos(query.funkoId, lookups);
+
+  return { fileName: `${scope.fileBase}.xlsx`, content: await toSpreadsheet(lines, photos) };
+}
+
+export async function getFunkosJson(query: ExportFunkosQuery): Promise<ExportFile<FunkosExportResponse>> {
+  const { scope, lines } = await getScopedLines(query);
+  const content = { exportedAt: new Date().toISOString(), scope: scope.label, funkos: toFunkoTree(lines) };
+
+  return { fileName: `${scope.fileBase}.json`, content };
+}
+
+// --- Whole lists: every category, series, collection or tag, with or without their funkos -------------------------
+
+function listFileBase(kind: ExportListKind, includeFunkos: boolean): string {
+  return `${LIST_FILE_PREFIX}-${kind}${includeFunkos ? WITH_FUNKOS_SUFFIX : ''}`;
+}
+
+async function getListData(kind: ExportListKind) {
+  const data = await loadEverything();
+  const lookups = buildLookups(data);
+  const entries = toListEntries(kind, data, lookups);
+  const linesOf = (entry: (typeof entries)[number]) => collectEntryLines(kind, entry, data, lookups);
+
+  return { entries, linesOf };
+}
+
+// Every line of every entry, each once: an item carrying two tags would otherwise show up under both.
+function uniqueLines(lineGroups: FunkoExportLine[][]): FunkoExportLine[] {
+  const seen = new Set<FunkoExportLine['itemId'] | string>();
+
+  return lineGroups.flat().filter((line) => {
+    const key = line.itemId ?? `funko-${line.funko.id}`;
+    const isNew = !seen.has(key);
+
+    seen.add(key);
+
+    return isNew;
+  });
+}
+
+// CSV holds one table: the list itself, or (with funkos) the funkos of every entry, each line once.
+export async function getListCsv(
+  kind: ExportListKind,
+  { includeFunkos }: ExportListQuery,
+): Promise<ExportFile<string>> {
+  const { entries, linesOf } = await getListData(kind);
+  const content = includeFunkos ? toCsv(uniqueLines(entries.map(linesOf))) : toListCsv(kind, entries);
+
+  return { fileName: `${listFileBase(kind, includeFunkos)}.csv`, content };
+}
+
+// A spreadsheet holds both: the list on its first sheet and, with funkos, the funkos on a second.
+export async function getListSpreadsheet(
+  kind: ExportListKind,
+  { includeFunkos }: ExportListQuery,
+): Promise<ExportFile<Buffer>> {
+  const { entries, linesOf } = await getListData(kind);
+  const lines = includeFunkos ? uniqueLines(entries.map(linesOf)) : null;
+
+  return {
+    fileName: `${listFileBase(kind, includeFunkos)}.xlsx`,
+    content: await toListSpreadsheet(kind, entries, lines),
+  };
+}
+
+// JSON nests: each entry carries its own funkos (an item with two tags appears under both).
+export async function getListJson(
+  kind: ExportListKind,
+  { includeFunkos }: ExportListQuery,
+): Promise<ExportFile<ListExportResponse>> {
+  const { entries, linesOf } = await getListData(kind);
+  const content = {
+    exportedAt: new Date().toISOString(),
+    kind,
+    includesFunkos: includeFunkos,
+    entries: entries.map((entry) => {
+      const fields = { ...entry.summary, id: entry.id, name: entry.name };
+
+      return includeFunkos ? { ...fields, funkos: toFunkoTree(linesOf(entry)) } : fields;
+    }),
+  };
+
+  return { fileName: `${listFileBase(kind, includeFunkos)}.json`, content };
+}
+
+// --- Every stored image: what it is and links to it, never the files themselves -------------------------------------
+
+function absoluteUrl(url: string | null): string | null {
+  return url === null ? null : new URL(url, env.APP_ORIGIN).toString();
+}
+
+function toImageExport(entry: ImageListEntry): ImageExport {
+  return {
+    funkoId: entry.funko?.id ?? null,
+    funkoName: entry.funko?.name ?? null,
+    funkoNumber: entry.funko?.number ?? null,
+    fileName: entry.fileName,
+    isMain: entry.isMain,
+    width: entry.width,
+    height: entry.height,
+    sizeBytes: entry.sizeBytes,
+    uploadedAt: entry.createdAt,
+    url: absoluteUrl(entry.url),
+    mediumUrl: absoluteUrl(entry.mediumUrl),
+    smallUrl: absoluteUrl(entry.smallUrl),
+  };
+}
+
+async function getImageExports(): Promise<ImageExport[]> {
+  const entries = await getAllImages();
+
+  return entries.map(toImageExport);
+}
+
+export async function getImagesCsv(): Promise<ExportFile<string>> {
+  return { fileName: `${IMAGES_FILE_BASE}.csv`, content: toImagesCsv(await getImageExports()) };
+}
+
+export async function getImagesSpreadsheet(): Promise<ExportFile<Buffer>> {
+  return { fileName: `${IMAGES_FILE_BASE}.xlsx`, content: await toImagesSpreadsheet(await getImageExports()) };
+}
+
+export async function getImagesJson(): Promise<ExportFile<ImagesExportResponse>> {
+  const content = { exportedAt: new Date().toISOString(), images: await getImageExports() };
+
+  return { fileName: `${IMAGES_FILE_BASE}.json`, content };
 }
