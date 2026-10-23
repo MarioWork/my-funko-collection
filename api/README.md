@@ -81,7 +81,7 @@ Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A get
 
 ## Sign-in
 
-Passkeys only, for one person (the research behind it: `docs/login-security-research.md`). Every route needs a
+Passkeys only, for one person. Every route needs a
 session except `/health`, `/ready`, `GET /auth/status` and the four setup / login ceremony routes, which say so with
 `config: { isPublic: true }`; the image files under `/uploads` need one too. `src/plugins/auth.plugin.ts` holds the
 check, locked by default, and `auth.route.test.ts` calls every route in the OpenAPI document without a cookie.

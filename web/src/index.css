@@ -101,7 +101,7 @@
 }
 
 /* Semantic tokens: the values that switch with the theme. shadcn's @theme inline block below maps each to a
-   utility (bg-background, text-muted-foreground, ring-ring, ...). Contrast ratios are in docs/web-ui-ux-research.md. */
+   utility (bg-background, text-muted-foreground, ring-ring, ...). */
 @theme inline {
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);

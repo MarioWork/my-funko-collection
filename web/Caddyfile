@@ -5,7 +5,7 @@
 tls internal
 encode zstd gzip
 
-# Security headers for the app (helmet only covers the API's own answers). See docs/login-security-research.md.
+# Security headers for the app (helmet only covers the API's own answers).
 #  - CSP: only this site's own scripts, no inline ones; 'wasm-unsafe-eval' lets the barcode scanner's WebAssembly
 #    run; data:/blob: images are the blur placeholders and photo previews; nothing may frame the app.
 #  - Permissions-Policy: the camera (barcode scanner) for this site only.

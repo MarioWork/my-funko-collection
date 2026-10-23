@@ -31,7 +31,7 @@ const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 
-// NIST SP 800-63B-4 caps a session at 30 days; a week unused ends it sooner (docs/login-security-research.md).
+// NIST SP 800-63B-4 caps a session at 30 days; a week unused ends it sooner.
 const SESSION_ABSOLUTE_MS = 30 * DAY_MS;
 const SESSION_IDLE_MS = 7 * DAY_MS;
 // lastSeenAt is written at most this often, so reading a page is not a database write.
