@@ -25,10 +25,9 @@ export type ScanResult =
   | { kind: typeof ScanResultKindUtil.FOUND; barcode: string; funko: FunkoApiModel }
   | { kind: typeof ScanResultKindUtil.NOT_FOUND; barcode: string };
 
-// What the saved card shows: the funko as it is now (photos, lists), plus any step that did not go through.
+// What the saved card shows: the funko as it is now (photos, lists).
 export type AddResult = {
   funko: FunkoApiModel;
-  warnings: string[];
 };
 
 const idListSchema = array().of(number().integer().positive().required()).required();
