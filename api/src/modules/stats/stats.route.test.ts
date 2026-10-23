@@ -1,8 +1,17 @@
 import { buildApp, type App } from '../../app.ts';
 import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
-import { createCategory, createCollection, createFunko, createItem, createTag } from '../../testFixtures.ts';
+import {
+  createCategory,
+  createCollection,
+  createFunko,
+  createItem,
+  createTag,
+  type SignedInClient,
+  signIn,
+} from '../../testFixtures.ts';
 
 let app: App;
+let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
@@ -15,6 +24,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await resetTestDb();
+  api = await signIn(app);
 });
 
 describe('GET /stats', () => {
@@ -26,7 +36,7 @@ describe('GET /stats', () => {
     await createFunko({ categoryId: marvel.id });
     await createItem(owned.id, funko.id, { quantity: 2, purchasePriceCents: 1000 });
 
-    const response = await app.inject({ method: 'GET', url: '/stats' });
+    const response = await api.inject({ method: 'GET', url: '/stats' });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({

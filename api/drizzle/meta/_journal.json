@@ -29,6 +29,13 @@
       "when": 1792730586293,
       "tag": "0003_funko_images_updated_at",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792780474472,
+      "tag": "0004_auth",
+      "breakpoints": true
     }
   ]
 }

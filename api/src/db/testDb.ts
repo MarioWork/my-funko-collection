@@ -3,6 +3,7 @@ import { env } from '../config/env.ts';
 import { clearUploads } from '../lib/imageStorage.ts';
 import { applyPragmas, client, db } from './client.ts';
 import {
+  authChallenges,
   categories,
   collectionItems,
   collectionItemTags,
@@ -10,7 +11,9 @@ import {
   funkoImages,
   funkos,
   series,
+  setupCodes,
   tags,
+  users,
 } from './schema/index.ts';
 
 const MIGRATIONS_FOLDER = './drizzle';
@@ -41,5 +44,9 @@ export async function resetTestDb(): Promise<void> {
   await db.delete(collections);
   await db.delete(tags);
   await db.delete(categories);
+  // Users cascade to their passkeys and sessions.
+  await db.delete(users);
+  await db.delete(authChallenges);
+  await db.delete(setupCodes);
   await clearUploads();
 }

@@ -1,6 +1,11 @@
 # Home server deployment. Everything worth backing up lives in ./data (SQLite file + uploaded images).
 # The web container (Caddy) is the only thing on the LAN: it serves the app over HTTPS and proxies /api and
 # /uploads to the api container, which is not published.
+# The one address the app is opened at, used by both containers: Caddy answers on it, and passkeys are tied to
+# its host name for good (a passkey made for one name never works on another, and never on a bare IP address).
+# Pick it once. A Tailscale name (https://funko.<your-tailnet>.ts.net) is the plan: see README, "Sign-in".
+x-app-address: &app-address https://funkos.home.arpa
+
 services:
   web:
     build: ./web
@@ -10,9 +15,9 @@ services:
       - '80:80'
       - '443:443'
     environment:
-      # The address the app is opened at. A name needs a DNS/hosts entry on each device; the server's LAN IP
-      # (https://192.168.1.20) works everywhere without one. HTTPS is required for the camera scanner.
-      SITE_ADDRESS: https://funkos.home.arpa
+      # A name needs a DNS/hosts entry on each device. Not an IP address: passkeys refuse those.
+      # HTTPS is required for the camera scanner and for passkeys.
+      SITE_ADDRESS: *app-address
     volumes:
       # Caddy's local CA lives here. Keep it, or every device has to trust a new certificate after a rebuild.
       - caddy_data:/data
@@ -36,6 +41,8 @@ services:
       MIGRATE_ON_START: 'true'
       # Caddy is the one proxy in front: read the real device address from X-Forwarded-For (for rate limits).
       TRUST_PROXY_HOPS: 1
+      # Passkeys are checked against this origin, and writes from any other origin are refused.
+      APP_ORIGIN: *app-address
       MAX_IMAGE_BYTES: 10485760
       MAX_IMAGES_PER_FUNKO: 10
     volumes:

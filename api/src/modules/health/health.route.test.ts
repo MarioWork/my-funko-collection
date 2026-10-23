@@ -1,5 +1,6 @@
 import { buildApp, type App } from '../../app.ts';
 import { prepareTestDb } from '../../db/testDb.ts';
+import { signIn } from '../../testFixtures.ts';
 import { healthRepository } from './health.repository.ts';
 
 let app: App;
@@ -41,10 +42,19 @@ describe('GET /ready', () => {
 });
 
 describe('GET /<unknown route>', () => {
-  it('returns 404 with the error envelope when no route matches', async () => {
-    const response = await app.inject({ method: 'GET', url: '/nope' });
+  it('returns 404 with the error envelope when no route matches and the browser is signed in', async () => {
+    const api = await signIn(app);
+
+    const response = await api.inject({ method: 'GET', url: '/nope' });
 
     expect(response.statusCode).toBe(404);
     expect(response.json()).toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns 401 when no route matches and the browser is not signed in, so routes cannot be probed', async () => {
+    const response = await app.inject({ method: 'GET', url: '/nope' });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({ code: 'UNAUTHORIZED' });
   });
 });

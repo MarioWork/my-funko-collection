@@ -45,3 +45,17 @@ export class ServiceUnavailableError extends HttpError {
     super(message, { code: options.code, statusCode: 503, cause: options.cause });
   }
 }
+
+// Not signed in, or a sign-in attempt that failed. `code` tells the web app which one.
+export class UnauthorizedError extends HttpError {
+  constructor(message: string, code = 'UNAUTHORIZED') {
+    super(message, { code, statusCode: 401 });
+  }
+}
+
+// Signed in, but this request is not allowed (a cross-site write, a step that needs a fresh sign-in).
+export class ForbiddenError extends HttpError {
+  constructor(message: string, code = 'FORBIDDEN') {
+    super(message, { code, statusCode: 403 });
+  }
+}

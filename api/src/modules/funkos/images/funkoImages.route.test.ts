@@ -6,7 +6,7 @@ import {
   storedFileExists,
   storedFileSize,
 } from '../../../lib/imageStorage.ts';
-import { createFunko, makeImage, toFormData } from '../../../testFixtures.ts';
+import { createFunko, makeImage, type SignedInClient, signIn, toFormData } from '../../../testFixtures.ts';
 
 const MISSING_ID = 999;
 const MAX_PLACEHOLDER_BYTES = 1024;
@@ -24,6 +24,7 @@ type ImageBody = {
 };
 
 let app: App;
+let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
@@ -36,6 +37,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await resetTestDb();
+  api = await signIn(app);
 });
 
 function imagesUrl(funkoId: number): string {
@@ -43,7 +45,7 @@ function imagesUrl(funkoId: number): string {
 }
 
 async function upload(funkoId: number, buffers: Buffer[]) {
-  return app.inject({
+  return api.inject({
     method: 'POST',
     url: imagesUrl(funkoId),
     payload: toFormData(buffers.map((buffer) => ({ buffer }))),
@@ -118,7 +120,7 @@ describe('POST /funkos/:funkoId/images', () => {
   it('returns 400 when the file is not an image', async () => {
     const funko = await createFunko();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: imagesUrl(funko.id),
       payload: toFormData([{ buffer: Buffer.from('not an image'), name: 'fake.png' }]),
@@ -159,15 +161,15 @@ describe('POST /funkos/:funkoId/images', () => {
 });
 
 describe('GET /uploads/:path', () => {
-  it('serves the variant with a one-year immutable cache header when the file exists', async () => {
+  it('serves the variant with a private one-year immutable cache header when the file exists', async () => {
     const funko = await createFunko();
     const [image] = (await upload(funko.id, [await makeImage()])).json<ImageBody[]>();
 
-    const response = await app.inject({ method: 'GET', url: image?.smallUrl ?? '' });
+    const response = await api.inject({ method: 'GET', url: image?.smallUrl ?? '' });
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toBe('image/webp');
-    expect(response.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+    expect(response.headers['cache-control']).toBe('private, max-age=31536000, immutable');
   });
 });
 
@@ -175,7 +177,7 @@ describe('POST /funkos/:funkoId/images/from-url', () => {
   it('returns 400 when the URL points at the local machine', async () => {
     const funko = await createFunko();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${imagesUrl(funko.id)}/from-url`,
       payload: { url: 'http://127.0.0.1:9/photo.jpg' },
@@ -188,7 +190,7 @@ describe('POST /funkos/:funkoId/images/from-url', () => {
   it('returns 400 when the URL is not http or https', async () => {
     const funko = await createFunko();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${imagesUrl(funko.id)}/from-url`,
       payload: { url: 'ftp://example.com/photo.jpg' },
@@ -198,7 +200,7 @@ describe('POST /funkos/:funkoId/images/from-url', () => {
   });
 
   it('returns 404 when the funko does not exist', async () => {
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${imagesUrl(MISSING_ID)}/from-url`,
       payload: { url: 'https://example.com/photo.jpg' },
@@ -215,7 +217,7 @@ describe('PATCH /funkos/:funkoId/images/order', () => {
       await upload(funko.id, [await makeImage({ width: 20, height: 20 }), await makeImage({ width: 21, height: 20 })])
     ).json<ImageBody[]>();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'PATCH',
       url: `${imagesUrl(funko.id)}/order`,
       payload: { imageIds: [second?.id, first?.id] },
@@ -223,7 +225,7 @@ describe('PATCH /funkos/:funkoId/images/order', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json<ImageBody[]>().map((image) => image.id)).toEqual([second?.id, first?.id]);
-    const detail = await app.inject({ method: 'GET', url: `/funkos/${funko.id}` });
+    const detail = await api.inject({ method: 'GET', url: `/funkos/${funko.id}` });
     expect(detail.json<{ primaryImage: { smallUrl: string } }>().primaryImage.smallUrl).toBe(second?.smallUrl);
   });
 
@@ -231,7 +233,7 @@ describe('PATCH /funkos/:funkoId/images/order', () => {
     const funko = await createFunko();
     const [first] = (await upload(funko.id, [await makeImage()])).json<ImageBody[]>();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'PATCH',
       url: `${imagesUrl(funko.id)}/order`,
       payload: { imageIds: [first?.id, MISSING_ID] },
@@ -241,7 +243,7 @@ describe('PATCH /funkos/:funkoId/images/order', () => {
   });
 
   it('returns 404 when the funko does not exist', async () => {
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'PATCH',
       url: `${imagesUrl(MISSING_ID)}/order`,
       payload: { imageIds: [1] },
@@ -256,7 +258,7 @@ describe('POST /funkos/:funkoId/images/:imageId/rotate', () => {
     const funko = await createFunko();
     const [image] = (await upload(funko.id, [await makeImage({ width: 300, height: 200 })])).json<ImageBody[]>();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${imagesUrl(funko.id)}/${image?.id}/rotate`,
       payload: { degrees: 90 },
@@ -274,7 +276,7 @@ describe('POST /funkos/:funkoId/images/:imageId/rotate', () => {
     const funko = await createFunko();
     const [image] = (await upload(funko.id, [await makeImage()])).json<ImageBody[]>();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${imagesUrl(funko.id)}/${image?.id}/rotate`,
       payload: { degrees: 45 },
@@ -286,7 +288,7 @@ describe('POST /funkos/:funkoId/images/:imageId/rotate', () => {
   it('returns 404 when the image does not exist', async () => {
     const funko = await createFunko();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${imagesUrl(funko.id)}/${MISSING_ID}/rotate`,
       payload: { degrees: 90 },
@@ -301,13 +303,13 @@ describe('DELETE /funkos/:funkoId/images/:imageId', () => {
     const funko = await createFunko();
     const [image] = (await upload(funko.id, [await makeImage()])).json<ImageBody[]>();
 
-    const response = await app.inject({ method: 'DELETE', url: `${imagesUrl(funko.id)}/${image?.id}` });
+    const response = await api.inject({ method: 'DELETE', url: `${imagesUrl(funko.id)}/${image?.id}` });
 
     expect(response.statusCode).toBe(204);
     for (const url of [image?.url, image?.mediumUrl, image?.smallUrl]) {
       expect(await storedFileExists(url ?? '')).toBe(false);
     }
-    const detail = await app.inject({ method: 'GET', url: `/funkos/${funko.id}` });
+    const detail = await api.inject({ method: 'GET', url: `/funkos/${funko.id}` });
     expect(detail.json<{ images: unknown[] }>().images).toEqual([]);
     expect(await funkoFolderExists(funko.id)).toBe(true);
   });
@@ -315,7 +317,7 @@ describe('DELETE /funkos/:funkoId/images/:imageId', () => {
   it('returns 400 when the image id is not a positive integer', async () => {
     const funko = await createFunko();
 
-    const response = await app.inject({ method: 'DELETE', url: `${imagesUrl(funko.id)}/abc` });
+    const response = await api.inject({ method: 'DELETE', url: `${imagesUrl(funko.id)}/abc` });
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
@@ -324,7 +326,7 @@ describe('DELETE /funkos/:funkoId/images/:imageId', () => {
   it('returns 404 when the image does not exist', async () => {
     const funko = await createFunko();
 
-    const response = await app.inject({ method: 'DELETE', url: `${imagesUrl(funko.id)}/${MISSING_ID}` });
+    const response = await api.inject({ method: 'DELETE', url: `${imagesUrl(funko.id)}/${MISSING_ID}` });
 
     expect(response.statusCode).toBe(404);
   });

@@ -7,6 +7,8 @@ import {
   createItem,
   createSeries,
   createTag,
+  type SignedInClient,
+  signIn,
 } from '../../../testFixtures.ts';
 
 const MISSING_ID = 999;
@@ -27,6 +29,7 @@ type ItemBody = {
 type ListBody = { data: ItemBody[]; totalResultNumber: number };
 
 let app: App;
+let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
@@ -39,6 +42,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await resetTestDb();
+  api = await signIn(app);
 });
 
 function itemsUrl(collectionId: number): string {
@@ -63,7 +67,7 @@ describe('GET /collections/:collectionId/items', () => {
     await createItem(owned.id, spiderMan.id, { tagIds: [box.id], purchasePriceCents: 1499 });
     await createItem(wishlist.id, vader.id);
 
-    const response = await app.inject({ method: 'GET', url: itemsUrl(owned.id) });
+    const response = await api.inject({ method: 'GET', url: itemsUrl(owned.id) });
 
     expect(response.statusCode).toBe(200);
     const body = response.json<ListBody>();
@@ -97,18 +101,18 @@ describe('GET /collections/:collectionId/items', () => {
       purchasedAt: '2025-01-01',
     });
 
-    const byTag = await app.inject({ method: 'GET', url: itemsUrl(owned.id), query: { tagId: String(box.id) } });
-    const byCondition = await app.inject({
+    const byTag = await api.inject({ method: 'GET', url: itemsUrl(owned.id), query: { tagId: String(box.id) } });
+    const byCondition = await api.inject({
       method: 'GET',
       url: itemsUrl(owned.id),
       query: { condition: 'MINT_IN_BOX' },
     });
-    const byDate = await app.inject({
+    const byDate = await api.inject({
       method: 'GET',
       url: itemsUrl(owned.id),
       query: { purchasedFrom: '2024-01-01', purchasedTo: '2024-12-31' },
     });
-    const byPrice = await app.inject({
+    const byPrice = await api.inject({
       method: 'GET',
       url: itemsUrl(owned.id),
       query: { sorting_fields: 'PURCHASE_PRICE', direction: 'DESC' },
@@ -128,7 +132,7 @@ describe('GET /collections/:collectionId/items', () => {
     await createItem(owned.id, vader.id);
     await createItem(owned.id, grogu.id);
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'GET',
       url: itemsUrl(owned.id),
       query: { seriesId: String(mandalorian.id) },
@@ -145,14 +149,14 @@ describe('GET /collections/:collectionId/items', () => {
   it('returns 400 with VALIDATION_ERROR when the condition is unknown', async () => {
     const { owned } = await seed();
 
-    const response = await app.inject({ method: 'GET', url: itemsUrl(owned.id), query: { condition: 'SHINY' } });
+    const response = await api.inject({ method: 'GET', url: itemsUrl(owned.id), query: { condition: 'SHINY' } });
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
   it('returns 404 when the collection does not exist', async () => {
-    const response = await app.inject({ method: 'GET', url: itemsUrl(MISSING_ID) });
+    const response = await api.inject({ method: 'GET', url: itemsUrl(MISSING_ID) });
 
     expect(response.statusCode).toBe(404);
   });
@@ -163,7 +167,7 @@ describe('GET /collections/:collectionId/items/:itemId', () => {
     const { owned, spiderMan, box } = await seed();
     const item = await createItem(owned.id, spiderMan.id, { tagIds: [box.id], notes: 'Gift' });
 
-    const response = await app.inject({ method: 'GET', url: `${itemsUrl(owned.id)}/${item.id}` });
+    const response = await api.inject({ method: 'GET', url: `${itemsUrl(owned.id)}/${item.id}` });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
@@ -178,7 +182,7 @@ describe('GET /collections/:collectionId/items/:itemId', () => {
   it('returns 400 when the item id is not a positive integer', async () => {
     const { owned } = await seed();
 
-    const response = await app.inject({ method: 'GET', url: `${itemsUrl(owned.id)}/${INVALID_ID}` });
+    const response = await api.inject({ method: 'GET', url: `${itemsUrl(owned.id)}/${INVALID_ID}` });
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
@@ -188,7 +192,7 @@ describe('GET /collections/:collectionId/items/:itemId', () => {
     const { owned, wishlist, spiderMan } = await seed();
     const item = await createItem(wishlist.id, spiderMan.id);
 
-    const response = await app.inject({ method: 'GET', url: `${itemsUrl(owned.id)}/${item.id}` });
+    const response = await api.inject({ method: 'GET', url: `${itemsUrl(owned.id)}/${item.id}` });
 
     expect(response.statusCode).toBe(404);
   });
@@ -200,8 +204,8 @@ describe('GET /items', () => {
     await createItem(owned.id, spiderMan.id, { tagIds: [box.id] });
     await createItem(wishlist.id, vader.id, { tagIds: [box.id] });
 
-    const all = await app.inject({ method: 'GET', url: '/items', query: { tagId: String(box.id) } });
-    const onlyWishlist = await app.inject({
+    const all = await api.inject({ method: 'GET', url: '/items', query: { tagId: String(box.id) } });
+    const onlyWishlist = await api.inject({
       method: 'GET',
       url: '/items',
       query: { collectionId: String(wishlist.id) },
@@ -212,7 +216,7 @@ describe('GET /items', () => {
   });
 
   it('returns 400 with VALIDATION_ERROR when a date filter is not an ISO date', async () => {
-    const response = await app.inject({ method: 'GET', url: '/items', query: { purchasedFrom: '02/03/2024' } });
+    const response = await api.inject({ method: 'GET', url: '/items', query: { purchasedFrom: '02/03/2024' } });
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
@@ -223,7 +227,7 @@ describe('POST /collections/:collectionId/items', () => {
   it('adds the funko with tags, price and date and returns 201 when every field is valid', async () => {
     const { owned, spiderMan, box, shelf } = await seed();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: itemsUrl(owned.id),
       payload: {
@@ -252,7 +256,7 @@ describe('POST /collections/:collectionId/items', () => {
     const { owned, spiderMan } = await seed();
     const existing = await createItem(owned.id, spiderMan.id);
 
-    const response = await app.inject({ method: 'POST', url: itemsUrl(owned.id), payload: { funkoId: spiderMan.id } });
+    const response = await api.inject({ method: 'POST', url: itemsUrl(owned.id), payload: { funkoId: spiderMan.id } });
 
     expect(response.statusCode).toBe(409);
     expect(response.json()).toMatchObject({ code: 'CONFLICT', existingId: existing.id });
@@ -261,17 +265,17 @@ describe('POST /collections/:collectionId/items', () => {
   it('returns 400 when a tag is unknown, the quantity is zero or the date is malformed', async () => {
     const { owned, spiderMan } = await seed();
 
-    const unknownTag = await app.inject({
+    const unknownTag = await api.inject({
       method: 'POST',
       url: itemsUrl(owned.id),
       payload: { funkoId: spiderMan.id, tagIds: [MISSING_ID] },
     });
-    const zeroQuantity = await app.inject({
+    const zeroQuantity = await api.inject({
       method: 'POST',
       url: itemsUrl(owned.id),
       payload: { funkoId: spiderMan.id, quantity: 0 },
     });
-    const badDate = await app.inject({
+    const badDate = await api.inject({
       method: 'POST',
       url: itemsUrl(owned.id),
       payload: { funkoId: spiderMan.id, purchasedAt: '02/03/2024' },
@@ -285,7 +289,7 @@ describe('POST /collections/:collectionId/items', () => {
   it('returns 404 when the funko does not exist', async () => {
     const { owned } = await seed();
 
-    const response = await app.inject({ method: 'POST', url: itemsUrl(owned.id), payload: { funkoId: MISSING_ID } });
+    const response = await api.inject({ method: 'POST', url: itemsUrl(owned.id), payload: { funkoId: MISSING_ID } });
 
     expect(response.statusCode).toBe(404);
   });
@@ -293,7 +297,7 @@ describe('POST /collections/:collectionId/items', () => {
   it('returns 404 when the collection does not exist', async () => {
     const { spiderMan } = await seed();
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: itemsUrl(MISSING_ID),
       payload: { funkoId: spiderMan.id },
@@ -308,12 +312,12 @@ describe('PATCH /collections/:collectionId/items/:itemId', () => {
     const { owned, spiderMan, box, shelf } = await seed();
     const item = await createItem(owned.id, spiderMan.id, { tagIds: [box.id] });
 
-    const replaced = await app.inject({
+    const replaced = await api.inject({
       method: 'PATCH',
       url: `${itemsUrl(owned.id)}/${item.id}`,
       payload: { tagIds: [shelf.id] },
     });
-    const untouched = await app.inject({
+    const untouched = await api.inject({
       method: 'PATCH',
       url: `${itemsUrl(owned.id)}/${item.id}`,
       payload: { notes: 'Moved shelves' },
@@ -327,7 +331,7 @@ describe('PATCH /collections/:collectionId/items/:itemId', () => {
     const { owned, spiderMan, vader } = await seed();
     const item = await createItem(owned.id, spiderMan.id);
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'PATCH',
       url: `${itemsUrl(owned.id)}/${item.id}`,
       payload: { funkoId: vader.id },
@@ -340,7 +344,7 @@ describe('PATCH /collections/:collectionId/items/:itemId', () => {
     const { owned, wishlist, spiderMan } = await seed();
     const item = await createItem(wishlist.id, spiderMan.id);
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'PATCH',
       url: `${itemsUrl(owned.id)}/${item.id}`,
       payload: { notes: 'x' },
@@ -355,7 +359,7 @@ describe('POST /collections/:collectionId/items/:itemId/move', () => {
     const { owned, wishlist, spiderMan, box } = await seed();
     const item = await createItem(wishlist.id, spiderMan.id, { tagIds: [box.id], notes: 'Wanted' });
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${itemsUrl(wishlist.id)}/${item.id}/move`,
       payload: { toCollectionId: owned.id },
@@ -367,7 +371,7 @@ describe('POST /collections/:collectionId/items/:itemId/move', () => {
       notes: 'Wanted',
       tags: [{ name: 'Box 3' }],
     });
-    const gone = await app.inject({ method: 'GET', url: `${itemsUrl(wishlist.id)}/${item.id}` });
+    const gone = await api.inject({ method: 'GET', url: `${itemsUrl(wishlist.id)}/${item.id}` });
     expect(gone.statusCode).toBe(404);
   });
 
@@ -376,7 +380,7 @@ describe('POST /collections/:collectionId/items/:itemId/move', () => {
     await createItem(owned.id, spiderMan.id);
     const item = await createItem(wishlist.id, spiderMan.id);
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${itemsUrl(wishlist.id)}/${item.id}/move`,
       payload: { toCollectionId: owned.id },
@@ -389,7 +393,7 @@ describe('POST /collections/:collectionId/items/:itemId/move', () => {
     const { wishlist, spiderMan } = await seed();
     const item = await createItem(wishlist.id, spiderMan.id);
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${itemsUrl(wishlist.id)}/${item.id}/move`,
       payload: { toCollectionId: wishlist.id },
@@ -403,7 +407,7 @@ describe('POST /collections/:collectionId/items/:itemId/move', () => {
     const { wishlist, spiderMan } = await seed();
     const item = await createItem(wishlist.id, spiderMan.id);
 
-    const response = await app.inject({
+    const response = await api.inject({
       method: 'POST',
       url: `${itemsUrl(wishlist.id)}/${item.id}/move`,
       payload: { toCollectionId: MISSING_ID },
@@ -418,16 +422,16 @@ describe('DELETE /collections/:collectionId/items/:itemId', () => {
     const { owned, spiderMan } = await seed();
     const item = await createItem(owned.id, spiderMan.id);
 
-    const response = await app.inject({ method: 'DELETE', url: `${itemsUrl(owned.id)}/${item.id}` });
+    const response = await api.inject({ method: 'DELETE', url: `${itemsUrl(owned.id)}/${item.id}` });
 
     expect(response.statusCode).toBe(204);
-    expect((await app.inject({ method: 'GET', url: `/funkos/${spiderMan.id}` })).statusCode).toBe(200);
+    expect((await api.inject({ method: 'GET', url: `/funkos/${spiderMan.id}` })).statusCode).toBe(200);
   });
 
   it('returns 400 when the item id is not a positive integer', async () => {
     const { owned } = await seed();
 
-    const response = await app.inject({ method: 'DELETE', url: `${itemsUrl(owned.id)}/${INVALID_ID}` });
+    const response = await api.inject({ method: 'DELETE', url: `${itemsUrl(owned.id)}/${INVALID_ID}` });
 
     expect(response.statusCode).toBe(400);
   });
@@ -436,7 +440,7 @@ describe('DELETE /collections/:collectionId/items/:itemId', () => {
     const { owned, wishlist, spiderMan } = await seed();
     const item = await createItem(wishlist.id, spiderMan.id);
 
-    const response = await app.inject({ method: 'DELETE', url: `${itemsUrl(owned.id)}/${item.id}` });
+    const response = await api.inject({ method: 'DELETE', url: `${itemsUrl(owned.id)}/${item.id}` });
 
     expect(response.statusCode).toBe(404);
   });

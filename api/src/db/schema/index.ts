@@ -6,3 +6,8 @@ export * from './funkoImages.ts';
 export * from './funkos.ts';
 export * from './series.ts';
 export * from './tags.ts';
+export * from './authChallenges.ts';
+export * from './passkeys.ts';
+export * from './sessions.ts';
+export * from './setupCodes.ts';
+export * from './users.ts';

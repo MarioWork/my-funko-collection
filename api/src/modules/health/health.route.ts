@@ -10,13 +10,17 @@ const HealthResponseSchema = z.object({ status: z.literal('ok') });
 export const healthRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/health',
-    { schema: { tags: TAGS, summary: 'Liveness probe', response: { 200: HealthResponseSchema } } },
+    {
+      config: { isPublic: true },
+      schema: { tags: TAGS, summary: 'Liveness probe', response: { 200: HealthResponseSchema } },
+    },
     async () => getLiveness(),
   );
 
   app.get(
     '/ready',
     {
+      config: { isPublic: true },
       schema: {
         tags: TAGS,
         summary: 'Readiness probe',

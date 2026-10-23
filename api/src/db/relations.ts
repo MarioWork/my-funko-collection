@@ -6,8 +6,11 @@ import { collectionItemTags } from './schema/collectionItemTags.ts';
 import { collections } from './schema/collections.ts';
 import { funkoImages } from './schema/funkoImages.ts';
 import { funkos } from './schema/funkos.ts';
+import { passkeys } from './schema/passkeys.ts';
 import { series } from './schema/series.ts';
+import { sessions } from './schema/sessions.ts';
 import { tags } from './schema/tags.ts';
+import { users } from './schema/users.ts';
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
   funkos: many(funkos),
@@ -45,4 +48,19 @@ export const tagsRelations = relations(tags, ({ many }) => ({
 export const collectionItemTagsRelations = relations(collectionItemTags, ({ one }) => ({
   item: one(collectionItems, { fields: [collectionItemTags.collectionItemId], references: [collectionItems.id] }),
   tag: one(tags, { fields: [collectionItemTags.tagId], references: [tags.id] }),
+}));
+
+export const usersRelations = relations(users, ({ many }) => ({
+  passkeys: many(passkeys),
+  sessions: many(sessions),
+}));
+
+export const passkeysRelations = relations(passkeys, ({ one, many }) => ({
+  user: one(users, { fields: [passkeys.userId], references: [users.id] }),
+  sessions: many(sessions),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
+  passkey: one(passkeys, { fields: [sessions.passkeyId], references: [passkeys.id] }),
 }));
