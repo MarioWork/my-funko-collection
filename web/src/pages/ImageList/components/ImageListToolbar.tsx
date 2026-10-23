@@ -2,15 +2,20 @@ import { List, ListTree } from 'lucide-react';
 import FilterChips from '@components/FilterChips';
 import FilterPanel from '@components/FilterPanel';
 import SearchInput from '@components/SearchInput';
-import SegmentedToggle, { type SegmentedOption } from '@components/SegmentedToggle';
+import ViewMenu, { type ViewOption } from '@components/ViewMenu';
 import SelectFilter from '@components/SelectFilter';
 import SortSelect from '@components/SortSelect';
 import { useImageListParams } from '../hooks/useImageListParams';
 import { HAS_FUNKO_OPTIONS, IMAGE_SORT_FIELDS, ImageViewUtil } from '../imageListUtils';
 
-const VIEW_OPTIONS: SegmentedOption<ImageViewUtil>[] = [
-  { value: ImageViewUtil.IMAGES, label: 'All images', icon: List },
-  { value: ImageViewUtil.FUNKOS, label: 'Group by funko', icon: ListTree },
+const VIEW_OPTIONS: ViewOption<ImageViewUtil>[] = [
+  { value: ImageViewUtil.IMAGES, label: 'All images', description: 'Every image as its own row', icon: List },
+  {
+    value: ImageViewUtil.FUNKOS,
+    label: 'Group by funko',
+    description: 'A row per funko, with its totals',
+    icon: ListTree,
+  },
 ];
 
 // Search, sort, the one filter (being used or not) and the view (every image, or grouped by funko); then the
@@ -45,13 +50,7 @@ function ImageListToolbar() {
           />
         </FilterPanel>
         <div className="flex items-center gap-2 @md:ml-auto">
-          <SegmentedToggle
-            label="View"
-            options={VIEW_OPTIONS}
-            value={data.view}
-            onChange={setView}
-            labelDisplay="never"
-          />
+          <ViewMenu label="View" options={VIEW_OPTIONS} value={data.view} onChange={setView} />
         </div>
       </div>
       <FilterChips chips={chips} onClearAll={clearFilters} />

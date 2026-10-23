@@ -19,7 +19,8 @@ export class CollectionDetailPage {
 
   // Items open in the large grid; the list (a table on desktop) shows each item's tags and details.
   async showAsList() {
-    await this.page.getByRole('group', { name: 'Layout' }).getByRole('button', { name: 'List', exact: true }).click();
+    await this.page.getByRole('button', { name: /^Layout:/ }).click();
+    await this.page.getByRole('menuitemradio', { name: /^List/ }).click();
   }
 
   rowFor(funkoName: string) {

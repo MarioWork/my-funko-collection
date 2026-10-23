@@ -3,7 +3,7 @@ import type { SortingDirectionUtil } from '@app-types/utility';
 import FilterChips from '@components/FilterChips';
 import FilterPanel from '@components/FilterPanel';
 import SearchInput from '@components/SearchInput';
-import LayoutToggle from '@components/LayoutToggle';
+import LayoutMenu from '@components/LayoutMenu';
 import SortSelect from '@components/SortSelect';
 import { useItemListParams } from '@hooks/useItemListParams';
 import { ITEM_SORT_FIELDS } from '@utils/itemListUtils';
@@ -60,7 +60,7 @@ function ItemsToolbar({
           />
         </FilterPanel>
         <div className="@md:ml-auto">
-          <LayoutToggle value={layout} onChange={onLayoutChange} />
+          <LayoutMenu value={layout} onChange={onLayoutChange} />
         </div>
       </div>
       <FilterChips chips={chips} onClearAll={clearFilters} />

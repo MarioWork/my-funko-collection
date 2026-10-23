@@ -1,7 +1,7 @@
 import FilterChips from '@components/FilterChips';
 import FilterPanel from '@components/FilterPanel';
 import SearchInput from '@components/SearchInput';
-import LayoutToggle from '@components/LayoutToggle';
+import LayoutMenu from '@components/LayoutMenu';
 import SortSelect from '@components/SortSelect';
 import type { FunkoLayoutUtil } from '@utils/layoutUtils';
 import { FunkoApiSortingFields } from '@services/funkoService/funkoService';
@@ -50,7 +50,7 @@ function FunkoListToolbar({ layout, onLayoutChange }: Props) {
         </FilterPanel>
         {/* Right-aligned beside the filters; on a phone they wrap to their own row and start at the left. */}
         <div className="flex items-center gap-2 @md:ml-auto">
-          <LayoutToggle value={layout} onChange={onLayoutChange} />
+          <LayoutMenu value={layout} onChange={onLayoutChange} />
         </div>
       </div>
       <QuickFilters quickFilters={quickFilters} filters={filters} onChange={setFilter} />

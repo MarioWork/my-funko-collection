@@ -8,7 +8,7 @@ import LinkButton from '@components/LinkButton';
 import PageHeader from '@components/PageHeader';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import SearchInput from '@components/SearchInput';
-import SegmentedToggle, { type SegmentedOption } from '@components/SegmentedToggle';
+import ViewMenu, { type ViewOption } from '@components/ViewMenu';
 import { Button } from '@components/ui/button';
 import { useListParams } from '@hooks/useListParams';
 import { useLocalStorage } from '@hooks/useLocalStorage';
@@ -18,9 +18,14 @@ import CollectionCard from './components/CollectionCard';
 import CollectionTable from './components/CollectionTable';
 import type { loader } from './collectionListLoader';
 
-const LAYOUT_OPTIONS: SegmentedOption<CollectionLayoutUtil>[] = [
-  { value: CollectionLayoutUtil.GRID, label: 'Grid', icon: LayoutGrid },
-  { value: CollectionLayoutUtil.LIST, label: 'List', icon: List },
+const LAYOUT_OPTIONS: ViewOption<CollectionLayoutUtil>[] = [
+  {
+    value: CollectionLayoutUtil.GRID,
+    label: 'Grid',
+    description: 'A card per collection, with its covers',
+    icon: LayoutGrid,
+  },
+  { value: CollectionLayoutUtil.LIST, label: 'List', description: 'A table with counts and money spent', icon: List },
 ];
 
 function CollectionList() {
@@ -67,13 +72,7 @@ function CollectionList() {
             placeholder="Search by name…"
             className="min-w-56 flex-1"
           />
-          <SegmentedToggle
-            label="Layout"
-            options={LAYOUT_OPTIONS}
-            value={layout}
-            onChange={setLayout}
-            labelDisplay="never"
-          />
+          <ViewMenu label="Layout" options={LAYOUT_OPTIONS} value={layout} onChange={setLayout} />
         </div>
       </PageHeader>
       {hasNoMatch ? (
