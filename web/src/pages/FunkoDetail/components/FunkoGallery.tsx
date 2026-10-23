@@ -1,18 +1,53 @@
 import { useState } from 'react';
-import type { FunkoDetailApiModel } from '@app-types/models';
+import type { FunkoDetailApiModel, FunkoImageApiModel } from '@app-types/models';
 import DisabledReason from '@components/DisabledReason';
 import FunkoImage from '@components/FunkoImage';
 import Lightbox from '@components/Lightbox';
 import PhotoThumbnail from '@components/PhotoThumbnail';
 import { reasonWhen } from '@utils/disabledReasonUtils';
+import ImageDownloadButton from './ImageDownloadButton';
 
 type Props = {
   funko: FunkoDetailApiModel;
 };
 
+type FrameProps = {
+  funkoName: string;
+  hero: FunkoImageApiModel | undefined;
+  heroIndex: number;
+  imageCount: number;
+  onOpen: () => void;
+};
+
 const HERO_SIZES = '(min-width: 1024px) 480px, 100vw';
 const NO_PHOTO_REASON = 'No image yet. Use Edit to add one.';
 const MAIN_PHOTO_INDEX = 0;
+// The big frame: the shown image, a button that opens it full size, and its download button in the corner.
+function GalleryFrame({ funkoName, hero, heroIndex, imageCount, onOpen }: FrameProps) {
+  return (
+    <div className="relative">
+      <DisabledReason reason={reasonWhen(!hero, NO_PHOTO_REASON)} mode="wrapper" wrapperClassName="flex w-full">
+        <button
+          type="button"
+          onClick={() => (hero ? onOpen() : undefined)}
+          disabled={!hero}
+          aria-label={hero ? `Open image ${heroIndex + 1} of ${imageCount} full size` : undefined}
+          className="mx-auto aspect-3/4 max-h-[55svh] w-full overflow-hidden rounded-2xl bg-card shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-default @3xl:max-h-120"
+        >
+          <FunkoImage
+            image={hero ?? null}
+            alt={funkoName}
+            sizes={HERO_SIZES}
+            fit="contain"
+            isPriority
+            className="size-full"
+          />
+        </button>
+      </DisabledReason>
+      {hero ? <ImageDownloadButton url={hero.url} funkoName={funkoName} imageNumber={heroIndex + 1} /> : null}
+    </div>
+  );
+}
 
 // The big frame, the thumbnail strip and the viewer, in a tile like the page's other sections (so the grey
 // no-photo placeholder stands out from the page). A thumbnail only previews its photo in the frame; the main photo
@@ -29,24 +64,13 @@ function FunkoGallery({ funko }: Props) {
 
   return (
     <section aria-label="Images" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
-      <DisabledReason reason={reasonWhen(!hero, NO_PHOTO_REASON)} mode="wrapper" wrapperClassName="flex w-full">
-        <button
-          type="button"
-          onClick={() => (hero ? setOpenIndex(heroIndex) : undefined)}
-          disabled={!hero}
-          aria-label={hero ? `Open image ${heroIndex + 1} of ${images.length} full size` : undefined}
-          className="mx-auto aspect-3/4 max-h-[55svh] w-full overflow-hidden rounded-2xl bg-card shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-default @3xl:max-h-120"
-        >
-          <FunkoImage
-            image={hero ?? null}
-            alt={funko.name}
-            sizes={HERO_SIZES}
-            fit="contain"
-            isPriority
-            className="size-full"
-          />
-        </button>
-      </DisabledReason>
+      <GalleryFrame
+        funkoName={funko.name}
+        hero={hero}
+        heroIndex={heroIndex}
+        imageCount={images.length}
+        onOpen={() => setOpenIndex(heroIndex)}
+      />
       {hasStrip ? (
         <ul className="-m-1 flex gap-2 overflow-x-auto p-1" aria-label="All images">
           {images.map((image, index) => (
