@@ -9,15 +9,19 @@ import type { loader } from '../funkoListLoader';
 const FILTER_FIELDS = [
   FunkoApiSearchFields.CATEGORY_ID,
   FunkoApiSearchFields.SERIES_ID,
+  FunkoApiSearchFields.HAS_SERIES,
   FunkoApiSearchFields.TYPE,
   FunkoApiSearchFields.IS_CHASE,
   FunkoApiSearchFields.COLLECTION_ID,
-  FunkoApiSearchFields.NOT_IN_COLLECTION_ID,
+  FunkoApiSearchFields.HAS_COLLECTIONS,
   FunkoApiSearchFields.TAG_ID,
+  FunkoApiSearchFields.HAS_TAGS,
   FunkoApiSearchFields.HAS_IMAGES,
 ] as const;
 
 type FilterField = (typeof FILTER_FIELDS)[number];
+
+type FilterUpdates = Partial<Record<FilterField, string | undefined>>;
 
 // The list's URL state, typed: the query, each filter, the sort, and the chips that describe the active filters.
 export function useFunkoListParams() {
@@ -32,9 +36,11 @@ export function useFunkoListParams() {
     [FunkoApiSearchFields.SERIES_ID]: getParam(FunkoApiSearchFields.SERIES_ID),
     [FunkoApiSearchFields.TYPE]: getParam(FunkoApiSearchFields.TYPE),
     [FunkoApiSearchFields.IS_CHASE]: getParam(FunkoApiSearchFields.IS_CHASE),
+    [FunkoApiSearchFields.HAS_SERIES]: getParam(FunkoApiSearchFields.HAS_SERIES),
     [FunkoApiSearchFields.COLLECTION_ID]: getParam(FunkoApiSearchFields.COLLECTION_ID),
-    [FunkoApiSearchFields.NOT_IN_COLLECTION_ID]: getParam(FunkoApiSearchFields.NOT_IN_COLLECTION_ID),
+    [FunkoApiSearchFields.HAS_COLLECTIONS]: getParam(FunkoApiSearchFields.HAS_COLLECTIONS),
     [FunkoApiSearchFields.TAG_ID]: getParam(FunkoApiSearchFields.TAG_ID),
+    [FunkoApiSearchFields.HAS_TAGS]: getParam(FunkoApiSearchFields.HAS_TAGS),
     [FunkoApiSearchFields.HAS_IMAGES]: getParam(FunkoApiSearchFields.HAS_IMAGES),
   };
 
@@ -43,10 +49,12 @@ export function useFunkoListParams() {
     [FunkoApiSearchFields.SERIES_ID]: (value) => `Series: ${nameOf(data.series, value)}`,
     [FunkoApiSearchFields.TYPE]: (value) => `Type: ${FUNKO_TYPE_LABELS[value as FunkoTypeUtil] ?? value}`,
     [FunkoApiSearchFields.IS_CHASE]: (value) => (value === 'true' ? 'Chase only' : 'No chase'),
+    [FunkoApiSearchFields.HAS_SERIES]: (value) => (value === 'true' ? 'Has a series' : 'No series'),
     [FunkoApiSearchFields.COLLECTION_ID]: (value) => `In: ${nameOf(data.collections, value)}`,
-    [FunkoApiSearchFields.NOT_IN_COLLECTION_ID]: (value) => `Not in: ${nameOf(data.collections, value)}`,
+    [FunkoApiSearchFields.HAS_COLLECTIONS]: (value) => (value === 'true' ? 'In a collection' : 'No collections'),
     [FunkoApiSearchFields.TAG_ID]: (value) => `Tag: ${nameOf(data.tags, value)}`,
-    [FunkoApiSearchFields.HAS_IMAGES]: (value) => (value === 'true' ? 'With images' : 'Without images'),
+    [FunkoApiSearchFields.HAS_TAGS]: (value) => (value === 'true' ? 'Has tags' : 'No tags'),
+    [FunkoApiSearchFields.HAS_IMAGES]: (value) => (value === 'true' ? 'Has images' : 'No images'),
   };
 
   const chips: FilterChip[] = FILTER_FIELDS.flatMap((field) => {
@@ -58,12 +66,15 @@ export function useFunkoListParams() {
   });
 
   const setFilter = (field: FilterField, value: string | undefined) => setParams({ [field]: value });
-  const setQuery = (value: string) => setParams({ [FunkoApiSearchFields.QUERY]: value });
+  // Several fields in one URL change: picking "None" in a select clears its id and sets its has… flag together.
+  const setFilters = (updates: FilterUpdates) => setParams(updates);
+  const setQuery = (value: string) => setParams({ [FunkoApiSearchFields.QUERY]: value }, { isTyping: true });
   const setSort = ({ field, direction }: SortOption) =>
     setParams({ [ApiUrlParamsUtil.sorting_fields]: field, [ApiUrlParamsUtil.sortingDirection]: direction });
   const clearFilters = () => clearParams([...FILTER_FIELDS]);
 
-  return { data, query, filters, chips, setQuery, setFilter, setSort, clearFilters };
+  return { data, query, filters, chips, setQuery, setFilter, setFilters, setSort, clearFilters };
 }
 
 export type FunkoFilterField = FilterField;
+export type FunkoFilterUpdates = FilterUpdates;

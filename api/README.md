@@ -122,7 +122,7 @@ Text filters are case-insensitive "contains"; id filters take a comma-separated 
 | `GET /uploads/...`                         | The image files (immutable, cached for a year)                                                                                                        |
 
 `GET /funkos` filters: `q`, `name`, `number`, `barcode`, `exclusive`, `type`, `isChase`, `categoryId`, `category`,
-`seriesId`, `series`, `tagId`, `tag`, `collectionId`, `collection`, `notInCollectionId`, `hasImages`; sort
+`seriesId`, `series`, `tagId`, `tag`, `collectionId`, `collection`, `notInCollectionId`, `hasCollections`, `hasSeries`, `hasTags`, `hasImages`; sort
 `RELEVANCE` (default with `q`), `NAME`, `NUMBER`, `CREATION_DATE`, `CATEGORY`, `SERIES` (funkos without a series
 come last in both directions). Each hit carries `category`, `series` (or null), `matchedOn` (which fields the search
 hit, `SERIES` among them), `collections` (where it sits, with quantity) and `primaryImage`. A funko body takes an
