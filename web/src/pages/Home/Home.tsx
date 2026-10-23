@@ -1,4 +1,5 @@
 import { Outlet, useLoaderData } from 'react-router';
+import { PAGE_ICONS } from '@application/layout/navigationUtils';
 import type { LoaderDataUtil } from '@app-types/utility';
 import PageHeader from '@components/PageHeader';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
@@ -18,7 +19,12 @@ function Home() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Home" description="Your collection at a glance." actions={<QuickActions />} />
+      <PageHeader
+        icon={PAGE_ICONS.HOME}
+        title="Home"
+        description="Your collection at a glance."
+        actions={<QuickActions />}
+      />
       <StatsGrid stats={stats} />
       <RecentFunkos funkos={recentFunkos} />
       <div className="grid gap-6 @3xl:grid-cols-2">

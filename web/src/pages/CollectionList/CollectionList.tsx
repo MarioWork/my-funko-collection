@@ -1,4 +1,5 @@
 import { FolderHeart, LayoutGrid, List } from 'lucide-react';
+import { PAGE_ICONS } from '@application/layout/navigationUtils';
 import { Outlet, useLoaderData } from 'react-router';
 import { ExportListKindUtil, type LoaderDataUtil } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS, ITEM_ROUTES_PATHS } from '@application/routes/routesUtils';
@@ -50,6 +51,7 @@ function CollectionList() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
+        icon={PAGE_ICONS.COLLECTIONS}
         title="Collections"
         description="Your lists: what you own, what you want, what you want to sell…"
         // Owned and Wishlist always exist, so the list is never empty.

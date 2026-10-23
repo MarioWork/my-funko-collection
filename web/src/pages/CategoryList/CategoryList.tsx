@@ -1,4 +1,5 @@
 import { Book } from 'lucide-react';
+import { PAGE_ICONS } from '@application/layout/navigationUtils';
 import { Outlet, useLoaderData } from 'react-router';
 import type { CategoryApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
@@ -39,6 +40,7 @@ function CategoryList() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
+        icon={PAGE_ICONS.CATEGORIES}
         title="Categories"
         description="The line printed on the box, like Pop! Marvel. A line with funkos in it cannot be deleted."
         actions={
