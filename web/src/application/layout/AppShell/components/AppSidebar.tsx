@@ -64,13 +64,13 @@ function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarMenu className="gap-2 p-2">
+        <SidebarMenu className="gap-2 p-2 group-data-[collapsible=icon]:items-center">
           {NAVIGATION_ITEMS.map((item) => (
             <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} size="lg" />
           ))}
         </SidebarMenu>
         <SidebarSeparator />
-        <SidebarMenu className="gap-2 p-2">
+        <SidebarMenu className="gap-2 p-2 group-data-[collapsible=icon]:items-center">
           {MANAGE_ITEMS.map((item) => (
             <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} />
           ))}

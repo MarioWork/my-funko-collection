@@ -15,3 +15,4 @@ export type { AuthFailureMessagesUtil } from './authFailureMessagesUtil.type';
 export { ExportFunkosScopeUtil } from './exportFunkosScopeUtil.type';
 export { ExportFormatUtil } from './exportFormatUtil.type';
 export { ExportListKindUtil } from './exportListKindUtil.type';
+export { SidebarStartUtil } from './sidebarStartUtil.type';
