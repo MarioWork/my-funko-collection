@@ -46,7 +46,7 @@ function CollectionMenu({ collection, isBusy, onMakeDefault, onDelete }: MenuPro
   return (
     <DropdownMenuContent align="end">
       <DropdownMenuGroup>
-        <DropdownMenuItem render={<Link viewTransition to={COLLECTION_ROUTES_PATHS.edit(id)} />}>
+        <DropdownMenuItem render={<Link to={COLLECTION_ROUTES_PATHS.editInList(id)} />}>
           <Pencil aria-hidden="true" />
           Edit
         </DropdownMenuItem>
