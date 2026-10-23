@@ -1,3 +1,5 @@
+import { SidebarStartUtil } from '@app-types/utility';
+import { useSidebarStart } from '@hooks/useSidebarStart';
 import { SidebarInset, SidebarProvider } from '@components/ui/sidebar';
 import { Toaster } from '@components/ui/toast';
 import { useIsDesktop } from '@hooks/useMediaQuery';
@@ -15,7 +17,9 @@ import { useCommandPalette } from './hooks/useCommandPalette';
 const MOBILE_SHELL_CLASS = 'flex min-h-svh flex-col [--bottom-nav-height:4rem]';
 // shadcn's sidebar is a fixed column; this is as wide as the logo (mark + wordmark), not the 16rem default. A style
 // prop, not a class: SidebarProvider sets its own --sidebar-width inline and merges only `style` over it.
-const SIDEBAR_STYLE = { '--sidebar-width': '15rem' } as React.CSSProperties;
+// Collapsed, the sidebar is 4rem (shadcn's 3rem left the icons right beside the edge that expands it, so a click
+// meant for an icon could open the sidebar instead).
+const SIDEBAR_STYLE = { '--sidebar-width': '15rem', '--sidebar-width-icon': '4rem' } as React.CSSProperties;
 // The sidebar slides open and shut (200 ms, eased); its menu buttons do not animate their padding, which made the
 // labels and icons bounce while the width moved. Reduced motion makes it instant.
 const SIDEBAR_MOTION_CLASS =
@@ -24,10 +28,16 @@ const SIDEBAR_MOTION_CLASS =
 function AppShell() {
   const isDesktop = useIsDesktop();
   const palette = useCommandPalette();
+  // Read once: the sidebar starts this way, then Ctrl/⌘ B and its edge toggle it for the visit.
+  const [sidebarStart] = useSidebarStart();
 
   if (isDesktop) {
     return (
-      <SidebarProvider style={SIDEBAR_STYLE} className={SIDEBAR_MOTION_CLASS}>
+      <SidebarProvider
+        style={SIDEBAR_STYLE}
+        className={SIDEBAR_MOTION_CLASS}
+        defaultOpen={sidebarStart === SidebarStartUtil.EXPANDED}
+      >
         <NavigationProgress />
         <AppSidebar />
         <SidebarInset>
