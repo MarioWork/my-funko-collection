@@ -21,3 +21,7 @@ export const tagPath = (tag: NamedApiModel) => `${ITEM_ROUTES_PATHS.BASE}?${Item
 
 export const allFunkosPath = (query: string) =>
   `${FUNKO_ROUTES_PATHS.BASE}?${FunkoApiSearchFields.QUERY}=${encodeURIComponent(query)}`;
+
+// One result row: the whole row is the link.
+export const RESULT_LINK_CLASS =
+  'flex min-h-11 items-center gap-3 rounded-lg px-2 py-1.5 text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring';

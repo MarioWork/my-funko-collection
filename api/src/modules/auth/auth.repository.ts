@@ -192,5 +192,8 @@ export const authRepository = {
     }),
 };
 
+// Re-exported so the service can name a challenge's purpose without importing the schema.
+export type { AuthChallengePurpose };
+
 export type PasskeyRow = NonNullable<Awaited<ReturnType<typeof authRepository.findPasskey>>>;
 export type SessionRow = NonNullable<Awaited<ReturnType<typeof authRepository.findSession>>>;

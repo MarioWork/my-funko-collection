@@ -51,7 +51,7 @@ export type QuickFilter = {
 };
 
 export const TRUE_VALUE = 'true';
-const FALSE_VALUE = 'false';
+export const FALSE_VALUE = 'false';
 
 // One chip per collection ("Owned", "Wishlist"), then chase and the funkos still missing a photo.
 export function buildQuickFilters(collections: CollectionApiModel[]): QuickFilter[] {

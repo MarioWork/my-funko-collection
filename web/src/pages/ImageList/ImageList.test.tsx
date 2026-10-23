@@ -1,7 +1,8 @@
 import { renderRoutes, screen, userEvent } from '@test-utils';
 import { imageRoutes } from '@application/routes/featureRoutes/imageRoutes';
 import { IMAGE_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { IMAGE_VIEW_STORAGE_KEY, ImageViewUtil } from '@utils/layoutUtils';
+import { ImageViewUtil } from '@app-types/utility';
+import { IMAGE_VIEW_STORAGE_KEY } from '@utils/layoutUtils';
 
 const renderPage = () => renderRoutes(imageRoutes, { initialEntries: [IMAGE_ROUTES_PATHS.BASE] });
 

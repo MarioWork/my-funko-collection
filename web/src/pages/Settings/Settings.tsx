@@ -1,5 +1,5 @@
 import { useLoaderData } from 'react-router';
-import { PAGE_ICONS } from '@application/layout/navigationUtils';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import type { LoaderDataUtil } from '@app-types/utility';
 import PageHeader from '@components/PageHeader';
 import AboutSection from './components/AboutSection';

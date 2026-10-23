@@ -5,7 +5,7 @@ import { Badge } from '@components/ui/badge';
 import { Button } from '@components/ui/button';
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@components/ui/drawer';
 import { Popover, PopoverContent, PopoverTrigger } from '@components/ui/popover';
-import { useIsDesktop } from '@hooks/useMediaQuery';
+import { useIsDesktop } from '@hooks/useIsDesktop';
 import { cn } from '@utils/classNameUtils';
 
 type Props = {

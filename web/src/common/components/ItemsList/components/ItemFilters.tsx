@@ -1,16 +1,13 @@
-import type { CategoryApiModel, CollectionApiModel, NamedApiModel, TagApiModel } from '@app-types/models';
+import type { NamedApiModel } from '@app-types/models';
 import { ITEM_CONDITION_LABELS, ItemConditionUtil } from '@app-types/utility';
 import SelectFilter, { type FilterOption } from '@components/SelectFilter';
 import { Field, FieldLabel } from '@components/ui/field';
 import { Input } from '@components/ui/input';
 import type { ItemFilterField } from '@hooks/useItemListParams';
 import { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
+import { useItemsListContext } from '../hooks/useItemsListContext';
 
 type Props = {
-  categories: CategoryApiModel[];
-  tags: TagApiModel[];
-  collections: CollectionApiModel[];
-  hasCollectionFilter: boolean;
   filters: Record<ItemFilterField, string | undefined>;
   onChange: (field: ItemFilterField, value: string | undefined) => void;
 };
@@ -19,7 +16,9 @@ function toFilterOptions(rows: NamedApiModel[]): FilterOption[] {
   return rows.map((row) => ({ value: String(row.id), label: row.name }));
 }
 
-function ItemFilters({ categories, tags, collections, hasCollectionFilter, filters, onChange }: Props) {
+function ItemFilters({ filters, onChange }: Props) {
+  const { categories, tags, collections, hasCollectionFilter } = useItemsListContext();
+
   return (
     <>
       {hasCollectionFilter ? (

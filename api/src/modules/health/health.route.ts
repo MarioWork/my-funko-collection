@@ -1,11 +1,9 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
-import { z } from 'zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
+import { HealthResponseSchema } from './health.schema.ts';
 import { getLiveness, getReadiness } from './health.service.ts';
 
 const TAGS = ['health'];
-
-const HealthResponseSchema = z.object({ status: z.literal('ok') });
 
 export const healthRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(

@@ -1,7 +1,7 @@
-import { http, HttpResponse } from 'msw/http';
+import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { conflict, toCollectionModel } from '@mocks/mockResponses';
+import { conflict, created, DUPLICATE_CONFLICT_MESSAGE, toCollectionModel } from '@mocks/mockResponses';
 import { mockStore, nextId, nowIso } from '@mocks/mockStore';
 import type { CreateCollection } from '@services/collectionService/collectionService.type';
 
@@ -12,7 +12,7 @@ export default (baseUrl: string) => [
     const body = (await request.json()) as CreateCollection;
 
     if (mockStore.collections.some((collection) => collection.name === body.name)) {
-      return conflict('A record with these values already exists');
+      return conflict(DUPLICATE_CONFLICT_MESSAGE);
     }
 
     if (body.isDefault) for (const collection of mockStore.collections) collection.isDefault = false;
@@ -28,6 +28,6 @@ export default (baseUrl: string) => [
 
     mockStore.collections.push(row);
 
-    return HttpResponse.json(toCollectionModel(row), { status: 201 });
+    return created(toCollectionModel(row));
   }),
 ];

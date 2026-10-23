@@ -1,15 +1,9 @@
 import { Link, NavLink, useLocation } from 'react-router';
-import {
-  APP_NAME,
-  MANAGE_ITEMS,
-  NAVIGATION_ITEMS,
-  SETTINGS_ITEM,
-  type NavigationItem,
-} from '@application/layout/navigationUtils';
+import { APP_NAME, MANAGE_ITEMS, NAVIGATION_ITEMS, SETTINGS_ITEM, type NavigationItem } from '@utils/navigationUtils';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AppLogo from '@components/AppLogo';
 import SidebarEdgeToggle from './SidebarEdgeToggle';
-import ThemeToggle from '@components/ThemeToggle';
+import ThemeToggle from './ThemeToggle';
 import {
   Sidebar,
   SidebarContent,

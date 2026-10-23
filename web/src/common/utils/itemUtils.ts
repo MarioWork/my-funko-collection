@@ -1,11 +1,11 @@
 import { array, number, string } from 'yup';
 import { ItemConditionUtil } from '@app-types/utility';
 
-export const ITEM_NOTES_MAX_LENGTH = 2000;
-export const MAX_QUANTITY = 1000;
-export const MAX_TAGS_PER_ITEM = 20;
-export const CURRENCY_PATTERN = /^[A-Z]{3}$/;
-export const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const ITEM_NOTES_MAX_LENGTH = 2000;
+const MAX_QUANTITY = 1000;
+const MAX_TAGS_PER_ITEM = 20;
+const CURRENCY_PATTERN = /^[A-Z]{3}$/;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export const itemQuantitySchema = number()
   .typeError('Quantity must be a number')

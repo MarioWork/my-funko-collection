@@ -22,6 +22,8 @@ type TagsProps = {
   tags: CollectionItemApiModel['tags'];
 };
 
+const HEADING_ID = 'memberships-heading';
+
 // "1 copy · Out of box · Paid 9,99 € · Bought 11/11/2023": only the facts that are set.
 function factsLine(item: CollectionItemApiModel): string {
   const copies = item.quantity === 1 ? '1 copy' : `${item.quantity} copies`;
@@ -75,11 +77,8 @@ function FunkoMemberships({ items }: Props) {
   const { busyItemId, remove } = useItemActions();
 
   return (
-    <section
-      aria-labelledby="memberships-heading"
-      className="flex min-h-0 flex-col gap-3 rounded-xl border bg-card p-4"
-    >
-      <h2 id="memberships-heading" className="text-lg font-semibold">
+    <section aria-labelledby={HEADING_ID} className="flex min-h-0 flex-col gap-3 rounded-xl border bg-card p-4">
+      <h2 id={HEADING_ID} className="text-lg font-semibold">
         Collections
       </h2>
       {items.length === 0 ? (

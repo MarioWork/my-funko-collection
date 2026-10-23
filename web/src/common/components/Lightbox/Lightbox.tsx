@@ -1,9 +1,8 @@
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { FunkoImageApiModel } from '@app-types/models';
-import IconButton from '@components/IconButton';
 import { Dialog, DialogContent, DialogTitle } from '@components/ui/dialog';
 import { LARGE_IMAGE_WIDTH_PX, MEDIUM_IMAGE_WIDTH_PX } from '@utils/imageSizeUtils';
+import LightboxControls from './components/LightboxControls';
 
 type Props = {
   images: FunkoImageApiModel[];
@@ -89,39 +88,7 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
             height={image.height}
             className="max-h-dvh max-w-full object-contain motion-safe:animate-in motion-safe:fade-in"
           />
-          <IconButton
-            aria-label="Close"
-            variant="ghost"
-            className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 text-media-foreground hover:bg-media-foreground/10 hover:text-media-foreground"
-            onClick={onClose}
-          >
-            <X aria-hidden="true" />
-          </IconButton>
-          {count > 1 ? (
-            <>
-              <IconButton
-                aria-label="Previous image"
-                variant="ghost"
-                size="lg"
-                className="absolute left-2 text-media-foreground hover:bg-media-foreground/10 hover:text-media-foreground"
-                onClick={showPrevious}
-              >
-                <ChevronLeft aria-hidden="true" />
-              </IconButton>
-              <IconButton
-                aria-label="Next image"
-                variant="ghost"
-                size="lg"
-                className="absolute right-2 text-media-foreground hover:bg-media-foreground/10 hover:text-media-foreground"
-                onClick={showNext}
-              >
-                <ChevronRight aria-hidden="true" />
-              </IconButton>
-              <p className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] text-sm text-media-foreground/80 tabular-nums">
-                {index + 1} / {count}
-              </p>
-            </>
-          ) : null}
+          <LightboxControls index={index} count={count} onClose={onClose} onPrevious={showPrevious} onNext={showNext} />
         </div>
       </DialogContent>
     </Dialog>

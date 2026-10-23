@@ -1,10 +1,13 @@
 import { redirect, type DataStrategyResult, type MiddlewareFunction } from 'react-router';
 import { isUnauthorizedFailure } from '@api/axiosActions';
+import { HttpVerbsUtil } from '@app-types/utility';
 import { appPathOf, loginPathFor } from '@utils/authRedirectUtils';
 
 type RouteResults = Record<string, DataStrategyResult>;
 
-const SAFE_METHODS = ['GET', 'HEAD'];
+// HttpVerbsUtil has no HEAD: it is a read, like GET.
+const HEAD_METHOD = 'HEAD';
+const SAFE_METHODS: string[] = [HttpVerbsUtil.GET, HEAD_METHOD];
 
 function isRouteResults(value: unknown): value is RouteResults {
   return typeof value === 'object' && value !== null;

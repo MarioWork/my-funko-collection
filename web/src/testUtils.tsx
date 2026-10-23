@@ -9,7 +9,8 @@ import {
   type RenderOptions,
 } from '@testing-library/react';
 import userEventBase from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router';
+import { createMemoryRouter, type RouteObject } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 
 const ASYNC_QUERY_TIMEOUT_MS = 5000;
 
@@ -50,11 +51,12 @@ function withFreshLazy(routes: RouteObject[]): RouteObject[] {
   });
 }
 
-// Real route objects, so a page's loader and action run as they do in the app.
+// Real route objects, so a page's loader and action run as they do in the app. The router comes back too, for a
+// test that navigates or reads the current location.
 export function renderRoutes(routes: RouteObject[], { initialEntries = ['/'], ...options }: RenderRoutesOptions = {}) {
   const router = createMemoryRouter(withFreshLazy(routes), { initialEntries });
 
-  return render(<RouterProvider router={router} />, options);
+  return { ...render(<RouterProvider router={router} />, options), router };
 }
 
 export { act, render, renderHook, screen, waitFor, within };

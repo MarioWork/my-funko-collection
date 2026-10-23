@@ -1,8 +1,7 @@
 import { object, type InferType } from 'yup';
 import { AuthApiErrorCodes } from '@services/authService/authService';
-import type { AuthFailureMessagesUtil } from '@app-types/utility';
 import { passkeyNameSchema } from '@utils/authUtils';
-import { PasskeyCeremonyFailureUtil } from '@app-types/utility';
+import { PasskeyCeremonyFailureUtil, type AuthFailureMessagesUtil } from '@app-types/utility';
 
 export const addPasskeyFormSchema = object({
   name: passkeyNameSchema,

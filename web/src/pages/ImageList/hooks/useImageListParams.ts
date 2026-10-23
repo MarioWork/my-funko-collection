@@ -1,12 +1,12 @@
 import { useLoaderData } from 'react-router';
-import { ApiUrlParamsUtil, type LoaderDataUtil } from '@app-types/utility';
+import { ApiUrlParamsUtil, type LoaderDataUtil, type ImageViewUtil } from '@app-types/utility';
 import type { FilterChip } from '@components/FilterChips';
 import type { SortOption } from '@components/SortSelect';
 import { useListParams } from '@hooks/useListParams';
 import { ImageApiSearchFields } from '@services/imageService/imageService';
 import type { loader } from '../imageListLoader';
 import { useLocalStorage } from '@hooks/useLocalStorage';
-import { DEFAULT_IMAGE_VIEW, IMAGE_VIEW_STORAGE_KEY, type ImageViewUtil } from '@utils/layoutUtils';
+import { DEFAULT_IMAGE_VIEW, IMAGE_VIEW_STORAGE_KEY } from '@utils/layoutUtils';
 import { HAS_FUNKO_OPTIONS, IMAGE_VIEW_PARAM } from '../imageListUtils';
 
 // The Images page's URL state, typed: the view, the search, the "being used" filter, the sort and its chip.

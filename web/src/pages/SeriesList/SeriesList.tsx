@@ -1,8 +1,7 @@
 import { Library } from 'lucide-react';
-import { PAGE_ICONS } from '@application/layout/navigationUtils';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import { Outlet, useLoaderData } from 'react-router';
 import type { SeriesApiModel } from '@app-types/models';
-import type { LoaderDataUtil } from '@app-types/utility';
 import { SERIES_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AddFab from '@components/AddFab';
 import LinkButton from '@components/LinkButton';
@@ -10,10 +9,13 @@ import ManageList from '@components/ManageList';
 import type { ManageRow } from '@components/ManageList';
 import ListExportMenu from '@components/ListExportMenu';
 import PageHeader from '@components/PageHeader';
-import { ExportFunkosScopeUtil, ExportListKindUtil } from '@app-types/utility';
+import { ExportFunkosScopeUtil, ExportListKindUtil, type LoaderDataUtil } from '@app-types/utility';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import { reasonWhen } from '@utils/disabledReasonUtils';
 import type { loader } from './seriesListLoader';
+
+// The row's meta line for one that nothing uses yet.
+const NOT_USED_META = 'Not used yet';
 
 function toRow(series: SeriesApiModel): ManageRow {
   const isInUse = series.funkoCount > 0;
@@ -22,7 +24,7 @@ function toRow(series: SeriesApiModel): ManageRow {
     id: series.id,
     name: series.name,
     notes: null,
-    meta: isInUse ? `${series.funkoCount} funkos` : 'Not used yet',
+    meta: isInUse ? `${series.funkoCount} funkos` : NOT_USED_META,
     // Unlike a category, a series is optional: deleting one just clears it from its funkos.
     isDeletable: true,
     exportScope: ExportFunkosScopeUtil.SERIES,

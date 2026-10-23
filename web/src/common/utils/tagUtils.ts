@@ -1,7 +1,7 @@
 import { string } from 'yup';
 
-export const TAG_NAME_MAX_LENGTH = 100;
-export const TAG_NOTES_MAX_LENGTH = 500;
+const TAG_NAME_MAX_LENGTH = 100;
+const TAG_NOTES_MAX_LENGTH = 500;
 
 export const tagNameSchema = string()
   .trim()

@@ -1,14 +1,17 @@
 import { Link } from 'react-router';
 import type { FunkoApiModel, FunkoSummaryApiModel } from '@app-types/models';
-import { FUNKO_MATCH_FIELD_LABELS, FunkoMatchFieldUtil } from '@app-types/utility';
+import { FUNKO_MATCH_FIELD_LABELS, FunkoGridDensityUtil, FunkoMatchFieldUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoImage from '@components/FunkoImage';
 import { Badge } from '@components/ui/badge';
 
+// A funko summary, plus what a search hit or a collection list adds to it.
+type FunkoCardFunko = FunkoSummaryApiModel & Partial<Pick<FunkoApiModel, 'matchedOn' | 'collections'>>;
+
 type Props = {
-  funko: FunkoSummaryApiModel & Partial<Pick<FunkoApiModel, 'matchedOn' | 'collections'>>;
+  funko: FunkoCardFunko;
   quantity?: number;
-  density?: 'comfortable' | 'compact';
+  density?: FunkoGridDensityUtil;
 };
 
 // A hit on the name or the id is obvious from the card itself, so the caption leaves those out.
@@ -19,10 +22,10 @@ const CARD_SIZES = '(min-width: 1536px) 15vw, (min-width: 1024px) 22vw, (min-wid
 
 // Image first, two badges at most, the whole card is the link. Matched-by caption only when a search hit it. Hover
 // and keyboard focus outline the photo in the primary colour, like the collection cards.
-function FunkoCard({ funko, quantity, density = 'comfortable' }: Props) {
+function FunkoCard({ funko, quantity, density = FunkoGridDensityUtil.COMFORTABLE }: Props) {
   const matchedBy = (funko.matchedOn ?? []).filter((field) => !SELF_EVIDENT_MATCHES.includes(field));
   const hasExtraCopies = quantity !== undefined && quantity > 1;
-  const isCompact = density === 'compact';
+  const isCompact = density === FunkoGridDensityUtil.COMPACT;
 
   return (
     <Link

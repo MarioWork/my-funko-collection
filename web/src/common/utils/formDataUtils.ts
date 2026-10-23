@@ -23,7 +23,7 @@ export const createFormData = <Key extends string>(data: Record<Key, unknown>) =
   return formData;
 };
 
-export const parseFormData = <T>(data: FormData) => {
+export const parseFormData = <ParsedFormData>(data: FormData) => {
   const result: Record<string, unknown> = {};
 
   data.forEach((value, key) => {
@@ -39,7 +39,7 @@ export const parseFormData = <T>(data: FormData) => {
     }
   });
 
-  return { ...result } as T;
+  return { ...result } as ParsedFormData;
 };
 
 // Whether an edit form would send exactly what is already saved: both sides go through the same payload builder, so

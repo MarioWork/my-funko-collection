@@ -1,8 +1,8 @@
 // Shrinks a phone photo in the browser before upload: one decode + resize step via createImageBitmap (which also
 // applies the EXIF orientation), drawn once into an OffscreenCanvas. iOS caps a canvas near 16.7 MP, so a 48 MP
 // frame is resized during decode, never drawn at full size.
-export const UPLOAD_LONG_EDGE_PX = 2000;
-export const UPLOAD_JPEG_QUALITY = 0.85;
+const UPLOAD_LONG_EDGE_PX = 2000;
+const UPLOAD_JPEG_QUALITY = 0.85;
 const JPEG_TYPE = 'image/jpeg';
 const JPEG_EXTENSION = '.jpg';
 const RELEASE_SIZE_PX = 1;
@@ -41,7 +41,7 @@ function jpegName(name: string): string {
 }
 
 // Returns the original file untouched when the browser cannot resize or the photo is already small enough.
-export async function resizeImageFile(file: File): Promise<File> {
+async function resizeImageFile(file: File): Promise<File> {
   if (!hasResizeSupport()) return file;
 
   try {

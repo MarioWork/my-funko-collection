@@ -4,27 +4,9 @@ import type { TagApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import type { ManageEntityFormData } from '@components/ManageForm';
 import tagService from '@services/tagService/tagService';
-import { CreateTagSchema, UpdateTagSchema } from '@services/tagService/tagService.type';
+import { UpdateTagSchema } from '@services/tagService/tagService.type';
 import { parseFormData } from '@utils/formDataUtils';
-
-const toTagPayload = ({ entity }: ManageEntityFormData) => ({
-  name: entity.name,
-  notes: entity.notes ? entity.notes : null,
-});
-
-export const createTagAction = async ({ request }: ActionFunctionArgs): Promise<JSONResponseUtil<TagApiModel>> => {
-  const formData = parseFormData<ManageEntityFormData>(await request.formData());
-
-  try {
-    const valid = await CreateTagSchema.validate(toTagPayload(formData));
-
-    return await tagService.addTag(valid);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
-};
+import { toTagPayload } from './tagListUtils';
 
 const updateTagAction = async ({ request, params }: ActionFunctionArgs): Promise<JSONResponseUtil<TagApiModel>> => {
   const formData = parseFormData<ManageEntityFormData>(await request.formData());
@@ -43,7 +25,9 @@ const updateTagAction = async ({ request, params }: ActionFunctionArgs): Promise
 const deleteTagAction = async ({ params }: ActionFunctionArgs): Promise<JSONResponseUtil> =>
   tagService.deleteTag(Number(params.tagId));
 
-const TAG_ACTION_MAP: Record<string, (args: ActionFunctionArgs) => Promise<JSONResponseUtil>> = {
+type VerbAction = (args: ActionFunctionArgs) => Promise<JSONResponseUtil>;
+
+const TAG_ACTION_MAP: Record<string, VerbAction> = {
   [HttpVerbsUtil.PATCH]: updateTagAction,
   [HttpVerbsUtil.DELETE]: deleteTagAction,
 };

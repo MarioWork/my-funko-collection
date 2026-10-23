@@ -63,4 +63,3 @@ export type GetSeriesFields = {
 } & SearchFields;
 
 export const DEFAULT_SERIES_SORT_FIELD = SeriesApiSortingFields.NAME;
-export const DEFAULT_SERIES_SORT_DIRECTION = SortingDirectionUtil.ASC;

@@ -1,7 +1,8 @@
-import { http, HttpResponse } from 'msw/http';
+import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { conflict, notFound } from '@mocks/mockResponses';
+import { isTrueParam } from '@mocks/mockListUtils';
+import { conflict, noContent, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import { FORCE_PARAM } from '@services/funkoService/funkoService';
 
@@ -14,7 +15,7 @@ export default (baseUrl: string) => [
 
     if (!row) return notFound('Funko', String(params.funkoId));
 
-    const isForced = new URL(request.url).searchParams.get(FORCE_PARAM) === 'true';
+    const isForced = isTrueParam(new URL(request.url).searchParams.get(FORCE_PARAM));
     const memberships = mockStore.items.filter((item) => item.funkoId === row.id);
 
     if (memberships.length > 0 && !isForced) {
@@ -35,6 +36,6 @@ export default (baseUrl: string) => [
     mockStore.images = mockStore.images.filter((image) => image.funkoId !== row.id);
     mockStore.funkos.splice(index, 1);
 
-    return new HttpResponse(null, { status: 204 });
+    return noContent();
   }),
 ];

@@ -1,5 +1,5 @@
-import { HttpResponse } from 'msw/http';
-import { errorResponse } from '@mocks/mockResponses';
+import { UNAUTHORIZED_ERROR_CODE } from '@api/axiosActions';
+import { errorResponse, FORBIDDEN_STATUS, UNAUTHORIZED_STATUS } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 
@@ -13,8 +13,6 @@ type CeremonyResponse = {
 type CeremonyBody = {
   response?: unknown;
 };
-
-const NO_CONTENT_STATUS = 204;
 
 export function isCeremonyResponse(value: unknown): value is CeremonyResponse {
   if (typeof value !== 'object' || value === null) return false;
@@ -35,13 +33,12 @@ export function rpIdOf(request: Request): string {
   return new URL(request.url).hostname;
 }
 
-export const noContent = (): Response => new HttpResponse(null, { status: NO_CONTENT_STATUS });
-
-export const unauthorized = (): Response => errorResponse(401, 'UNAUTHORIZED', 'Sign in to continue.');
+export const unauthorized = (): Response =>
+  errorResponse(UNAUTHORIZED_STATUS, UNAUTHORIZED_ERROR_CODE, 'Sign in to continue.');
 
 // Adding and removing a passkey need a sign-in from the last 10 minutes.
 export function reauthRequiredResponse(): Response | undefined {
   if (mockStore.auth.isSignInRecent) return undefined;
 
-  return errorResponse(403, AuthApiErrorCodes.REAUTH_REQUIRED, 'Sign in again to change your passkeys.');
+  return errorResponse(FORBIDDEN_STATUS, AuthApiErrorCodes.REAUTH_REQUIRED, 'Sign in again to change your passkeys.');
 }

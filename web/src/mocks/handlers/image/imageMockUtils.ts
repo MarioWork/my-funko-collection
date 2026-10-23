@@ -3,7 +3,7 @@ import { mockStore, type MockImageRow } from '@mocks/mockStore';
 import { looseImageMock } from './models/imageMockModel.mock';
 
 const STORED_SIZES = 3;
-const MAIN_POSITION = 0;
+export const MAIN_POSITION = 0;
 
 function toListEntry(image: MockImageRow): ImageListEntryApiModel {
   const funko = mockStore.funkos.find((row) => row.id === image.funkoId);

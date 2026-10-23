@@ -7,6 +7,7 @@ import {
   attachment,
   CSV_CONTENT_TYPE,
   CSV_HEADER,
+  CSV_LINE_BREAK,
   toCells,
   toCsvLine,
   toFunkoFields,
@@ -14,8 +15,6 @@ import {
   XLSX_CONTENT_TYPE,
 } from './funkosExportMockUtils';
 import { readListExport, uniqueLines, type ListExport } from './listExportMockUtils';
-
-const CSV_LINE_BREAK = '\r\n';
 
 function toCsv(listExport: ListExport): string {
   const rows = listExport.includeFunkos

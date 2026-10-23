@@ -67,7 +67,9 @@ async function incrementInCollection(funkoId: number, collectionId: number, tagI
 }
 
 // Read back after the writes so the saved card shows the photo and the lists it is now in. The funko exists by
-// now, so a failed read falls back to what the create returned rather than losing the success.
+// now, so a failed read falls back to what the create returned rather than losing the success. A deliberate
+// exception to "do not try/catch a read" (ts-api-services §7.3): throwing here would show the error page for a
+// funko that was saved.
 async function latestFunko(fallback: FunkoApiModel): Promise<FunkoApiModel> {
   try {
     return await funkoService.getFunko(fallback.id);

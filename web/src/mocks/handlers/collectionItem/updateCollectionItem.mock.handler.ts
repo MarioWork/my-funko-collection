@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { badRequest, conflict, notFound, toItemModel } from '@mocks/mockResponses';
+import { badRequest, conflict, noContent, notFound, toItemModel } from '@mocks/mockResponses';
 import { mockStore, nowIso } from '@mocks/mockStore';
 import type {
   MoveCollectionItem,
@@ -65,6 +65,6 @@ export default (baseUrl: string) => [
 
     mockStore.items.splice(index, 1);
 
-    return new HttpResponse(null, { status: 204 });
+    return noContent();
   }),
 ];

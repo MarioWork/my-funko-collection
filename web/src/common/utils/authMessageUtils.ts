@@ -6,7 +6,7 @@ import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 const TOO_MANY_REQUESTS_STATUS = 429;
 
 // What every passkey step can run into, whichever page it is on. Pages add or override their own.
-export const COMMON_AUTH_FAILURE_MESSAGES: AuthFailureMessagesUtil = {
+const COMMON_AUTH_FAILURE_MESSAGES: AuthFailureMessagesUtil = {
   [PasskeyCeremonyFailureUtil.CANCELLED]: "No worries, the passkey prompt was closed. Try again when you're ready.",
   [PasskeyCeremonyFailureUtil.FAILED]: "Your browser couldn't use a passkey just now. Try again in a moment.",
   [AuthApiErrorCodes.TOO_MANY_REQUESTS]: 'Too many tries in a row. Take a short break and try again in a minute.',

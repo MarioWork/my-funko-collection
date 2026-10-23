@@ -8,6 +8,7 @@ import type {
 import { FUNKO_TYPE_LABELS, FunkoTypeUtil } from '@app-types/utility';
 import SelectFilter from '@components/SelectFilter';
 import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
+import { FALSE_VALUE, TRUE_VALUE } from '../funkoListUtils';
 import type { FunkoFilterField, FunkoFilterUpdates } from '../hooks/useFunkoListParams';
 import OptionalFilter from './OptionalFilter';
 
@@ -20,19 +21,19 @@ type Props = {
   onChange: (updates: FunkoFilterUpdates) => void;
 };
 
-function toFilterOptions(rows: NamedApiModel[]) {
-  return rows.map((row) => ({ value: String(row.id), label: row.name }));
-}
-
 const YES_NO_OPTIONS = [
-  { value: 'true', label: 'Yes' },
-  { value: 'false', label: 'No' },
+  { value: TRUE_VALUE, label: 'Yes' },
+  { value: FALSE_VALUE, label: 'No' },
 ];
 
 const IMAGE_OPTIONS = [
-  { value: 'true', label: 'Has images' },
-  { value: 'false', label: 'No images' },
+  { value: TRUE_VALUE, label: 'Has images' },
+  { value: FALSE_VALUE, label: 'No images' },
 ];
+
+function toFilterOptions(rows: NamedApiModel[]) {
+  return rows.map((row) => ({ value: String(row.id), label: row.name }));
+}
 
 function FunkoFilters({ categories, series, collections, tags, filters, onChange }: Props) {
   return (

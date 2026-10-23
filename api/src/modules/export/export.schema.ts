@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { FUNKO_TYPES } from '../../db/schema/funkos.ts';
 import { ITEM_CONDITIONS } from '../../db/schema/collectionItems.ts';
+import { BooleanQuerySchema } from '../../lib/queryParams.ts';
 
 const ExportCategorySchema = z.object({ id: z.number().int(), name: z.string() });
 
@@ -130,10 +131,7 @@ export type ExportListKind = (typeof EXPORT_LIST_KINDS)[number];
 
 export const ExportListQuerySchema = z.object({
   // Also export the funkos of every entry (a second sheet, the CSV's lines, or nested in the JSON).
-  includeFunkos: z
-    .enum(['true', 'false'])
-    .default('false')
-    .transform((value) => value === 'true'),
+  includeFunkos: BooleanQuerySchema.default(false),
 });
 
 export type ExportListQuery = z.infer<typeof ExportListQuerySchema>;

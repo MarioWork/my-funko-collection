@@ -1,7 +1,7 @@
 import { boolean, string } from 'yup';
 
-export const COLLECTION_NAME_MAX_LENGTH = 100;
-export const COLLECTION_NOTES_MAX_LENGTH = 2000;
+const COLLECTION_NAME_MAX_LENGTH = 100;
+const COLLECTION_NOTES_MAX_LENGTH = 2000;
 
 export const collectionNameSchema = string()
   .trim()

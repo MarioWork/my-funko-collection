@@ -3,14 +3,10 @@ import { delay } from 'msw/utils/delay';
 import type { CollectionItemApiModel } from '@app-types/models';
 import type { ResponseWithPaginationUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { paginateMockList } from '@mocks/mockListUtils';
+import { idList, paginateMockList } from '@mocks/mockListUtils';
 import { notFound, toItemModel } from '@mocks/mockResponses';
 import { mockStore, type MockItemRow } from '@mocks/mockStore';
 import { ItemApiSearchFields, ItemApiSortingFields } from '@services/collectionItemService/collectionItemService';
-
-function idList(value: string | null): number[] | undefined {
-  return value ? value.split(',').map(Number) : undefined;
-}
 
 function listItems(request: Request, rows: MockItemRow[]): ResponseWithPaginationUtil<CollectionItemApiModel> {
   const params = new URL(request.url).searchParams;

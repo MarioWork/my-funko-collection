@@ -1,9 +1,10 @@
-import { http, HttpResponse } from 'msw/http';
+import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { badRequest, conflict, notFound, toItemModel } from '@mocks/mockResponses';
-import { DEFAULT_CURRENCY, mockStore, nextId, nowIso, type MockItemRow } from '@mocks/mockStore';
+import { badRequest, conflict, created, notFound, toItemModel } from '@mocks/mockResponses';
+import { mockStore, nextId, nowIso, type MockItemRow } from '@mocks/mockStore';
 import type { CreateCollectionItem } from '@services/collectionItemService/collectionItemService.type';
+import { DEFAULT_CURRENCY } from '@utils/moneyUtils';
 
 export default (baseUrl: string) => [
   http.post(`${baseUrl}/collections/:collectionId/items`, async ({ params, request }) => {
@@ -45,6 +46,6 @@ export default (baseUrl: string) => [
 
     mockStore.items.push(row);
 
-    return HttpResponse.json(toItemModel(row), { status: 201 });
+    return created(toItemModel(row));
   }),
 ];

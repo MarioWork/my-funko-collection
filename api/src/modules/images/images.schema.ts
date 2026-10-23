@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
+import { PaginationQuerySchema, SORT_DIRECTIONS, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { BooleanQuerySchema, ContainsQuerySchema } from '../../lib/queryParams.ts';
 
 export const IMAGE_SORT_FIELDS = ['CREATION_DATE', 'SIZE', 'NAME'] as const;
@@ -8,7 +8,7 @@ export type ImageSortField = (typeof IMAGE_SORT_FIELDS)[number];
 
 export const ListImagesQuerySchema = PaginationQuerySchema.extend({
   sorting_fields: z.enum(IMAGE_SORT_FIELDS).default('SIZE'),
-  direction: z.enum(['ASC', 'DESC']).default('DESC'),
+  direction: z.enum(SORT_DIRECTIONS).default('DESC'),
   // Contains, in the funko's name or the file name.
   q: ContainsQuerySchema,
   // false: only files on disk that no funko image row points at (what `yarn images:prune` would delete).

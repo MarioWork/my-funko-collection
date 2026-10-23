@@ -23,6 +23,24 @@ import {
   type MockTagRow,
 } from './mockStore';
 
+// Whatever HttpResponse.json accepts; msw/http does not export the type by name.
+type MockJsonBody = Parameters<typeof HttpResponse.json>[0];
+
+export const CREATED_STATUS = 201;
+export const NO_CONTENT_STATUS = 204;
+export const BAD_REQUEST_STATUS = 400;
+export const UNAUTHORIZED_STATUS = 401;
+export const FORBIDDEN_STATUS = 403;
+export const NOT_FOUND_STATUS = 404;
+export const CONFLICT_STATUS = 409;
+
+const NOT_FOUND_ERROR_CODE = 'NOT_FOUND';
+const CONFLICT_ERROR_CODE = 'CONFLICT';
+const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';
+
+// What the API answers when a unique name is taken.
+export const DUPLICATE_CONFLICT_MESSAGE = 'A record with these values already exists';
+
 export function toCategoryModel(row: MockCategoryRow): CategoryApiModel {
   return { ...row, funkoCount: mockStore.funkos.filter((funko) => funko.categoryId === row.id).length };
 }
@@ -124,8 +142,22 @@ export function errorResponse(status: number, code: string, message: string, exi
   return HttpResponse.json({ code, message, existingId }, { status });
 }
 
-export const notFound = (entity: string, id: string | number): Response =>
-  errorResponse(404, 'NOT_FOUND', `${entity} ${id} not found`);
-export const conflict = (message: string, existingId?: number): Response =>
-  errorResponse(409, 'CONFLICT', message, existingId);
-export const badRequest = (message: string): Response => errorResponse(400, 'VALIDATION_ERROR', message);
+export function created(body: MockJsonBody): Response {
+  return HttpResponse.json(body, { status: CREATED_STATUS });
+}
+
+export function noContent(): Response {
+  return new HttpResponse(null, { status: NO_CONTENT_STATUS });
+}
+
+export function notFound(entity: string, id: string | number): Response {
+  return errorResponse(NOT_FOUND_STATUS, NOT_FOUND_ERROR_CODE, `${entity} ${id} not found`);
+}
+
+export function conflict(message: string, existingId?: number): Response {
+  return errorResponse(CONFLICT_STATUS, CONFLICT_ERROR_CODE, message, existingId);
+}
+
+export function badRequest(message: string): Response {
+  return errorResponse(BAD_REQUEST_STATUS, VALIDATION_ERROR_CODE, message);
+}

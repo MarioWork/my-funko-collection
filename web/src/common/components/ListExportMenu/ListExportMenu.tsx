@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ExportListKindUtil } from '@app-types/utility';
 import ExportMenu from '@components/ExportMenu';
-import MenuSwitchItem from '@components/MenuSwitchItem';
+import MenuSwitchItem from './components/MenuSwitchItem';
 import exportService from '@services/exportService/exportService';
 
 type Props = {

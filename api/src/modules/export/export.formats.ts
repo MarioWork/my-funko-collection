@@ -14,7 +14,7 @@ const FORMULA_START = /^[=+\-@\t\r]/;
 const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/;
 // The usual guard (OWASP's CSV injection advice): a leading apostrophe makes it text, which Excel and Sheets hide.
 const FORMULA_ESCAPE = "'";
-const PRICE_DECIMALS = 2;
+export const PRICE_DECIMALS = 2;
 // Thousands separator and cents; the currency is its own column (items can be in different ones).
 export const PRICE_FORMAT = '#,##0.00';
 
@@ -67,6 +67,46 @@ export const COLUMNS: ExportColumn[] = [
   },
 ];
 
+// The list's own columns, per kind: what each entry is, read off its summary.
+type ListColumn = SheetColumn & { key: string; csvHeader: string };
+
+const NAME_COLUMN: ListColumn = { key: 'name', csvHeader: 'name', title: 'Name', width: 28 };
+const ID_COLUMN: ListColumn = { key: 'id', csvHeader: 'id', title: 'Id', width: 7 };
+const NOTES_COLUMN: ListColumn = { key: 'notes', csvHeader: 'notes', title: 'Notes', width: 30 };
+const FUNKO_COUNT_COLUMN: ListColumn = { key: 'funkoCount', csvHeader: 'funko_count', title: 'Funkos', width: 9 };
+
+export const LIST_COLUMNS: Record<ExportListKind, ListColumn[]> = {
+  categories: [ID_COLUMN, NAME_COLUMN, FUNKO_COUNT_COLUMN],
+  series: [ID_COLUMN, NAME_COLUMN, FUNKO_COUNT_COLUMN],
+  collections: [
+    ID_COLUMN,
+    NAME_COLUMN,
+    { key: 'isDefault', csvHeader: 'is_default', title: 'Default', width: 9 },
+    { key: 'itemCount', csvHeader: 'funko_count', title: 'Funkos', width: 9 },
+    { key: 'totalQuantity', csvHeader: 'pieces', title: 'Pieces', width: 9 },
+    { key: 'totalSpent', csvHeader: 'total_spent', title: 'Total spent', width: 12, format: PRICE_FORMAT },
+    NOTES_COLUMN,
+  ],
+  tags: [ID_COLUMN, NAME_COLUMN, { key: 'itemCount', csvHeader: 'item_count', title: 'Items', width: 9 }, NOTES_COLUMN],
+};
+
+type ImageColumn = SheetColumn & { csvHeader: string; valueOf: (image: ImageExport) => CellValue };
+
+export const IMAGE_COLUMNS: ImageColumn[] = [
+  { csvHeader: 'funko_id', title: 'Funko id', width: 9, valueOf: (image) => image.funkoId },
+  { csvHeader: 'funko_name', title: 'Funko', width: 28, valueOf: (image) => image.funkoName },
+  { csvHeader: 'funko_number', title: 'Number', width: 9, valueOf: (image) => image.funkoNumber },
+  { csvHeader: 'file_name', title: 'File', width: 40, valueOf: (image) => image.fileName },
+  { csvHeader: 'is_main', title: 'Main', width: 7, valueOf: (image) => image.isMain },
+  { csvHeader: 'width', title: 'Width', width: 8, valueOf: (image) => image.width },
+  { csvHeader: 'height', title: 'Height', width: 8, valueOf: (image) => image.height },
+  { csvHeader: 'size_bytes', title: 'Size (bytes)', width: 12, valueOf: (image) => image.sizeBytes },
+  { csvHeader: 'uploaded_at', title: 'Uploaded', width: 22, valueOf: (image) => image.uploadedAt },
+  { csvHeader: 'url', title: 'Link (large)', width: 50, valueOf: (image) => image.url },
+  { csvHeader: 'medium_url', title: 'Link (medium)', width: 50, valueOf: (image) => image.mediumUrl },
+  { csvHeader: 'small_url', title: 'Link (small)', width: 50, valueOf: (image) => image.smallUrl },
+];
+
 // RFC 4180: quote a cell when it holds a separator, a quote or a line break; double the quotes inside. Text that
 // would run as a formula when the file is opened is defused first.
 function toCsvCell(value: CellValue, column: { format?: string }): string {
@@ -98,29 +138,6 @@ export type SheetColumn = { title: string; width: number; format?: string };
 
 // --- Whole lists -------------------------------------------------------------------------------------------------
 
-// The list's own columns, per kind: what each entry is, read off its summary.
-type ListColumn = SheetColumn & { key: string; csvHeader: string };
-
-const NAME_COLUMN: ListColumn = { key: 'name', csvHeader: 'name', title: 'Name', width: 28 };
-const ID_COLUMN: ListColumn = { key: 'id', csvHeader: 'id', title: 'Id', width: 7 };
-const NOTES_COLUMN: ListColumn = { key: 'notes', csvHeader: 'notes', title: 'Notes', width: 30 };
-const FUNKO_COUNT_COLUMN: ListColumn = { key: 'funkoCount', csvHeader: 'funko_count', title: 'Funkos', width: 9 };
-
-export const LIST_COLUMNS: Record<ExportListKind, ListColumn[]> = {
-  categories: [ID_COLUMN, NAME_COLUMN, FUNKO_COUNT_COLUMN],
-  series: [ID_COLUMN, NAME_COLUMN, FUNKO_COUNT_COLUMN],
-  collections: [
-    ID_COLUMN,
-    NAME_COLUMN,
-    { key: 'isDefault', csvHeader: 'is_default', title: 'Default', width: 9 },
-    { key: 'itemCount', csvHeader: 'funko_count', title: 'Funkos', width: 9 },
-    { key: 'totalQuantity', csvHeader: 'pieces', title: 'Pieces', width: 9 },
-    { key: 'totalSpent', csvHeader: 'total_spent', title: 'Total spent', width: 12, format: PRICE_FORMAT },
-    NOTES_COLUMN,
-  ],
-  tags: [ID_COLUMN, NAME_COLUMN, { key: 'itemCount', csvHeader: 'item_count', title: 'Items', width: 9 }, NOTES_COLUMN],
-};
-
 function listValue(entry: ListEntry, column: ListColumn): CellValue {
   return entry.summary[column.key] ?? null;
 }
@@ -150,23 +167,6 @@ export function toFunkoTree(lines: FunkoExportLine[]): FunkoExport[] {
 }
 
 // --- Images ------------------------------------------------------------------------------------------------------
-
-type ImageColumn = SheetColumn & { csvHeader: string; valueOf: (image: ImageExport) => CellValue };
-
-export const IMAGE_COLUMNS: ImageColumn[] = [
-  { csvHeader: 'funko_id', title: 'Funko id', width: 9, valueOf: (image) => image.funkoId },
-  { csvHeader: 'funko_name', title: 'Funko', width: 28, valueOf: (image) => image.funkoName },
-  { csvHeader: 'funko_number', title: 'Number', width: 9, valueOf: (image) => image.funkoNumber },
-  { csvHeader: 'file_name', title: 'File', width: 40, valueOf: (image) => image.fileName },
-  { csvHeader: 'is_main', title: 'Main', width: 7, valueOf: (image) => image.isMain },
-  { csvHeader: 'width', title: 'Width', width: 8, valueOf: (image) => image.width },
-  { csvHeader: 'height', title: 'Height', width: 8, valueOf: (image) => image.height },
-  { csvHeader: 'size_bytes', title: 'Size (bytes)', width: 12, valueOf: (image) => image.sizeBytes },
-  { csvHeader: 'uploaded_at', title: 'Uploaded', width: 22, valueOf: (image) => image.uploadedAt },
-  { csvHeader: 'url', title: 'Link (large)', width: 50, valueOf: (image) => image.url },
-  { csvHeader: 'medium_url', title: 'Link (medium)', width: 50, valueOf: (image) => image.mediumUrl },
-  { csvHeader: 'small_url', title: 'Link (small)', width: 50, valueOf: (image) => image.smallUrl },
-];
 
 export function toImagesCsv(images: ImageExport[]): string {
   const header = IMAGE_COLUMNS.map((column) => column.csvHeader).join(CSV_SEPARATOR);

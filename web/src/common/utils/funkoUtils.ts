@@ -1,12 +1,12 @@
 import { boolean, number, string } from 'yup';
 import { FunkoTypeUtil } from '@app-types/utility';
 
-export const FUNKO_NAME_MAX_LENGTH = 150;
-export const FUNKO_NUMBER_MAX_LENGTH = 20;
-export const FUNKO_EXCLUSIVE_MAX_LENGTH = 100;
-export const BARCODE_MIN_LENGTH = 8;
-export const BARCODE_MAX_LENGTH = 14;
-export const BARCODE_PATTERN = /^\d+$/;
+const FUNKO_NAME_MAX_LENGTH = 150;
+const FUNKO_NUMBER_MAX_LENGTH = 20;
+const FUNKO_EXCLUSIVE_MAX_LENGTH = 100;
+const BARCODE_MIN_LENGTH = 8;
+const BARCODE_MAX_LENGTH = 14;
+const BARCODE_PATTERN = /^\d+$/;
 
 export const funkoNameSchema = string()
   .trim()
@@ -25,11 +25,13 @@ export const funkoTypeSchema = string<FunkoTypeUtil>()
 // Optional: null means "no series".
 export const funkoSeriesIdSchema = number().integer().positive().nullable().defined().default(null);
 
+export const FUNKO_CATEGORY_REQUIRED_MESSAGE = 'Category is required';
+
 export const funkoCategoryIdSchema = number()
   .typeError('Pick a category')
   .integer()
   .positive('Pick a category')
-  .required('Category is required');
+  .required(FUNKO_CATEGORY_REQUIRED_MESSAGE);
 
 export const funkoIsChaseSchema = boolean().required();
 

@@ -1,4 +1,3 @@
-import type { CategoryApiModel, CollectionApiModel, TagApiModel } from '@app-types/models';
 import FilterChips from '@components/FilterChips';
 import FilterPanel from '@components/FilterPanel';
 import SearchInput from '@components/SearchInput';
@@ -6,30 +5,19 @@ import LayoutMenu from '@components/LayoutMenu';
 import SortSelect, { type SortOption } from '@components/SortSelect';
 import { useItemListParams } from '@hooks/useItemListParams';
 import { ITEM_SORT_FIELDS } from '@utils/itemListUtils';
-import type { FunkoLayoutUtil } from '@utils/layoutUtils';
+import type { FunkoLayoutUtil } from '@app-types/utility';
+import { useItemsListContext } from '../hooks/useItemsListContext';
 import ItemFilters from './ItemFilters';
 
 type Props = {
-  categories: CategoryApiModel[];
-  tags: TagApiModel[];
-  collections: CollectionApiModel[];
-  hasCollectionFilter: boolean;
   resultCount: number;
   sort: SortOption;
   layout: FunkoLayoutUtil;
   onLayoutChange: (layout: FunkoLayoutUtil) => void;
 };
 
-function ItemsToolbar({
-  categories,
-  tags,
-  collections,
-  hasCollectionFilter,
-  resultCount,
-  sort,
-  layout,
-  onLayoutChange,
-}: Props) {
+function ItemsToolbar({ resultCount, sort, layout, onLayoutChange }: Props) {
+  const { categories, tags, collections, hasCollectionFilter } = useItemsListContext();
   const { query, filters, chips, setQuery, setFilter, setSort, clearFilters } = useItemListParams({
     categories,
     tags,
@@ -49,14 +37,7 @@ function ItemsToolbar({
         />
         <SortSelect fields={ITEM_SORT_FIELDS} field={sort.field} direction={sort.direction} onChange={setSort} />
         <FilterPanel activeCount={chips.length} resultCount={resultCount}>
-          <ItemFilters
-            categories={categories}
-            tags={tags}
-            collections={collections}
-            hasCollectionFilter={hasCollectionFilter}
-            filters={filters}
-            onChange={setFilter}
-          />
+          <ItemFilters filters={filters} onChange={setFilter} />
         </FilterPanel>
         <div className="@md:ml-auto">
           <LayoutMenu value={layout} onChange={onLayoutChange} />

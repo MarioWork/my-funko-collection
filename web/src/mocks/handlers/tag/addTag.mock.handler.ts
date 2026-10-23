@@ -1,7 +1,7 @@
-import { http, HttpResponse } from 'msw/http';
+import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { conflict, toTagModel } from '@mocks/mockResponses';
+import { conflict, created, DUPLICATE_CONFLICT_MESSAGE, toTagModel } from '@mocks/mockResponses';
 import { mockStore, nextId, nowIso } from '@mocks/mockStore';
 import type { CreateTag } from '@services/tagService/tagService.type';
 
@@ -11,8 +11,7 @@ export default (baseUrl: string) => [
 
     const body = (await request.json()) as CreateTag;
 
-    if (mockStore.tags.some((tag) => tag.name === body.name))
-      return conflict('A record with these values already exists');
+    if (mockStore.tags.some((tag) => tag.name === body.name)) return conflict(DUPLICATE_CONFLICT_MESSAGE);
 
     const row = {
       id: nextId(mockStore.tags),
@@ -24,6 +23,6 @@ export default (baseUrl: string) => [
 
     mockStore.tags.push(row);
 
-    return HttpResponse.json(toTagModel(row), { status: 201 });
+    return created(toTagModel(row));
   }),
 ];

@@ -88,8 +88,8 @@ function FunkoTableRow({ funko }: RowProps) {
       </TableCell>
       <TableCell className="tabular-nums">#{funko.number}</TableCell>
       <TableCell>{funko.category.name}</TableCell>
-      <TableCell className="hidden @3xl:table-cell">{FUNKO_TYPE_LABELS[funko.type]}</TableCell>
-      <TableCell className="hidden @3xl:table-cell">
+      <TableCell className={WIDE_ONLY}>{FUNKO_TYPE_LABELS[funko.type]}</TableCell>
+      <TableCell className={WIDE_ONLY}>
         <CollectionNames names={funko.collections.map((collection) => collection.name)} />
       </TableCell>
     </TableRow>
@@ -105,8 +105,8 @@ function FunkoTableHead() {
       <TableHead>Name</TableHead>
       <TableHead className="w-24">Number</TableHead>
       <TableHead>Category</TableHead>
-      <TableHead className="hidden @3xl:table-cell">Type</TableHead>
-      <TableHead className="hidden @3xl:table-cell">Collections</TableHead>
+      <TableHead className={WIDE_ONLY}>Type</TableHead>
+      <TableHead className={WIDE_ONLY}>Collections</TableHead>
     </TableRow>
   );
 }

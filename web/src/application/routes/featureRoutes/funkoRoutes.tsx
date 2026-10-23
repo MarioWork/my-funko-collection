@@ -19,7 +19,7 @@ export const funkoRoutes: RouteObject[] = [
       // The collection page's item sheet, opened over this page instead of sending you to the collection.
       {
         path: FUNKO_ROUTES_PATHS.editItem(),
-        lazy: () => import('@pages/CollectionDetail/components/EditItemSheet/EditItemSheet.route'),
+        lazy: () => import('@components/EditItemSheet/EditItemSheet.route'),
       },
     ],
   },

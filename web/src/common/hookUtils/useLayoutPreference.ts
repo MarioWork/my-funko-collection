@@ -1,5 +1,6 @@
 import { useLocalStorage } from '@hooks/useLocalStorage';
-import { DEFAULT_FUNKO_LAYOUT, LAYOUT_DENSITY_MAP, type FunkoLayoutUtil } from '@utils/layoutUtils';
+import type { FunkoLayoutUtil } from '@app-types/utility';
+import { DEFAULT_FUNKO_LAYOUT, LAYOUT_DENSITY_MAP } from '@utils/layoutUtils';
 
 // The layout a list was last shown in, kept on this device under its own key. A stale or hand-edited value falls
 // back to the large grid.

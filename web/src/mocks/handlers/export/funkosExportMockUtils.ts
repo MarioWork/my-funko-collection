@@ -4,9 +4,10 @@ import { mockStore, type MockFunkoRow, type MockItemRow } from '@mocks/mockStore
 import { ExportFunkosScopeUtil } from '@app-types/utility';
 
 export const CSV_CONTENT_TYPE = 'text/csv; charset=utf-8';
+export const CSV_LINE_BREAK = '\r\n';
 export const XLSX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const TAG_SEPARATOR = '; ';
-const CENTS_PER_UNIT = 100;
+export const CENTS_PER_UNIT = 100;
 const PRICE_DECIMALS = 2;
 const ALL_FUNKOS_FILE_BASE = 'my-funko-collection-funkos';
 const NON_FILE_NAME_CHARACTERS = /[^a-z0-9]+/g;

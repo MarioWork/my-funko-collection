@@ -1,4 +1,4 @@
-import { THEME_OPTIONS } from '@application/theme/themeUtils';
+import { THEME_OPTIONS } from '@utils/themeUtils';
 import SegmentedToggle from '@components/SegmentedToggle';
 import { useTheme } from '@hooks/useTheme';
 

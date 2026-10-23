@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from 'react-router';
-import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE } from '@app-types/utility';
+import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE, ImageViewUtil } from '@app-types/utility';
 import imageService, {
   DEFAULT_IMAGE_SORT_DIRECTION,
   DEFAULT_IMAGE_SORT_FIELD,
@@ -7,7 +7,7 @@ import imageService, {
   ImageApiSortingFields,
 } from '@services/imageService/imageService';
 import { readSearchFields, readSortDirection, readSortField } from '@utils/listParamsUtils';
-import { ImageViewUtil, readStoredImageView } from '@utils/layoutUtils';
+import { readStoredImageView } from '@utils/layoutUtils';
 import { IMAGE_GROUP_PAGE_SIZE, IMAGE_PAGE_SIZE, IMAGE_VIEW_PARAM } from './imageListUtils';
 
 const SORT_FIELDS = Object.values(ImageApiSortingFields);

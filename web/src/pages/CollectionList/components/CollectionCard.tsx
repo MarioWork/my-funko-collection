@@ -1,30 +1,15 @@
-import { Download, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useFetcher } from 'react-router';
+import { useFetcher } from 'react-router';
 import type { CollectionApiModel } from '@app-types/models';
-import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
+import { HttpVerbsUtil, type JSONResponseUtil, CollectionLayoutUtil } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import CollectionSummaryCard from '@components/CollectionSummaryCard';
 import ConfirmDialog from '@components/ConfirmDialog';
 import IconButton from '@components/IconButton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '@components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuTrigger } from '@components/ui/dropdown-menu';
 import { useActionToast } from '@hooks/useActionToast';
-import ExportFormatItems from '@components/ExportFormatItems';
-import exportService from '@services/exportService/exportService';
-import { ExportFunkosScopeUtil } from '@app-types/utility';
-import DisabledReason from '@components/DisabledReason';
-import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
-import { CollectionLayoutUtil } from '@utils/layoutUtils';
+import CollectionMenu from './CollectionMenu';
 import CollectionTableRow from './CollectionTableRow';
 
 type Props = {
@@ -32,78 +17,7 @@ type Props = {
   layout: CollectionLayoutUtil;
 };
 
-type MenuProps = {
-  collection: CollectionApiModel;
-  isBusy: boolean;
-  onMakeDefault: () => void;
-  onDelete: () => void;
-};
-
 const NO_NOTES = 'No notes';
-const IS_DEFAULT_REASON = 'This is already the default collection.';
-const DELETE_DEFAULT_REASON = 'The default collection cannot be deleted. Make another one the default first.';
-const EMPTY_EXPORT_REASON = 'Nothing to export: this collection has no items yet.';
-
-type ExportSubmenuProps = {
-  collection: CollectionApiModel;
-};
-
-// Export → spreadsheet, CSV or JSON of the collection's funkos. Disabled, with the reason, while it is empty.
-function ExportSubmenu({ collection }: ExportSubmenuProps) {
-  const isEmpty = collection.itemCount === 0;
-
-  return (
-    <DisabledReason reason={reasonWhen(isEmpty, EMPTY_EXPORT_REASON)} mode="wrapper" wrapperClassName="block">
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger disabled={isEmpty}>
-          <Download aria-hidden="true" />
-          Export
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="w-64">
-          <ExportFormatItems
-            hrefFor={(format) =>
-              exportService.getFunkosExportUrl(format, ExportFunkosScopeUtil.COLLECTION, collection.id)
-            }
-          />
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-    </DisabledReason>
-  );
-}
-
-function CollectionMenu({ collection, isBusy, onMakeDefault, onDelete }: MenuProps) {
-  const id = String(collection.id);
-  const busyReason = reasonWhen(isBusy, DISABLED_REASONS.WORKING);
-  const makeDefaultReason = collection.isDefault ? IS_DEFAULT_REASON : busyReason;
-  const deleteReason = collection.isDefault ? DELETE_DEFAULT_REASON : busyReason;
-
-  return (
-    <DropdownMenuContent align="end">
-      <DropdownMenuGroup>
-        <DropdownMenuItem render={<Link to={COLLECTION_ROUTES_PATHS.editInList(id)} />}>
-          <Pencil aria-hidden="true" />
-          Edit
-        </DropdownMenuItem>
-        <DisabledReason reason={makeDefaultReason} mode="wrapper" wrapperClassName="block">
-          <DropdownMenuItem disabled={collection.isDefault || isBusy} onClick={onMakeDefault}>
-            <Star aria-hidden="true" fill={collection.isDefault ? 'currentColor' : 'none'} />
-            {collection.isDefault ? 'Default' : 'Make default'}
-          </DropdownMenuItem>
-        </DisabledReason>
-        <ExportSubmenu collection={collection} />
-      </DropdownMenuGroup>
-      <DropdownMenuSeparator />
-      <DropdownMenuGroup>
-        <DisabledReason reason={deleteReason} mode="wrapper" wrapperClassName="block">
-          <DropdownMenuItem variant="destructive" disabled={collection.isDefault || isBusy} onClick={onDelete}>
-            <Trash2 aria-hidden="true" />
-            Delete
-          </DropdownMenuItem>
-        </DisabledReason>
-      </DropdownMenuGroup>
-    </DropdownMenuContent>
-  );
-}
 
 // One collection, as a card or a table row (same actions either way): name, default badge, counts, total and the ⋯
 // menu (edit, make default, export, delete); the whole card links to the collection's items.

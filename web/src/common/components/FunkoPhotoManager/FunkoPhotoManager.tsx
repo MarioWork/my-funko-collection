@@ -4,9 +4,10 @@ import type { FunkoDetailApiModel, FunkoImageId } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import Lightbox from '@components/Lightbox';
-import PhotoUploader from '@components/PhotoUploader';
+import PhotoUploader from './components/PhotoUploader';
 import { createFormData } from '@utils/formDataUtils';
 import EditablePhotoThumbnail from './components/EditablePhotoThumbnail';
+import type { MoveDirection } from './types';
 
 type Props = {
   funko: FunkoDetailApiModel;
@@ -23,7 +24,7 @@ function FunkoPhotoManager({ funko }: Props) {
   const submitOrder = (imageIds: FunkoImageId[]) =>
     void orderFetcher.submit(createFormData({ imageIds }), { method: HttpVerbsUtil.PATCH, action: imagesPath });
 
-  const move = (index: number, direction: -1 | 1) => {
+  const move = (index: number, direction: MoveDirection) => {
     const ids = images.map((image) => image.id);
     const [moved] = ids.splice(index, 1);
 

@@ -15,8 +15,15 @@ export const AddIntentUtil = {
 } as const;
 export type AddIntentUtil = (typeof AddIntentUtil)[keyof typeof AddIntentUtil];
 
+export const ScanResultKindUtil = {
+  FOUND: 'found',
+  NOT_FOUND: 'not-found',
+} as const;
+export type ScanResultKindUtil = (typeof ScanResultKindUtil)[keyof typeof ScanResultKindUtil];
+
 export type ScanResult =
-  { kind: 'found'; barcode: string; funko: FunkoApiModel } | { kind: 'not-found'; barcode: string };
+  | { kind: typeof ScanResultKindUtil.FOUND; barcode: string; funko: FunkoApiModel }
+  | { kind: typeof ScanResultKindUtil.NOT_FOUND; barcode: string };
 
 // What the saved card shows: the funko as it is now (photos, lists), plus any step that did not go through.
 export type AddResult = {

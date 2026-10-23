@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { APP_NAME } from '@application/layout/navigationUtils';
+import { APP_NAME } from '@utils/navigationUtils';
 import AppLogo from '@components/AppLogo';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import MobileMenu from './MobileMenu';

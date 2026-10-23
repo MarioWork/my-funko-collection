@@ -5,7 +5,7 @@ import { Spinner } from '@components/ui/spinner';
 import { toast } from '@components/ui/toast';
 import { cn } from '@utils/classNameUtils';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
-import { downloadImageAsJpeg } from '@utils/imageDownloadUtils';
+import { downloadImageAsJpeg } from './imageDownloadUtils';
 
 type Props = {
   url: string;

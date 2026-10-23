@@ -40,6 +40,8 @@ type FunkoExtras = {
   tagNames: string[];
 };
 
+const EMPTY_EXTRAS: FunkoExtras = { primaryImage: undefined, collections: [], tagNames: [] };
+
 function toPrimaryImage(row: PrimaryImageRow | undefined): PrimaryImageSummary | null {
   if (!row) return null;
 
@@ -157,8 +159,6 @@ async function loadExtras(rows: FunkoRow[], withTags: boolean): Promise<Map<numb
     ]),
   );
 }
-
-const EMPTY_EXTRAS: FunkoExtras = { primaryImage: undefined, collections: [], tagNames: [] };
 
 async function toResponses(rows: FunkoRow[], words: string[]): Promise<FunkoResponse[]> {
   const extras = await loadExtras(rows, words.length > 0);

@@ -1,7 +1,7 @@
-import { http, HttpResponse } from 'msw/http';
+import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { conflict, toCategoryModel } from '@mocks/mockResponses';
+import { conflict, created, DUPLICATE_CONFLICT_MESSAGE, toCategoryModel } from '@mocks/mockResponses';
 import { mockStore, nextId, nowIso } from '@mocks/mockStore';
 import type { CreateCategory } from '@services/categoryService/categoryService.type';
 
@@ -12,12 +12,12 @@ export default (baseUrl: string) => [
     const body = (await request.json()) as CreateCategory;
     const existing = mockStore.categories.find((category) => category.name === body.name);
 
-    if (existing) return conflict('A record with these values already exists');
+    if (existing) return conflict(DUPLICATE_CONFLICT_MESSAGE);
 
     const row = { id: nextId(mockStore.categories), name: body.name, createdAt: nowIso(), updatedAt: nowIso() };
 
     mockStore.categories.push(row);
 
-    return HttpResponse.json(toCategoryModel(row), { status: 201 });
+    return created(toCategoryModel(row));
   }),
 ];

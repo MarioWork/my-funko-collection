@@ -6,12 +6,11 @@ import {
   attachment,
   CSV_CONTENT_TYPE,
   CSV_HEADER,
+  CSV_LINE_BREAK,
   readScopedExport,
   toCells,
   toCsvLine,
 } from './funkosExportMockUtils';
-
-const CSV_LINE_BREAK = '\r\n';
 
 export default (baseUrl: string) => [
   http.get(`${baseUrl}/export/funkos.csv`, async ({ request }) => {

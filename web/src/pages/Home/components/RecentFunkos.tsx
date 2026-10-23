@@ -9,13 +9,15 @@ type Props = {
   funkos: FunkoApiModel[];
 };
 
+const HEADING_ID = 'recent-heading';
+
 function RecentFunkos({ funkos }: Props) {
   if (funkos.length === 0) return null;
 
   return (
-    <section aria-labelledby="recent-heading" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <section aria-labelledby={HEADING_ID} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 id="recent-heading" className="text-lg font-semibold">
+        <h2 id={HEADING_ID} className="text-lg font-semibold">
           Recently added
         </h2>
         <LinkButton to={FUNKO_ROUTES_PATHS.BASE} variant="ghost" size="sm">

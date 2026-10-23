@@ -29,7 +29,7 @@ function GalleryFrame({ funkoName, hero, heroIndex, imageCount, onOpen }: FrameP
       <DisabledReason reason={reasonWhen(!hero, NO_PHOTO_REASON)} mode="wrapper" wrapperClassName="flex w-full">
         <button
           type="button"
-          onClick={() => (hero ? onOpen() : undefined)}
+          onClick={onOpen}
           disabled={!hero}
           aria-label={hero ? `Open image ${heroIndex + 1} of ${imageCount} full size` : undefined}
           className="mx-auto aspect-3/4 max-h-[55svh] w-full overflow-hidden rounded-2xl bg-card shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-default @3xl:max-h-120"

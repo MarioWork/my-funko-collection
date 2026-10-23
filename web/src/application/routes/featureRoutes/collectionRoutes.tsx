@@ -1,7 +1,7 @@
 import type { RouteObject } from 'react-router';
-import { COLLECTION_ROUTES_PATHS, ITEM_ROUTES_PATHS } from '../routesUtils';
+import { COLLECTION_ROUTES_PATHS } from '../routesUtils';
 
-const collectionDialog = () => import('@pages/CollectionList/components/CollectionDialog/CollectionDialog.route');
+const collectionDialog = () => import('@components/CollectionDialog/CollectionDialog.route');
 
 export const collectionRoutes: RouteObject[] = [
   {
@@ -20,7 +20,7 @@ export const collectionRoutes: RouteObject[] = [
       { path: COLLECTION_ROUTES_PATHS.edit(), lazy: collectionDialog },
       {
         path: COLLECTION_ROUTES_PATHS.editItem(),
-        lazy: () => import('@pages/CollectionDetail/components/EditItemSheet/EditItemSheet.route'),
+        lazy: () => import('@components/EditItemSheet/EditItemSheet.route'),
       },
     ],
   },
@@ -46,6 +46,4 @@ export const collectionRoutes: RouteObject[] = [
     path: COLLECTION_ROUTES_PATHS.deleteItem(),
     lazy: { action: async () => (await import('@pages/CollectionDetail/collectionDetailActions')).deleteItemAction },
   },
-  // Editing from /items opens the collection's own sheet; closing it goes back here.
-  { path: ITEM_ROUTES_PATHS.BASE, lazy: () => import('@pages/AllItems/AllItems.route') },
 ];

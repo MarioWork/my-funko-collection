@@ -3,6 +3,13 @@ import { ApiUrlParamsUtil } from '@app-types/utility';
 
 export type ParamUpdates = Record<string, string | undefined | null>;
 
+type SetParamsOptions = {
+  // A pager click: keeps the new page instead of going back to the first.
+  isPageChange?: boolean;
+  // A keystroke in the search box: no view transition.
+  isTyping?: boolean;
+};
+
 // One place that reads and writes list state in the URL (page, q, filters, sort), so the loader re-runs and the
 // page is linkable. Changing anything but the page resets the page, as a filter change should. A change made with a
 // click (sort, filter, page) cross-fades the old results into the new ones (a view transition); typing in the
@@ -12,7 +19,7 @@ export function useListParams() {
 
   const getParam = (key: string): string | undefined => searchParams.get(key) ?? undefined;
 
-  const setParams = (updates: ParamUpdates, { isPageChange = false, isTyping = false } = {}) => {
+  const setParams = (updates: ParamUpdates, { isPageChange = false, isTyping = false }: SetParamsOptions = {}) => {
     const next = new URLSearchParams(searchParams);
 
     for (const [key, value] of Object.entries(updates)) {

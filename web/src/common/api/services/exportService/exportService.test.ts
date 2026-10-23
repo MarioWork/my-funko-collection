@@ -1,4 +1,5 @@
 import { ExportFormatUtil, ExportFunkosScopeUtil, ExportListKindUtil } from '@app-types/utility';
+import { TEST_BASE_API_URL } from '@mocks/server';
 import exportService from './exportService';
 
 // Reads the whole file, like a browser saving it. A body left unread keeps the mocked socket paused, and closing it
@@ -10,6 +11,32 @@ async function download(url: string): Promise<Response> {
 
   return response;
 }
+
+describe('getExportJsonUrl', () => {
+  it('points at the full export under the API base url', () => {
+    expect(exportService.getExportJsonUrl()).toBe(`${TEST_BASE_API_URL}/export`);
+  });
+
+  it('downloads the whole collection as a named JSON file', async () => {
+    const response = await download(exportService.getExportJsonUrl());
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-disposition')).toBe('attachment; filename="my-funko-collection.json"');
+  });
+});
+
+describe('getExportCsvUrl', () => {
+  it('points at the items CSV under the API base url', () => {
+    expect(exportService.getExportCsvUrl()).toBe(`${TEST_BASE_API_URL}/export/items.csv`);
+  });
+
+  it('downloads the items as a named CSV file', async () => {
+    const response = await download(exportService.getExportCsvUrl());
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-disposition')).toBe('attachment; filename="items.csv"');
+  });
+});
 
 describe('getFunkosExportUrl', () => {
   it.each([

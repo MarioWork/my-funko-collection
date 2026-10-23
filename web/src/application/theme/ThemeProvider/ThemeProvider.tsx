@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { applyTheme, readStoredTheme, storeTheme, ThemeUtil, watchSystemTheme } from '../themeUtils';
+import { ThemeUtil } from '@app-types/utility';
+import { applyTheme, readStoredTheme, storeTheme, watchSystemTheme } from '@utils/themeUtils';
 import { ThemeContext } from './ThemeContext';
 
 type Props = {

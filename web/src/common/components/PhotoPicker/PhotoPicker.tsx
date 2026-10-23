@@ -1,9 +1,8 @@
 import { Camera, ImagePlus } from 'lucide-react';
-import { useRef, type ChangeEvent } from 'react';
-import { Button } from '@components/ui/button';
+import { useRef, type ChangeEvent, type ReactNode } from 'react';
 import { CAMERA_ACCEPT, LIBRARY_ACCEPT, MAX_PHOTOS_PER_BATCH, type PendingPhoto } from '@utils/pendingPhotoUtils';
 import PendingPhotoList from './components/PendingPhotoList';
-import DisabledReason from '@components/DisabledReason';
+import PickButton from './components/PickButton';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 
 const FULL_BATCH_REASON = `${MAX_PHOTOS_PER_BATCH} images is the most at once. Remove one to add another.`;
@@ -16,7 +15,7 @@ type Props = {
   // When the caller needs a photo and has none: the id of the message to link to the pick button.
   errorId?: string;
   // Rendered after the pick buttons, e.g. an Upload button.
-  children?: React.ReactNode;
+  children?: ReactNode;
 };
 
 // Pick from the library (several) or take one photo, and see previews. Holds no photos itself: the caller decides
@@ -59,31 +58,22 @@ function PhotoPicker({ photos, isDisabled, onAdd, onRemove, errorId, children }:
         onChange={addFiles}
       />
       <div className="flex flex-wrap gap-2">
-        <DisabledReason reason={pickDisabledReason}>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!canAddMore || isDisabled}
-            aria-invalid={errorId ? true : undefined}
-            aria-describedby={errorId}
-            onClick={() => libraryInput.current?.click()}
-          >
-            <ImagePlus data-icon="inline-start" aria-hidden="true" />
-            Choose images
-          </Button>
-        </DisabledReason>
-        <DisabledReason reason={pickDisabledReason}>
-          <Button
-            type="button"
-            variant="outline"
-            className="pointer-fine:hidden"
-            disabled={!canAddMore || isDisabled}
-            onClick={() => cameraInput.current?.click()}
-          >
-            <Camera data-icon="inline-start" aria-hidden="true" />
-            Take photo
-          </Button>
-        </DisabledReason>
+        <PickButton
+          label="Choose images"
+          icon={ImagePlus}
+          isDisabled={!canAddMore || isDisabled}
+          disabledReason={pickDisabledReason}
+          errorId={errorId}
+          onClick={() => libraryInput.current?.click()}
+        />
+        <PickButton
+          label="Take photo"
+          icon={Camera}
+          isDisabled={!canAddMore || isDisabled}
+          disabledReason={pickDisabledReason}
+          className="pointer-fine:hidden"
+          onClick={() => cameraInput.current?.click()}
+        />
         {children}
       </div>
       <PendingPhotoList photos={photos} isDisabled={isDisabled} onRemove={onRemove} />

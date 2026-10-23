@@ -1,20 +1,15 @@
 import { useId, useState, type ReactNode } from 'react';
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@components/ui/alert-dialog';
 import { Checkbox } from '@components/ui/checkbox';
 import { Label } from '@components/ui/label';
-import { Spinner } from '@components/ui/spinner';
-import DisabledReason from '@components/DisabledReason';
 import InlineAlert from '@components/InlineAlert';
-import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
+import ConfirmDialogFooter from './components/ConfirmDialogFooter';
 
 // What the user chose besides confirming: the optional extra consent.
 type ConfirmChoice = {
@@ -70,21 +65,12 @@ function ConfirmDialog({
           </div>
         ) : null}
         {errorMessage ? <InlineAlert tone="error">{errorMessage}</InlineAlert> : null}
-        <AlertDialogFooter>
-          <DisabledReason reason={reasonWhen(isPending, DISABLED_REASONS.WORKING)} mode="wrapper">
-            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-          </DisabledReason>
-          <DisabledReason reason={reasonWhen(isPending, DISABLED_REASONS.WORKING)} mode="wrapper">
-            <AlertDialogAction
-              variant={isDestructive ? 'destructive' : 'default'}
-              disabled={isPending}
-              onClick={() => onConfirm({ isChecked })}
-            >
-              {isPending ? <Spinner data-icon="inline-start" /> : null}
-              {confirmLabel}
-            </AlertDialogAction>
-          </DisabledReason>
-        </AlertDialogFooter>
+        <ConfirmDialogFooter
+          confirmLabel={confirmLabel}
+          isDestructive={isDestructive}
+          isPending={isPending}
+          onConfirm={() => onConfirm({ isChecked })}
+        />
       </AlertDialogContent>
     </AlertDialog>
   );

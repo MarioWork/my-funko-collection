@@ -4,7 +4,7 @@ import { MOCK_DELAY } from '@mocks/handlers';
 import { conflict, notFound, toFunkoModel } from '@mocks/mockResponses';
 import { mockStore, nowIso } from '@mocks/mockStore';
 import type { UpdateFunko } from '@services/funkoService/funkoService.type';
-import { findDuplicate } from './addFunko.mock.handler';
+import { findDuplicate } from './funkoMockUtils';
 
 export default (baseUrl: string) => [
   http.patch(`${baseUrl}/funkos/:funkoId`, async ({ params, request }) => {

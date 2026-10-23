@@ -1,6 +1,6 @@
 import { array, number, object, type InferType } from 'yup';
 
-export const ROTATION_DEGREES = [90, 180, 270] as const;
+const ROTATION_DEGREES = [90, 180, 270] as const;
 
 export const ReorderImagesSchema = object({
   imageIds: array().of(number().integer().positive().required()).min(1).required(),

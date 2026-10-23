@@ -1,29 +1,35 @@
 import { Package, ScanBarcode } from 'lucide-react';
-import { PAGE_ICONS } from '@application/layout/navigationUtils';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import { Outlet } from 'react-router';
 import type { FunkoApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AddFab from '@components/AddFab';
-import FunkoCard from '@components/FunkoCard';
-import FunkoGrid from '@components/FunkoGrid';
 import LinkButton from '@components/LinkButton';
-import FunkoCardSkeleton from '@components/FunkoCardSkeleton';
 import InfiniteListFooter from '@components/InfiniteListFooter';
 import PageHeader from '@components/PageHeader';
 import { useInfiniteList } from '@hooks/useInfiniteList';
 import { useIsRefreshing } from '@hooks/useIsRefreshing';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import { useLayoutPreference } from '@hooks/useLayoutPreference';
-import { useIsDesktop } from '@hooks/useMediaQuery';
+import { useIsDesktop } from '@hooks/useIsDesktop';
 import { cn } from '@utils/classNameUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS } from '@utils/motionUtils';
 import FunkoListEmpty from './components/FunkoListEmpty';
 import FunkoListToolbar from './components/FunkoListToolbar';
+import FunkoResultsGrid from './components/FunkoResultsGrid';
 import FunkoTable from './components/FunkoTable';
 import type { loader } from './funkoListLoader';
 import { FUNKO_LAYOUT_STORAGE_KEY } from '@utils/layoutUtils';
 import { useFunkoListParams } from './hooks/useFunkoListParams';
+
+type FunkoListLoaderData = LoaderDataUtil<typeof loader> | undefined;
+
+const funkoKeyOf = (funko: FunkoApiModel) => funko.id;
+
+function funkosPageOf(loaderData: unknown) {
+  return (loaderData as FunkoListLoaderData)?.funkosResponse;
+}
 
 function DesktopActions() {
   return (
@@ -38,19 +44,6 @@ function DesktopActions() {
       </LinkButton>
     </>
   );
-}
-
-const LOADING_CARD_COUNT = 6;
-
-const funkoKeyOf = (funko: FunkoApiModel) => funko.id;
-
-function funkosPageOf(loaderData: unknown) {
-  return (loaderData as LoaderDataUtil<typeof loader> | undefined)?.funkosResponse;
-}
-
-// The next page on its way: placeholder cards in the grid, where the funkos will appear.
-function LoadingCards() {
-  return Array.from({ length: LOADING_CARD_COUNT }, (_, index) => <FunkoCardSkeleton key={index} />);
 }
 
 function FunkoList() {
@@ -94,14 +87,7 @@ function FunkoList() {
         {!hasFunkos ? <FunkoListEmpty isFiltered={isFiltered} onClearFilters={clearFilters} /> : null}
 
         {hasFunkos && density ? (
-          <FunkoGrid label="Funkos" density={density}>
-            {funkos.items.map((funko) => (
-              <li key={funko.id}>
-                <FunkoCard funko={funko} density={density} />
-              </li>
-            ))}
-            {funkos.isLoading ? <LoadingCards /> : null}
-          </FunkoGrid>
+          <FunkoResultsGrid funkos={funkos.items} density={density} isLoadingMore={funkos.isLoading} />
         ) : null}
 
         {hasFunkos && !density ? <FunkoTable funkos={funkos.items} isLoadingMore={funkos.isLoading} /> : null}

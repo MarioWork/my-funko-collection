@@ -1,26 +1,8 @@
-import { Download, ListChecks, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
-import { Link } from 'react-router';
+import { MoreHorizontal } from 'lucide-react';
 import type { CollectionApiModel, CollectionItemApiModel, FunkoDetailApiModel } from '@app-types/models';
-import { ExportFunkosScopeUtil } from '@app-types/utility';
-import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import DisabledReason from '@components/DisabledReason';
-import ExportFormatItems from '@components/ExportFormatItems';
 import IconButton from '@components/IconButton';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '@components/ui/dropdown-menu';
-import exportService from '@services/exportService/exportService';
-import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
-import { useFunkoMemberships } from '../hooks/useFunkoMemberships';
+import { DropdownMenu, DropdownMenuTrigger } from '@components/ui/dropdown-menu';
+import FunkoActionsMenuContent from './FunkoActionsMenuContent';
 
 type Props = {
   funko: FunkoDetailApiModel;
@@ -28,59 +10,6 @@ type Props = {
   items: CollectionItemApiModel[];
   onDelete: () => void;
 };
-
-type ListsSubmenuProps = Pick<Props, 'funko' | 'collections' | 'items'>;
-
-// Every collection as a checkbox: ticked while the funko is in it, a tap adds or removes it.
-function ListsSubmenu({ funko, collections, items }: ListsSubmenuProps) {
-  const { memberIds, isBusy, toggle } = useFunkoMemberships({ funko, items });
-
-  return (
-    <DropdownMenuSub>
-      <DropdownMenuSubTrigger>
-        <ListChecks aria-hidden="true" />
-        Lists
-      </DropdownMenuSubTrigger>
-      <DropdownMenuSubContent>
-        {collections.map((collection) => (
-          <DisabledReason
-            key={collection.id}
-            reason={reasonWhen(isBusy, DISABLED_REASONS.WORKING)}
-            mode="wrapper"
-            wrapperClassName="block"
-          >
-            <DropdownMenuCheckboxItem
-              checked={memberIds.has(collection.id)}
-              disabled={isBusy}
-              onCheckedChange={() => toggle(collection)}
-            >
-              {collection.name}
-            </DropdownMenuCheckboxItem>
-          </DisabledReason>
-        ))}
-      </DropdownMenuSubContent>
-    </DropdownMenuSub>
-  );
-}
-
-type ExportSubmenuProps = Pick<Props, 'funko'>;
-
-// Export → this funko as a spreadsheet (its photos embedded), CSV or JSON (links to its photos).
-function ExportSubmenu({ funko }: ExportSubmenuProps) {
-  return (
-    <DropdownMenuSub>
-      <DropdownMenuSubTrigger>
-        <Download aria-hidden="true" />
-        Export
-      </DropdownMenuSubTrigger>
-      <DropdownMenuSubContent className="w-64">
-        <ExportFormatItems
-          hrefFor={(format) => exportService.getFunkosExportUrl(format, ExportFunkosScopeUtil.FUNKO, funko.id)}
-        />
-      </DropdownMenuSubContent>
-    </DropdownMenuSub>
-  );
-}
 
 // The page header's ⋯: Edit, Lists (every collection), Export and Delete. Owned and Wishlist are one-tap toggles
 // on the page.
@@ -99,23 +28,7 @@ function FunkoActionsMenu({ funko, collections, items, onDelete }: Props) {
       >
         <MoreHorizontal aria-hidden="true" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link viewTransition to={FUNKO_ROUTES_PATHS.edit(String(funko.id))} />}>
-            <Pencil aria-hidden="true" />
-            Edit
-          </DropdownMenuItem>
-          <ListsSubmenu funko={funko} collections={collections} items={items} />
-          <ExportSubmenu funko={funko} />
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem variant="destructive" onClick={onDelete}>
-            <Trash2 aria-hidden="true" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
+      <FunkoActionsMenuContent funko={funko} collections={collections} items={items} onDelete={onDelete} />
     </DropdownMenu>
   );
 }

@@ -131,7 +131,7 @@ describe('GET /auth/status', () => {
   });
 });
 
-describe('first run: POST /auth/setup/*', () => {
+describe('POST /auth/setup/verify', () => {
   it('saves the first passkey and signs in with a locked-down cookie when the setup code is right', async () => {
     const code = (await addSetupCode()) ?? '';
     const remoteAddress = nextAddress();
@@ -173,6 +173,30 @@ describe('first run: POST /auth/setup/*', () => {
     expect(status.json()).toEqual({ state: 'signedIn', user: { name: OWNER_NAME } });
   });
 
+  it('returns 401 PASSKEY_FAILED when the passkey was made for another site', async () => {
+    const code = (await addSetupCode()) ?? '';
+    const remoteAddress = nextAddress();
+    const optionsResponse = await app.inject({
+      method: 'POST',
+      url: `${URL}/setup/options`,
+      remoteAddress,
+      payload: { code, name: OWNER_NAME },
+    });
+    const options = optionsResponse.json<RegistrationOptionsResponse>();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `${URL}/setup/verify`,
+      remoteAddress,
+      payload: { code, name: OWNER_NAME, response: new TestPasskey().register(options, { origin: OTHER_ORIGIN }) },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({ code: 'PASSKEY_FAILED' });
+  });
+});
+
+describe('POST /auth/setup/options', () => {
   it('returns 401 INVALID_SETUP_CODE when the code is wrong', async () => {
     await addSetupCode();
 
@@ -202,28 +226,6 @@ describe('first run: POST /auth/setup/*', () => {
     expect(response.json()).toMatchObject({ code: 'ALREADY_SET_UP' });
   });
 
-  it('returns 401 PASSKEY_FAILED when the passkey was made for another site', async () => {
-    const code = (await addSetupCode()) ?? '';
-    const remoteAddress = nextAddress();
-    const optionsResponse = await app.inject({
-      method: 'POST',
-      url: `${URL}/setup/options`,
-      remoteAddress,
-      payload: { code, name: OWNER_NAME },
-    });
-    const options = optionsResponse.json<RegistrationOptionsResponse>();
-
-    const response = await app.inject({
-      method: 'POST',
-      url: `${URL}/setup/verify`,
-      remoteAddress,
-      payload: { code, name: OWNER_NAME, response: new TestPasskey().register(options, { origin: OTHER_ORIGIN }) },
-    });
-
-    expect(response.statusCode).toBe(401);
-    expect(response.json()).toMatchObject({ code: 'PASSKEY_FAILED' });
-  });
-
   it('returns 400 when the body has an unknown key', async () => {
     const response = await app.inject({
       method: 'POST',
@@ -236,7 +238,7 @@ describe('first run: POST /auth/setup/*', () => {
   });
 });
 
-describe('sign in: POST /auth/login/*', () => {
+describe('POST /auth/login/options', () => {
   it('returns 409 NOT_SET_UP when nobody has set the app up', async () => {
     const response = await app.inject({ method: 'POST', url: `${URL}/login/options`, remoteAddress: nextAddress() });
 
@@ -253,6 +255,20 @@ describe('sign in: POST /auth/login/*', () => {
     expect(options).not.toHaveProperty('allowCredentials.0');
   });
 
+  it('returns 429 when one address goes past the per-minute limit', async () => {
+    await signIn(app);
+    const remoteAddress = nextAddress();
+
+    const responses = [];
+    for (let attempt = 0; attempt <= CEREMONY_LIMIT; attempt += 1) {
+      responses.push(await app.inject({ method: 'POST', url: `${URL}/login/options`, remoteAddress }));
+    }
+
+    expect(responses.at(-1)?.statusCode).toBe(429);
+  });
+});
+
+describe('POST /auth/login/verify', () => {
   it('signs in with a new session and ends the browser’s old one when the passkey is right', async () => {
     const passkey = new TestPasskey();
     const firstToken = await setUp(passkey, (await addSetupCode()) ?? '');
@@ -342,21 +358,9 @@ describe('sign in: POST /auth/login/*', () => {
 
     expect(response.statusCode).toBe(401);
   });
-
-  it('returns 429 when one address goes past the per-minute limit', async () => {
-    await signIn(app);
-    const remoteAddress = nextAddress();
-
-    const responses = [];
-    for (let attempt = 0; attempt <= CEREMONY_LIMIT; attempt += 1) {
-      responses.push(await app.inject({ method: 'POST', url: `${URL}/login/options`, remoteAddress }));
-    }
-
-    expect(responses.at(-1)?.statusCode).toBe(429);
-  });
 });
 
-describe('the sign-in check on every other route', () => {
+describe('ANY /<every non-public route>', () => {
   it('returns 401 for every non-public route in the API when there is no session', async () => {
     const document = app.swagger() as { paths: Record<string, Record<string, unknown>> };
     const checked: string[] = [];
@@ -377,13 +381,17 @@ describe('the sign-in check on every other route', () => {
 
     expect(checked.length).toBeGreaterThan(MIN_LOCKED_ROUTES);
   });
+});
 
+describe('GET /uploads/*', () => {
   it('returns 401 for an image file when there is no session', async () => {
     const response = await app.inject({ method: 'GET', url: '/uploads/funkos/1/anything.webp' });
 
     expect(response.statusCode).toBe(401);
   });
+});
 
+describe('GET /tags', () => {
   it('returns 401 when the cookie holds a token the app never issued', async () => {
     await signIn(app);
 
@@ -409,7 +417,7 @@ describe('the sign-in check on every other route', () => {
   });
 });
 
-describe('cross-site writes', () => {
+describe('POST /tags', () => {
   it('returns 403 CROSS_SITE_REQUEST when another site makes the browser send a write', async () => {
     const api = await signIn(app);
 
@@ -422,18 +430,6 @@ describe('cross-site writes', () => {
 
     expect(response.statusCode).toBe(403);
     expect(response.json()).toMatchObject({ code: 'CROSS_SITE_REQUEST' });
-  });
-
-  it('returns 403 CROSS_SITE_REQUEST when an older browser only sends a foreign Origin', async () => {
-    const api = await signIn(app);
-
-    const response = await api.inject({
-      method: 'DELETE',
-      url: `/tags/${(await createTag()).id}`,
-      headers: { origin: OTHER_ORIGIN },
-    });
-
-    expect(response.statusCode).toBe(403);
   });
 
   it('lets the app’s own page write when the request is same-origin', async () => {
@@ -450,7 +446,21 @@ describe('cross-site writes', () => {
   });
 });
 
-describe('POST /auth/logout and /auth/logout-everywhere', () => {
+describe('DELETE /tags/:id', () => {
+  it('returns 403 CROSS_SITE_REQUEST when an older browser only sends a foreign Origin', async () => {
+    const api = await signIn(app);
+
+    const response = await api.inject({
+      method: 'DELETE',
+      url: `/tags/${(await createTag()).id}`,
+      headers: { origin: OTHER_ORIGIN },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+});
+
+describe('POST /auth/logout', () => {
   it('ends this session, clears the cookie and the browser cache when signing out', async () => {
     const api = await signIn(app);
 
@@ -460,16 +470,6 @@ describe('POST /auth/logout and /auth/logout-everywhere', () => {
     expect(sessionCookieOf(response.headers['set-cookie'])).toContain('Expires=Thu, 01 Jan 1970');
     expect(response.headers['clear-site-data']).toBe('"cache"');
     expect((await api.inject({ method: 'GET', url: '/tags' })).statusCode).toBe(401);
-  });
-
-  it('ends every session of the user when signing out everywhere', async () => {
-    const phone = await signIn(app);
-    const laptop = await signIn(app);
-
-    const response = await phone.inject({ method: 'POST', url: `${URL}/logout-everywhere` });
-
-    expect(response.statusCode).toBe(204);
-    expect((await laptop.inject({ method: 'GET', url: '/tags' })).statusCode).toBe(401);
   });
 
   it('clears the cookie with 204 when the session has already expired', async () => {
@@ -482,6 +482,18 @@ describe('POST /auth/logout and /auth/logout-everywhere', () => {
     expect(response.statusCode).toBe(204);
     expect(sessionCookieOf(response.headers['set-cookie'])).toContain('Expires=Thu, 01 Jan 1970');
   });
+});
+
+describe('POST /auth/logout-everywhere', () => {
+  it('ends every session of the user when signing out everywhere', async () => {
+    const phone = await signIn(app);
+    const laptop = await signIn(app);
+
+    const response = await phone.inject({ method: 'POST', url: `${URL}/logout-everywhere` });
+
+    expect(response.statusCode).toBe(204);
+    expect((await laptop.inject({ method: 'GET', url: '/tags' })).statusCode).toBe(401);
+  });
 
   it('returns 401 when signing out everywhere without a session', async () => {
     const response = await app.inject({ method: 'POST', url: `${URL}/logout-everywhere` });
@@ -490,7 +502,7 @@ describe('POST /auth/logout and /auth/logout-everywhere', () => {
   });
 });
 
-describe('passkeys: /auth/passkeys', () => {
+describe('POST /auth/passkeys/verify', () => {
   it('lists, adds and removes passkeys when the sign-in is recent', async () => {
     const first = new TestPasskey();
     const token = await setUp(first, (await addSetupCode()) ?? '');
@@ -523,6 +535,21 @@ describe('passkeys: /auth/passkeys', () => {
     expect(signInWithRemoved.statusCode).toBe(401);
   });
 
+  it('returns 400 PASSKEY_FAILED when the new passkey answers a challenge it was never given', async () => {
+    const api = await signIn(app);
+
+    const response = await api.inject({
+      method: 'POST',
+      url: `${URL}/passkeys/verify`,
+      payload: { name: 'Stolen', response: new TestPasskey().register({ challenge: 'bWFkZS11cA' }) },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'PASSKEY_FAILED' });
+  });
+});
+
+describe('DELETE /auth/passkeys/:passkeyId', () => {
   it('returns 409 LAST_PASSKEY when removing the only passkey', async () => {
     const passkey = new TestPasskey();
     const token = await setUp(passkey, (await addSetupCode()) ?? '');
@@ -544,34 +571,6 @@ describe('passkeys: /auth/passkeys', () => {
 
     expect(response.statusCode).toBe(403);
     expect(response.json()).toMatchObject({ code: 'REAUTH_REQUIRED' });
-  });
-
-  it('returns 400 PASSKEY_FAILED when the new passkey answers a challenge it was never given', async () => {
-    const api = await signIn(app);
-
-    const response = await api.inject({
-      method: 'POST',
-      url: `${URL}/passkeys/verify`,
-      payload: { name: 'Stolen', response: new TestPasskey().register({ challenge: 'bWFkZS11cA' }) },
-    });
-
-    expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({ code: 'PASSKEY_FAILED' });
-  });
-
-  it('returns 403 REAUTH_REQUIRED when adding a passkey from a sign-in older than 10 minutes', async () => {
-    const api = await signIn(app, { signedInAt: new Date(Date.now() - 11 * MINUTE_MS) });
-
-    const options = await api.inject({ method: 'POST', url: `${URL}/passkeys/options` });
-    const verify = await api.inject({
-      method: 'POST',
-      url: `${URL}/passkeys/verify`,
-      payload: { name: 'Thief', response: new TestPasskey().register({ challenge: 'bWFkZS11cA' }) },
-    });
-
-    expect(options.statusCode).toBe(403);
-    expect(options.json()).toMatchObject({ code: 'REAUTH_REQUIRED' });
-    expect(verify.statusCode).toBe(403);
   });
 
   it('ends the sessions a passkey opened when that passkey is removed', async () => {
@@ -611,5 +610,22 @@ describe('passkeys: /auth/passkeys', () => {
       cookies: { [SESSION_COOKIE_NAME]: secondToken },
     });
     expect(secondSession.statusCode).toBe(200);
+  });
+});
+
+describe('POST /auth/passkeys/options', () => {
+  it('returns 403 REAUTH_REQUIRED when adding a passkey from a sign-in older than 10 minutes', async () => {
+    const api = await signIn(app, { signedInAt: new Date(Date.now() - 11 * MINUTE_MS) });
+
+    const options = await api.inject({ method: 'POST', url: `${URL}/passkeys/options` });
+    const verify = await api.inject({
+      method: 'POST',
+      url: `${URL}/passkeys/verify`,
+      payload: { name: 'Thief', response: new TestPasskey().register({ challenge: 'bWFkZS11cA' }) },
+    });
+
+    expect(options.statusCode).toBe(403);
+    expect(options.json()).toMatchObject({ code: 'REAUTH_REQUIRED' });
+    expect(verify.statusCode).toBe(403);
   });
 });

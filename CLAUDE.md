@@ -42,6 +42,9 @@ The global React/Node conventions apply; this file holds only what is specific t
   (node-ts-api §9); random 256-bit tokens (session, setup code) are stored as plain SHA-256, not argon2 (they can't
   be brute-forced and must be looked up by hash); the WebAuthn routes keep the spec's two steps in their URLs
   (`/auth/login/options` + `/auth/login/verify`) instead of noun-only URLs.
+- Also kept as they are (decided 2026-10-23): `POST /auth/logout`, `POST /auth/logout-everywhere` and
+  `GET /suggest` keep their verb URLs; the sub-resource folders `collections/items/` and `funkos/images/` keep
+  their `collectionItems.*` / `funkoImages.*` file prefixes (node-ts-api §3/§4).
 - Passkeys are bound to the host name in `APP_ORIGIN` (`x-app-address` in `compose.yaml`): never an IP address, and
   changing it orphans every passkey (`yarn auth:reset` then makes new ones).
 - Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A gets a leading zero on both sides

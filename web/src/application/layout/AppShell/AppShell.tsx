@@ -2,7 +2,7 @@ import { SidebarStartUtil } from '@app-types/utility';
 import { useSidebarStart } from '@hooks/useSidebarStart';
 import { SidebarInset, SidebarProvider } from '@components/ui/sidebar';
 import { Toaster } from '@components/ui/toast';
-import { useIsDesktop } from '@hooks/useMediaQuery';
+import { useIsDesktop } from '@hooks/useIsDesktop';
 import AppSidebar from './components/AppSidebar';
 import BottomNav from './components/BottomNav';
 import DemoBanner from './components/DemoBanner';

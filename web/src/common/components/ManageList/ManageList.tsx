@@ -1,6 +1,6 @@
 import EmptyState from '@components/EmptyState';
 import ManageRowItem from './components/ManageRowItem';
-import type { ManageRow } from './manageListUtils';
+import type { ManageRow } from './types';
 
 type Props = {
   rows: ManageRow[];

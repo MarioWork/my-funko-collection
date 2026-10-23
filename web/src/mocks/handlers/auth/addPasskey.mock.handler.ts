@@ -1,14 +1,12 @@
-import { http, HttpResponse } from 'msw/http';
+import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import type { PasskeyApiModel } from '@app-types/models';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { errorResponse } from '@mocks/mockResponses';
+import { BAD_REQUEST_STATUS, created, errorResponse } from '@mocks/mockResponses';
 import { mockStore, nowIso } from '@mocks/mockStore';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import type { CreatePasskey } from '@services/authService/authService.type';
 import { isCeremonyResponse, reauthRequiredResponse } from './authMockUtils';
-
-const CREATED_STATUS = 201;
 
 export default (baseUrl: string) => [
   http.post(`${baseUrl}/auth/passkeys/verify`, async ({ request }) => {
@@ -21,13 +19,13 @@ export default (baseUrl: string) => [
     const { response, name } = (await request.json()) as CreatePasskey;
 
     if (!isCeremonyResponse(response)) {
-      return errorResponse(400, AuthApiErrorCodes.PASSKEY_FAILED, 'That passkey could not be verified.');
+      return errorResponse(BAD_REQUEST_STATUS, AuthApiErrorCodes.PASSKEY_FAILED, 'That passkey could not be verified.');
     }
 
     const passkey: PasskeyApiModel = { id: response.id, name, isSynced: false, createdAt: nowIso(), lastUsedAt: null };
 
     mockStore.auth.passkeys.push(passkey);
 
-    return HttpResponse.json(passkey, { status: CREATED_STATUS });
+    return created(passkey);
   }),
 ];

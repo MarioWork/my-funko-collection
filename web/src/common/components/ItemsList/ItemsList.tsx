@@ -1,22 +1,19 @@
 import type { ComponentProps, ReactNode } from 'react';
 import type { CategoryApiModel, CollectionApiModel, CollectionItemApiModel, TagApiModel } from '@app-types/models';
 import type { ResponseWithPaginationUtil } from '@app-types/utility';
-import FunkoGrid from '@components/FunkoGrid';
-import ListPagination from '@components/ListPagination';
 import PageHeader from '@components/PageHeader';
 import type { SortOption } from '@components/SortSelect';
 import { useIsRefreshing } from '@hooks/useIsRefreshing';
 import { useItemActions } from '@hooks/useItemActions';
 import { useItemListParams } from '@hooks/useItemListParams';
 import { useLayoutPreference } from '@hooks/useLayoutPreference';
-import { useIsDesktop } from '@hooks/useMediaQuery';
 import { cn } from '@utils/classNameUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS } from '@utils/motionUtils';
-import ItemCard from './components/ItemCard';
+import { ItemsListContext } from './ItemsListContext';
 import ItemsEmpty from './components/ItemsEmpty';
-import ItemGridCard from './components/ItemGridCard';
-import ItemTable from './components/ItemTable';
+import ItemsResults from './components/ItemsResults';
 import ItemsToolbar from './components/ItemsToolbar';
+import ListPagination from './components/ListPagination';
 
 type Props = {
   // The page's title, back link and actions; the toolbar (search, sort, filters, layout) goes inside that tile.
@@ -52,12 +49,10 @@ function ItemsList({
   emptyDescription,
   emptyAction,
 }: Props) {
-  const isDesktop = useIsDesktop();
   const isRefreshing = useIsRefreshing();
   const { busyItemId, move, remove } = useItemActions();
   const { layout, density, setLayout } = useLayoutPreference(ITEMS_LAYOUT_STORAGE_KEY);
   const hasItems = itemsResponse.data.length > 0;
-  const isList = density === null;
   const { query, chips, setQuery, clearFilters } = useItemListParams({
     categories,
     tags,
@@ -65,6 +60,7 @@ function ItemsList({
     hasCollectionFilter,
   });
   const isFiltered = query.length > 0 || chips.length > 0;
+  const contextValue = { categories, tags, collections, hasCollectionFilter, busyItemId, move, remove };
 
   const clearAll = () => {
     setQuery('');
@@ -72,80 +68,40 @@ function ItemsList({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader {...header}>
-        <ItemsToolbar
-          categories={categories}
-          tags={tags}
-          collections={collections}
-          hasCollectionFilter={hasCollectionFilter}
-          resultCount={itemsResponse.totalResultNumber}
-          sort={sort}
-          layout={layout}
-          onLayoutChange={setLayout}
-        />
-      </PageHeader>
-      {/* Dims while new results load. */}
-      <div
-        aria-busy={isRefreshing}
-        className={cn(
-          'flex flex-col gap-4 rounded-xl border bg-card p-4',
-          DIMMABLE_CLASS,
-          isRefreshing && DIMMED_CLASS,
-        )}
-      >
-        {!hasItems ? (
-          <ItemsEmpty
-            isFiltered={isFiltered}
-            emptyTitle={emptyTitle}
-            emptyDescription={emptyDescription}
-            emptyAction={emptyAction}
-            onClearFilters={clearAll}
+    <ItemsListContext value={contextValue}>
+      <div className="flex flex-col gap-4">
+        <PageHeader {...header}>
+          <ItemsToolbar
+            resultCount={itemsResponse.totalResultNumber}
+            sort={sort}
+            layout={layout}
+            onLayoutChange={setLayout}
           />
-        ) : null}
-        {hasItems && density ? (
-          <FunkoGrid label="Items" density={density}>
-            {itemsResponse.data.map((item) => (
-              <ItemGridCard
-                key={item.id}
-                item={item}
-                collections={collections}
-                density={density}
-                isBusy={busyItemId === item.id}
-                onMove={move}
-                onRemove={remove}
-              />
-            ))}
-          </FunkoGrid>
-        ) : null}
-        {hasItems && isList && isDesktop ? (
-          <ItemTable
-            items={itemsResponse.data}
-            collections={collections}
-            hasCollectionColumn={hasCollectionFilter}
-            busyItemId={busyItemId}
-            onMove={move}
-            onRemove={remove}
-          />
-        ) : null}
-        {hasItems && isList && !isDesktop ? (
-          <ul className="flex flex-col gap-2">
-            {itemsResponse.data.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                collections={collections}
-                hasCollectionColumn={hasCollectionFilter}
-                isBusy={busyItemId === item.id}
-                onMove={move}
-                onRemove={remove}
-              />
-            ))}
-          </ul>
-        ) : null}
-        <ListPagination page={page} size={pageSize} total={itemsResponse.totalResultNumber} />
+        </PageHeader>
+        {/* Dims while new results load. */}
+        <div
+          aria-busy={isRefreshing}
+          className={cn(
+            'flex flex-col gap-4 rounded-xl border bg-card p-4',
+            DIMMABLE_CLASS,
+            isRefreshing && DIMMED_CLASS,
+          )}
+        >
+          {hasItems ? (
+            <ItemsResults items={itemsResponse.data} density={density} />
+          ) : (
+            <ItemsEmpty
+              isFiltered={isFiltered}
+              emptyTitle={emptyTitle}
+              emptyDescription={emptyDescription}
+              emptyAction={emptyAction}
+              onClearFilters={clearAll}
+            />
+          )}
+          <ListPagination page={page} size={pageSize} total={itemsResponse.totalResultNumber} />
+        </div>
       </div>
-    </div>
+    </ItemsListContext>
   );
 }
 

@@ -62,8 +62,12 @@ function PreviewBody({ image }: BodyProps) {
 
 // Opened from a row: the only place on the Images page that loads a picture.
 function ImagePreviewDialog({ image, onClose }: Props) {
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) onClose();
+  };
+
   return (
-    <Dialog open={image !== null} onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}>
+    <Dialog open={image !== null} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-2xl">{image ? <PreviewBody image={image} /> : null}</DialogContent>
     </Dialog>
   );

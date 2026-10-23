@@ -1,18 +1,13 @@
-import { ScanBarcode, Search as SearchIcon, X } from 'lucide-react';
-import { PAGE_ICONS } from '@application/layout/navigationUtils';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import { useState } from 'react';
-import { Link } from 'react-router';
-import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import EmptyState from '@components/EmptyState';
-import IconButton from '@components/IconButton';
 import PageHeader from '@components/PageHeader';
 import SearchResults from '@components/SearchResults';
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@components/ui/input-group';
 import { useSuggestions } from '@hooks/useSuggestions';
 import { cn } from '@utils/classNameUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS } from '@utils/motionUtils';
-
-const INPUT_ID = 'search-everything';
+import ScanShortcut from './components/ScanShortcut';
+import SearchField from './components/SearchField';
 
 // The phone's Search tab, laid out like the other pages: the header tile holds the field (results as you type) and a
 // scan shortcut; the results sit in one white tile below.
@@ -29,39 +24,8 @@ function Search() {
         description="Funkos, categories, series, collections and tags, all at once."
       >
         <div className="flex items-center gap-2">
-          <InputGroup className="flex-1 border-input bg-card">
-            <InputGroupAddon>
-              <SearchIcon aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
-              id={INPUT_ID}
-              type="text"
-              inputMode="search"
-              enterKeyHint="search"
-              aria-label="Search funkos, categories, series, collections and tags"
-              placeholder="Name, number, series, barcode, box…"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            {query ? (
-              <InputGroupAddon align="inline-end">
-                <InputGroupButton aria-label="Clear search" onClick={() => setQuery('')}>
-                  <X aria-hidden="true" />
-                </InputGroupButton>
-              </InputGroupAddon>
-            ) : null}
-          </InputGroup>
-          <IconButton
-            variant="outline"
-            aria-label="Find by scanning a barcode"
-            className="border-input bg-card"
-            render={<Link viewTransition to={ADD_ROUTES_PATHS.BASE} />}
-            nativeButton={false}
-            // Base UI would announce it as a button; it navigates, so it is a link (as LinkButton does).
-            role="link"
-          >
-            <ScanBarcode aria-hidden="true" />
-          </IconButton>
+          <SearchField value={query} onChange={setQuery} />
+          <ScanShortcut />
         </div>
       </PageHeader>
       <div className={cn('rounded-xl border bg-card p-4', DIMMABLE_CLASS, isLoading && hasQuery && DIMMED_CLASS)}>

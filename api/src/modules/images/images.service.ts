@@ -26,15 +26,23 @@ const DIMENSION_VARIANTS: ImageVariant[] = ['large', 'medium', 'small'];
 
 type Comparator = (first: ImageListEntry, second: ImageListEntry) => number;
 
-function displayName(entry: ImageListEntry): string {
-  return (entry.funko?.name ?? entry.fileName).toLowerCase();
-}
-
 const SORT_COMPARATORS: Record<ImageSortField, Comparator> = {
   CREATION_DATE: (first, second) => first.createdAt.localeCompare(second.createdAt),
   SIZE: (first, second) => first.sizeBytes - second.sizeBytes,
   NAME: (first, second) => displayName(first).localeCompare(displayName(second)),
 };
+
+const EVERY_IMAGE_QUERY: ListImagesQuery = { page: 1, size: 1, sorting_fields: 'NAME', direction: 'ASC' };
+
+const GROUP_COMPARATORS: Record<ImageSortField, (first: ImageGroup, second: ImageGroup) => number> = {
+  CREATION_DATE: (first, second) => first.newestCreatedAt.localeCompare(second.newestCreatedAt),
+  SIZE: (first, second) => first.sizeBytes - second.sizeBytes,
+  NAME: (first, second) => (first.funko?.name ?? '').localeCompare(second.funko?.name ?? ''),
+};
+
+function displayName(entry: ImageListEntry): string {
+  return (entry.funko?.name ?? entry.fileName).toLowerCase();
+}
 
 function storageKey(folder: string | number, fileKey: string): string {
   return `${folder}/${fileKey}`;
@@ -135,8 +143,6 @@ async function collectEntries(query: ListImagesQuery): Promise<ImageListEntry[]>
     .sort((first, second) => compare(first, second) * directionFactor || first.key.localeCompare(second.key));
 }
 
-const EVERY_IMAGE_QUERY: ListImagesQuery = { page: 1, size: 1, sorting_fields: 'NAME', direction: 'ASC' };
-
 function directionFactorOf(query: ListImagesQuery): number {
   return query.direction === 'DESC' ? -1 : 1;
 }
@@ -167,12 +173,6 @@ function toGroup(groupKey: string, images: ImageListEntry[]): ImageGroup {
     images,
   };
 }
-
-const GROUP_COMPARATORS: Record<ImageSortField, (first: ImageGroup, second: ImageGroup) => number> = {
-  CREATION_DATE: (first, second) => first.newestCreatedAt.localeCompare(second.newestCreatedAt),
-  SIZE: (first, second) => first.sizeBytes - second.sizeBytes,
-  NAME: (first, second) => (first.funko?.name ?? '').localeCompare(second.funko?.name ?? ''),
-};
 
 // The same images, one group per funko, sorted by the group's total (size), newest image (date) or funko name.
 // The loose files form one group of their own, always last. Groups are what is paged.

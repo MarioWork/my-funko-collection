@@ -3,6 +3,7 @@ import type { FunkoApiModel } from '@app-types/models';
 import { FunkoTypeUtil } from '@app-types/utility';
 import type { CreateFunko } from '@services/funkoService/funkoService.type';
 import {
+  FUNKO_CATEGORY_REQUIRED_MESSAGE,
   funkoBarcodeSchema,
   funkoExclusiveSchema,
   funkoNameSchema,
@@ -15,7 +16,7 @@ export const funkoFormSchema = object({
   name: funkoNameSchema,
   number: funkoNumberSchema,
   type: funkoTypeSchema,
-  categoryId: string().required('Category is required'),
+  categoryId: string().required(FUNKO_CATEGORY_REQUIRED_MESSAGE),
   // '' = no series.
   seriesId: string().defined(),
   isChase: boolean().required(),

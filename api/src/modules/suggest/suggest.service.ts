@@ -8,6 +8,8 @@ import { getSeriesList } from '../series/series.service.ts';
 import { getTags } from '../tags/tags.service.ts';
 import { SUGGEST_FUNKO_LIMIT, SUGGEST_OTHER_LIMIT, type SuggestQuery, type SuggestResponse } from './suggest.schema.ts';
 
+const NAME_SORT = { page: DEFAULT_PAGE, size: SUGGEST_OTHER_LIMIT, direction: 'ASC', sorting_fields: 'NAME' } as const;
+
 function toSummary(funko: FunkoResponse): FunkoSummary {
   return {
     id: funko.id,
@@ -22,8 +24,6 @@ function toSummary(funko: FunkoResponse): FunkoSummary {
     primaryImage: funko.primaryImage,
   };
 }
-
-const NAME_SORT = { page: DEFAULT_PAGE, size: SUGGEST_OTHER_LIMIT, direction: 'ASC', sorting_fields: 'NAME' } as const;
 
 export async function getSuggestions({ q }: SuggestQuery): Promise<SuggestResponse> {
   const [funkoPage, categoryPage, seriesPage, collectionPage, tagPage] = await Promise.all([

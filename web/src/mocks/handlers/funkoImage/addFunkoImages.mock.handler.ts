@@ -1,10 +1,12 @@
-import { http, HttpResponse } from 'msw/http';
+import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from '@mocks/mockImageUtils';
-import { badRequest, notFound } from '@mocks/mockResponses';
+import { badRequest, created, notFound } from '@mocks/mockResponses';
 import { mockStore, nextId, nowIso, type MockImageRow } from '@mocks/mockStore';
 import { IMAGE_FILE_FIELD } from '@services/funkoImageService/funkoImageService';
+
+const FILE_EXTENSION = /\.[^.]+$/;
 
 function storeImage(funkoId: number, label: string): MockImageRow {
   const siblings = mockStore.images.filter((image) => image.funkoId === funkoId);
@@ -38,8 +40,8 @@ export default (baseUrl: string) => [
 
     if (files.length === 0) return badRequest('Send at least one file in the "file" field');
 
-    const stored = files.map((file) => storeImage(funko.id, file.name.replace(/\.[^.]+$/, '') || funko.name));
+    const stored = files.map((file) => storeImage(funko.id, file.name.replace(FILE_EXTENSION, '') || funko.name));
 
-    return HttpResponse.json(stored.map(withoutFunkoId), { status: 201 });
+    return created(stored.map(withoutFunkoId));
   }),
 ];

@@ -1,13 +1,13 @@
 // The rules of the API's GET /export/<list>.{csv,json,xlsx} over the mock store: the list's own columns, and the
 // funkos of every entry when includeFunkos is set.
 import { ExportFunkosScopeUtil, ExportListKindUtil } from '@app-types/utility';
+import { isTrueParam } from '@mocks/mockListUtils';
 import { mockStore } from '@mocks/mockStore';
-import { linesOfEntry, type Cell, type ExportLine } from './funkosExportMockUtils';
+import { INCLUDE_FUNKOS_PARAM } from '@services/exportService/exportService';
+import { CENTS_PER_UNIT, linesOfEntry, type Cell, type ExportLine } from './funkosExportMockUtils';
 
-const CENTS_PER_UNIT = 100;
 const FILE_PREFIX = 'my-funko-collection';
 const WITH_FUNKOS_SUFFIX = '-with-funkos';
-const INCLUDE_FUNKOS_PARAM = 'includeFunkos';
 
 export type ListEntry = { id: number; name: string; summary: Record<string, Cell> };
 
@@ -94,7 +94,7 @@ export type ListExport = {
 
 export function readListExport(kind: ExportListKindUtil, requestUrl: string): ListExport {
   const reader = LIST_READERS[kind];
-  const includeFunkos = new URL(requestUrl).searchParams.get(INCLUDE_FUNKOS_PARAM) === 'true';
+  const includeFunkos = isTrueParam(new URL(requestUrl).searchParams.get(INCLUDE_FUNKOS_PARAM));
 
   return {
     fileBase: `${FILE_PREFIX}-${kind}${includeFunkos ? WITH_FUNKOS_SUFFIX : ''}`,
