@@ -13,8 +13,7 @@ The global React/Node conventions apply; this file holds only what is specific t
   `web/README.md`.
 - `compose.yaml` — the deployment: Caddy (`web/`) on 80/443 with a local CA, proxying `/api` and `/uploads` to the
   api container, which is not published. All runtime data lives in `./data` (SQLite file + uploaded images).
-- `docs/funko-data-research.md` — why there is no external Funko API. `docs/web-ui-ux-research.md` — the UI
-  decisions (image-first grid, scan-first add, filters as a drawer, toast + Undo).
+- UI decisions to keep: image-first grid, scan-first add, filters as a drawer, toast + Undo for undoable writes.
 
 ## Vocabulary (easy to get wrong)
 
@@ -33,7 +32,7 @@ The global React/Node conventions apply; this file holds only what is specific t
 - Deleting a tag only removes the label from items. Deleting a collection removes its items, never the funkos.
 - "Owned" (the default) and "Wishlist" always exist from the first start: reference data in the custom migration
   `api/drizzle/0001_default_collections.sql`, not the seed. Each insert skips one that is already there.
-- Sign-in is passkeys only, for one user (`docs/login-security-research.md`, `api/README.md` "Sign-in"). Every API
+- Sign-in is passkeys only, for one user (`api/README.md` "Sign-in"). Every API
   route and `/uploads` file needs a session unless it sets `config: { isPublic: true }`; keep that list tiny, and
   add new public routes to `PUBLIC_ROUTES` in `auth.route.test.ts`. Sessions are server-side rows (SHA-256 of an
   HttpOnly cookie token), never JWTs or localStorage. No password, TOTP or "auth off" switch, not even in dev.

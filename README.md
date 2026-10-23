@@ -189,7 +189,7 @@ Changes live in that browser tab only, so play as much as you like.
 api/          Fastify 5 + zod + Drizzle on SQLite, sharp for images (Node 24, TypeScript)
 web/          React 19 + Vite 8 + Tailwind 4 + shadcn/ui (Base UI), React Router data mode
 compose.yaml  the home-server deploy: Caddy (HTTPS, serves the app) in front of the API
-docs/         research notes and the screenshots above
+docs/         the testing checklist and the screenshots above
 assets/       logo and illustrations
 ```
 
@@ -199,8 +199,7 @@ Developing? Each half has its own guide: [`api/README.md`](api/README.md) and [`
 
 Funko has never published an API (and its terms forbid apps that talk to its services), the one real catalog
 charges at least $1,200 for access, and product photos are Funko's copyright wherever they're hosted. So entry is
-manual (scanning makes it quick) and the photos are your own. The full research is in
-[`docs/funko-data-research.md`](docs/funko-data-research.md).
+manual (scanning makes it quick) and the photos are your own.
 
 ---
 

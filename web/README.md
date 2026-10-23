@@ -131,7 +131,7 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 ## Signing in
 
 One user, passkeys only (`@simplewebauthn/browser`); the API keeps the session in an HttpOnly cookie the app never
-sees. Background in `../docs/login-security-research.md`.
+sees.
 
 - **Gate.** The app shell's loader (`AppShell/appShellLoader.ts`) asks `GET /auth/status` once, when the shell
   mounts: `setup` → `/setup`, `signedOut` → `/login?redirectTo=<where you were>`, `signedIn` → the app, with the
