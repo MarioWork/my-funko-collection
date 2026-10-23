@@ -9,13 +9,13 @@ import { useImageListParams } from '../hooks/useImageListParams';
 import { HAS_FUNKO_OPTIONS, IMAGE_SORT_FIELDS, ImageViewUtil } from '../imageListUtils';
 
 const VIEW_OPTIONS: ViewOption<ImageViewUtil>[] = [
-  { value: ImageViewUtil.IMAGES, label: 'All images', description: 'Every image as its own row', icon: List },
   {
     value: ImageViewUtil.FUNKOS,
     label: 'Group by funko',
     description: 'A row per funko, with its totals',
     icon: ListTree,
   },
+  { value: ImageViewUtil.IMAGES, label: 'All images', description: 'Every image as its own row', icon: List },
 ];
 
 // Search, sort, the one filter (being used or not) and the view (every image, or grouped by funko); then the

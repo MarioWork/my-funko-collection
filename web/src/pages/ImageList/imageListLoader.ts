@@ -6,7 +6,13 @@ import imageService, {
   ImageApiSearchFields,
   ImageApiSortingFields,
 } from '@services/imageService/imageService';
-import { IMAGE_GROUP_PAGE_SIZE, IMAGE_PAGE_SIZE, IMAGE_VIEW_PARAM, ImageViewUtil } from './imageListUtils';
+import {
+  DEFAULT_IMAGE_VIEW,
+  IMAGE_GROUP_PAGE_SIZE,
+  IMAGE_PAGE_SIZE,
+  IMAGE_VIEW_PARAM,
+  ImageViewUtil,
+} from './imageListUtils';
 
 const SORT_FIELDS = new Set<string>(Object.values(ImageApiSortingFields));
 const DIRECTIONS = new Set<string>(Object.values(SortingDirectionUtil));
@@ -36,7 +42,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     ? (directionParam as SortingDirectionUtil)
     : DEFAULT_IMAGE_SORT_DIRECTION;
   const page = searchParams.get(ApiUrlParamsUtil.page) ?? DEFAULT_FIRST_PAGE;
-  const isGrouped = searchParams.get(IMAGE_VIEW_PARAM) === ImageViewUtil.FUNKOS;
+  const viewParam = searchParams.get(IMAGE_VIEW_PARAM) ?? DEFAULT_IMAGE_VIEW;
+  const isGrouped = viewParam !== ImageViewUtil.IMAGES;
   const pageSize = isGrouped ? IMAGE_GROUP_PAGE_SIZE : IMAGE_PAGE_SIZE;
   const fields = {
     pagination: { page, size: pageSize },

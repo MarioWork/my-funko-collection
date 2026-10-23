@@ -5,7 +5,7 @@ import type { SortOption } from '@components/SortSelect';
 import { useListParams } from '@hooks/useListParams';
 import { ImageApiSearchFields } from '@services/imageService/imageService';
 import type { loader } from '../imageListLoader';
-import { HAS_FUNKO_OPTIONS, IMAGE_VIEW_PARAM, ImageViewUtil } from '../imageListUtils';
+import { DEFAULT_IMAGE_VIEW, HAS_FUNKO_OPTIONS, IMAGE_VIEW_PARAM, type ImageViewUtil } from '../imageListUtils';
 
 // The Images page's URL state, typed: the view, the search, the "being used" filter, the sort and its chip.
 export function useImageListParams() {
@@ -28,8 +28,7 @@ export function useImageListParams() {
     setQuery: (value: string) => setParams({ [ImageApiSearchFields.QUERY]: value }, { isTyping: true }),
     setHasFunko,
     // The default view stays out of the URL.
-    setView: (view: ImageViewUtil) =>
-      setParams({ [IMAGE_VIEW_PARAM]: view === ImageViewUtil.IMAGES ? undefined : view }),
+    setView: (view: ImageViewUtil) => setParams({ [IMAGE_VIEW_PARAM]: view === DEFAULT_IMAGE_VIEW ? undefined : view }),
     setSort: ({ field, direction }: SortOption) =>
       setParams({ [ApiUrlParamsUtil.sorting_fields]: field, [ApiUrlParamsUtil.sortingDirection]: direction }),
     clearFilters: () => setHasFunko(undefined),
