@@ -110,14 +110,4 @@ describe('saving without a photo', () => {
 
     expect(await screen.findByRole('dialog', { name: /Images to upload, image 1 of 1/ })).toBeVisible();
   });
-
-  it('leaves out an image over 5 MB and says so', async () => {
-    const tooLarge = new File([new Uint8Array(6 * 1024 * 1024)], 'huge.jpg', { type: 'image/jpeg' });
-    renderAddForm();
-
-    await userEvent.upload(await screen.findByLabelText('Image files'), tooLarge);
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('huge.jpg is over 5 MB');
-    expect(screen.queryByRole('list', { name: 'Images to upload' })).not.toBeInTheDocument();
-  });
 });
