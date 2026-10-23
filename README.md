@@ -95,7 +95,7 @@ You need a machine that stays on (a mini PC, a NAS, a Raspberry Pi 5) with **Doc
 git clone https://github.com/MarioWork/my-funko-collection.git
 cd my-funko-collection
 
-# Set the address you'll open it at: SITE_ADDRESS and CORS_ORIGINS in compose.yaml
+# Set the address you'll open it at: SITE_ADDRESS in compose.yaml
 # (your server's LAN IP works without any DNS setup, e.g. https://192.168.1.20)
 
 docker compose up --build -d

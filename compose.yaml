@@ -34,8 +34,8 @@ services:
       DATABASE_URL: file:/app/data/app.db
       UPLOADS_DIR: /app/data/uploads
       MIGRATE_ON_START: 'true'
-      # Same origin through Caddy, so browsers never send a cross-origin request. Kept for direct API use.
-      CORS_ORIGINS: https://funkos.home.arpa
+      # Caddy is the one proxy in front: read the real device address from X-Forwarded-For (for rate limits).
+      TRUST_PROXY_HOPS: 1
       MAX_IMAGE_BYTES: 10485760
       MAX_IMAGES_PER_FUNKO: 10
     volumes:
