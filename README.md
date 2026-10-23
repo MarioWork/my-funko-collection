@@ -204,6 +204,6 @@ manual (scanning makes it quick) and the photos are your own.
 ---
 
 <p align="center">
-  <img src="assets/logo-face.png" alt="" width="48" /><br />
+  <img src="assets/logos/logo-face.png" alt="" width="48" /><br />
   <sub>A fan-made hobby project. Funko and Pop! are trademarks of Funko, LLC. This project is not affiliated with or endorsed by Funko.</sub>
 </p>
