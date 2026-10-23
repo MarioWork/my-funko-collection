@@ -30,6 +30,8 @@ The global React/Node conventions apply; this file holds only what is specific t
 - One search endpoint: `GET /funkos?q=` searches every field, named params narrow one field. No separate `/search`.
 - `DELETE /funkos/:id` answers 409 while the funko is in a collection; `?force=true` removes it from all of them.
 - Deleting a tag only removes the label from items. Deleting a collection removes its items, never the funkos.
+- "Owned" (the default) and "Wishlist" always exist from the first start: reference data in the custom migration
+  `api/drizzle/0001_default_collections.sql`, not the seed. Each insert skips one that is already there.
 - Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A gets a leading zero on both sides
   (`api/src/lib/barcode.ts`, `web/src/common/utils/barcodeUtils.ts`). Keep them in step.
 
