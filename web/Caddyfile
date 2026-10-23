@@ -5,6 +5,19 @@
 tls internal
 encode zstd gzip
 
+# Security headers for the app (helmet only covers the API's own answers). See docs/login-security-research.md.
+#  - CSP: only this site's own scripts, no inline ones; 'wasm-unsafe-eval' lets the barcode scanner's WebAssembly
+#    run; data:/blob: images are the blur placeholders and photo previews; nothing may frame the app.
+#  - Permissions-Policy: the camera (barcode scanner) for this site only.
+header {
+	Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+	Referrer-Policy "same-origin"
+	X-Content-Type-Options "nosniff"
+	Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+	Strict-Transport-Security "max-age=31536000"
+	-Server
+}
+
 # /api/<path> → api:3000/<path>  (the prefix is stripped; the app is built with VITE_BASE_API_URL='/api')
 handle_path /api/* {
 	reverse_proxy api:3000

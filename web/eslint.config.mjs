@@ -76,7 +76,8 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.mjs'],
+    // Plain browser scripts outside any TS project (public/theme-init.js runs before the app, for the CSP).
+    files: ['**/*.mjs', 'public/**/*.js'],
     extends: [tseslint.configs.disableTypeChecked],
   },
   // v7: includes the React Compiler rules (set-state-in-effect, purity, refs, static-components, ...).

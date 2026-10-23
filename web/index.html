@@ -15,19 +15,9 @@
     <link rel="icon" href="%BASE_URL%icons/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="icon" href="%BASE_URL%icons/favicon-48.png" type="image/png" sizes="48x48" />
     <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png" />
-    <script>
-      // Applies the stored or system theme before the first paint, so there is no flash. Mirrors themeUtils.ts.
-      (function () {
-        try {
-          var stored = localStorage.getItem('funkos.theme');
-          var system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          var theme = stored === 'light' || stored === 'dark' ? stored : system;
-          document.documentElement.classList.add(theme);
-        } catch (e) {
-          /* storage blocked: the provider decides after mount */
-        }
-      })();
-    </script>
+    <!-- Applies the stored or system theme before the first paint, so there is no flash. A file, not an inline
+         script, so the Content-Security-Policy (web/Caddyfile) can forbid inline scripts outright. -->
+    <script src="%BASE_URL%theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>
