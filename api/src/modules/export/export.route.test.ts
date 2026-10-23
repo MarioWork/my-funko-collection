@@ -81,4 +81,20 @@ describe('GET /export/items.csv', () => {
       `Owned,${funko.id},"Spider-Man, ""Classic""",03,Pop! Marvel,Homecoming,POP,false,,,1,,14.99,EUR,2024-03-02,Box 3,`,
     );
   });
+
+  it('defuses text a spreadsheet would run as a formula, but keeps numbers', async () => {
+    const { owned } = await seed();
+    const marvel = await createCategory('=HYPERLINK("http://evil.example","Click")');
+    const funko = await createFunko({ name: '@SUM(A1)', number: '-7', categoryId: marvel.id });
+    await createItem(owned.id, funko.id, { notes: '+cmd', purchasePriceCents: 1499 });
+
+    const response = await app.inject({ method: 'GET', url: '/export/items.csv' });
+
+    const line = response.body.split('\r\n').find((row) => row.includes('SUM'));
+    expect(line).toContain(`'@SUM(A1)`);
+    expect(line).toContain(`"'=HYPERLINK(""http://evil.example"",""Click"")"`);
+    expect(line).toContain(`'+cmd`);
+    expect(line).toContain(',-7,');
+    expect(line).toContain(',14.99,');
+  });
 });

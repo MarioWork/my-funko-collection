@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavigationType, useFetcher, useLocation, useNavigationType } from 'react-router';
 import { ApiUrlParamsUtil, type ResponseWithPaginationUtil } from '@app-types/utility';
+import { NEXT_PAGE_PARAM } from '@utils/infiniteListUtils';
 
 type Options<Item> = {
   // Page 1, from the route's loader. Search, filters and sort live in the URL, so a new page 1 means a new list.
@@ -107,6 +108,7 @@ export function useInfiniteList<Item>({ firstPage, pageOf, keyOf }: Options<Item
     const params = new URLSearchParams(location.search);
 
     params.set(ApiUrlParamsUtil.page, String(list.lastPage + 1));
+    params.set(NEXT_PAGE_PARAM, 'true');
     void fetcher.load(`${location.pathname}?${params.toString()}`);
   };
 
