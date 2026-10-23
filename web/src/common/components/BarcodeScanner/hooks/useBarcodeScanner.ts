@@ -32,7 +32,8 @@ const VIDEO_CONSTRAINTS: MediaTrackConstraints = {
   width: { ideal: 1280 },
   height: { ideal: 720 },
 };
-const WASM_PATH = '/wasm/';
+// Under the app's base path, so the reader is found when the site lives in a sub-folder (GitHub Pages).
+const WASM_PATH = `${import.meta.env.BASE_URL}wasm/`;
 
 // Loaded on demand so the ~1 MB reader stays out of every other page's bundle. The ponyfill runs everywhere:
 // Safari's native detector is off by default and broken behind its flag.

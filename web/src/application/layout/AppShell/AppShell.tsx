@@ -3,6 +3,7 @@ import { Toaster } from '@components/ui/toast';
 import { useIsDesktop } from '@hooks/useMediaQuery';
 import AppSidebar from './components/AppSidebar';
 import BottomNav from './components/BottomNav';
+import DemoBanner from './components/DemoBanner';
 import NavigationProgress from './components/NavigationProgress';
 import PageOutlet from './components/PageOutlet';
 import SearchPalette from './components/SearchPalette';
@@ -28,6 +29,7 @@ function AppShell() {
         <NavigationProgress />
         <AppSidebar />
         <SidebarInset>
+          <DemoBanner />
           <TopBar isDesktop />
           {/* SidebarInset is the <main>; this is only the container-query root. */}
           <PageOutlet className="@container mx-auto w-full max-w-7xl flex-1 p-6" />
@@ -41,6 +43,7 @@ function AppShell() {
   return (
     <div className="flex min-h-svh flex-col" style={MOBILE_SHELL_STYLE}>
       <NavigationProgress />
+      <DemoBanner />
       <TopBar isDesktop={false} />
       <main className="@container flex-1 px-4 pt-4 pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1.5rem)]">
         <PageOutlet />
