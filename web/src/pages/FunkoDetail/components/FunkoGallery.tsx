@@ -50,7 +50,7 @@ function GalleryFrame({ funkoName, hero, heroIndex, imageCount, onOpen }: FrameP
           funkoName={funkoName}
           imageNumber={heroIndex + 1}
           // Beside (not inside) the button that opens the viewer, pinned to the frame's corner.
-          className="absolute right-2 bottom-2"
+          className="absolute right-2 bottom-3"
         />
       ) : null}
     </div>
