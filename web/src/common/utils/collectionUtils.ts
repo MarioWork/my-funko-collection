@@ -15,3 +15,6 @@ export const collectionNotesSchema = string()
   .notRequired();
 
 export const collectionIsDefaultSchema = boolean().notRequired();
+
+// The second collection every install starts with (api/drizzle/0001_default_collections.sql), next to the default.
+export const WISHLIST_COLLECTION_NAME = 'Wishlist';

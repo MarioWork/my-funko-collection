@@ -2,17 +2,23 @@ import { Plus } from 'lucide-react';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import LinkButton from '@components/LinkButton';
 
-// The one floating action below `lg`: sits above the bottom bar and its safe-area inset. Hidden on desktop,
-// where the sidebar carries the Add button.
-function AddFab() {
+type Props = {
+  // Where + goes: the Add flow by default, or a page's own "new" form.
+  to?: string;
+  // The button's name, since it shows only the +: "Add funko", "New tag".
+  label?: string;
+};
+
+// The one floating action below `lg`: a round + above the bottom bar and its safe-area inset. Hidden on desktop,
+// where the page header carries the same action as a labelled button.
+function AddFab({ to = ADD_ROUTES_PATHS.BASE, label = 'Add funko' }: Props) {
   return (
     <LinkButton
-      to={ADD_ROUTES_PATHS.BASE}
-      size="lg"
-      className="fixed right-4 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] z-30 h-14 rounded-full px-5 shadow-lg lg:hidden"
+      to={to}
+      aria-label={label}
+      className="fixed right-4 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] z-30 size-14 rounded-full p-0 shadow-lg lg:hidden"
     >
-      <Plus data-icon="inline-start" aria-hidden="true" />
-      Add
+      <Plus className="size-6" aria-hidden="true" />
     </LinkButton>
   );
 }

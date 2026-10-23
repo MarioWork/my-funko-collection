@@ -9,6 +9,7 @@ import { useActionToast } from '@hooks/useActionToast';
 import { createFormData } from '@utils/formDataUtils';
 import type { ManageEntityFormData, ManageFormValues, ManageRow } from '../manageListUtils';
 import ManageForm from './ManageForm';
+import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 
 type Props = {
   row: ManageRow;
@@ -83,6 +84,7 @@ function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
           aria-label={`Rename ${row.name}`}
           onClick={() => setIsEditing(true)}
           disabled={isBusy}
+          disabledReason={DISABLED_REASONS.WORKING}
         >
           <Pencil aria-hidden="true" />
         </IconButton>
@@ -91,6 +93,7 @@ function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
           aria-label={row.isDeletable ? `Delete ${row.name}` : `Delete ${row.name} (in use, cannot be deleted)`}
           onClick={() => setIsDeleteOpen(true)}
           disabled={isBusy || !row.isDeletable}
+          disabledReason={isBusy ? DISABLED_REASONS.WORKING : `${row.name} is in use, so it cannot be deleted.`}
         >
           <Trash2 aria-hidden="true" />
         </IconButton>

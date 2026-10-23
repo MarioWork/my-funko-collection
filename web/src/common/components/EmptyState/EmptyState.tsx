@@ -12,7 +12,7 @@ type Props = {
 
 function EmptyState({ icon: Icon, title, description, children }: Props) {
   return (
-    <Empty className="border">
+    <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Icon aria-hidden="true" />

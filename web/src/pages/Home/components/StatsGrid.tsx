@@ -33,7 +33,7 @@ function StatsGrid({ stats }: Props) {
       />
       <StatTile
         icon={Coins}
-        label="Spent"
+        label="Total"
         value={formatCents(defaultCollection?.totalSpentCents ?? 0)}
         hint={ownedLabel}
         to={ownedPath}

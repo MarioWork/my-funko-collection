@@ -1,10 +1,12 @@
 import { SlidersHorizontal } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
+import IconButton from '@components/IconButton';
 import { Badge } from '@components/ui/badge';
 import { Button } from '@components/ui/button';
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@components/ui/drawer';
 import { Popover, PopoverContent, PopoverTrigger } from '@components/ui/popover';
 import { useIsDesktop } from '@hooks/useMediaQuery';
+import { cn } from '@utils/classNameUtils';
 
 type Props = {
   activeCount: number;
@@ -12,19 +14,31 @@ type Props = {
   children: ReactNode;
 };
 
-type TriggerProps = {
+type TriggerProps = Omit<ComponentProps<typeof IconButton>, 'aria-label' | 'children'> & {
   activeCount: number;
   isOpen: boolean;
-  onClick?: () => void;
 };
 
-function FilterTrigger({ activeCount, isOpen, onClick }: TriggerProps) {
+// An outlined white icon button like its neighbours, named and tooltipped "Filters"; a small count when some are on.
+// Extra props are the popover trigger's own (ref, handlers), passed straight through.
+function FilterTrigger({ activeCount, isOpen, className, ...props }: TriggerProps) {
+  const hasActive = activeCount > 0;
+
   return (
-    <Button variant="outline" aria-expanded={isOpen} onClick={onClick}>
-      <SlidersHorizontal data-icon="inline-start" aria-hidden="true" />
-      Filters
-      {activeCount > 0 ? <Badge className="ml-1">{activeCount}</Badge> : null}
-    </Button>
+    <IconButton
+      variant="outline"
+      aria-label={hasActive ? `Filters, ${activeCount} on` : 'Filters'}
+      aria-expanded={isOpen}
+      className={cn('relative border-input bg-card', className)}
+      {...props}
+    >
+      <SlidersHorizontal aria-hidden="true" />
+      {hasActive ? (
+        <Badge className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 text-[0.65rem]" aria-hidden="true">
+          {activeCount}
+        </Badge>
+      ) : null}
+    </IconButton>
   );
 }
 
@@ -51,7 +65,7 @@ function FilterDrawerBody({ resultCount, onClose, children }: DrawerBodyProps) {
   );
 }
 
-// "Filters (n)": a bottom drawer on phones, a popover on desktop. Filters apply at once; closing just closes.
+// The filters icon (with a count): a bottom drawer on phones, a popover on desktop. Filters apply at once; closing just closes.
 function FilterPanel({ activeCount, resultCount, children }: Props) {
   const isDesktop = useIsDesktop();
   const [isOpen, setIsOpen] = useState(false);

@@ -1,121 +1,117 @@
 import { Pencil, Trash2 } from 'lucide-react';
+import { Link } from 'react-router';
 import type { CollectionItemApiModel } from '@app-types/models';
 import { ITEM_CONDITION_LABELS } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
-import LinkButton from '@components/LinkButton';
+import IconButton from '@components/IconButton';
 import { Badge } from '@components/ui/badge';
-import { Button } from '@components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@components/ui/card';
 import { Spinner } from '@components/ui/spinner';
 import { useItemActions } from '@hooks/useItemActions';
-import { cn } from '@utils/classNameUtils';
 import { formatIsoDate } from '@utils/dateUtils';
+import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 import { formatCents } from '@utils/moneyUtils';
 
 type Props = {
   items: CollectionItemApiModel[];
 };
 
-type CardProps = {
+type RowProps = {
   item: CollectionItemApiModel;
   isBusy: boolean;
   onRemove: (item: CollectionItemApiModel) => void;
 };
 
-type Fact = { label: string; value: React.ReactNode };
+type TagsProps = {
+  tags: CollectionItemApiModel['tags'];
+};
 
-const NOT_SET = '—';
-const ISO_DATE_LENGTH = 10;
+const ROUND_CLASS = 'rounded-full';
 
-function TagBadges({ tags }: { tags: CollectionItemApiModel['tags'] }) {
-  if (tags.length === 0) return <>{NOT_SET}</>;
+// "1 copy · Out of box · Paid 9,99 € · Bought 11/11/2023": only the facts that are set.
+function factsLine(item: CollectionItemApiModel): string {
+  const copies = item.quantity === 1 ? '1 copy' : `${item.quantity} copies`;
+  const condition = item.condition ? ITEM_CONDITION_LABELS[item.condition] : null;
+  const paid =
+    item.purchasePriceCents === null ? null : `Paid ${formatCents(item.purchasePriceCents, item.purchaseCurrency)}`;
+  const bought = item.purchasedAt ? `Bought ${formatIsoDate(item.purchasedAt)}` : null;
 
+  return [copies, condition, paid, bought].filter((fact): fact is string => fact !== null).join(' · ');
+}
+
+function ItemTags({ tags }: TagsProps) {
   return (
-    <span className="flex flex-wrap gap-1">
+    <ul className="flex flex-wrap gap-1 pt-0.5" aria-label="Tags">
       {tags.map((tag) => (
-        <Badge key={tag.id} variant="outline">
-          {tag.name}
-        </Badge>
+        <li key={tag.id}>
+          <Badge variant="outline">{tag.name}</Badge>
+        </li>
       ))}
-    </span>
+    </ul>
   );
 }
 
-// One card per collection the funko is in: the copy's facts, its notes, then Edit and Remove (undoable).
-function MembershipCard({ item, isBusy, onRemove }: CardProps) {
-  const facts: Fact[] = [
-    { label: 'Quantity', value: `×${item.quantity}` },
-    { label: 'Condition', value: item.condition ? ITEM_CONDITION_LABELS[item.condition] : NOT_SET },
-    {
-      label: 'Paid',
-      value: item.purchasePriceCents === null ? NOT_SET : formatCents(item.purchasePriceCents, item.purchaseCurrency),
-    },
-    { label: 'Bought', value: item.purchasedAt ? formatIsoDate(item.purchasedAt) : NOT_SET },
-    { label: 'Added', value: formatIsoDate(item.createdAt.slice(0, ISO_DATE_LENGTH)) },
-    { label: 'Tags', value: <TagBadges tags={item.tags} /> },
-  ];
-
+// Remove (undoable from the toast) and Edit, as icons with their names in tooltips.
+function MembershipActions({ item, isBusy, onRemove }: RowProps) {
   return (
-    <li>
-      <Card size="sm" className={cn('h-full', isBusy && 'opacity-60')}>
-        <CardHeader>
-          <CardTitle>{item.collection.name}</CardTitle>
-          <CardDescription>
-            {item.quantity === 1 ? 'One copy in this collection' : `${item.quantity} copies in this collection`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm @md:grid-cols-3">
-            {facts.map(({ label, value }) => (
-              <div key={label} className="flex min-w-0 flex-col gap-0.5">
-                <dt className="text-xs text-muted-foreground">{label}</dt>
-                <dd className={cn('tabular-nums', typeof value === 'string' && 'truncate')}>{value}</dd>
-              </div>
-            ))}
-            {item.notes ? (
-              <div className="col-span-full flex flex-col gap-0.5">
-                <dt className="text-xs text-muted-foreground">Notes</dt>
-                <dd>{item.notes}</dd>
-              </div>
-            ) : null}
-          </dl>
-        </CardContent>
-        <CardFooter className="justify-end gap-2">
-          <Button variant="outline" size="sm" disabled={isBusy} onClick={() => onRemove(item)}>
-            {isBusy ? <Spinner data-icon="inline-start" /> : <Trash2 data-icon="inline-start" aria-hidden="true" />}
-            Remove from {item.collection.name}
-          </Button>
-          <LinkButton
-            to={COLLECTION_ROUTES_PATHS.editItem(String(item.collection.id), String(item.id))}
-            variant="outline"
-            size="sm"
-          >
-            <Pencil data-icon="inline-start" aria-hidden="true" />
-            Edit
-          </LinkButton>
-        </CardFooter>
-      </Card>
+    <div className="flex shrink-0 items-center gap-1">
+      <IconButton
+        aria-label={`Remove from ${item.collection.name}`}
+        variant="ghost"
+        size="sm"
+        className={ROUND_CLASS}
+        disabled={isBusy}
+        disabledReason={DISABLED_REASONS.WORKING}
+        onClick={() => onRemove(item)}
+      >
+        {isBusy ? <Spinner /> : <Trash2 aria-hidden="true" />}
+      </IconButton>
+      <IconButton
+        aria-label={`Edit in ${item.collection.name}`}
+        variant="ghost"
+        size="sm"
+        className={ROUND_CLASS}
+        render={<Link to={COLLECTION_ROUTES_PATHS.editItem(String(item.collection.id), String(item.id))} />}
+        nativeButton={false}
+        // Base UI would announce it as a button; it navigates, so it is a link (as LinkButton does).
+        role="link"
+      >
+        <Pencil aria-hidden="true" />
+      </IconButton>
+    </div>
+  );
+}
+
+// One collection the funko is in: its name and actions, then one line of facts, then tags and notes when set.
+function MembershipRow({ item, isBusy, onRemove }: RowProps) {
+  return (
+    <li className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="truncate font-medium">{item.collection.name}</h3>
+        <MembershipActions item={item} isBusy={isBusy} onRemove={onRemove} />
+      </div>
+      <p className="text-sm text-muted-foreground tabular-nums">{factsLine(item)}</p>
+      {item.tags.length > 0 ? <ItemTags tags={item.tags} /> : null}
+      {item.notes ? <p className="text-sm">{item.notes}</p> : null}
     </li>
   );
 }
 
-// The collections this funko sits in, one card each under one heading; removal is undoable from the toast.
+// The collections this funko sits in: one tile, a compact row per collection divided by hairlines. Removal is
+// undoable from the toast.
 function FunkoMemberships({ items }: Props) {
   const { busyItemId, remove } = useItemActions();
 
   return (
-    <section aria-labelledby="memberships-heading" className="flex flex-col gap-3">
+    <section aria-labelledby="memberships-heading" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
       <h2 id="memberships-heading" className="text-lg font-semibold">
         Collections
       </h2>
       {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-          Not in any collection yet. Use the buttons above to add it.
-        </p>
+        <p className="text-sm text-muted-foreground">Not in any collection yet. Use the icons by the name to add it.</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col divide-y">
           {items.map((item) => (
-            <MembershipCard key={item.id} item={item} isBusy={busyItemId === item.id} onRemove={remove} />
+            <MembershipRow key={item.id} item={item} isBusy={busyItemId === item.id} onRemove={remove} />
           ))}
         </ul>
       )}

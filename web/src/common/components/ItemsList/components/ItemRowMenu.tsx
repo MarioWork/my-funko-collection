@@ -13,6 +13,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
+import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 
 type Props = {
   item: CollectionItemApiModel;
@@ -21,16 +22,26 @@ type Props = {
   isBusy: boolean;
   onMove: (toCollectionId: number) => void;
   onRemove: () => void;
+  // Over a grid card's photo: a filled, smaller trigger so it stays visible on any picture.
+  isOnPhoto?: boolean;
 };
 
 // Edit (sheet), move (submenu of the other collections), remove (undo toast, no dialog).
-function ItemRowMenu({ item, collections, editPath, isBusy, onMove, onRemove }: Props) {
+function ItemRowMenu({ item, collections, editPath, isBusy, onMove, onRemove, isOnPhoto = false }: Props) {
   const otherCollections = collections.filter((collection) => collection.id !== item.collection.id);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<IconButton aria-label={`Actions for ${item.funko.name}`} variant="ghost" disabled={isBusy} />}
+        render={
+          <IconButton
+            aria-label={`Actions for ${item.funko.name}`}
+            variant={isOnPhoto ? 'secondary' : 'ghost'}
+            size={isOnPhoto ? 'sm' : 'md'}
+            disabled={isBusy}
+            disabledReason={DISABLED_REASONS.WORKING}
+          />
+        }
       >
         <MoreHorizontal aria-hidden="true" />
       </DropdownMenuTrigger>
@@ -60,7 +71,7 @@ function ItemRowMenu({ item, collections, editPath, isBusy, onMove, onRemove }: 
         <DropdownMenuGroup>
           <DropdownMenuItem variant="destructive" onClick={onRemove}>
             <Trash2 aria-hidden="true" />
-            Remove from {item.collection.name}
+            Remove
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

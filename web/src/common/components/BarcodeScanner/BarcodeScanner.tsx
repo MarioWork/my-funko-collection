@@ -1,11 +1,13 @@
 import { Flashlight, FlashlightOff, Keyboard } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import DisabledReason from '@components/DisabledReason';
 import InlineAlert from '@components/InlineAlert';
 import { Button } from '@components/ui/button';
 import { Input } from '@components/ui/input';
 import { Spinner } from '@components/ui/spinner';
 import { normaliseBarcode } from '@utils/barcodeUtils';
 import { cn } from '@utils/classNameUtils';
+import { reasonWhen } from '@utils/disabledReasonUtils';
 import { ScannerStateUtil, useBarcodeScanner } from './hooks/useBarcodeScanner';
 
 type Props = {
@@ -29,6 +31,7 @@ const STATE_MESSAGES: Partial<Record<ScannerStateUtil, string>> = {
 function BarcodeScanner({ isActive, onDetected, className }: Props) {
   const { videoRef, state, hasTorch, isTorchOn, toggleTorch } = useBarcodeScanner({ isActive, onDetected });
   const [manualCode, setManualCode] = useState('');
+  const isCodeEmpty = manualCode.trim().length === 0;
   const message = STATE_MESSAGES[state];
   const isScanning = state === ScannerStateUtil.SCANNING;
 
@@ -91,10 +94,12 @@ function BarcodeScanner({ isActive, onDetected, className }: Props) {
             onChange={(event) => setManualCode(event.target.value)}
           />
         </div>
-        <Button type="submit" variant="outline" disabled={manualCode.trim().length === 0}>
-          <Keyboard data-icon="inline-start" aria-hidden="true" />
-          Use code
-        </Button>
+        <DisabledReason reason={reasonWhen(isCodeEmpty, 'Type the barcode first.')}>
+          <Button type="submit" variant="outline" disabled={isCodeEmpty}>
+            <Keyboard data-icon="inline-start" aria-hidden="true" />
+            Use code
+          </Button>
+        </DisabledReason>
       </form>
     </div>
   );

@@ -4,72 +4,38 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* The five brand ramps, exact values. Components never use them directly except for charts and one-off tints;
+/* The two ramps: warm grey for almost everything, one teal accent from the logo. Components never use them directly except for charts and one-off tints;
    everything else goes through the semantic tokens below. */
 @theme {
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
   --font-heading: var(--font-sans);
 
-  --color-icy-blue-50: #e8f4fc;
-  --color-icy-blue-100: #d1e9fa;
-  --color-icy-blue-200: #a3d3f5;
-  --color-icy-blue-300: #75bdf0;
-  --color-icy-blue-400: #47a7eb;
-  --color-icy-blue-500: #1991e6;
-  --color-icy-blue-600: #1474b8;
-  --color-icy-blue-700: #0f578a;
-  --color-icy-blue-800: #0a3a5c;
-  --color-icy-blue-900: #051d2e;
-  --color-icy-blue-950: #041420;
+  /* Stone: warm greys for every surface, border and text. Tailwind's own stone values. */
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --color-stone-200: #e7e5e4;
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
+  --color-stone-950: #0c0a09;
 
-  --color-baby-blue-ice-50: #e5f1ff;
-  --color-baby-blue-ice-100: #cce4ff;
-  --color-baby-blue-ice-200: #99c9ff;
-  --color-baby-blue-ice-300: #66adff;
-  --color-baby-blue-ice-400: #3392ff;
-  --color-baby-blue-ice-500: #0077ff;
-  --color-baby-blue-ice-600: #005fcc;
-  --color-baby-blue-ice-700: #004799;
-  --color-baby-blue-ice-800: #003066;
-  --color-baby-blue-ice-900: #001833;
-  --color-baby-blue-ice-950: #001124;
-
-  --color-blue-energy-50: #e6f0ff;
-  --color-blue-energy-100: #cde1fe;
-  --color-blue-energy-200: #9bc4fd;
-  --color-blue-energy-300: #68a6fd;
-  --color-blue-energy-400: #3689fc;
-  --color-blue-energy-500: #046bfb;
-  --color-blue-energy-600: #0356c9;
-  --color-blue-energy-700: #024097;
-  --color-blue-energy-800: #022b64;
-  --color-blue-energy-900: #011532;
-  --color-blue-energy-950: #010f23;
-
-  --color-electric-sapphire-50: #e5edff;
-  --color-electric-sapphire-100: #ccdbff;
-  --color-electric-sapphire-200: #99b8ff;
-  --color-electric-sapphire-300: #6694ff;
-  --color-electric-sapphire-400: #3370ff;
-  --color-electric-sapphire-500: #004cff;
-  --color-electric-sapphire-600: #003dcc;
-  --color-electric-sapphire-700: #002e99;
-  --color-electric-sapphire-800: #001f66;
-  --color-electric-sapphire-900: #000f33;
-  --color-electric-sapphire-950: #000b24;
-
-  --color-ultrasonic-blue-50: #eceafb;
-  --color-ultrasonic-blue-100: #d8d4f7;
-  --color-ultrasonic-blue-200: #b2aaee;
-  --color-ultrasonic-blue-300: #8b7fe6;
-  --color-ultrasonic-blue-400: #6555dd;
-  --color-ultrasonic-blue-500: #3e2ad5;
-  --color-ultrasonic-blue-600: #3222aa;
-  --color-ultrasonic-blue-700: #251980;
-  --color-ultrasonic-blue-800: #191155;
-  --color-ultrasonic-blue-900: #0c082b;
-  --color-ultrasonic-blue-950: #09061e;
+  /* Teal: the one accent, for buttons, links, focus and selection. 700 = "Funko" in the wordmark. */
+  --color-teal-50: #f1fbfd;
+  --color-teal-100: #dff7fb;
+  --color-teal-200: #baedf7;
+  --color-teal-300: #88e0f2;
+  --color-teal-400: #4cd1eb;
+  --color-teal-500: #19c0e1;
+  --color-teal-600: #149cb8;
+  --color-teal-700: #117a8e;
+  --color-teal-800: #0c5e6e;
+  --color-teal-900: #083b45;
+  --color-teal-950: #052329;
 
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
@@ -132,92 +98,96 @@
   color-scheme: light;
   --radius: 0.625rem;
 
-  --background: var(--color-icy-blue-50);
-  --foreground: var(--color-electric-sapphire-950);
+  --background: var(--color-stone-100);
+  --foreground: var(--color-stone-900);
   --card: #ffffff;
   --card-foreground: var(--foreground);
   --popover: #ffffff;
   --popover-foreground: var(--foreground);
-  --primary: var(--color-electric-sapphire-500);
+  --primary: var(--color-teal-700);
   --primary-foreground: #ffffff;
-  --primary-hover: var(--color-electric-sapphire-600);
-  --secondary: var(--color-icy-blue-100);
-  --secondary-foreground: var(--color-icy-blue-900);
-  --muted: var(--color-icy-blue-100);
-  --muted-foreground: var(--color-icy-blue-700);
-  --accent: var(--color-ultrasonic-blue-500);
-  --accent-foreground: #ffffff;
-  --accent-soft: var(--color-ultrasonic-blue-50);
-  --accent-soft-foreground: var(--color-ultrasonic-blue-700);
-  --selected: var(--color-electric-sapphire-50);
-  --selected-foreground: var(--color-electric-sapphire-700);
+  --primary-hover: var(--color-teal-800);
+  --secondary: var(--color-stone-100);
+  --secondary-foreground: var(--color-stone-900);
+  --muted: var(--color-stone-100);
+  --muted-foreground: var(--color-stone-600);
+  /* Lighter than muted text, still 4.80:1 on a card (AA). */
+  --placeholder: var(--color-stone-500);
+  --accent: var(--color-stone-100);
+  --accent-foreground: var(--color-stone-900);
+  --accent-soft: var(--color-teal-50);
+  --accent-soft-foreground: var(--color-teal-800);
+  --selected: var(--color-teal-50);
+  --selected-foreground: var(--color-teal-800);
   --destructive: #c62828;
   --destructive-foreground: #ffffff;
   --success: #1b7f3b;
   --success-foreground: #ffffff;
   --warning: #9a5b00;
   --warning-foreground: #ffffff;
-  --border: var(--color-icy-blue-200);
-  --input: var(--color-icy-blue-500);
-  --ring: var(--color-ultrasonic-blue-500);
-  --chart-1: var(--color-electric-sapphire-500);
-  --chart-2: var(--color-ultrasonic-blue-400);
-  --chart-3: var(--color-blue-energy-500);
-  --chart-4: var(--color-icy-blue-500);
-  --chart-5: var(--color-baby-blue-ice-500);
+  --border: var(--color-stone-200);
+  --input: var(--color-stone-500);
+  --ring: var(--color-teal-700);
+  --chart-1: var(--color-teal-700);
+  --chart-2: var(--color-teal-500);
+  --chart-3: var(--color-stone-500);
+  --chart-4: var(--color-teal-300);
+  --chart-5: var(--color-stone-300);
   --sidebar: #ffffff;
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--color-icy-blue-100);
-  --sidebar-accent-foreground: var(--color-icy-blue-900);
+  --sidebar-accent: var(--color-stone-100);
+  --sidebar-accent-foreground: var(--color-stone-900);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 }
 
-/* Dark: lighter surfaces mean elevation, hairline borders separate them, and sapphire 500 never carries text. */
+/* Dark: lighter surfaces mean elevation, hairline borders separate them; the teal goes light with dark text on it. */
 .dark {
   color-scheme: dark;
 
-  --background: var(--color-icy-blue-950);
-  --foreground: var(--color-icy-blue-50);
-  --card: var(--color-icy-blue-900);
+  --background: var(--color-stone-950);
+  --foreground: var(--color-stone-50);
+  --card: var(--color-stone-900);
   --card-foreground: var(--foreground);
-  --popover: var(--color-icy-blue-800);
+  --popover: var(--color-stone-800);
   --popover-foreground: var(--foreground);
-  --primary: var(--color-electric-sapphire-300);
-  --primary-foreground: var(--color-electric-sapphire-950);
-  --primary-hover: var(--color-electric-sapphire-200);
-  --secondary: var(--color-icy-blue-800);
-  --secondary-foreground: var(--color-icy-blue-100);
-  --muted: var(--color-icy-blue-800);
-  --muted-foreground: var(--color-icy-blue-300);
-  --accent: var(--color-ultrasonic-blue-300);
-  --accent-foreground: var(--color-icy-blue-950);
-  --accent-soft: var(--color-ultrasonic-blue-800);
-  --accent-soft-foreground: var(--color-ultrasonic-blue-300);
-  --selected: var(--color-electric-sapphire-800);
-  --selected-foreground: var(--color-electric-sapphire-200);
+  --primary: var(--color-teal-400);
+  --primary-foreground: var(--color-stone-950);
+  --primary-hover: var(--color-teal-300);
+  --secondary: var(--color-stone-800);
+  --secondary-foreground: var(--color-stone-100);
+  --muted: var(--color-stone-800);
+  --muted-foreground: var(--color-stone-400);
+  /* Same as muted text: any dimmer stone fails AA on a card (stone-500 is 3.65:1). */
+  --placeholder: var(--color-stone-400);
+  --accent: var(--color-stone-800);
+  --accent-foreground: var(--color-stone-50);
+  --accent-soft: var(--color-stone-800);
+  --accent-soft-foreground: var(--color-teal-300);
+  --selected: var(--color-teal-900);
+  --selected-foreground: var(--color-teal-200);
   --destructive: #ef6a6a;
-  --destructive-foreground: var(--color-icy-blue-950);
+  --destructive-foreground: var(--color-stone-950);
   --success: #5fcf84;
-  --success-foreground: var(--color-icy-blue-950);
+  --success-foreground: var(--color-stone-950);
   --warning: #f0b35b;
-  --warning-foreground: var(--color-icy-blue-950);
-  --border: var(--color-icy-blue-800);
-  --input: var(--color-icy-blue-500);
-  --ring: var(--color-ultrasonic-blue-300);
-  --chart-1: var(--color-electric-sapphire-300);
-  --chart-2: var(--color-ultrasonic-blue-300);
-  --chart-3: var(--color-blue-energy-300);
-  --chart-4: var(--color-icy-blue-400);
-  --chart-5: var(--color-baby-blue-ice-300);
-  --sidebar: var(--color-icy-blue-900);
+  --warning-foreground: var(--color-stone-950);
+  --border: var(--color-stone-800);
+  --input: var(--color-stone-500);
+  --ring: var(--color-teal-400);
+  --chart-1: var(--color-teal-400);
+  --chart-2: var(--color-teal-600);
+  --chart-3: var(--color-stone-400);
+  --chart-4: var(--color-teal-200);
+  --chart-5: var(--color-stone-600);
+  --sidebar: var(--color-stone-900);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--color-icy-blue-800);
-  --sidebar-accent-foreground: var(--color-icy-blue-100);
+  --sidebar-accent: var(--color-stone-800);
+  --sidebar-accent-foreground: var(--color-stone-100);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 }
@@ -244,10 +214,25 @@
   }
 }
 
+/* A button kept focusable while disabled (DisabledReason, so its tooltip can say why) is not :disabled, so the
+   vendored disabled: styles miss it; give it the same dimmed look here. Matched by role, not data-slot: the tooltip
+   trigger renames the slot. :is() also outranks the pointer-cursor rule below. */
+@layer base {
+  :is(button, a, [role='button'])[aria-disabled='true'] {
+    @apply cursor-not-allowed opacity-50;
+  }
+}
+
 /* Tailwind 4 and shadcn leave buttons with the default arrow; a hand on anything clickable reads as clickable. */
 @layer base {
   button:not(:disabled),
   [role='button']:not([aria-disabled='true']) {
     cursor: pointer;
   }
+}
+
+/* Placeholders get their own, lighter token. Unlayered on purpose: it has to win over the vendored inputs'
+   placeholder:text-muted-foreground utility without editing src/common/components/ui. */
+::placeholder {
+  color: var(--placeholder);
 }

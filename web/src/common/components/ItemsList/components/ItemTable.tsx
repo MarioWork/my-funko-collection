@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatIsoDate } from '@utils/dateUtils';
 import { formatCents } from '@utils/moneyUtils';
 import ItemRowMenu from './ItemRowMenu';
+import { funkosInCategoryPath } from '@utils/funkoLinkUtils';
+import { TABLE_HEADER_ROW_CLASS } from '@utils/tableUtils';
 
 type ItemActions = {
   busyItemId: number | undefined;
@@ -87,6 +89,11 @@ const numberColumn = columnHelper.accessor((item) => item.funko.number, {
 const categoryColumn = columnHelper.accessor((item) => item.funko.category.name, {
   id: 'category',
   header: 'Category',
+  cell: ({ row, getValue }) => (
+    <Link to={funkosInCategoryPath(row.original.funko.category.id)} className="underline-offset-4 hover:underline">
+      {getValue()}
+    </Link>
+  ),
 });
 
 const quantityColumn = columnHelper.accessor('quantity', {
@@ -167,7 +174,7 @@ function ItemTable({ items, collections, showCollection, busyItemId, onMove, onR
       <Table>
         <TableHeader className="sticky top-0 bg-card">
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
+            <TableRow key={headerGroup.id} className={TABLE_HEADER_ROW_CLASS}>
               {headerGroup.headers.map((header) => (
                 <TableHead key={header.id}>
                   {header.isPlaceholder ? null : <table.FlexRender header={header} />}

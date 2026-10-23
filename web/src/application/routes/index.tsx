@@ -1,7 +1,7 @@
 import { Navigate, type RouteObject } from 'react-router';
 import AppShell from '@application/layout/AppShell';
 import RouteError from '@pages/Error/RouteError';
-import { addRoutes } from './featureRoutes/addRoutes';
+import { addRoutes, nestedAddRoutes } from './featureRoutes/addRoutes';
 import { categoryRoutes } from './featureRoutes/categoryRoutes';
 import { collectionRoutes } from './featureRoutes/collectionRoutes';
 import { funkoRoutes } from './featureRoutes/funkoRoutes';
@@ -27,6 +27,7 @@ const routes: RouteObject[] = [
       {
         path: BASE_ROUTES_PATHS.HOME,
         lazy: () => import('@pages/Home/Home.route'),
+        children: nestedAddRoutes,
       },
       {
         path: BASE_ROUTES_PATHS.SEARCH,

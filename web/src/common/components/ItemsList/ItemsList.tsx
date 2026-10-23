@@ -1,16 +1,22 @@
 import { PackageOpen } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import type { CategoryApiModel, CollectionApiModel, CollectionItemApiModel, TagApiModel } from '@app-types/models';
 import type { ResponseWithPaginationUtil, SortingDirectionUtil } from '@app-types/utility';
 import EmptyState from '@components/EmptyState';
+import FunkoGrid from '@components/FunkoGrid';
 import ListPagination from '@components/ListPagination';
+import PageHeader from '@components/PageHeader';
 import { useItemActions } from '@hooks/useItemActions';
+import { useLayoutPreference } from '@hooks/useLayoutPreference';
 import { useIsDesktop } from '@hooks/useMediaQuery';
 import ItemCard from './components/ItemCard';
+import ItemGridCard from './components/ItemGridCard';
 import ItemTable from './components/ItemTable';
 import ItemsToolbar from './components/ItemsToolbar';
 
 type Props = {
+  // The page's title, back link and actions; the toolbar (search, sort, filters, layout) goes inside that tile.
+  header: Omit<ComponentProps<typeof PageHeader>, 'children'>;
   itemsResponse: ResponseWithPaginationUtil<CollectionItemApiModel>;
   page: number;
   pageSize: number;
@@ -24,8 +30,12 @@ type Props = {
   emptyAction?: ReactNode;
 };
 
-// Toolbar, then a table from `lg` or cards below it, then the pager. Used by a collection's page and /items.
+const ITEMS_LAYOUT_STORAGE_KEY = 'items.layout';
+
+// The page header with the toolbar in it, then one tile with the items as a large or small grid (the default is the large one) or as a list (a table from `lg`,
+// rows below it) and the pager. Used by a collection's page and /items.
 function ItemsList({
+  header,
   itemsResponse,
   page,
   pageSize,
@@ -40,49 +50,72 @@ function ItemsList({
 }: Props) {
   const isDesktop = useIsDesktop();
   const { busyItemId, move, remove } = useItemActions();
+  const { layout, density, setLayout } = useLayoutPreference(ITEMS_LAYOUT_STORAGE_KEY);
   const hasItems = itemsResponse.data.length > 0;
+  const isList = density === null;
 
   return (
     <div className="flex flex-col gap-4">
-      <ItemsToolbar
-        categories={categories}
-        tags={tags}
-        collections={collections}
-        hasCollectionFilter={hasCollectionFilter}
-        resultCount={itemsResponse.totalResultNumber}
-        sort={sort}
-      />
-      {!hasItems ? (
-        <EmptyState icon={PackageOpen} title={emptyTitle} description={emptyDescription}>
-          {emptyAction}
-        </EmptyState>
-      ) : null}
-      {hasItems && isDesktop ? (
-        <ItemTable
-          items={itemsResponse.data}
+      <PageHeader {...header}>
+        <ItemsToolbar
+          categories={categories}
+          tags={tags}
           collections={collections}
-          showCollection={hasCollectionFilter}
-          busyItemId={busyItemId}
-          onMove={move}
-          onRemove={remove}
+          hasCollectionFilter={hasCollectionFilter}
+          resultCount={itemsResponse.totalResultNumber}
+          sort={sort}
+          layout={layout}
+          onLayoutChange={setLayout}
         />
-      ) : null}
-      {hasItems && !isDesktop ? (
-        <ul className="flex flex-col gap-2">
-          {itemsResponse.data.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              collections={collections}
-              showCollection={hasCollectionFilter}
-              isBusy={busyItemId === item.id}
-              onMove={move}
-              onRemove={remove}
-            />
-          ))}
-        </ul>
-      ) : null}
-      <ListPagination page={page} size={pageSize} total={itemsResponse.totalResultNumber} />
+      </PageHeader>
+      <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+        {!hasItems ? (
+          <EmptyState icon={PackageOpen} title={emptyTitle} description={emptyDescription}>
+            {emptyAction}
+          </EmptyState>
+        ) : null}
+        {hasItems && density ? (
+          <FunkoGrid label="Items" density={density}>
+            {itemsResponse.data.map((item) => (
+              <ItemGridCard
+                key={item.id}
+                item={item}
+                collections={collections}
+                density={density}
+                isBusy={busyItemId === item.id}
+                onMove={move}
+                onRemove={remove}
+              />
+            ))}
+          </FunkoGrid>
+        ) : null}
+        {hasItems && isList && isDesktop ? (
+          <ItemTable
+            items={itemsResponse.data}
+            collections={collections}
+            showCollection={hasCollectionFilter}
+            busyItemId={busyItemId}
+            onMove={move}
+            onRemove={remove}
+          />
+        ) : null}
+        {hasItems && isList && !isDesktop ? (
+          <ul className="flex flex-col gap-2">
+            {itemsResponse.data.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                collections={collections}
+                showCollection={hasCollectionFilter}
+                isBusy={busyItemId === item.id}
+                onMove={move}
+                onRemove={remove}
+              />
+            ))}
+          </ul>
+        ) : null}
+        <ListPagination page={page} size={pageSize} total={itemsResponse.totalResultNumber} />
+      </div>
     </div>
   );
 }

@@ -15,33 +15,55 @@ type Options = {
   tags: NamedApiModel[];
 };
 
-// The destination chosen once and kept: a collection (or just the catalog), tags, and the last category used.
+function knownCollectionIds(storedCollections: string, collections: CollectionApiModel[]): number[] {
+  if (storedCollections === CATALOG_ONLY_VALUE) return [];
+
+  const known = parseStoredIds(storedCollections).filter((collectionId) =>
+    collections.some((collection) => collection.id === collectionId),
+  );
+
+  if (known.length > 0) return known;
+
+  // Nothing stored yet, or every stored list was deleted: start from the default collection.
+  const fallback = defaultCollectionId(collections);
+
+  return fallback === undefined ? [] : [fallback];
+}
+
+// The destination chosen once and kept: collections (none = just the catalog), tags, and the last category used.
 // Shared by Add and Settings.
 export function useAddDestination({ collections, tags }: Options) {
-  const [storedCollection, setStoredCollection] = useLocalStorage<string>(ADD_COLLECTION_STORAGE_KEY, '');
+  const [storedCollections, setStoredCollections] = useLocalStorage<string>(ADD_COLLECTION_STORAGE_KEY, '');
   const [storedTags, setStoredTags] = useLocalStorage<string>(ADD_TAGS_STORAGE_KEY, '');
   const [storedCategory, setStoredCategory] = useLocalStorage<string>(ADD_CATEGORY_STORAGE_KEY, '');
 
-  const isCatalogOnly = storedCollection === CATALOG_ONLY_VALUE;
-  const isStoredKnown = collections.some((collection) => String(collection.id) === storedCollection);
-  const chosenCollectionId = isStoredKnown ? Number(storedCollection) : defaultCollectionId(collections);
-  const collectionId = isCatalogOnly ? null : (chosenCollectionId ?? null);
+  const collectionIds = knownCollectionIds(storedCollections, collections);
+  const isCatalogOnly = collectionIds.length === 0;
   // Tags belong to items, so "just the catalog" carries none.
   const tagIds = isCatalogOnly
     ? []
     : parseStoredIds(storedTags).filter((tagId) => tags.some((tag) => tag.id === tagId));
   const selectedTags = tags.filter((tag) => tagIds.includes(tag.id));
-  const collection = collections.find((candidate) => candidate.id === collectionId);
-  const destination: AddDestination = { collectionId, tagIds };
+  const selectedCollections = collections.filter((collection) => collectionIds.includes(collection.id));
+  const destination: AddDestination = { collectionIds, tagIds };
+
+  const setCollectionIds = (ids: number[]) =>
+    setStoredCollections(ids.length === 0 ? CATALOG_ONLY_VALUE : ids.join(','));
+
+  const setTagIds = (ids: number[]) => setStoredTags(ids.join(','));
 
   return {
     destination,
-    collection,
+    selectedCollections,
     selectedTags,
     lastCategoryId: storedCategory,
     isCatalogOnly,
-    setCollectionId: (id: number | null) => setStoredCollection(id === null ? CATALOG_ONLY_VALUE : String(id)),
-    setTags: (next: NamedApiModel[]) => setStoredTags(next.map((tag) => tag.id).join(',')),
+    setCollectionIds,
+    setTags: (next: NamedApiModel[]) => setTagIds(next.map((tag) => tag.id)),
+    remember: ({ collectionIds: nextCollectionIds, tagIds: nextTagIds }: AddDestination) => {
+      setCollectionIds(nextCollectionIds);
+      setTagIds(nextTagIds);
+    },
     rememberCategory: (id: string) => setStoredCategory(id),
   };
 }

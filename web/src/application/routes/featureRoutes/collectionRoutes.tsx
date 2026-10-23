@@ -16,10 +16,6 @@ export const collectionRoutes: RouteObject[] = [
       // The edit dialog is reachable from the list and from the collection's own page.
       { path: COLLECTION_ROUTES_PATHS.edit(), lazy: collectionDialog },
       {
-        path: COLLECTION_ROUTES_PATHS.addItem(),
-        lazy: () => import('@pages/CollectionDetail/components/AddItemDialog/AddItemDialog.route'),
-      },
-      {
         path: COLLECTION_ROUTES_PATHS.editItem(),
         lazy: () => import('@pages/CollectionDetail/components/EditItemSheet/EditItemSheet.route'),
       },
@@ -34,6 +30,10 @@ export const collectionRoutes: RouteObject[] = [
     lazy: {
       action: async () => (await import('@pages/CollectionList/collectionListActions')).setDefaultCollectionAction,
     },
+  },
+  {
+    path: COLLECTION_ROUTES_PATHS.restoreItem(),
+    lazy: { action: async () => (await import('@pages/CollectionDetail/collectionDetailActions')).restoreItemAction },
   },
   {
     path: COLLECTION_ROUTES_PATHS.moveItem(),

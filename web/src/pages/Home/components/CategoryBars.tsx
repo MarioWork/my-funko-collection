@@ -1,7 +1,6 @@
 import { Link } from 'react-router';
 import type { CategoryStatsApiModel } from '@app-types/models';
-import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
+import { funkosInCategoryPath } from '@utils/funkoLinkUtils';
 
 type Props = {
   categories: CategoryStatsApiModel[];
@@ -17,17 +16,14 @@ function CategoryBars({ categories }: Props) {
   const maxCount = Math.max(...sorted.map((category) => category.funkoCount), 1);
 
   return (
-    <section aria-labelledby="categories-heading" className="flex flex-col gap-3">
+    <section aria-labelledby="categories-heading" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
       <h2 id="categories-heading" className="text-lg font-semibold">
         By category
       </h2>
       <ol className="flex flex-col gap-2">
         {sorted.map((category) => (
           <li key={category.id} className="grid grid-cols-[minmax(7rem,1fr)_3fr_auto] items-center gap-3 text-sm">
-            <Link
-              to={`${FUNKO_ROUTES_PATHS.BASE}?${FunkoApiSearchFields.CATEGORY_ID}=${category.id}`}
-              className="truncate underline-offset-4 hover:underline"
-            >
+            <Link to={funkosInCategoryPath(category.id)} className="truncate underline-offset-4 hover:underline">
               {category.name}
             </Link>
             <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">

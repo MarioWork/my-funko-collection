@@ -19,7 +19,7 @@ export default async function globalSetup() {
     BASE_ROUTES_PATHS.HOME,
     FUNKO_ROUTES_PATHS.BASE,
     ADD_ROUTES_PATHS.MANUAL,
-    COLLECTION_ROUTES_PATHS.addItem(SEED_COLLECTION_ID),
+    COLLECTION_ROUTES_PATHS.detail(SEED_COLLECTION_ID),
   ];
 
   for (const route of routesToWarm) {

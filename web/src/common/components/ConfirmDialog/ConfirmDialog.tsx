@@ -12,6 +12,8 @@ import {
 import { Checkbox } from '@components/ui/checkbox';
 import { Label } from '@components/ui/label';
 import { Spinner } from '@components/ui/spinner';
+import DisabledReason from '@components/DisabledReason';
+import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 
 type Props = {
   isOpen: boolean;
@@ -59,15 +61,19 @@ function ConfirmDialog({
           </div>
         ) : null}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant={isDestructive ? 'destructive' : 'default'}
-            disabled={isPending}
-            onClick={() => onConfirm({ isChecked })}
-          >
-            {isPending ? <Spinner data-icon="inline-start" /> : null}
-            {confirmLabel}
-          </AlertDialogAction>
+          <DisabledReason reason={reasonWhen(isPending, DISABLED_REASONS.WORKING)} mode="wrapper">
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          </DisabledReason>
+          <DisabledReason reason={reasonWhen(isPending, DISABLED_REASONS.WORKING)} mode="wrapper">
+            <AlertDialogAction
+              variant={isDestructive ? 'destructive' : 'default'}
+              disabled={isPending}
+              onClick={() => onConfirm({ isChecked })}
+            >
+              {isPending ? <Spinner data-icon="inline-start" /> : null}
+              {confirmLabel}
+            </AlertDialogAction>
+          </DisabledReason>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

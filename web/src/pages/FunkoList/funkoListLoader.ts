@@ -27,32 +27,42 @@ function readSearchFields(searchParams: URLSearchParams): SearchFields {
   return fields;
 }
 
-// Relevance when there is a query, name otherwise, unless the URL says which sort it wants.
-function resolveSortField(sortParam: string, hasQuery: boolean): FunkoApiSortingFields {
-  if (SORT_FIELDS.has(sortParam)) return sortParam as FunkoApiSortingFields;
+type FunkoSort = { field: FunkoApiSortingFields; direction: SortingDirectionUtil };
 
-  return hasQuery ? FunkoApiSortingFields.RELEVANCE : FunkoApiSortingFields.NAME;
-}
+const SEARCH_DEFAULT_SORT: FunkoSort = { field: FunkoApiSortingFields.RELEVANCE, direction: SortingDirectionUtil.ASC };
+const BROWSE_DEFAULT_SORT: FunkoSort = {
+  field: FunkoApiSortingFields.CREATION_DATE,
+  direction: SortingDirectionUtil.DESC,
+};
 
-function resolveDirection(directionParam: string): SortingDirectionUtil {
-  return DIRECTIONS.has(directionParam) ? (directionParam as SortingDirectionUtil) : SortingDirectionUtil.ASC;
+// Best match when there is a query, newest first otherwise, unless the URL says which sort it wants.
+function resolveSort(sortParam: string, directionParam: string, hasQuery: boolean): FunkoSort {
+  const defaultSort = hasQuery ? SEARCH_DEFAULT_SORT : BROWSE_DEFAULT_SORT;
+
+  if (!SORT_FIELDS.has(sortParam)) return defaultSort;
+
+  const direction = DIRECTIONS.has(directionParam)
+    ? (directionParam as SortingDirectionUtil)
+    : SortingDirectionUtil.ASC;
+
+  return { field: sortParam as FunkoApiSortingFields, direction };
 }
 
 // Reads the list state from the URL and loads the page plus the options the filter panel offers.
 export async function loader({ request }: LoaderFunctionArgs) {
   const searchParams = new URL(request.url).searchParams;
   const searchFields = readSearchFields(searchParams);
-  const sortingField = resolveSortField(
+  const sort = resolveSort(
     searchParams.get(ApiUrlParamsUtil.sorting_fields) ?? '',
+    searchParams.get(ApiUrlParamsUtil.sortingDirection) ?? '',
     Boolean(searchFields[FunkoApiSearchFields.QUERY]),
   );
-  const direction = resolveDirection(searchParams.get(ApiUrlParamsUtil.sortingDirection) ?? '');
   const page = searchParams.get(ApiUrlParamsUtil.page) ?? DEFAULT_FIRST_PAGE;
 
   const fields: GetFunkosFields = {
     pagination: { page, size: FUNKO_PAGE_SIZE },
-    sortingField,
-    direction,
+    sortingField: sort.field,
+    direction: sort.direction,
     ...searchFields,
   };
   const optionsPagination = { page: DEFAULT_FIRST_PAGE, size: FILTER_OPTIONS_PAGE_SIZE };
@@ -69,7 +79,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     categories: categoriesResponse.data,
     collections: collectionsResponse.data,
     tags: tagsResponse.data,
-    sort: { field: sortingField, direction },
+    sort,
     page: Number(page),
     pageSize: Number(FUNKO_PAGE_SIZE),
   };

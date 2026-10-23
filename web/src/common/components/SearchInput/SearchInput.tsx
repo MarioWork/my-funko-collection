@@ -49,6 +49,8 @@ function SearchInput({ value, onChange, placeholder = 'Search…', label, classN
           if (event.key === 'Enter') onChange(draft);
         }}
         enterKeyHint="search"
+        // type="search" brings the browser's own clear button; the Clear search button below replaces it.
+        className="[&::-webkit-search-cancel-button]:appearance-none"
       />
       {draft ? (
         <InputGroupAddon align="inline-end">

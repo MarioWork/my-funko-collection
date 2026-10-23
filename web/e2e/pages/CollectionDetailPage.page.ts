@@ -2,12 +2,14 @@ import type { Locator, Page } from '@playwright/test';
 import { COLLECTION_ROUTES_PATHS } from '../../src/application/routes/routesUtils';
 
 export class CollectionDetailPage {
+  readonly main: Locator;
   readonly rows: Locator;
 
   private readonly page: Page;
 
   constructor(page: Page) {
     this.page = page;
+    this.main = page.getByRole('main');
     this.rows = page.getByRole('table').getByRole('row');
   }
 
@@ -15,29 +17,30 @@ export class CollectionDetailPage {
     await this.page.goto(COLLECTION_ROUTES_PATHS.detail(collectionId));
   }
 
-  async openAddItem() {
-    await this.page.getByRole('link', { name: 'Add item' }).click();
-  }
-
-  async pickFunko(typed: string, optionName: string | RegExp) {
-    const dialog = this.page.getByRole('dialog');
-
-    await dialog.getByRole('combobox', { name: 'Funko' }).fill(typed);
-    await this.page.getByRole('option', { name: optionName }).first().click();
-  }
-
-  async addTag(name: string) {
-    const dialog = this.page.getByRole('dialog');
-
-    await dialog.getByRole('combobox', { name: 'Tags' }).fill(name);
-    await this.page.getByRole('option', { name }).click();
-  }
-
-  async submitAddItem() {
-    await this.page.getByRole('dialog').getByRole('button', { name: 'Add', exact: true }).click();
+  // Items open in the large grid; the list (a table on desktop) shows each item's tags and details.
+  async showAsList() {
+    await this.page.getByRole('group', { name: 'Layout' }).getByRole('button', { name: 'List', exact: true }).click();
   }
 
   rowFor(funkoName: string) {
     return this.rows.filter({ hasText: funkoName });
+  }
+
+  // Anything on the page that would add a funko or an item here: a link or button named Add / Scan / Pick.
+  addControls() {
+    return this.main
+      .getByRole('link', { name: /^(Add|Scan|Pick)/ })
+      .or(this.main.getByRole('button', { name: /^Add/ }));
+  }
+
+  async removeItem(funkoName: string) {
+    await this.rowFor(funkoName)
+      .getByRole('button', { name: `Actions for ${funkoName}` })
+      .click();
+    await this.page.getByRole('menuitem', { name: 'Remove', exact: true }).click();
+  }
+
+  async undo() {
+    await this.page.getByRole('region', { name: 'Notifications' }).getByRole('button', { name: 'Undo' }).click();
   }
 }

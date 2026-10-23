@@ -1,16 +1,11 @@
-import { number, object, string, type InferType } from 'yup';
+import { array, number, object } from 'yup';
 import type { FunkoApiModel } from '@app-types/models';
-import { FunkoTypeUtil } from '@app-types/utility';
-import type { CreateFunko } from '@services/funkoService/funkoService.type';
-import { funkoBarcodeSchema, funkoNameSchema, funkoNumberSchema, funkoTypeSchema } from '@utils/funkoUtils';
-import { itemQuantitySchema } from '@utils/itemUtils';
 
 export const AddStepUtil = {
   SCAN: 'scan',
   FOUND: 'found',
-  QUICK: 'quick',
-  DETAILS: 'details',
-  ADDED: 'added',
+  FORM: 'form',
+  SAVED: 'saved',
 } as const;
 export type AddStepUtil = (typeof AddStepUtil)[keyof typeof AddStepUtil];
 
@@ -23,39 +18,21 @@ export type AddIntentUtil = (typeof AddIntentUtil)[keyof typeof AddIntentUtil];
 export type ScanResult =
   { kind: 'found'; barcode: string; funko: FunkoApiModel } | { kind: 'not-found'; barcode: string };
 
-// The quick card after a scan: the few things a box tells you, plus how many you hold.
-export const quickAddSchema = object({
-  name: funkoNameSchema,
-  number: funkoNumberSchema,
-  type: funkoTypeSchema,
-  categoryId: string().required('Category is required'),
-  quantity: itemQuantitySchema,
-  barcode: funkoBarcodeSchema,
-});
+// What the saved card shows: the funko as it is now (photos, lists), plus any step that did not go through.
+export type AddResult = {
+  funko: FunkoApiModel;
+  warnings: string[];
+};
 
-export type QuickAddValues = InferType<typeof quickAddSchema>;
+const idListSchema = array().of(number().integer().positive().required()).required();
 
-export const getQuickAddValues = (overrides: Partial<QuickAddValues> = {}): QuickAddValues => ({
-  name: '',
-  number: '',
-  type: FunkoTypeUtil.POP,
-  categoryId: '',
-  quantity: 1,
-  barcode: '',
-  ...overrides,
-});
-
-export const toQuickFunkoPayload = (values: QuickAddValues): CreateFunko => ({
-  name: values.name,
-  number: values.number,
-  type: values.type,
-  categoryId: Number(values.categoryId),
-  isChase: false,
-  exclusive: '',
-  barcode: values.barcode ? values.barcode : null,
+export const destinationSchema = object({
+  collectionIds: idListSchema,
+  tagIds: idListSchema,
 });
 
 export const incrementSchema = object({
   funkoId: number().integer().positive().required(),
-  collectionId: number().integer().positive().required(),
+  collectionIds: idListSchema.min(1),
+  tagIds: idListSchema,
 });

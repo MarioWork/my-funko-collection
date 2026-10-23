@@ -7,6 +7,8 @@ import { Field, FieldDescription, FieldLabel } from '@components/ui/field';
 import { NativeSelect, NativeSelectOption } from '@components/ui/native-select';
 import { useActionToast } from '@hooks/useActionToast';
 import SettingsSection from './SettingsSection';
+import DisabledReason from '@components/DisabledReason';
+import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 
 type Props = {
   collections: CollectionApiModel[];
@@ -30,18 +32,24 @@ function DefaultCollectionSection({ collections }: Props) {
     <SettingsSection title="Default collection" description="The list a funko is 'owned' in. Home counts this one.">
       <Field>
         <FieldLabel htmlFor={SELECT_ID}>Collection</FieldLabel>
-        <NativeSelect
-          id={SELECT_ID}
-          value={String(current?.id ?? '')}
-          onChange={(event) => makeDefault(event.target.value)}
-          disabled={isBusy}
+        <DisabledReason
+          reason={reasonWhen(isBusy, DISABLED_REASONS.WORKING)}
+          mode="wrapper"
+          wrapperClassName="flex w-full"
         >
-          {collections.map((collection) => (
-            <NativeSelectOption key={collection.id} value={String(collection.id)}>
-              {collection.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+          <NativeSelect
+            id={SELECT_ID}
+            value={String(current?.id ?? '')}
+            onChange={(event) => makeDefault(event.target.value)}
+            disabled={isBusy}
+          >
+            {collections.map((collection) => (
+              <NativeSelectOption key={collection.id} value={String(collection.id)}>
+                {collection.name}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </DisabledReason>
         <FieldDescription>Saved on the server, so every device agrees.</FieldDescription>
       </Field>
       {failure ? <InlineAlert tone="error">{failure.message ?? 'Could not change the default.'}</InlineAlert> : null}

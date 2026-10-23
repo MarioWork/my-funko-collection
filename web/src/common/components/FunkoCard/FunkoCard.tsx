@@ -14,7 +14,8 @@ type Props = {
 // Tile widths per grid column count; the browser picks the variant from this.
 const CARD_SIZES = '(min-width: 1536px) 15vw, (min-width: 1024px) 22vw, (min-width: 640px) 30vw, 45vw';
 
-// Image first, two badges at most, the whole card is the link. Matched-by caption only when a search hit it.
+// Image first, two badges at most, the whole card is the link. Matched-by caption only when a search hit it. Hover
+// and keyboard focus outline the photo in the primary colour, like the collection cards.
 function FunkoCard({ funko, quantity, density = 'comfortable' }: Props) {
   const matchedBy = (funko.matchedOn ?? []).filter((field) => field !== 'NAME' && field !== 'ID');
   const hasExtraCopies = quantity !== undefined && quantity > 1;
@@ -25,7 +26,7 @@ function FunkoCard({ funko, quantity, density = 'comfortable' }: Props) {
       to={FUNKO_ROUTES_PATHS.detail(String(funko.id))}
       className="group flex flex-col gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <div className="relative aspect-3/4 overflow-hidden rounded-xl bg-card shadow-xs transition-shadow group-hover:shadow-md motion-reduce:transition-none">
+      <div className="relative aspect-3/4 overflow-hidden rounded-xl bg-card shadow-xs transition-shadow group-hover:ring-2 group-hover:ring-primary group-focus-visible:ring-2 group-focus-visible:ring-primary motion-reduce:transition-none">
         <FunkoImage image={funko.primaryImage} alt={funko.name} sizes={CARD_SIZES} className="size-full" />
         <div className="absolute top-2 left-2 flex gap-1">
           {funko.isChase ? (
