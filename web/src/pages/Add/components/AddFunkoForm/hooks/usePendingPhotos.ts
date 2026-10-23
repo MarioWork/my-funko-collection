@@ -14,12 +14,17 @@ export function usePendingPhotos() {
 
   useEffect(() => () => releasePreviews(latestPhotos.current), []);
 
-  const add = (files: File[]) => setPhotos((current) => [...current, ...toPendingPhotos(files)]);
+  // Adding and removing glide too: the thumbnails and the sections below make room or close the gap smoothly.
+  const add = (files: File[]) =>
+    void withViewTransition(() => setPhotos((current) => [...current, ...toPendingPhotos(files)]));
 
-  const remove = (photo: PendingPhoto) => {
+  const removeGliding = async (photo: PendingPhoto) => {
+    await withViewTransition(() => setPhotos((current) => current.filter((candidate) => candidate.id !== photo.id)));
+    // The preview is released once the transition no longer shows it.
     releasePreviews([photo]);
-    setPhotos((current) => current.filter((candidate) => candidate.id !== photo.id));
   };
+
+  const remove = (photo: PendingPhoto) => void removeGliding(photo);
 
   // The first photo is the main one (the grid shows it), so making one main moves it to the front, gliding there.
   const makeMain = (photo: PendingPhoto) =>

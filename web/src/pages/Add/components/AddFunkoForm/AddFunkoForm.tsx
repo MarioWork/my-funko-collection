@@ -15,6 +15,7 @@ import AddCollectionsSection from './components/AddCollectionsSection';
 import AddPhotosSection from './components/AddPhotosSection';
 import AddSaveBar from './components/AddSaveBar';
 import FormSection from './components/FormSection';
+import { useCollectionCards } from './hooks/useCollectionCards';
 import { useItemForms } from './hooks/useItemForms';
 import { usePendingPhotos } from './hooks/usePendingPhotos';
 import type { AddFunkoSubmission } from './types';
@@ -52,7 +53,7 @@ function AddFunkoForm({
   });
   const pendingPhotos = usePendingPhotos();
   const itemForms = useItemForms();
-  const [collectionIds, setCollectionIds] = useState<CollectionId[]>(initialCollectionIds);
+  const { collectionIds, openIds, changeCollections, toggle, open } = useCollectionCards(initialCollectionIds);
   // Shown once Save was pressed, and gone as soon as a photo is picked.
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false);
   const isMissingPhotos = hasTriedSubmit && pendingPhotos.photos.length === 0;
@@ -92,10 +93,12 @@ function AddFunkoForm({
           collections={collections}
           tags={tags}
           collectionIds={collectionIds}
-          initialCollectionIds={initialCollectionIds}
+          openIds={openIds}
           initialTagIds={initialTagIds}
           isSubmitting={isSubmitting}
-          onCollectionsChange={setCollectionIds}
+          onCollectionsChange={changeCollections}
+          onToggle={toggle}
+          onOpen={open}
           onRegister={itemForms.register}
         />
       </div>
