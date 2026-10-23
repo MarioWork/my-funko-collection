@@ -3,13 +3,13 @@ import { X } from 'lucide-react';
 import { useEffect } from 'react';
 import { useWatch } from 'react-hook-form';
 import type { CollectionApiModel, CollectionId, NamedApiModel } from '@app-types/models';
+import FoldPanel from '@components/FoldPanel';
+import FoldToggle from '@components/FoldToggle';
 import IconButton from '@components/IconButton';
 import ItemFormFields, { itemFormSchema, newItemFormValues, type ItemFormValues } from '@components/ItemFormFields';
 import { useFormCompat } from '@hooks/useFormCompat';
 import type { ItemFormHandle } from '../hooks/useItemForms';
 import { itemSummary } from '../itemSummaryUtils';
-import CollectionCardToggle from './CollectionCardToggle';
-import FoldPanel from './FoldPanel';
 
 type Props = {
   collection: CollectionApiModel;
@@ -76,10 +76,10 @@ function CollectionItemCard({
       className="flex flex-col rounded-lg border bg-background px-4 py-1.5 [view-transition-class:add-form]"
     >
       <div className="flex items-center justify-between gap-2">
-        <CollectionCardToggle
+        <FoldToggle
           headingId={headingId}
           panelId={panelId}
-          name={collection.name}
+          title={collection.name}
           isOpen={isOpen}
           summary={itemSummary(values, tags)}
           onToggle={() => onToggle(collection.id)}
@@ -95,7 +95,9 @@ function CollectionItemCard({
         </IconButton>
       </div>
       <FoldPanel id={panelId} isOpen={isOpen}>
-        <ItemFormFields control={control} tags={tags} idPrefix={idPrefix} />
+        <div className="pt-2 pb-2.5">
+          <ItemFormFields control={control} tags={tags} idPrefix={idPrefix} />
+        </div>
       </FoldPanel>
     </article>
   );

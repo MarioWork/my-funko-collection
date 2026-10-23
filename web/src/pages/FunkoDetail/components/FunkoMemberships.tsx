@@ -1,12 +1,14 @@
+import { useState } from 'react';
 import type { CollectionItemApiModel } from '@app-types/models';
 import { ITEM_CONDITION_LABELS } from '@app-types/utility';
-import { Badge } from '@components/ui/badge';
+import FoldPanel from '@components/FoldPanel';
+import FoldToggle from '@components/FoldToggle';
 import { useItemActions } from '@hooks/useItemActions';
-import MembershipActions from './MembershipActions';
-import { formatIsoDate } from '@utils/dateUtils';
-import { formatCents } from '@utils/moneyUtils';
 import { cn } from '@utils/classNameUtils';
+import { formatCents } from '@utils/moneyUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
+import MembershipActions from './MembershipActions';
+import MembershipDetails from './MembershipDetails';
 
 type Props = {
   items: CollectionItemApiModel[];
@@ -18,54 +20,45 @@ type RowProps = {
   onRemove: (item: CollectionItemApiModel) => void;
 };
 
-type TagsProps = {
-  tags: CollectionItemApiModel['tags'];
-};
-
 const HEADING_ID = 'memberships-heading';
+const ROW_ID_PREFIX = 'membership';
+const SUMMARY_SEPARATOR = ' · ';
 
-// "1 copy · Out of box · Paid 9,99 € · Bought 11/11/2023": only the facts that are set.
-function factsLine(item: CollectionItemApiModel): string {
-  const copies = item.quantity === 1 ? '1 copy' : `${item.quantity} copies`;
-  const condition = item.condition ? ITEM_CONDITION_LABELS[item.condition] : null;
-  const paid =
-    item.purchasePriceCents === null ? null : `Paid ${formatCents(item.purchasePriceCents, item.purchaseCurrency)}`;
-  const bought = item.purchasedAt ? `Bought ${formatIsoDate(item.purchasedAt)}` : null;
+// A folded row's quick look, beside the collection's name: "×2 · Mint in box · 14,99 € · Box 3".
+function quickLook(item: CollectionItemApiModel): string {
+  const condition = item.condition ? ITEM_CONDITION_LABELS[item.condition] : undefined;
+  const price =
+    item.purchasePriceCents === null ? undefined : formatCents(item.purchasePriceCents, item.purchaseCurrency);
+  const parts = [`×${item.quantity}`, condition, price, ...item.tags.map((tag) => tag.name)];
 
-  return [copies, condition, paid, bought].filter((fact): fact is string => fact !== null).join(' · ');
+  return parts.filter((part) => part !== undefined).join(SUMMARY_SEPARATOR);
 }
 
-function ItemTags({ tags }: TagsProps) {
-  return (
-    <ul className="flex flex-wrap gap-1 pt-0.5" aria-label="Tags">
-      {tags.map((tag) => (
-        <li key={tag.id}>
-          {/* Filled, not outlined: an outline chip all but vanishes on the dark card. */}
-          <Badge variant="secondary">{tag.name}</Badge>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-// One collection the funko is in: its name and ⋯, then one line of facts, then its tags when set. Notes stay in the
-// item's Edit sheet, so the box stays a quick overview.
+// One collection the funko is in, as an accordion row: folded, the name and a quick look; unfolded, every detail
+// including the notes. The ⋯ menu (edit, remove) stays on the row either way.
 function MembershipRow({ item, isBusy, onRemove }: RowProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const idPrefix = `${ROW_ID_PREFIX}-${item.id}`;
+  const panelId = `${idPrefix}-panel`;
+
   return (
     <li
-      className={cn(
-        'flex flex-col gap-1 py-3 first:pt-0 last:pb-0',
-        FADE_IN_CLASS,
-        DIMMABLE_CLASS,
-        isBusy && DIMMED_CLASS,
-      )}
+      className={cn('flex flex-col py-2 first:pt-0 last:pb-0', FADE_IN_CLASS, DIMMABLE_CLASS, isBusy && DIMMED_CLASS)}
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="truncate font-medium">{item.collection.name}</h3>
+        <FoldToggle
+          headingId={`${idPrefix}-heading`}
+          panelId={panelId}
+          title={item.collection.name}
+          isOpen={isOpen}
+          summary={quickLook(item)}
+          onToggle={() => setIsOpen(!isOpen)}
+        />
         <MembershipActions item={item} isBusy={isBusy} onRemove={onRemove} />
       </div>
-      <p className="text-sm text-muted-foreground tabular-nums">{factsLine(item)}</p>
-      {item.tags.length > 0 ? <ItemTags tags={item.tags} /> : null}
+      <FoldPanel id={panelId} isOpen={isOpen}>
+        <MembershipDetails item={item} />
+      </FoldPanel>
     </li>
   );
 }

@@ -93,3 +93,19 @@ it('links to the funko that already exists when an edit makes it a copy of one',
     FUNKO_ROUTES_PATHS.detail(String(deadpool?.id)),
   );
 });
+
+it('folds each collection to a quick look and unfolds it to every labelled detail, notes included', async () => {
+  const itemWithNotes = mockStore.items.find((item) => item.notes !== null);
+  const collection = mockStore.collections.find((candidate) => candidate.id === itemWithNotes?.collectionId);
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(itemWithNotes?.funkoId))] });
+
+  const toggle = await screen.findByRole('button', { name: collection?.name, expanded: false });
+
+  expect(toggle).toHaveAccessibleDescription(new RegExp(`^×${itemWithNotes?.quantity}`));
+
+  await userEvent.click(toggle);
+
+  expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getByText('Notes')).toBeVisible();
+  expect(screen.getByText(itemWithNotes?.notes ?? '')).toBeVisible();
+});

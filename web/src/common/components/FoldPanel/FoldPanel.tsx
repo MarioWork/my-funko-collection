@@ -19,9 +19,7 @@ function FoldPanel({ id, isOpen, children }: Props) {
         isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
       )}
     >
-      <div className="min-h-0 overflow-hidden">
-        <div className="pt-2 pb-2.5">{children}</div>
-      </div>
+      <div className="min-h-0 overflow-hidden">{children}</div>
     </div>
   );
 }
