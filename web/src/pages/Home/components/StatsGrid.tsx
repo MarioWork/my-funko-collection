@@ -3,7 +3,7 @@ import type { StatsApiModel } from '@app-types/models';
 import { COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import StatTile from '@components/StatTile';
 import { formatCents } from '@utils/moneyUtils';
-import { formatBytes } from '../homeUtils';
+import { formatBytes } from '@utils/byteUtils';
 
 type Props = {
   stats: StatsApiModel;

@@ -1,6 +1,6 @@
 // The only file that touches sharp and the uploads folder. Services hand it bytes and get back file metadata.
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, open, readFile, rename, rm, unlink } from 'node:fs/promises';
+import { mkdir, open, readdir, readFile, rename, rm, stat, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { env } from '../config/env.ts';
@@ -188,5 +188,92 @@ export async function removeFunkoFolder(funkoId: number): Promise<void> {
     await rm(funkoFolder(funkoId), { recursive: true, force: true });
   } catch (error: unknown) {
     log.warn({ err: error, funkoId }, 'could not remove funko image folder');
+  }
+}
+
+// Every image's files as they sit on disk, grouped by file key: what the Images page lists, rows or not.
+export type StoredImageFiles = {
+  // The folder under funkos/: the funko id the files were saved for.
+  folder: string;
+  fileKey: string;
+  variants: ImageVariant[];
+  // Sum of the files present.
+  sizeBytes: number;
+  // The newest of the files' modification times: when it was saved.
+  modifiedAt: Date;
+};
+
+export type ImageDimensions = {
+  width: number;
+  height: number;
+};
+
+const SUFFIX_VARIANTS = IMAGE_VARIANTS.map((variant) => ({ variant, suffix: VARIANT_SPECS[variant].suffix }))
+  // Longest suffix first, so ".md.webp" is not taken for ".webp".
+  .sort((first, second) => second.suffix.length - first.suffix.length);
+
+function parseVariantFile(fileName: string): { fileKey: string; variant: ImageVariant } | null {
+  const match = SUFFIX_VARIANTS.find(({ suffix }) => fileName.endsWith(suffix));
+
+  if (!match) return null;
+
+  return { fileKey: fileName.slice(0, -match.suffix.length), variant: match.variant };
+}
+
+async function listFolderImages(folder: string): Promise<StoredImageFiles[]> {
+  const folderPath = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER, folder);
+  const byKey = new Map<string, StoredImageFiles>();
+
+  for (const fileName of await readdir(folderPath)) {
+    const parsed = parseVariantFile(fileName);
+
+    if (!parsed) continue;
+
+    const fileStat = await stat(join(folderPath, fileName));
+    const entry = byKey.get(parsed.fileKey) ?? {
+      folder,
+      fileKey: parsed.fileKey,
+      variants: [],
+      sizeBytes: 0,
+      modifiedAt: fileStat.mtime,
+    };
+
+    entry.variants.push(parsed.variant);
+    entry.sizeBytes += fileStat.size;
+    if (fileStat.mtime > entry.modifiedAt) entry.modifiedAt = fileStat.mtime;
+    byKey.set(parsed.fileKey, entry);
+  }
+
+  return [...byKey.values()];
+}
+
+export async function listStoredImageFiles(): Promise<StoredImageFiles[]> {
+  const root = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER);
+  const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
+  const folders = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  const perFolder = await Promise.all(folders.map(listFolderImages));
+
+  return perFolder.flat();
+}
+
+export function storedFileUrl(folder: string, fileKey: string, variant: ImageVariant): string {
+  return `${UPLOADS_URL_PREFIX}/${FUNKOS_UPLOAD_FOLDER}/${folder}/${variantFileName(fileKey, variant)}`;
+}
+
+// Width and height of one stored file; null when it cannot be read.
+export async function readImageDimensions(
+  folder: string,
+  fileKey: string,
+  variant: ImageVariant,
+): Promise<ImageDimensions | null> {
+  try {
+    const path = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER, folder, variantFileName(fileKey, variant));
+    const { width, height } = await sharp(path).metadata();
+
+    return width && height ? { width, height } : null;
+  } catch (error: unknown) {
+    log.warn({ err: error, folder, fileKey, variant }, 'could not read image dimensions');
+
+    return null;
   }
 }

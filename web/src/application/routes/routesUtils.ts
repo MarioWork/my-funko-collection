@@ -75,6 +75,11 @@ export const SERIES_ROUTES_PATHS = {
   update: (seriesId?: string) => (seriesId ? `/series/${seriesId}` : '/series/:seriesId'),
 };
 
+// Every stored image, read-only.
+export const IMAGE_ROUTES_PATHS = {
+  BASE: '/images',
+};
+
 export const TAG_ROUTES_PATHS = {
   BASE: '/tags',
   ADD: 'add',

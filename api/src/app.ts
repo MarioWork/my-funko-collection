@@ -24,6 +24,7 @@ import { collectionsRoutes } from './modules/collections/collections.route.ts';
 import { allItemsRoutes } from './modules/collections/items/collectionItems.route.ts';
 import { exportRoutes } from './modules/export/export.route.ts';
 import { funkosRoutes } from './modules/funkos/funkos.route.ts';
+import { imagesRoutes } from './modules/images/images.route.ts';
 import { seriesRoutes } from './modules/series/series.route.ts';
 import { tagsRoutes } from './modules/tags/tags.route.ts';
 import { dbPlugin } from './plugins/db.plugin.ts';
@@ -73,6 +74,7 @@ export async function buildApp() {
   await app.register(collectionsRoutes, { prefix: '/collections' });
   await app.register(allItemsRoutes, { prefix: '/items' });
   await app.register(tagsRoutes, { prefix: '/tags' });
+  await app.register(imagesRoutes, { prefix: '/images' });
   await app.register(suggestRoutes, { prefix: '/suggest' });
   await app.register(statsRoutes, { prefix: '/stats' });
   await app.register(exportRoutes, { prefix: '/export' });

@@ -5,7 +5,7 @@ import FunkoImage from '@components/FunkoImage';
 import Lightbox from '@components/Lightbox';
 import PhotoThumbnail from '@components/PhotoThumbnail';
 import { reasonWhen } from '@utils/disabledReasonUtils';
-import ImageDownloadButton from './ImageDownloadButton';
+import ImageDownloadButton from '@components/ImageDownloadButton';
 
 type Props = {
   funko: FunkoDetailApiModel;
@@ -44,7 +44,15 @@ function GalleryFrame({ funkoName, hero, heroIndex, imageCount, onOpen }: FrameP
           />
         </button>
       </DisabledReason>
-      {hero ? <ImageDownloadButton url={hero.url} funkoName={funkoName} imageNumber={heroIndex + 1} /> : null}
+      {hero ? (
+        <ImageDownloadButton
+          url={hero.url}
+          funkoName={funkoName}
+          imageNumber={heroIndex + 1}
+          // Beside (not inside) the button that opens the viewer, pinned to the frame's corner.
+          className="absolute right-2 bottom-2"
+        />
+      ) : null}
     </div>
   );
 }

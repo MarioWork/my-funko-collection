@@ -16,3 +16,4 @@ export type { CollectionApiModel, CollectionId } from './collectionApiModel.type
 export type { CollectionItemApiModel, CollectionItemId } from './collectionItemApiModel.type';
 export type { CategoryStatsApiModel, CollectionStatsApiModel, StatsApiModel } from './statsApiModel.type';
 export type { SuggestApiModel } from './suggestApiModel.type';
+export type { ImageGroupApiModel, ImageListEntryApiModel, ImageListEntryKey } from './imageListEntryApiModel.type';

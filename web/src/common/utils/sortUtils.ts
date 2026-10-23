@@ -16,3 +16,8 @@ export const DATE_LABELS: DirectionLabels = {
   [SortingDirectionUtil.ASC]: 'Oldest first',
   [SortingDirectionUtil.DESC]: 'Newest first',
 };
+
+export const SIZE_LABELS: DirectionLabels = {
+  [SortingDirectionUtil.ASC]: 'Smallest first',
+  [SortingDirectionUtil.DESC]: 'Largest first',
+};
