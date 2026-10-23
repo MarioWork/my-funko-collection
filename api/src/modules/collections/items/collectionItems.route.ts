@@ -1,10 +1,10 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../../lib/errorHandler.ts';
-import { CollectionParamsSchema } from '../collections.schema.ts';
 import {
   CollectionItemListResponseSchema,
   CollectionItemParamsSchema,
+  CollectionItemsParamsSchema,
   CollectionItemResponseSchema,
   CreateCollectionItemSchema,
   ListAllItemsQuerySchema,
@@ -33,7 +33,7 @@ export const collectionItemsRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: TAGS,
         summary: 'List the items of a collection',
-        params: CollectionParamsSchema,
+        params: CollectionItemsParamsSchema,
         querystring: ListCollectionItemsQuerySchema,
         response: { 200: CollectionItemListResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
@@ -61,7 +61,7 @@ export const collectionItemsRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: TAGS,
         summary: 'Add a funko to a collection (409 with existingId when it is already there)',
-        params: CollectionParamsSchema,
+        params: CollectionItemsParamsSchema,
         body: CreateCollectionItemSchema,
         response: {
           201: CollectionItemResponseSchema,

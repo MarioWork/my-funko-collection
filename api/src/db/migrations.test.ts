@@ -13,8 +13,8 @@ afterAll(async () => {
   await app.close();
 });
 
-describe('migrations', () => {
-  it('create Owned as the default collection and Wishlist on a fresh database', async () => {
+describe('GET /collections', () => {
+  it('lists Owned as the default collection and Wishlist when the database was just migrated', async () => {
     const response = await app.inject({ method: 'GET', url: '/collections' });
 
     expect(response.statusCode).toBe(200);

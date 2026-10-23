@@ -159,7 +159,8 @@ anything a crash left behind.
 src/
   app.ts, server.ts       build the Fastify app; start it and shut down cleanly
   config/env.ts           the only reader of process.env
-  db/                     client, schema/, relations, migrations runner, seed, prune
+  cli/                    one-off scripts (images:prune)
+  db/                     client, schema/, relations, migrations runner, seed
   lib/                    errors, error handler, pagination, query params, image storage, remote fetch, barcode
   modules/<resource>/     <resource>.route.ts, .schema.ts, .service.ts, .repository.ts, .route.test.ts
   plugins/                db and uploads (multipart in, static files out)

@@ -4,6 +4,7 @@ import { createFunko, createSeries } from '../../testFixtures.ts';
 
 const URL = '/series';
 const MISSING_ID = 999;
+const INVALID_ID = 'abc';
 
 let app: App;
 
@@ -39,7 +40,7 @@ describe('GET /series', () => {
     expect(body.totalResultNumber).toBe(2);
   });
 
-  it('filters by a name fragment case-insensitively', async () => {
+  it('keeps the matching series when name is a fragment in another case', async () => {
     await createSeries('The Mandalorian');
     await createSeries('Stranger Things');
 
@@ -50,7 +51,7 @@ describe('GET /series', () => {
     ]);
   });
 
-  it('rejects an unknown sort field with VALIDATION_ERROR', async () => {
+  it('returns 400 with VALIDATION_ERROR when the sort field is unknown', async () => {
     const response = await app.inject({ method: 'GET', url: URL, query: { sorting_fields: 'SERIES' } });
 
     expect(response.statusCode).toBe(400);
@@ -68,6 +69,13 @@ describe('GET /series/:seriesId', () => {
     expect(response.json()).toMatchObject({ id: created.id, name: 'The Mandalorian', funkoCount: 0 });
   });
 
+  it('returns 400 when the id is not a positive integer', async () => {
+    const response = await app.inject({ method: 'GET', url: `${URL}/${INVALID_ID}` });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
   it('returns 404 when it does not exist', async () => {
     const response = await app.inject({ method: 'GET', url: `${URL}/${MISSING_ID}` });
 
@@ -77,7 +85,7 @@ describe('GET /series/:seriesId', () => {
 });
 
 describe('POST /series', () => {
-  it('creates the series and trims the name', async () => {
+  it('creates the series with a trimmed name when the name has spaces around it', async () => {
     const response = await app.inject({ method: 'POST', url: URL, payload: { name: '  Daredevil: Born Again  ' } });
 
     expect(response.statusCode).toBe(201);
@@ -127,6 +135,15 @@ describe('PATCH /series/:seriesId', () => {
     expect(response.statusCode).toBe(409);
   });
 
+  it('returns 400 when the name is empty', async () => {
+    const created = await createSeries();
+
+    const response = await app.inject({ method: 'PATCH', url: `${URL}/${created.id}`, payload: { name: ' ' } });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
   it('returns 404 when it does not exist', async () => {
     const response = await app.inject({ method: 'PATCH', url: `${URL}/${MISSING_ID}`, payload: { name: 'x' } });
 
@@ -135,7 +152,7 @@ describe('PATCH /series/:seriesId', () => {
 });
 
 describe('DELETE /series/:seriesId', () => {
-  it('removes the series with 204 and leaves its funkos without a series', async () => {
+  it('removes the series with 204 and leaves its funkos without a series when it exists', async () => {
     const created = await createSeries();
     const funko = await createFunko({ seriesId: created.id });
 
@@ -145,6 +162,12 @@ describe('DELETE /series/:seriesId', () => {
     const funkoResponse = await app.inject({ method: 'GET', url: `/funkos/${funko.id}` });
     expect(funkoResponse.statusCode).toBe(200);
     expect(funkoResponse.json()).toMatchObject({ id: funko.id, series: null });
+  });
+
+  it('returns 400 when the id is not a positive integer', async () => {
+    const response = await app.inject({ method: 'DELETE', url: `${URL}/${INVALID_ID}` });
+
+    expect(response.statusCode).toBe(400);
   });
 
   it('returns 404 when it does not exist', async () => {

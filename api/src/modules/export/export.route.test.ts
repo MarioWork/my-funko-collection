@@ -41,7 +41,7 @@ async function seed() {
 }
 
 describe('GET /export', () => {
-  it('returns every table as one JSON download', async () => {
+  it('returns every table as one JSON download when the catalog has data', async () => {
     const { funko, box, homecoming } = await seed();
 
     const response = await app.inject({ method: 'GET', url: '/export' });
@@ -66,7 +66,7 @@ describe('GET /export', () => {
 });
 
 describe('GET /export/items.csv', () => {
-  it('writes one quoted line per item with the price in units', async () => {
+  it('writes one quoted line per item with the price in units when an item has a price', async () => {
     const { funko } = await seed();
 
     const response = await app.inject({ method: 'GET', url: '/export/items.csv' });
@@ -82,7 +82,7 @@ describe('GET /export/items.csv', () => {
     );
   });
 
-  it('defuses text a spreadsheet would run as a formula, but keeps numbers', async () => {
+  it('defuses formula-like text and keeps plain numbers when a cell starts with =, +, - or @', async () => {
     const { owned } = await seed();
     const marvel = await createCategory('=HYPERLINK("http://evil.example","Click")');
     const funko = await createFunko({ name: '@SUM(A1)', number: '-7', categoryId: marvel.id });

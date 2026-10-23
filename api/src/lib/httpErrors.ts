@@ -39,3 +39,9 @@ export class PayloadTooLargeError extends HttpError {
     super(message, { code: 'PAYLOAD_TOO_LARGE', statusCode: 413 });
   }
 }
+
+export class ServiceUnavailableError extends HttpError {
+  constructor(message: string, options: { code: string; cause?: unknown }) {
+    super(message, { code: options.code, statusCode: 503, cause: options.cause });
+  }
+}

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FunkoSummarySchema } from '../funkos/funkoSummary.schema.ts';
+import { FunkoSummarySchema } from '../funkos/funkos.type.ts';
 
 export const SUGGEST_QUERY_MAX_LENGTH = 100;
 export const SUGGEST_FUNKO_LIMIT = 5;

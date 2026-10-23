@@ -17,13 +17,13 @@ import {
 import { db, type DbExecutor } from '../../db/client.ts';
 import { likeContains } from '../../db/like.ts';
 import { categories } from '../../db/schema/categories.ts';
-import { collectionItems } from '../../db/schema/collectionItems.ts';
+import { collectionItems, type CollectionItem } from '../../db/schema/collectionItems.ts';
 import { collectionItemTags } from '../../db/schema/collectionItemTags.ts';
-import { collections } from '../../db/schema/collections.ts';
-import { funkoImages } from '../../db/schema/funkoImages.ts';
-import { funkos, type FunkoSortField, type FunkoType } from '../../db/schema/funkos.ts';
+import { collections, type Collection } from '../../db/schema/collections.ts';
+import { funkoImages, type FunkoImage } from '../../db/schema/funkoImages.ts';
+import { funkos, type Funko, type FunkoSortField } from '../../db/schema/funkos.ts';
 import { series } from '../../db/schema/series.ts';
-import { tags } from '../../db/schema/tags.ts';
+import { tags, type Tag } from '../../db/schema/tags.ts';
 import { toLimitOffset } from '../../lib/pagination.ts';
 import type { CreateFunko, ListFunkosQuery, UpdateFunko } from './funkos.schema.ts';
 
@@ -284,7 +284,13 @@ async function groupByFunkoId<Row extends { funkoId: number }>(
   return grouped;
 }
 
-export type FunkoIdentity = { categoryId: number; number: string; name: string; isChase: boolean; exclusive: string };
+// The natural key the duplicate guard checks: the columns of `funkos_identity_uidx`.
+export type FunkoIdentity = Pick<Funko, 'categoryId' | 'number' | 'name' | 'isChase' | 'exclusive'>;
+
+export type FunkoRow = Awaited<ReturnType<typeof selectFunkos>>[number];
+export type PrimaryImageRow = Pick<FunkoImage, 'funkoId' | 'fileKey' | 'placeholder' | 'width' | 'height'>;
+export type CollectionSummaryRow = Pick<CollectionItem, 'funkoId'> & Pick<Collection, 'id' | 'name'>;
+export type TagNameRow = Pick<CollectionItem, 'funkoId'> & Pick<Tag, 'name'>;
 
 export const funkosRepository = {
   findById: (id: number, executor: DbExecutor = db): Promise<FunkoRow | undefined> =>
@@ -394,23 +400,3 @@ export const funkosRepository = {
       return tx.delete(funkos).where(eq(funkos.id, id)).returning({ id: funkos.id }).get();
     }),
 };
-
-export type FunkoRow = {
-  id: number;
-  name: string;
-  number: string;
-  type: FunkoType;
-  isChase: boolean;
-  exclusive: string;
-  barcode: string | null;
-  categoryId: number;
-  categoryName: string;
-  seriesId: number | null;
-  seriesName: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type PrimaryImageRow = { funkoId: number; fileKey: string; placeholder: string; width: number; height: number };
-export type CollectionSummaryRow = { funkoId: number; id: number; name: string };
-export type TagNameRow = { funkoId: number; name: string };

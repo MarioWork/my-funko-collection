@@ -13,6 +13,6 @@
     "src/testFixtures.ts",
     "src/db/testDb.ts",
     "src/db/seed.ts",
-    "src/db/pruneImages.ts"
+    "src/cli/pruneImages.ts"
   ]
 }

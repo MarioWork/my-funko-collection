@@ -92,14 +92,4 @@ export const collectionsRepository = {
     executor.delete(collections).where(eq(collections.id, id)).returning({ id: collections.id }).get(),
 };
 
-export type CollectionRow = {
-  id: number;
-  name: string;
-  notes: string | null;
-  isDefault: boolean;
-  itemCount: number;
-  totalQuantity: number;
-  totalSpentCents: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
+export type CollectionRow = Awaited<ReturnType<typeof selectWithStats>>[number];

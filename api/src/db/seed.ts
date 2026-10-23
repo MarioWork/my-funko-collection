@@ -1,8 +1,6 @@
 // Development data. Run with: yarn db:seed
-import { rm } from 'node:fs/promises';
-import sharp from 'sharp';
 import { env } from '../config/env.ts';
-import { processImage } from '../lib/imageStorage.ts';
+import { clearUploads, generateImage, processImage } from '../lib/imageStorage.ts';
 import { logger } from '../lib/logger.ts';
 import { applyPragmas, client, db } from './client.ts';
 import {
@@ -235,7 +233,7 @@ await db.delete(series);
 await db.delete(collections);
 await db.delete(tags);
 await db.delete(categories);
-await rm(env.UPLOADS_DIR, { recursive: true, force: true });
+await clearUploads();
 
 const categoryRows = await db
   .insert(categories)
@@ -301,16 +299,11 @@ for (const item of ITEMS) {
 
 // Solid-colour placeholders through the real pipeline, so dev lists have thumbnails of the right shape.
 function seedImage(hue: number): Promise<Buffer> {
-  return sharp({
-    create: {
-      width: SEED_IMAGE_PX,
-      height: SEED_IMAGE_PX,
-      channels: 3,
-      background: `hsl(${hue}, ${SEED_SATURATION}%, ${SEED_LIGHTNESS}%)`,
-    },
-  })
-    .png()
-    .toBuffer();
+  return generateImage({
+    width: SEED_IMAGE_PX,
+    height: SEED_IMAGE_PX,
+    background: `hsl(${hue}, ${SEED_SATURATION}%, ${SEED_LIGHTNESS}%)`,
+  });
 }
 
 let imageCount = 0;

@@ -18,7 +18,7 @@ beforeEach(async () => {
 });
 
 describe('GET /suggest', () => {
-  it('returns matching funkos, categories, collections and tags at once', async () => {
+  it('returns the matching funkos, categories, collections and tags at once when q matches each', async () => {
     const marvel = await createCategory('Pop! Marvel');
     await createFunko({ name: 'Captain Marvel', categoryId: marvel.id });
     await createFunko({ name: 'Groot', categoryId: marvel.id });
@@ -41,7 +41,7 @@ describe('GET /suggest', () => {
     expect(body.tags.map((tag) => tag.name)).toEqual(['Marvel box']);
   });
 
-  it('returns matching series with their funkos carrying the series', async () => {
+  it('returns the matching series and their funkos carrying the series when q matches a series name', async () => {
     const mandalorian = await createSeries('The Mandalorian');
     await createSeries('Stranger Things');
     await createFunko({ name: 'Grogu', seriesId: mandalorian.id });
@@ -55,7 +55,7 @@ describe('GET /suggest', () => {
     ]);
   });
 
-  it('returns 400 without a query', async () => {
+  it('returns 400 when q is missing', async () => {
     const response = await app.inject({ method: 'GET', url: '/suggest' });
 
     expect(response.statusCode).toBe(400);

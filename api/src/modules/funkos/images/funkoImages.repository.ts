@@ -13,7 +13,11 @@ const IMAGE_COLUMNS = {
   placeholder: funkoImages.placeholder,
   position: funkoImages.position,
   createdAt: funkoImages.createdAt,
+  updatedAt: funkoImages.updatedAt,
 } as const;
+
+// IMAGE_COLUMNS is every column, so a selected row is the table's own row type.
+export type FunkoImageRow = FunkoImage;
 
 export type StoredFileUpdate = Pick<
   FunkoImage,

@@ -1,4 +1,4 @@
-import { BadRequestError, ConflictError } from '../../lib/httpErrors.ts';
+import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
 import { addFunko } from './funkos.service.ts';
 
 vi.mock('./funkos.repository.ts', () => ({
@@ -15,18 +15,20 @@ vi.mock('./funkos.repository.ts', () => ({
 }));
 
 vi.mock('../categories/categories.service.ts', () => ({
-  assertCategoryExists: vi.fn(),
+  getCategory: vi.fn(),
 }));
 
 const { funkosRepository } = await import('./funkos.repository.ts');
-const { assertCategoryExists } = await import('../categories/categories.service.ts');
+const { getCategory } = await import('../categories/categories.service.ts');
 
 const EXISTING_ID = 42;
-const INPUT = { name: 'Thanos', number: '78', categoryId: 1, seriesId: null, exclusive: '', barcode: null };
+const CATEGORY_ID = 1;
+const INPUT = { name: 'Thanos', number: '78', categoryId: CATEGORY_ID, seriesId: null, exclusive: '', barcode: null };
+const CATEGORY = { id: CATEGORY_ID, name: 'Pop! Marvel', funkoCount: 0, createdAt: '', updatedAt: '' };
 
 describe('addFunko', () => {
   it('throws ConflictError carrying the existing id when the identity is taken', async () => {
-    vi.mocked(assertCategoryExists).mockResolvedValue(undefined);
+    vi.mocked(getCategory).mockResolvedValue(CATEGORY);
     vi.mocked(funkosRepository.findIdByIdentity).mockResolvedValue({ id: EXISTING_ID });
 
     const attempt = addFunko(INPUT);
@@ -37,9 +39,25 @@ describe('addFunko', () => {
   });
 
   it('throws a VALIDATION_ERROR when the category does not exist', async () => {
-    vi.mocked(assertCategoryExists).mockRejectedValue(new BadRequestError('Category 1 does not exist'));
+    vi.mocked(getCategory).mockRejectedValue(new NotFoundError('Category', CATEGORY_ID));
 
-    await expect(addFunko(INPUT)).rejects.toMatchObject({ code: 'VALIDATION_ERROR', statusCode: 400 });
+    const attempt = addFunko(INPUT);
+
+    await expect(attempt).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      statusCode: 400,
+      message: `Category ${CATEGORY_ID} does not exist`,
+    });
     expect(funkosRepository.findIdByIdentity).not.toHaveBeenCalled();
+  });
+
+  it('throws a non-operational INTERNAL_ERROR when the new row cannot be read back', async () => {
+    vi.mocked(getCategory).mockResolvedValue(CATEGORY);
+    vi.mocked(funkosRepository.findIdByIdentity).mockResolvedValue(undefined);
+    vi.mocked(funkosRepository.create).mockResolvedValue(undefined);
+
+    const attempt = addFunko(INPUT);
+
+    await expect(attempt).rejects.toMatchObject({ code: 'INTERNAL_ERROR', isOperational: false });
   });
 });

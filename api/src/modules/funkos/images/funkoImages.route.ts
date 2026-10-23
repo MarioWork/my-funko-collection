@@ -2,15 +2,15 @@ import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../../lib/errorHandler.ts';
-import { FunkoParamsSchema } from '../funkos.schema.ts';
 import {
   FunkoImageListResponseSchema,
   FunkoImageParamsSchema,
-  FunkoImageResponseSchema,
+  FunkoImagesParamsSchema,
   ImageFromUrlSchema,
   ReorderImagesSchema,
   RotateImageSchema,
 } from './funkoImages.schema.ts';
+import { FunkoImageResponseSchema } from './funkoImages.type.ts';
 import { addImageFromUrl, addImages, deleteImage, reorderImages, rotateImage } from './funkoImages.service.ts';
 
 const TAGS = ['funko images'];
@@ -39,7 +39,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: TAGS,
         summary: 'Upload one or more photos (multipart, field "file")',
         consumes: ['multipart/form-data'],
-        params: FunkoParamsSchema,
+        params: FunkoImagesParamsSchema,
         response: {
           201: FunkoImageListResponseSchema,
           400: ErrorResponseSchema,
@@ -63,7 +63,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: TAGS,
         summary: 'Download an image from a public URL and store it',
-        params: FunkoParamsSchema,
+        params: FunkoImagesParamsSchema,
         body: ImageFromUrlSchema,
         response: {
           201: FunkoImageResponseSchema,
@@ -87,7 +87,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: TAGS,
         summary: 'Reorder the images (first is the primary)',
-        params: FunkoParamsSchema,
+        params: FunkoImagesParamsSchema,
         body: ReorderImagesSchema,
         response: { 200: FunkoImageListResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },

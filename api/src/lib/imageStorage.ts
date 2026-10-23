@@ -1,15 +1,18 @@
 // The only file that touches sharp and the uploads folder. Services hand it bytes and get back file metadata.
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, open, readdir, readFile, rename, rm, stat, unlink } from 'node:fs/promises';
-import { join } from 'node:path';
+import { access, copyFile, mkdir, open, readdir, readFile, rename, rm, stat, unlink } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import sharp from 'sharp';
 import { env } from '../config/env.ts';
+import { BadRequestError } from './httpErrors.ts';
 import { logger } from './logger.ts';
 
 const log = logger.child({ module: 'imageStorage' });
 
 export const FUNKOS_UPLOAD_FOLDER = 'funkos';
 export const UPLOADS_URL_PREFIX = '/uploads';
+// The folder the uploads plugin serves under UPLOADS_URL_PREFIX.
+export const UPLOADS_ROOT = resolve(env.UPLOADS_DIR);
 
 const LARGE_QUALITY = 82;
 const MEDIUM_QUALITY = 80;
@@ -20,6 +23,8 @@ const TMP_SUFFIX = '.tmp';
 // Two encoder threads and a 50 MB decode cache: enough for one user, never the whole server.
 const SHARP_CONCURRENCY = 2;
 const SHARP_CACHE_MB = 50;
+const UNSUPPORTED_IMAGE_MESSAGE = 'Not a supported image';
+const MISSING_FILE_CODE = 'ENOENT';
 
 export const IMAGE_VARIANTS = ['large', 'medium', 'small'] as const;
 export type ImageVariant = (typeof IMAGE_VARIANTS)[number];
@@ -41,19 +46,15 @@ export type StoredImage = {
   placeholder: string;
 };
 
-// Thrown when the bytes are not an image sharp can decode; the service turns it into a 400.
-export class UnsupportedImageError extends Error {
-  constructor(cause: unknown) {
-    super('Not a supported image', { cause });
-    this.name = 'UnsupportedImageError';
-  }
+function isMissingFile(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === MISSING_FILE_CODE;
 }
 
 export function hashImage(buffer: Buffer): string {
   return createHash('sha256').update(buffer).digest('hex');
 }
 
-export function funkoFolder(funkoId: number): string {
+function funkoFolder(funkoId: number): string {
   return join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER, String(funkoId));
 }
 
@@ -88,6 +89,7 @@ async function writeAtomically(finalPath: string, data: Buffer): Promise<void> {
   forgetStoredFiles();
 }
 
+// Bytes sharp cannot decode are the caller's input error: a 400.
 async function decode(buffer: Buffer): Promise<sharp.Sharp> {
   // `rotate()` with no argument applies the EXIF orientation; output drops all metadata unless asked otherwise.
   const pipeline = sharp(buffer, { failOn: 'error' }).rotate();
@@ -95,7 +97,7 @@ async function decode(buffer: Buffer): Promise<sharp.Sharp> {
   try {
     await pipeline.metadata();
   } catch (error: unknown) {
-    throw new UnsupportedImageError(error);
+    throw new BadRequestError(UNSUPPORTED_IMAGE_MESSAGE, { cause: error });
   }
 
   return pipeline;
@@ -117,6 +119,15 @@ async function renderPlaceholder(pipeline: sharp.Sharp): Promise<string> {
     .toBuffer();
 
   return `data:image/webp;base64,${buffer.toString('base64')}`;
+}
+
+// Best effort, for cleaning up after a failed write: a file that cannot be removed is logged, not thrown.
+async function removeQuietly(path: string): Promise<void> {
+  try {
+    await unlink(path);
+  } catch (error: unknown) {
+    log.warn({ err: error, path }, 'could not remove a partly written image file');
+  }
 }
 
 // One decode, three WebP files plus the placeholder, written under a fresh uuid key. Cleans up after itself on failure.
@@ -157,7 +168,7 @@ export async function processImage(funkoId: number, buffer: Buffer): Promise<Sto
       placeholder,
     };
   } catch (error: unknown) {
-    await Promise.all(writtenPaths.map((path) => unlink(path).catch(() => undefined)));
+    await Promise.all(writtenPaths.map(removeQuietly));
     forgetStoredFiles();
     throw error;
   }
@@ -253,10 +264,23 @@ async function listFolderImages(folder: string): Promise<StoredImageFiles[]> {
   return [...byKey.values()];
 }
 
-async function readStoredImageFiles(): Promise<StoredImageFiles[]> {
+// The funko folders under funkos/; none yet when nothing was ever uploaded.
+async function readFunkoFolderNames(): Promise<string[]> {
   const root = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER);
-  const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
-  const folders = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+
+  try {
+    const entries = await readdir(root, { withFileTypes: true });
+
+    return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  } catch (error: unknown) {
+    if (isMissingFile(error)) return [];
+
+    throw error;
+  }
+}
+
+async function readStoredImageFiles(): Promise<StoredImageFiles[]> {
+  const folders = await readFunkoFolderNames();
   const perFolder = await Promise.all(folders.map(listFolderImages));
 
   return perFolder.flat();
@@ -273,15 +297,21 @@ export function forgetStoredFiles(): void {
   storedFilesCache = null;
 }
 
+// A failed read must not stick in the cache: the next call tries again.
+async function readStoredImageFilesOrForget(): Promise<StoredImageFiles[]> {
+  try {
+    return await readStoredImageFiles();
+  } catch (error: unknown) {
+    forgetStoredFiles();
+    throw error;
+  }
+}
+
 export async function listStoredImageFiles(): Promise<StoredImageFiles[]> {
   const isFresh = storedFilesCache !== null && Date.now() - storedFilesCache.readAt < STORED_FILES_TTL_MS;
 
   if (!isFresh || !storedFilesCache) {
-    const files = readStoredImageFiles();
-
-    storedFilesCache = { files, readAt: Date.now() };
-    // A failed read must not stick: the next call tries again.
-    files.catch(forgetStoredFiles);
+    storedFilesCache = { files: readStoredImageFilesOrForget(), readAt: Date.now() };
   }
 
   return storedFilesCache.files;
@@ -320,4 +350,143 @@ export async function readImageDimensions(
 
     return null;
   }
+}
+
+// Empties the whole uploads folder: the dev seed and the test reset start from nothing.
+export async function clearUploads(): Promise<void> {
+  await rm(env.UPLOADS_DIR, { recursive: true, force: true });
+  forgetStoredFiles();
+}
+
+// The `<funkoId>/<fileKey>` key of one stored image, the form `pruneOrphanFiles` takes.
+export function storedFileKey(funkoId: number | string, fileKey: string): string {
+  return `${funkoId}/${fileKey}`;
+}
+
+async function pruneFolder(folder: string, knownKeys: Set<string>): Promise<number> {
+  const folderPath = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER, folder);
+  let removed = 0;
+
+  for (const fileName of await readdir(folderPath)) {
+    // A file that is not a variant (a stray `.tmp`) has no key a row could hold, so it goes too.
+    const fileKey = parseVariantFile(fileName)?.fileKey ?? fileName;
+    const isKnown = knownKeys.has(storedFileKey(folder, fileKey));
+
+    if (isKnown) continue;
+
+    await rm(join(folderPath, fileName), { force: true });
+    removed += 1;
+  }
+
+  const isEmptyNow = (await readdir(folderPath)).length === 0;
+
+  if (isEmptyNow) await rm(folderPath, { recursive: true, force: true });
+
+  return removed;
+}
+
+// Deletes every file no row points at (`knownKeys` holds `storedFileKey(funkoId, fileKey)` for each row) and the
+// folders left empty. Returns how many files went.
+export async function pruneOrphanFiles(knownKeys: Set<string>): Promise<number> {
+  let removed = 0;
+
+  for (const folder of await readFunkoFolderNames()) {
+    removed += await pruneFolder(folder, knownKeys);
+  }
+
+  forgetStoredFiles();
+
+  return removed;
+}
+
+export type GeneratedImageOptions = {
+  width: number;
+  height: number;
+  // A CSS colour for a solid image; ignored when `noise` is set.
+  background?: string;
+  // Random pixels: an image that does not compress, for size-limit tests.
+  noise?: boolean;
+  format?: 'png' | 'jpeg';
+  // An EXIF orientation tag to write, as a phone camera does.
+  orientation?: number;
+};
+
+const DEFAULT_GENERATED_BACKGROUND = '#4466aa';
+const RGB_CHANNELS = 3;
+const BYTE_VALUES = 256;
+
+function noisePixels(width: number, height: number): Buffer {
+  const length = width * height * RGB_CHANNELS;
+
+  return Buffer.from(Array.from({ length }, () => Math.floor(Math.random() * BYTE_VALUES)));
+}
+
+function generatedBase(options: GeneratedImageOptions): sharp.Sharp {
+  const { width, height } = options;
+
+  if (options.noise) return sharp(noisePixels(width, height), { raw: { width, height, channels: RGB_CHANNELS } });
+
+  const background = options.background ?? DEFAULT_GENERATED_BACKGROUND;
+
+  return sharp({ create: { width, height, channels: RGB_CHANNELS, background } });
+}
+
+// A generated picture for the dev seed and the tests, so neither needs sharp itself.
+export async function generateImage(options: GeneratedImageOptions): Promise<Buffer> {
+  const base = generatedBase(options);
+  const withOrientation = options.orientation ? base.withMetadata({ orientation: options.orientation }) : base;
+
+  return options.format === 'jpeg' ? withOrientation.jpeg().toBuffer() : withOrientation.png().toBuffer();
+}
+
+// A `/uploads/...` URL from the API back to its file on disk.
+function pathFromUrl(url: string): string {
+  return join(env.UPLOADS_DIR, url.slice(`${UPLOADS_URL_PREFIX}/`.length));
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+
+    return true;
+  } catch (error: unknown) {
+    if (isMissingFile(error)) return false;
+
+    throw error;
+  }
+}
+
+export async function storedFileExists(url: string): Promise<boolean> {
+  return pathExists(pathFromUrl(url));
+}
+
+export async function storedFileSize(url: string): Promise<number> {
+  const fileStat = await stat(pathFromUrl(url));
+
+  return fileStat.size;
+}
+
+export type StoredFileMetadata = { width: number; height: number; hasExif: boolean };
+
+// What a stored file really is, decoded from disk: for the tests that check the pipeline's output.
+export async function readStoredFileMetadata(url: string): Promise<StoredFileMetadata> {
+  const metadata = await sharp(pathFromUrl(url)).metadata();
+
+  return { width: metadata.width, height: metadata.height, hasExif: metadata.exif !== undefined };
+}
+
+export async function funkoFolderExists(funkoId: number): Promise<boolean> {
+  return pathExists(funkoFolder(funkoId));
+}
+
+export async function listFunkoFolder(funkoId: number): Promise<string[]> {
+  return readdir(funkoFolder(funkoId));
+}
+
+// Copies one file inside a funko's folder, e.g. to leave a file behind that no row points at.
+export async function copyFunkoFile(funkoId: number, fromName: string, toName: string): Promise<void> {
+  const folder = funkoFolder(funkoId);
+
+  await copyFile(join(folder, fromName), join(folder, toName));
+  forgetStoredFiles();
 }

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ITEM_CONDITIONS, ITEM_SORT_FIELDS, collectionItems } from '../../../db/schema/collectionItems.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../../lib/pagination.ts';
 import { ContainsQuerySchema, IdListQuerySchema, IsoDateSchema } from '../../../lib/queryParams.ts';
-import { FunkoSummarySchema } from '../../funkos/funkoSummary.schema.ts';
+import { FunkoSummarySchema } from '../../funkos/funkos.type.ts';
 
 export const ITEM_NOTES_MAX_LENGTH = 2000;
 export const MAX_QUANTITY = 1000;
@@ -12,8 +12,12 @@ export const MAX_TAGS_PER_ITEM = 20;
 
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;
 
-export const CollectionItemParamsSchema = z.object({
+// Mounted under /collections/:collectionId/items.
+export const CollectionItemsParamsSchema = z.object({
   collectionId: z.coerce.number().int().positive(),
+});
+
+export const CollectionItemParamsSchema = CollectionItemsParamsSchema.extend({
   itemId: z.coerce.number().int().positive(),
 });
 

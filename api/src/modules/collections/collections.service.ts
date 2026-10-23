@@ -1,3 +1,4 @@
+import { InternalError } from '../../lib/errors.ts';
 import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
 import { collectionsRepository, type CollectionRow } from './collections.repository.ts';
 import type {
@@ -41,7 +42,7 @@ export async function getCollection(id: number): Promise<CollectionResponse> {
 export async function addCollection(data: CreateCollection): Promise<CollectionResponse> {
   const row = await collectionsRepository.create(data);
 
-  if (!row) throw new NotFoundError(ENTITY, 'just created');
+  if (!row) throw new InternalError('The collection was not found right after its insert');
 
   return toResponse(row);
 }
@@ -71,10 +72,4 @@ export async function deleteCollection(id: number): Promise<void> {
   if (current.isDefault) throw new ConflictError('The default collection cannot be deleted');
 
   await collectionsRepository.delete(id);
-}
-
-export async function assertCollectionExists(id: number): Promise<void> {
-  const row = await collectionsRepository.findById(id);
-
-  if (!row) throw new NotFoundError(ENTITY, id);
 }

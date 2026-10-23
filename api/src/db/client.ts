@@ -1,5 +1,5 @@
 import { createClient, type Client } from '@libsql/client';
-import { DefaultLogger, sql, type LogWriter } from 'drizzle-orm';
+import { DefaultLogger, type LogWriter } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { env } from '../config/env.ts';
 import { logger } from '../lib/logger.ts';
@@ -32,11 +32,6 @@ export const db = drizzle({
   casing: 'snake_case',
   logger: isQueryLogEnabled ? new DefaultLogger({ writer: queryLogWriter }) : false,
 });
-
-// The readiness probe's one query, so no route or service needs drizzle-orm for it.
-export async function pingDb(): Promise<void> {
-  await db.run(sql`select 1`);
-}
 
 export type Database = typeof db;
 export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];

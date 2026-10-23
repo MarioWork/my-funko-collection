@@ -1,9 +1,8 @@
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import fp from 'fastify-plugin';
-import { resolve } from 'node:path';
 import { env } from '../config/env.ts';
-import { UPLOADS_URL_PREFIX, initImageStorage } from '../lib/imageStorage.ts';
+import { UPLOADS_ROOT, UPLOADS_URL_PREFIX, initImageStorage } from '../lib/imageStorage.ts';
 
 // Variant files are named by uuid and never rewritten, so a browser may keep them for a year.
 const STATIC_MAX_AGE = '365d';
@@ -17,7 +16,7 @@ export const uploadsPlugin = fp(async (app) => {
   });
 
   await app.register(fastifyStatic, {
-    root: resolve(env.UPLOADS_DIR),
+    root: UPLOADS_ROOT,
     prefix: `${UPLOADS_URL_PREFIX}/`,
     index: false,
     immutable: true,

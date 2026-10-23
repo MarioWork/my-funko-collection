@@ -5,7 +5,7 @@ import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagina
 import { ContainsQuerySchema } from '../../lib/queryParams.ts';
 
 export const TAG_NAME_MAX_LENGTH = 100;
-export const TAG_NOTES_MAX_LENGTH = 2000;
+export const TAG_NOTES_MAX_LENGTH = 500;
 
 export const TagParamsSchema = z.object({
   tagId: z.coerce.number().int().positive(),

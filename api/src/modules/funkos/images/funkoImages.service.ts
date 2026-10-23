@@ -1,8 +1,6 @@
 import { env } from '../../../config/env.ts';
-import type { FunkoImage } from '../../../db/schema/funkoImages.ts';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../lib/httpErrors.ts';
 import {
-  UnsupportedImageError,
   hashImage,
   processImage,
   readLargeVariant,
@@ -12,15 +10,17 @@ import {
 } from '../../../lib/imageStorage.ts';
 import { logger } from '../../../lib/logger.ts';
 import { fetchRemoteFile } from '../../../lib/remoteFetch.ts';
-import { assertFunkoExists } from '../funkoLookup.service.ts';
-import { funkoImagesRepository } from './funkoImages.repository.ts';
-import type { FunkoImageResponse, ReorderImages, RotateImage } from './funkoImages.schema.ts';
+// The parent's service, for the funko's 404 (see the cycle note in funkos.service.ts).
+import { getFunkoSummary } from '../funkos.service.ts';
+import { funkoImagesRepository, type FunkoImageRow } from './funkoImages.repository.ts';
+import type { ReorderImages, RotateImage } from './funkoImages.schema.ts';
+import type { FunkoImageResponse } from './funkoImages.type.ts';
 
 const ENTITY = 'Image';
 
 const log = logger.child({ module: 'funkoImages' });
 
-export function toImageResponse(row: FunkoImage): FunkoImageResponse {
+export function toImageResponse(row: FunkoImageRow): FunkoImageResponse {
   return {
     id: row.id,
     url: variantUrl(row.funkoId, row.fileKey, 'large'),
@@ -48,19 +48,16 @@ async function assertNotDuplicate(funkoId: number, contentHash: string): Promise
   if (existing) throw new ConflictError('This image is already on the funko', existing.id);
 }
 
-async function storeOne(funkoId: number, buffer: Buffer): Promise<FunkoImage> {
+// The funko must exist: NotFoundError (404) otherwise.
+async function assertFunkoExists(funkoId: number): Promise<void> {
+  await getFunkoSummary(funkoId);
+}
+
+async function storeOne(funkoId: number, buffer: Buffer): Promise<FunkoImageRow> {
   await assertNotDuplicate(funkoId, hashImage(buffer));
 
-  let stored;
-
-  try {
-    stored = await processImage(funkoId, buffer);
-  } catch (error: unknown) {
-    if (error instanceof UnsupportedImageError) throw new BadRequestError(error.message, { cause: error });
-
-    throw error;
-  }
-
+  // Bytes that are not an image are refused here with a 400 (imageStorage throws BadRequestError).
+  const stored = await processImage(funkoId, buffer);
   const position = await funkoImagesRepository.nextPosition(funkoId);
   const row = await funkoImagesRepository.create({ funkoId, position, ...stored });
 
@@ -83,7 +80,7 @@ export async function addImages(funkoId: number, buffers: Buffer[]): Promise<Fun
   await assertRoomFor(funkoId, buffers.length);
 
   const seenHashes = new Set<string>();
-  const stored: FunkoImage[] = [];
+  const stored: FunkoImageRow[] = [];
 
   for (const buffer of buffers) {
     const contentHash = hashImage(buffer);

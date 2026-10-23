@@ -69,4 +69,4 @@ export const seriesRepository = {
     executor.delete(series).where(eq(series.id, id)).returning({ id: series.id }).get(),
 };
 
-export type SeriesRow = { id: number; name: string; funkoCount: number; createdAt: Date; updatedAt: Date };
+export type SeriesRow = Awaited<ReturnType<typeof selectWithCount>>[number];
