@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type { FunkoImageApiModel } from '@app-types/models';
 import { Dialog, DialogContent, DialogTitle } from '@components/ui/dialog';
 import { LARGE_IMAGE_WIDTH_PX, MEDIUM_IMAGE_WIDTH_PX } from '@utils/imageSizeUtils';
 import LightboxControls from './components/LightboxControls';
+import type { LightboxImage } from './types';
 
 type Props = {
-  images: FunkoImageApiModel[];
+  images: LightboxImage[];
   openIndex: number | null;
   title: string;
   onClose: () => void;
@@ -81,7 +81,11 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
           <img
             key={image.id}
             src={image.url}
-            srcSet={`${image.mediumUrl} ${MEDIUM_IMAGE_WIDTH_PX}w, ${image.url} ${LARGE_IMAGE_WIDTH_PX}w`}
+            srcSet={
+              image.mediumUrl
+                ? `${image.mediumUrl} ${MEDIUM_IMAGE_WIDTH_PX}w, ${image.url} ${LARGE_IMAGE_WIDTH_PX}w`
+                : undefined
+            }
             sizes="100vw"
             alt={`${title}, ${index + 1} of ${count}`}
             width={image.width}

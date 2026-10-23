@@ -50,6 +50,19 @@ it('gives the default collection its own card with the copy details, and drops i
   expect(screen.getByText(/saved to the catalog only/)).toBeVisible();
 });
 
+it('folds a collection card to one row that still shows what it holds', async () => {
+  renderAddForm();
+
+  const ownedCard = await screen.findByRole('article', { name: 'Owned' });
+  const toggle = within(ownedCard).getByRole('button', { name: 'Owned' });
+
+  await userEvent.type(within(ownedCard).getByRole('textbox', { name: 'Paid (EUR)' }), '14.99');
+  await userEvent.click(toggle);
+
+  expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  expect(toggle).toHaveAccessibleDescription(/×1 · 14,99/);
+});
+
 it('shows a bad price inside its own collection card when Save is pressed', async () => {
   renderAddForm();
 
@@ -84,5 +97,17 @@ describe('saving without a photo', () => {
     await userEvent.upload(photoInput, new File([new Uint8Array([1, 2, 3])], 'front.png', { type: 'image/png' }));
 
     await waitFor(() => expect(screen.queryByText(PHOTOS_REQUIRED_MESSAGE)).not.toBeInTheDocument());
+  });
+
+  it('opens a picked image big when its thumbnail is clicked', async () => {
+    renderAddForm();
+
+    await userEvent.upload(
+      await screen.findByLabelText('Image files'),
+      new File([new Uint8Array([1, 2, 3])], 'front.png', { type: 'image/png' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'View front.png' }));
+
+    expect(await screen.findByRole('dialog', { name: /Images to upload, image 1 of 1/ })).toBeVisible();
   });
 });

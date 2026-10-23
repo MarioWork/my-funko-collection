@@ -5,7 +5,7 @@ import type { CreateCollectionItem } from '@services/collectionItemService/colle
 import { itemQuantitySchema } from '@utils/itemUtils';
 import { centsToUnits, DEFAULT_CURRENCY, unitsToCents } from '@utils/moneyUtils';
 
-const PRICE_PATTERN = /^\d+([.,]\d{1,2})?$/;
+export const PRICE_PATTERN = /^\d+([.,]\d{1,2})?$/;
 
 // Form values as inputs produce them; `toItemPayload` turns the price into cents and empties into null.
 export const itemFormSchema = object({
