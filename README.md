@@ -28,6 +28,7 @@
 - [A quick tour](#a-quick-tour)
 - [Get it running at home](#get-it-running-at-home)
   - [Trust the certificate](#trust-the-certificate-once-per-device)
+  - [Sign in with a passkey](#sign-in-with-a-passkey)
   - [Where your data lives](#where-your-data-lives)
   - [Using it away from home](#using-it-away-from-home)
 - [Try it without a server](#try-it-without-a-server)
@@ -40,6 +41,7 @@ runs on a machine in your house, keeps everything in one folder you can back up,
 right next to the shelf.
 
 - **Yours, not a cloud's.** No sign-up, no tracking, no external Funko database. Your photos stay on your server.
+- **Locked with a passkey.** Face ID, Touch ID or your passkey manager. No password to guess or leak.
 - **Phone-first, desktop-friendly.** Scan a box with the camera on the go, browse a wide grid at your desk.
 - **Built for real shelves.** Tag each Pop with the box it lives in, so "where's my Grogu?" takes two seconds.
 
@@ -58,6 +60,7 @@ right next to the shelf.
 | 📤 **Export**              | Download everything as JSON, or your items as a spreadsheet (CSV).                                 |
 | 🌙 **Light & dark**        | Follows your system, with smooth, calm motion that switches off if you prefer reduced motion.      |
 | ♿ **Accessible**          | Keyboard and screen-reader friendly, aiming at WCAG 2.2 AA.                                        |
+| 🔐 **Passkey sign-in**     | Face ID, Touch ID, Bitwarden or any passkey manager. Photos stay private too.                      |
 
 ## A quick tour
 
@@ -95,14 +98,14 @@ You need a machine that stays on (a mini PC, a NAS, a Raspberry Pi 5) with **Doc
 git clone https://github.com/MarioWork/my-funko-collection.git
 cd my-funko-collection
 
-# Set the address you'll open it at: SITE_ADDRESS in compose.yaml
-# (your server's LAN IP works without any DNS setup, e.g. https://192.168.1.20)
+# Set the address you'll open it at: x-app-address at the top of compose.yaml.
+# It must be a name, not an IP address (passkeys refuse IPs), and you pick it once: passkeys are tied to it.
 
 docker compose up --build -d
 ```
 
-Then open that address on any device on your Wi-Fi. That's it: the database is created on first start, with an
-**Owned** and a **Wishlist** collection ready to go.
+The database is created on first start, with an **Owned** and a **Wishlist** collection ready to go. Then make your
+passkey (below).
 
 ### Trust the certificate (once per device)
 
@@ -119,6 +122,29 @@ docker compose cp web:/data/caddy/pki/authorities/local/root.crt ./my-funko-coll
 - **Mac:** double-click it, then set it to _Always Trust_ in Keychain Access.
 
 Tip: on your phone, use _Add to Home Screen_, and it opens like a regular app.
+
+### Sign in with a passkey
+
+The first start prints a one-time setup link in the log:
+
+```bash
+docker compose logs api | grep -A1 'Open this link'
+```
+
+Open it, tell the app your name, and save a passkey: your phone or Mac asks for Face ID / Touch ID and keeps it
+(Apple Passwords, Bitwarden, Google Password Manager... all work). Nobody can claim the app without that link.
+
+After that, signing in is one button and Face ID. A sign-in lasts 30 days, or 7 days without use. In
+_Settings → Security_ you can add a spare passkey (do it: a second device or manager), remove one, or sign out
+everywhere.
+
+**Locked out?** On the server:
+
+```bash
+docker compose exec api node dist/cli/resetAuth.js
+```
+
+It removes every passkey and sign-in (never your collection) and prints a new setup link.
 
 ### Where your data lives
 
@@ -141,8 +167,9 @@ spreadsheet (CSV).
 
 ### Using it away from home
 
-There is no login, on purpose: it's meant for your home network. To reach it from outside, put the server on
-[Tailscale](https://tailscale.com) (or another VPN) instead of opening a port on your router.
+Don't open a port on your router. Put the server on [Tailscale](https://tailscale.com) instead: only your own
+devices can reach it, and the passkey is the second lock. A Tailscale name (`https://funko.<your-tailnet>.ts.net`)
+also comes with a real certificate, so no device needs Caddy's certificate installed.
 
 ## Try it without a server
 

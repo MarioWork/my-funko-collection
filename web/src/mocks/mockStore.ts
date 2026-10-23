@@ -1,9 +1,11 @@
 // The in-memory data behind every mock handler. One store per page load (and per test, through resetMockStore()),
 // so an add or a delete changes the next list the way the real API would.
-import type { FunkoImageApiModel } from '@app-types/models';
+import type { FunkoImageApiModel, PasskeyApiModel } from '@app-types/models';
 import {
+  AuthStateUtil,
   FunkoTypeUtil,
   ItemConditionUtil,
+  type AuthStateUtil as AuthState,
   type FunkoTypeUtil as FunkoType,
   type ItemConditionUtil as ItemCondition,
 } from '@app-types/utility';
@@ -51,7 +53,18 @@ export type MockItemRow = {
   updatedAt: string;
 };
 
+export type MockPasskeyRow = PasskeyApiModel;
+// The one user and this browser's session. `isSignInRecent`: signed in within the last 10 minutes, which removing a
+// passkey needs (the API answers 403 REAUTH_REQUIRED otherwise).
+export type MockAuth = {
+  state: AuthState;
+  userName: string;
+  isSignInRecent: boolean;
+  passkeys: MockPasskeyRow[];
+};
+
 export type MockStore = {
+  auth: MockAuth;
   categories: MockCategoryRow[];
   series: MockSeriesRow[];
   tags: MockTagRow[];
@@ -60,6 +73,11 @@ export type MockStore = {
   images: MockImageRow[];
   items: MockItemRow[];
 };
+
+// Vite's env in the browser and in Vitest. Playwright loads this file in plain Node, where import.meta.env does
+// not exist, so it reads as empty there (the defaults: no extra funkos, signed in).
+const viteEnv: ImportMetaEnv | undefined = import.meta.env;
+const mockEnv: Partial<ImportMetaEnv> = viteEnv ?? {};
 
 const FIRST_DATE = Date.UTC(2026, 0, 5, 9, 30);
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -277,7 +295,7 @@ const EXTRA_CHASE_EVERY = 11;
 const EXTRA_NUMBER_START = 2000;
 
 // How many generated funkos to add: none in tests and normal mock mode.
-const extraFunkoCount = Number(import.meta.env.VITE_MOCK_EXTRA_FUNKOS ?? 0) || 0;
+const extraFunkoCount = Number(mockEnv.VITE_MOCK_EXTRA_FUNKOS ?? 0) || 0;
 
 // "Iron Man 37": a seed name with a running number, in the seed's category, some with a series, a chase now and
 // then. Only for trying long lists; never in tests.
@@ -369,6 +387,50 @@ function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
   );
 }
 
+// The first-run code the mocks accept, as the server would print it in /setup?code=...
+export const MOCK_SETUP_CODE = 'funko-first-run';
+export const MOCK_USER_NAME = 'Mario';
+
+const SEED_PASSKEYS: MockPasskeyRow[] = [
+  {
+    id: 'cGFzc2tleS1pcGhvbmU',
+    name: 'iPhone',
+    isSynced: true,
+    createdAt: mockDate(20),
+    lastUsedAt: mockDate(40),
+  },
+  {
+    id: 'cGFzc2tleS15dWJpa2V5',
+    name: 'YubiKey',
+    isSynced: false,
+    createdAt: mockDate(3),
+    lastUsedAt: null,
+  },
+];
+
+const AUTH_STATES = Object.values(AuthStateUtil);
+
+function isAuthState(value: string | undefined): value is AuthState {
+  return AUTH_STATES.some((state) => state === value);
+}
+
+// Mock mode can open on the login or the first-run page (VITE_MOCK_AUTH_STATE=signedOut / setup); signed in
+// otherwise, so dev, Vitest and Playwright see the app as before.
+const initialAuthState = isAuthState(mockEnv.VITE_MOCK_AUTH_STATE)
+  ? mockEnv.VITE_MOCK_AUTH_STATE
+  : AuthStateUtil.SIGNED_IN;
+
+export function createMockAuth(state: AuthState): MockAuth {
+  const hasUser = state !== AuthStateUtil.SETUP;
+
+  return {
+    state,
+    userName: hasUser ? MOCK_USER_NAME : '',
+    isSignInRecent: true,
+    passkeys: hasUser ? SEED_PASSKEYS.map((passkey) => ({ ...passkey })) : [],
+  };
+}
+
 export function createMockStore(): MockStore {
   const categories = CATEGORY_NAMES.map((name, index) => ({
     id: index + 1,
@@ -434,6 +496,7 @@ export function createMockStore(): MockStore {
   const extraItems = createExtraItems(extraFunkos, items.length + 1);
 
   return {
+    auth: createMockAuth(initialAuthState),
     categories,
     series,
     tags,
@@ -448,6 +511,11 @@ export let mockStore: MockStore = createMockStore();
 
 export function resetMockStore(): void {
   mockStore = createMockStore();
+}
+
+// For a test that starts signed out or before the first run. resetMockStore() signs back in.
+export function setMockAuthState(state: AuthState): void {
+  mockStore.auth = createMockAuth(state);
 }
 
 export function nextId(rows: MockRowWithId[]): number {

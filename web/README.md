@@ -69,6 +69,7 @@ Set in `.env` (all modes) and `.env.development` (dev only). Values are read at 
 | `VITE_PLAYWRIGHT`        | `true` under Playwright, which brings its own mocks                 |
 | `VITE_DEMO`              | `true` in the demo build: shows the "changes are not saved" banner  |
 | `VITE_MOCK_EXTRA_FUNKOS` | Mock mode only: generated funkos added to the seed (`dev:big`)      |
+| `VITE_MOCK_AUTH_STATE`   | Mock mode only: start `signedOut` or `setup` instead of signed in   |
 
 **Demo on GitHub Pages.** `.github/workflows/pages.yml` builds `yarn build:demo` with
 `VITE_PROJECT_PATH=/<repo>/` and publishes `dist/`. It runs by hand only (Actions tab), once the repo's Pages
@@ -110,6 +111,9 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 | `/items`                            | Every item across collections (filter by tag to find a box)              |
 | `/search`                           | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere            |
 | `/categories`, `/tags`, `/settings` | Manage pages, theme, default collection, "Adding to" defaults, exports   |
+| `/settings` → Security              | Passkeys (add, remove), sign out, sign out everywhere                    |
+| `/login`                            | Sign in with a passkey (outside the app shell); `?redirectTo=` returns   |
+| `/setup?code=...`                   | First run: your name and the first passkey, from the link in the log     |
 
 ## How data flows
 
@@ -123,6 +127,29 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
    Undo (`useActionToast`); errors show inline next to the form.
 5. **Routed dialogs and sheets** (edit funko, add/edit item, add/edit collection) are child routes with their own
    loader and action; closing navigates back.
+
+## Signing in
+
+One user, passkeys only (`@simplewebauthn/browser`); the API keeps the session in an HttpOnly cookie the app never
+sees. Background in `../docs/login-security-research.md`.
+
+- **Gate.** The app shell's loader (`AppShell/appShellLoader.ts`) asks `GET /auth/status` once, when the shell
+  mounts: `setup` → `/setup`, `signedOut` → `/login?redirectTo=<where you were>`, `signedIn` → the app, with the
+  user's name for `useSignedInUser()`. Its `shouldRevalidate` is off, so there is no status call per navigation.
+- **Lost session.** The root route's `authMiddleware` lets every loader and action run, then turns any 401
+  `UNAUTHORIZED` (a thrown read or an action's envelope) into a redirect to the login page, remembering the page.
+  `redirectTo` is checked (`safeRedirectPath`): only a path inside the app.
+- **Ceremonies run in route actions.** A click submits to an action through `useFetcher`; the action gets the
+  options from the API, runs the browser prompt (`@utils/passkeyUtils`) and sends the result back, then redirects.
+  A closed prompt comes back as a `PASSKEY_CANCELLED` failure with friendly copy, never the raw error.
+- **Confirm it's you.** Adding or removing a passkey needs a sign-in from the last 10 minutes. On a 403
+  `REAUTH_REQUIRED` the dialog switches to "Confirm with passkey" and submits again with `isReauth`; the action
+  signs in afresh, then retries (`withFreshSignIn`).
+- **Mocks.** `mockStore.auth` starts signed in as Mario with two passkeys; `setMockAuthState()` (tests) or
+  `VITE_MOCK_AUTH_STATE` (dev) starts signed out or before setup. Without a session every mocked route answers 401,
+  like the API. The mocks accept any well-formed ceremony response; the first-run code is `funko-first-run`.
+- **E2E.** `auth.e2e.test.ts` runs the real ceremonies against Chrome's virtual authenticator (the
+  `virtualAuthenticator` fixture): first run, sign out, sign back in.
 
 ## Scanner and photos
 

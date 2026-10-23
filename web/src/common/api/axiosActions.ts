@@ -28,3 +28,22 @@ export async function axiosActions<T = unknown>(config: AxiosRequestConfig): Pro
     return { success: false, error: toApiError(error.response?.status, error.response?.data) };
   }
 }
+
+const UNAUTHORIZED_STATUS = 401;
+// The envelope code of a request made without a valid session. Other 401s (a wrong setup code, a passkey that did
+// not verify) carry their own code and belong to the page that made them.
+export const UNAUTHORIZED_ERROR_CODE = 'UNAUTHORIZED';
+
+function isFailedEnvelope(value: unknown): value is JSONResponseUtil {
+  return typeof value === 'object' && value !== null && 'success' in value && value.success === false;
+}
+
+// Whether a loader's thrown read or an action's returned envelope means "no valid session". Lives here because
+// this is the one file that reads a failed request.
+export function isUnauthorizedFailure(value: unknown): boolean {
+  if (axios.isAxiosError(value)) return value.response?.status === UNAUTHORIZED_STATUS;
+
+  if (isFailedEnvelope(value)) return value.error?.code === UNAUTHORIZED_ERROR_CODE;
+
+  return false;
+}

@@ -1,6 +1,7 @@
 # My Funko Collection
 
-A self-hosted Funko Pop tracker for one person, run with Docker Compose on a LAN-only home server. No login.
+A self-hosted Funko Pop tracker for one person, run with Docker Compose on a LAN-only home server. One user signs in
+with a passkey (no passwords).
 The global React/Node conventions apply; this file holds only what is specific to this repo.
 
 ## Layout
@@ -32,6 +33,17 @@ The global React/Node conventions apply; this file holds only what is specific t
 - Deleting a tag only removes the label from items. Deleting a collection removes its items, never the funkos.
 - "Owned" (the default) and "Wishlist" always exist from the first start: reference data in the custom migration
   `api/drizzle/0001_default_collections.sql`, not the seed. Each insert skips one that is already there.
+- Sign-in is passkeys only, for one user (`docs/login-security-research.md`, `api/README.md` "Sign-in"). Every API
+  route and `/uploads` file needs a session unless it sets `config: { isPublic: true }`; keep that list tiny, and
+  add new public routes to `PUBLIC_ROUTES` in `auth.route.test.ts`. Sessions are server-side rows (SHA-256 of an
+  HttpOnly cookie token), never JWTs or localStorage. No password, TOTP or "auth off" switch, not even in dev.
+- Deliberate exceptions to the Node skills for auth (decided 2026-10-23): the check is a global `onRequest` hook in
+  `auth.plugin.ts` with server-side cookie sessions, not `@fastify/jwt` + `preHandler: [app.authenticate]`
+  (node-ts-api §9); random 256-bit tokens (session, setup code) are stored as plain SHA-256, not argon2 (they can't
+  be brute-forced and must be looked up by hash); the WebAuthn routes keep the spec's two steps in their URLs
+  (`/auth/login/options` + `/auth/login/verify`) instead of noun-only URLs.
+- Passkeys are bound to the host name in `APP_ORIGIN` (`x-app-address` in `compose.yaml`): never an IP address, and
+  changing it orphans every passkey (`yarn auth:reset` then makes new ones).
 - Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A gets a leading zero on both sides
   (`api/src/lib/barcode.ts`, `web/src/common/utils/barcodeUtils.ts`). Keep them in step.
 
@@ -46,6 +58,7 @@ yarn typecheck && yarn lint && yarn test   # the definition of green
 yarn db:migrate     # apply migrations; yarn db:generate --name=<change> after a schema edit (commit drizzle/)
 yarn db:seed        # example data with placeholder images
 yarn images:prune   # delete image files no row references
+yarn auth:reset      # locked out: remove every passkey and session, print a new setup link
 ```
 
 Inside `web/`:
