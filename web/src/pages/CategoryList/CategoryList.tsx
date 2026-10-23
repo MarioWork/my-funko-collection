@@ -7,8 +7,11 @@ import AddFab from '@components/AddFab';
 import LinkButton from '@components/LinkButton';
 import ManageList from '@components/ManageList';
 import type { ManageRow } from '@components/ManageList';
+import ListExportMenu from '@components/ListExportMenu';
 import PageHeader from '@components/PageHeader';
+import { ExportFunkosScopeUtil, ExportListKindUtil } from '@app-types/utility';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
+import { reasonWhen } from '@utils/disabledReasonUtils';
 import type { loader } from './categoryListLoader';
 
 function toRow(category: CategoryApiModel): ManageRow {
@@ -20,6 +23,8 @@ function toRow(category: CategoryApiModel): ManageRow {
     notes: null,
     meta: isInUse ? `${category.funkoCount} funkos` : 'Not used yet',
     isDeletable: !isInUse,
+    exportScope: ExportFunkosScopeUtil.CATEGORY,
+    exportDisabledReason: isInUse ? undefined : `No funko is in ${category.name} yet.`,
     deleteDescription: 'No funko uses this line. This cannot be undone.',
   };
 }
@@ -41,6 +46,13 @@ function CategoryList() {
             <Book data-icon="inline-start" aria-hidden="true" />
             New
           </LinkButton>
+        }
+        iconActions={
+          <ListExportMenu
+            kind={ExportListKindUtil.CATEGORIES}
+            noun="categories"
+            disabledReason={reasonWhen(categories.length === 0, 'No categories to export yet.')}
+          />
         }
       />
       <ManageList

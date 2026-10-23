@@ -7,8 +7,11 @@ import AddFab from '@components/AddFab';
 import LinkButton from '@components/LinkButton';
 import ManageList from '@components/ManageList';
 import type { ManageRow } from '@components/ManageList';
+import ListExportMenu from '@components/ListExportMenu';
 import PageHeader from '@components/PageHeader';
+import { ExportFunkosScopeUtil, ExportListKindUtil } from '@app-types/utility';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
+import { reasonWhen } from '@utils/disabledReasonUtils';
 import type { loader } from './seriesListLoader';
 
 function toRow(series: SeriesApiModel): ManageRow {
@@ -21,6 +24,8 @@ function toRow(series: SeriesApiModel): ManageRow {
     meta: isInUse ? `${series.funkoCount} funkos` : 'Not used yet',
     // Unlike a category, a series is optional: deleting one just clears it from its funkos.
     isDeletable: true,
+    exportScope: ExportFunkosScopeUtil.SERIES,
+    exportDisabledReason: isInUse ? undefined : `No funko is in ${series.name} yet.`,
     deleteDescription: isInUse
       ? `${series.funkoCount} funkos lose this series. The funkos stay in your catalog.`
       : 'No funko uses this series yet.',
@@ -44,6 +49,13 @@ function SeriesList() {
             <Library data-icon="inline-start" aria-hidden="true" />
             New
           </LinkButton>
+        }
+        iconActions={
+          <ListExportMenu
+            kind={ExportListKindUtil.SERIES}
+            noun="series"
+            disabledReason={reasonWhen(series.length === 0, 'No series to export yet.')}
+          />
         }
       />
       <ManageList

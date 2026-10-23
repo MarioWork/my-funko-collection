@@ -17,6 +17,18 @@ it('shows every collection with its counts and marks the default one', async () 
   expect(screen.getByRole('button', { name: 'Actions for Wishlist' })).toBeVisible();
 });
 
+it('exports the collection’s funkos from the Export submenu of its actions', async () => {
+  renderRoutes(collectionRoutes, { initialEntries: [COLLECTION_ROUTES_PATHS.BASE] });
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Actions for Owned' }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: 'Export' }));
+
+  const spreadsheet = await screen.findByRole('menuitem', { name: /Spreadsheet/ });
+
+  expect(spreadsheet).toHaveAttribute('href', expect.stringMatching(/\/export\/funkos\.xlsx\?collectionId=\d+$/));
+  expect(spreadsheet).toHaveAttribute('download');
+});
+
 it('opens the edit dialog over the list, without leaving it, from a collection’s actions', async () => {
   renderRoutes(collectionRoutes, { initialEntries: [COLLECTION_ROUTES_PATHS.BASE] });
 

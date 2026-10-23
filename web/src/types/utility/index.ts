@@ -12,3 +12,6 @@ export { FUNKO_MATCH_FIELD_LABELS, FunkoMatchFieldUtil } from './funkoMatchField
 export { AuthStateUtil } from './authStateUtil.type';
 export { PasskeyCeremonyFailureUtil } from './passkeyCeremonyFailureUtil.type';
 export type { AuthFailureMessagesUtil } from './authFailureMessagesUtil.type';
+export { ExportFunkosScopeUtil } from './exportFunkosScopeUtil.type';
+export { ExportFormatUtil } from './exportFormatUtil.type';
+export { ExportListKindUtil } from './exportListKindUtil.type';

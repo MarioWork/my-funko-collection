@@ -57,7 +57,7 @@ right next to the shelf.
 | 🔎 **Search everything**   | One box finds names, numbers, barcodes, series, tags and boxes. <kbd>⌘K</kbd> from anywhere.       |
 | 🎛️ **Filter & sort**       | By category, series, collection, tag, chase, images… or what's missing: no series, no collection.  |
 | 💾 **Images page**         | See what your photos take up, grouped by funko, and spot files nothing uses.                       |
-| 📤 **Export**              | Download everything as JSON, or your items as a spreadsheet (CSV).                                 |
+| 📤 **Export**              | Any list, one entry or one funko (with its photos) as a spreadsheet, CSV or JSON.                  |
 | 🌙 **Light & dark**        | Follows your system, with smooth, calm motion that switches off if you prefer reduced motion.      |
 | ♿ **Accessible**          | Keyboard and screen-reader friendly, aiming at WCAG 2.2 AA.                                        |
 | 🔐 **Passkey sign-in**     | Face ID, Touch ID, Bitwarden or any passkey manager. Photos stay private too.                      |

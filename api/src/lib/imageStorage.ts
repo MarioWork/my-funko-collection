@@ -179,6 +179,30 @@ export async function readLargeVariant(funkoId: number, fileKey: string): Promis
   return readFile(join(funkoFolder(funkoId), variantFileName(fileKey, 'large')));
 }
 
+export type JpegImage = { content: Buffer; width: number; height: number };
+
+const EXPORT_JPEG_QUALITY = 85;
+
+// A stored variant as JPEG, for files that cannot hold WebP (spreadsheets). Undefined when the file is missing.
+export async function readVariantAsJpeg(
+  funkoId: number,
+  fileKey: string,
+  variant: ImageVariant,
+): Promise<JpegImage | undefined> {
+  try {
+    const source = await readFile(join(funkoFolder(funkoId), variantFileName(fileKey, variant)));
+    const { data, info } = await sharp(source)
+      .jpeg({ quality: EXPORT_JPEG_QUALITY })
+      .toBuffer({ resolveWithObject: true });
+
+    return { content: data, width: info.width, height: info.height };
+  } catch (error: unknown) {
+    logger.warn({ err: error, funkoId }, 'image for export not readable');
+
+    return undefined;
+  }
+}
+
 export async function rotateBuffer(buffer: Buffer, degrees: number): Promise<Buffer> {
   return sharp(buffer).rotate(degrees).toBuffer();
 }

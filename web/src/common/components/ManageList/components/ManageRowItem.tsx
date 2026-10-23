@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useFetcher } from 'react-router';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import ConfirmDialog from '@components/ConfirmDialog';
+import ExportMenu from '@components/ExportMenu';
+import exportService from '@services/exportService/exportService';
 import IconButton from '@components/IconButton';
 import InlineAlert from '@components/InlineAlert';
 import { useActionToast } from '@hooks/useActionToast';
@@ -26,7 +28,7 @@ const SUCCESS_MESSAGE_MAP: Record<string, (name: string) => string> = {
   [HttpVerbsUtil.DELETE]: (name) => `Deleted ${name}`,
 };
 
-// View mode: name, notes, what it is attached to, rename and delete. Rename swaps the row for the inline form.
+// View mode: name, notes, what it is attached to, export its funkos, rename and delete. Rename swaps the row for the inline form.
 function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
   const fetcher = useFetcher<JSONResponseUtil>();
   const [isEditing, setIsEditing] = useState(false);
@@ -93,6 +95,11 @@ function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
           {row.notes ? <span className="truncate text-sm text-muted-foreground">{row.notes}</span> : null}
           <span className="text-xs text-muted-foreground">{row.meta}</span>
         </div>
+        <ExportMenu
+          label={`Export ${row.name}`}
+          hrefFor={(format) => exportService.getFunkosExportUrl(format, row.exportScope, row.id)}
+          disabledReason={row.exportDisabledReason}
+        />
         <IconButton
           variant="ghost"
           aria-label={`Rename ${row.name}`}

@@ -3,6 +3,7 @@ import DisabledReason from '@components/DisabledReason';
 import { Button } from '@components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip';
 import { cn } from '@utils/classNameUtils';
+import { TOUCH_TARGET_CLASS } from '@utils/touchTargetUtils';
 
 type Props = Omit<ComponentProps<typeof Button>, 'size' | 'aria-label'> & {
   // Required: an icon-only control has no visible text to name it. It is also the tooltip.
@@ -36,7 +37,7 @@ function IconButton({
       size={SIZE_MAP[size]}
       aria-label={label}
       disabled={disabled}
-      className={cn('pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-2', className)}
+      className={cn(TOUCH_TARGET_CLASS, className)}
       {...props}
     />
   );

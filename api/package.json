@@ -45,6 +45,7 @@
     "fastify-plugin": "^6",
     "pino": "^10",
     "sharp": "^0.34.0",
+    "write-excel-file": "^4",
     "zod": "^4.6"
   },
   "devDependencies": {
