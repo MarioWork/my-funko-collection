@@ -2,7 +2,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router';
 import type { CollectionItemApiModel } from '@app-types/models';
 import { ITEM_CONDITION_LABELS } from '@app-types/utility';
-import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import IconButton from '@components/IconButton';
 import { Badge } from '@components/ui/badge';
 import { Spinner } from '@components/ui/spinner';
@@ -70,7 +70,9 @@ function MembershipActions({ item, isBusy, onRemove }: RowProps) {
         variant="ghost"
         size="sm"
         className={ROUND_CLASS}
-        render={<Link to={COLLECTION_ROUTES_PATHS.editItem(String(item.collection.id), String(item.id))} />}
+        render={
+          <Link to={FUNKO_ROUTES_PATHS.editItem(String(item.funko.id), String(item.collection.id), String(item.id))} />
+        }
         nativeButton={false}
         // Base UI would announce it as a button; it navigates, so it is a link (as LinkButton does).
         role="link"

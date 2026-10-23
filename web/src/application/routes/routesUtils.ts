@@ -10,6 +10,11 @@ export const FUNKO_ROUTES_PATHS = {
   BASE: '/funkos',
   detail: (funkoId?: string) => (funkoId ? `/funkos/${funkoId}` : '/funkos/:funkoId'),
   edit: (funkoId?: string) => (funkoId ? `/funkos/${funkoId}/edit` : '/funkos/:funkoId/edit'),
+  // One of its collection items, edited in place over the funko's page (the same sheet as on the collection page).
+  editItem: (funkoId?: string, collectionId?: string, itemId?: string) =>
+    funkoId && collectionId && itemId
+      ? `/funkos/${funkoId}/collections/${collectionId}/items/${itemId}/edit`
+      : '/funkos/:funkoId/collections/:collectionId/items/:itemId/edit',
   delete: (funkoId?: string) => (funkoId ? `/funkos/${funkoId}/delete` : '/funkos/:funkoId/delete'),
   images: (funkoId?: string) => (funkoId ? `/funkos/${funkoId}/images` : '/funkos/:funkoId/images'),
   membership: (funkoId?: string) => (funkoId ? `/funkos/${funkoId}/membership` : '/funkos/:funkoId/membership'),

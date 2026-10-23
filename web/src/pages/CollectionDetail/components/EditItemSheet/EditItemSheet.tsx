@@ -21,7 +21,8 @@ import FormPanel from '@components/FormPanel';
 const FORM_ID = 'edit-item';
 const BACK = -1;
 
-// Routed under /collections/:id/items/:itemId/edit. Owns its loader and action; closing goes back.
+// Routed under /collections/:id/items/:itemId/edit, and over a funko's page at
+// /funkos/:funkoId/collections/:id/items/:itemId/edit. Owns its loader and action; closing goes back.
 function EditItemSheet() {
   const { item, tags } = useLoaderData<LoaderDataUtil<typeof loader>>();
   const fetcher = useFetcher<JSONResponseUtil<CollectionItemApiModel>>();
