@@ -1,4 +1,5 @@
 import { buildApp, type App } from '../app.ts';
+import { signIn } from '../testFixtures.ts';
 import { prepareTestDb } from './testDb.ts';
 
 let app: App;
@@ -15,7 +16,9 @@ afterAll(async () => {
 
 describe('GET /collections', () => {
   it('lists Owned as the default collection and Wishlist when the database was just migrated', async () => {
-    const response = await app.inject({ method: 'GET', url: '/collections' });
+    const api = await signIn(app);
+
+    const response = await api.inject({ method: 'GET', url: '/collections' });
 
     expect(response.statusCode).toBe(200);
     const body = response.json<{ data: { name: string; isDefault: boolean }[] }>();

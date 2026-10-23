@@ -7,9 +7,12 @@ import {
   createItem,
   createSeries,
   createTag,
+  type SignedInClient,
+  signIn,
 } from '../../testFixtures.ts';
 
 let app: App;
+let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
@@ -22,6 +25,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await resetTestDb();
+  api = await signIn(app);
 });
 
 async function seed() {
@@ -44,7 +48,7 @@ describe('GET /export', () => {
   it('returns every table as one JSON download when the catalog has data', async () => {
     const { funko, box, homecoming } = await seed();
 
-    const response = await app.inject({ method: 'GET', url: '/export' });
+    const response = await api.inject({ method: 'GET', url: '/export' });
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-disposition']).toContain('attachment');
@@ -69,7 +73,7 @@ describe('GET /export/items.csv', () => {
   it('writes one quoted line per item with the price in units when an item has a price', async () => {
     const { funko } = await seed();
 
-    const response = await app.inject({ method: 'GET', url: '/export/items.csv' });
+    const response = await api.inject({ method: 'GET', url: '/export/items.csv' });
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toBe('text/csv; charset=utf-8');
@@ -88,7 +92,7 @@ describe('GET /export/items.csv', () => {
     const funko = await createFunko({ name: '@SUM(A1)', number: '-7', categoryId: marvel.id });
     await createItem(owned.id, funko.id, { notes: '+cmd', purchasePriceCents: 1499 });
 
-    const response = await app.inject({ method: 'GET', url: '/export/items.csv' });
+    const response = await api.inject({ method: 'GET', url: '/export/items.csv' });
 
     const line = response.body.split('\r\n').find((row) => row.includes('SUM'));
     expect(line).toContain(`'@SUM(A1)`);

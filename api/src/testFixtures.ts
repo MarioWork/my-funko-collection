@@ -1,4 +1,7 @@
 // Row factories for tests. Each test creates its own data through these; nothing is shared between tests.
+import type { InjectOptions, LightMyRequestResponse } from 'fastify';
+import { randomBytes } from 'node:crypto';
+import type { App } from './app.ts';
 import { db } from './db/client.ts';
 import {
   categories,
@@ -6,13 +9,18 @@ import {
   collectionItemTags,
   collections,
   funkos,
+  passkeys,
   series,
+  sessions,
   tags,
+  users,
   type FunkoType,
   type ItemCondition,
 } from './db/schema/index.ts';
 import { normaliseBarcode } from './lib/barcode.ts';
 import { generateImage, type GeneratedImageOptions } from './lib/imageStorage.ts';
+import { createSecureToken, hashSecureToken } from './lib/secureToken.ts';
+import { SESSION_COOKIE_NAME } from './lib/sessionCookie.ts';
 
 let sequence = 0;
 
@@ -135,4 +143,67 @@ export function toFormData(files: { buffer: Buffer; name?: string; field?: strin
   }
 
   return form;
+}
+
+const TEST_USER_NAME = 'Tester';
+const RANDOM_ID_BYTES = 32;
+
+export type SignedInClient = {
+  userId: number;
+  token: string;
+  inject: (options: InjectOptions) => Promise<LightMyRequestResponse>;
+};
+
+// The test user, made once per database: the app has one user at most.
+async function findOrCreateTestUser(): Promise<{ id: number }> {
+  const existing = await db.select({ id: users.id }).from(users).limit(1).get();
+
+  if (existing) return existing;
+
+  return db
+    .insert(users)
+    .values({ name: TEST_USER_NAME, webauthnUserId: randomBytes(RANDOM_ID_BYTES).toString('base64url') })
+    .returning({ id: users.id })
+    .get();
+}
+
+// A passkey row with a made-up key: enough for sessions to point at, it can't sign anything.
+export async function createPasskeyRow(userId: number, name = nextName('Passkey')): Promise<{ id: number }> {
+  return db
+    .insert(passkeys)
+    .values({
+      credentialId: randomBytes(RANDOM_ID_BYTES).toString('base64url'),
+      userId,
+      name,
+      publicKey: randomBytes(RANDOM_ID_BYTES),
+      counter: 0,
+      transports: ['internal'],
+      isSynced: true,
+    })
+    .returning({ id: passkeys.id })
+    .get();
+}
+
+// A user with a live session, straight in the database (no passkey ceremony): `inject` sends its cookie.
+// `signedInAt` / `lastSeenAt` backdate the session, for the "signed in recently" and timeout rules.
+export async function signIn(
+  app: App,
+  options: { signedInAt?: Date; lastSeenAt?: Date } = {},
+): Promise<SignedInClient> {
+  const user = await findOrCreateTestUser();
+  const passkey = await createPasskeyRow(user.id);
+  const token = createSecureToken();
+  const signedInAt = options.signedInAt ?? new Date();
+  const lastSeenAt = options.lastSeenAt ?? signedInAt;
+
+  await db
+    .insert(sessions)
+    .values({ tokenHash: hashSecureToken(token), userId: user.id, passkeyId: passkey.id, signedInAt, lastSeenAt });
+
+  return {
+    userId: user.id,
+    token,
+    inject: (injectOptions) =>
+      app.inject({ ...injectOptions, cookies: { ...injectOptions.cookies, [SESSION_COOKIE_NAME]: token } }),
+  };
 }

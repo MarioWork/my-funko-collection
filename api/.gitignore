@@ -19,3 +19,6 @@ data/uploads/
 
 # TypeScript incremental build state
 *.tsbuildinfo
+
+# Database copies made before risky changes: real personal data, never committed
+data/*.bak

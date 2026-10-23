@@ -1,8 +1,17 @@
 import { buildApp, type App } from '../../app.ts';
 import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
-import { createCategory, createCollection, createFunko, createSeries, createTag } from '../../testFixtures.ts';
+import {
+  createCategory,
+  createCollection,
+  createFunko,
+  createSeries,
+  createTag,
+  type SignedInClient,
+  signIn,
+} from '../../testFixtures.ts';
 
 let app: App;
+let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
@@ -15,6 +24,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await resetTestDb();
+  api = await signIn(app);
 });
 
 describe('GET /suggest', () => {
@@ -26,7 +36,7 @@ describe('GET /suggest', () => {
     await createTag('Marvel box');
     await createTag('Box 1');
 
-    const response = await app.inject({ method: 'GET', url: '/suggest', query: { q: 'marvel' } });
+    const response = await api.inject({ method: 'GET', url: '/suggest', query: { q: 'marvel' } });
 
     expect(response.statusCode).toBe(200);
     const body = response.json<{
@@ -46,7 +56,7 @@ describe('GET /suggest', () => {
     await createSeries('Stranger Things');
     await createFunko({ name: 'Grogu', seriesId: mandalorian.id });
 
-    const response = await app.inject({ method: 'GET', url: '/suggest', query: { q: 'mandalorian' } });
+    const response = await api.inject({ method: 'GET', url: '/suggest', query: { q: 'mandalorian' } });
 
     const body = response.json<{ funkos: { name: string; series: unknown }[]; series: unknown[] }>();
     expect(body.series).toEqual([{ id: mandalorian.id, name: 'The Mandalorian' }]);
@@ -56,7 +66,7 @@ describe('GET /suggest', () => {
   });
 
   it('returns 400 when q is missing', async () => {
-    const response = await app.inject({ method: 'GET', url: '/suggest' });
+    const response = await api.inject({ method: 'GET', url: '/suggest' });
 
     expect(response.statusCode).toBe(400);
   });

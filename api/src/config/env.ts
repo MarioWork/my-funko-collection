@@ -6,6 +6,8 @@ const DEFAULT_MAX_IMAGES_PER_FUNKO = 10;
 const DEFAULT_IMAGE_LARGE_PX = 2000;
 const DEFAULT_IMAGE_MEDIUM_PX = 1200;
 const DEFAULT_IMAGE_SMALL_PX = 480;
+const DEFAULT_APP_ORIGIN = 'http://localhost:5173';
+const HTTPS_PROTOCOL = 'https:';
 
 const booleanFromString = z
   .enum(['true', 'false'])
@@ -23,6 +25,9 @@ const EnvSchema = z.object({
   // How many reverse proxies sit in front of the API: 1 behind Caddy, 0 when it is reached directly. Fastify then
   // reads the client address from X-Forwarded-For, so rate limits count each device instead of the proxy.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
+  // The one address the app is opened at (scheme + host + port). Passkeys are bound to its host name for good, and
+  // writes are only accepted from this origin. https in production; http://localhost:5173 in dev.
+  APP_ORIGIN: z.url().default(DEFAULT_APP_ORIGIN),
   // Comma-separated list of allowed browser origins; never `*`. Empty (the default) turns CORS off: the app is
   // same-origin in production (Caddy) and in dev (the Vite proxy), so only a separate client would need it.
   CORS_ORIGINS: z
@@ -47,7 +52,13 @@ const EnvSchema = z.object({
 
 export type Env = z.infer<typeof EnvSchema>;
 
-const parsed = EnvSchema.safeParse(process.env);
+// Passkeys and Secure cookies need https; only a local dev server may use plain http.
+const EnvSchemaWithRules = EnvSchema.refine(
+  (value) => value.NODE_ENV !== 'production' || new URL(value.APP_ORIGIN).protocol === HTTPS_PROTOCOL,
+  { message: 'APP_ORIGIN must be https in production', path: ['APP_ORIGIN'] },
+);
+
+const parsed = EnvSchemaWithRules.safeParse(process.env);
 
 if (!parsed.success) {
   // The logger depends on env, so this is the one place console is allowed.

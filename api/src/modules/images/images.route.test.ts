@@ -1,7 +1,7 @@
 import { buildApp, type App } from '../../app.ts';
 import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
 import { copyFunkoFile, listFunkoFolder } from '../../lib/imageStorage.ts';
-import { createFunko, makeImage, toFormData } from '../../testFixtures.ts';
+import { createFunko, makeImage, type SignedInClient, signIn, toFormData } from '../../testFixtures.ts';
 
 const URL = '/images';
 const LOOSE_FILE_NAME = 'leftover.webp';
@@ -27,6 +27,7 @@ type ImageGroupBody = {
 type GroupListBody = { data: ImageGroupBody[]; totalResultNumber: number };
 
 let app: App;
+let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
@@ -39,10 +40,11 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await resetTestDb();
+  api = await signIn(app);
 });
 
 async function uploadImage(funkoId: number, width = 64): Promise<void> {
-  await app.inject({
+  await api.inject({
     method: 'POST',
     url: `/funkos/${funkoId}/images`,
     payload: toFormData([{ buffer: await makeImage({ width, noise: true }) }]),
@@ -68,7 +70,7 @@ describe('GET /images', () => {
   it('lists every image row with its funko and the loose files without one when no params are sent', async () => {
     await seedImages();
 
-    const response = await app.inject({ method: 'GET', url: URL });
+    const response = await api.inject({ method: 'GET', url: URL });
 
     expect(response.statusCode).toBe(200);
     const body = response.json<ListBody>();
@@ -84,8 +86,8 @@ describe('GET /images', () => {
   it('keeps only the loose files or only the rows when hasFunko is false or true', async () => {
     await seedImages();
 
-    const loose = await app.inject({ method: 'GET', url: URL, query: { hasFunko: 'false' } });
-    const linked = await app.inject({ method: 'GET', url: URL, query: { hasFunko: 'true' } });
+    const loose = await api.inject({ method: 'GET', url: URL, query: { hasFunko: 'false' } });
+    const linked = await api.inject({ method: 'GET', url: URL, query: { hasFunko: 'true' } });
 
     expect(loose.json<ListBody>().data.map((entry) => entry.fileName)).toEqual([LOOSE_FILE_NAME]);
     expect(linked.json<ListBody>().totalResultNumber).toBe(3);
@@ -94,8 +96,8 @@ describe('GET /images', () => {
   it('matches the funko name and the file name when q is set', async () => {
     await seedImages();
 
-    const byFunko = await app.inject({ method: 'GET', url: URL, query: { q: 'elev' } });
-    const byFile = await app.inject({ method: 'GET', url: URL, query: { q: 'leftover' } });
+    const byFunko = await api.inject({ method: 'GET', url: URL, query: { q: 'elev' } });
+    const byFile = await api.inject({ method: 'GET', url: URL, query: { q: 'leftover' } });
 
     expect(byFunko.json<ListBody>().data.map((entry) => entry.funko?.name)).toEqual(['Eleven', 'Eleven']);
     expect(byFile.json<ListBody>().data.map((entry) => entry.fileName)).toEqual([LOOSE_FILE_NAME]);
@@ -104,12 +106,12 @@ describe('GET /images', () => {
   it('sorts by size in either direction and pages the result when SIZE and a page are sent', async () => {
     await seedImages();
 
-    const ascending = await app.inject({
+    const ascending = await api.inject({
       method: 'GET',
       url: URL,
       query: { sorting_fields: 'SIZE', direction: 'ASC' },
     });
-    const descending = await app.inject({
+    const descending = await api.inject({
       method: 'GET',
       url: URL,
       query: { sorting_fields: 'SIZE', direction: 'DESC', size: '2', page: '2' },
@@ -123,7 +125,7 @@ describe('GET /images', () => {
   });
 
   it('returns 400 with VALIDATION_ERROR when the sort field is unknown', async () => {
-    const response = await app.inject({ method: 'GET', url: URL, query: { sorting_fields: 'COLOUR' } });
+    const response = await api.inject({ method: 'GET', url: URL, query: { sorting_fields: 'COLOUR' } });
 
     expect(response.statusCode).toBe(400);
     expect(response.json<{ code: string }>().code).toBe('VALIDATION_ERROR');
@@ -134,7 +136,7 @@ describe('GET /images/groups', () => {
   it('groups by funko with counts and total sizes, biggest first and loose files last, when no params are sent', async () => {
     await seedImages();
 
-    const response = await app.inject({ method: 'GET', url: `${URL}/groups` });
+    const response = await api.inject({ method: 'GET', url: `${URL}/groups` });
 
     expect(response.statusCode).toBe(200);
     const body = response.json<GroupListBody>();
@@ -148,13 +150,13 @@ describe('GET /images/groups', () => {
   it('filters and searches before grouping when q and hasFunko are set', async () => {
     await seedImages();
 
-    const response = await app.inject({ method: 'GET', url: `${URL}/groups`, query: { q: 'groot', hasFunko: 'true' } });
+    const response = await api.inject({ method: 'GET', url: `${URL}/groups`, query: { q: 'groot', hasFunko: 'true' } });
 
     expect(response.json<GroupListBody>().data.map((group) => group.funko?.name)).toEqual(['Groot']);
   });
 
   it('returns 400 with VALIDATION_ERROR when the page size is above the cap', async () => {
-    const response = await app.inject({ method: 'GET', url: `${URL}/groups`, query: { size: '101' } });
+    const response = await api.inject({ method: 'GET', url: `${URL}/groups`, query: { size: '101' } });
 
     expect(response.statusCode).toBe(400);
     expect(response.json<{ code: string }>().code).toBe('VALIDATION_ERROR');

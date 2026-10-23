@@ -16,6 +16,7 @@ import { env } from './config/env.ts';
 import { errorHandler, notFoundHandler } from './lib/errorHandler.ts';
 import { logger } from './lib/logger.ts';
 import { openApiTransformObject } from './lib/openApi.ts';
+import { authRoutes } from './modules/auth/auth.route.ts';
 import { healthRoutes } from './modules/health/health.route.ts';
 import { statsRoutes } from './modules/stats/stats.route.ts';
 import { suggestRoutes } from './modules/suggest/suggest.route.ts';
@@ -27,6 +28,7 @@ import { funkosRoutes } from './modules/funkos/funkos.route.ts';
 import { imagesRoutes } from './modules/images/images.route.ts';
 import { seriesRoutes } from './modules/series/series.route.ts';
 import { tagsRoutes } from './modules/tags/tags.route.ts';
+import { authPlugin } from './plugins/auth.plugin.ts';
 import { dbPlugin } from './plugins/db.plugin.ts';
 import { uploadsPlugin } from './plugins/uploads.plugin.ts';
 
@@ -51,7 +53,8 @@ export async function buildApp() {
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);
 
-  // Infrastructure in a fixed order: sensible → cors → helmet → rate-limit → swagger → db → uploads → routes.
+  // Infrastructure in a fixed order: sensible → cors → helmet → rate-limit → swagger → db → auth → uploads → routes.
+  // Auth comes before uploads and every route module, so its sign-in check covers the image files too.
   await app.register(sensible);
   const hasCorsOrigins = env.CORS_ORIGINS.length > 0;
   if (hasCorsOrigins) {
@@ -70,9 +73,11 @@ export async function buildApp() {
     await app.register(swaggerUi, { routePrefix: DOCS_ROUTE_PREFIX });
   }
   await app.register(dbPlugin);
+  await app.register(authPlugin);
   await app.register(uploadsPlugin);
 
   await app.register(healthRoutes);
+  await app.register(authRoutes, { prefix: '/auth' });
   await app.register(categoriesRoutes, { prefix: '/categories' });
   await app.register(seriesRoutes, { prefix: '/series' });
   await app.register(funkosRoutes, { prefix: '/funkos' });

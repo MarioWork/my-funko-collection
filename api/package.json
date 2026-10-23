@@ -23,9 +23,11 @@
     "db:check": "drizzle-kit check",
     "db:studio": "drizzle-kit studio",
     "db:seed": "node --env-file=.env src/db/seed.ts",
-    "images:prune": "node --env-file=.env src/cli/pruneImages.ts"
+    "images:prune": "node --env-file=.env src/cli/pruneImages.ts",
+    "auth:reset": "node --env-file=.env src/cli/resetAuth.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "^11",
     "@fastify/cors": "^11",
     "@fastify/helmet": "^13",
     "@fastify/multipart": "^10.1.1",
@@ -36,6 +38,7 @@
     "@fastify/swagger-ui": "^6",
     "@fastify/type-provider-zod": "^1.0",
     "@libsql/client": "^0.18",
+    "@simplewebauthn/server": "^14",
     "drizzle-orm": "^0.45",
     "drizzle-zod": "^0.8.3",
     "fastify": "^5.12",
