@@ -1,1 +1,1 @@
-export { default } from './LayoutToggle';
+export { default } from './LayoutMenu';
