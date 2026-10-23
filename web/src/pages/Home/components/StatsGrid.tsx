@@ -1,6 +1,6 @@
 import { Boxes, Coins, Images, Package } from 'lucide-react';
 import type { StatsApiModel } from '@app-types/models';
-import { COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS, IMAGE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import StatTile from '@components/StatTile';
 import { formatCents } from '@utils/moneyUtils';
 import { formatBytes } from '@utils/byteUtils';
@@ -38,7 +38,13 @@ function StatsGrid({ stats }: Props) {
         hint={ownedLabel}
         to={ownedPath}
       />
-      <StatTile icon={Images} label="Images" value={String(stats.imageCount)} hint={formatBytes(stats.imageBytes)} />
+      <StatTile
+        icon={Images}
+        label="Images"
+        value={String(stats.imageCount)}
+        hint={formatBytes(stats.imageBytes)}
+        to={IMAGE_ROUTES_PATHS.BASE}
+      />
     </section>
   );
 }
