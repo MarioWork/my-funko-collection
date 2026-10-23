@@ -1,5 +1,6 @@
 import type { CollectionApiModel, CollectionId, NamedApiModel } from '@app-types/models';
 import CollectionPicker from '@components/CollectionPicker';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import type { ItemFormHandle } from '../hooks/useItemForms';
 import CollectionItemCard from './CollectionItemCard';
 import FormSection from './FormSection';
@@ -44,6 +45,7 @@ function AddCollectionsSection({
   return (
     <FormSection
       id={SECTION_ID}
+      icon={PAGE_ICONS.COLLECTIONS}
       title="Collections"
       description="Each collection gets its own copy: how many, condition, price, where it is."
     >

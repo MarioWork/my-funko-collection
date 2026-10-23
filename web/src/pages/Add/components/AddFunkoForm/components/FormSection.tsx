@@ -1,7 +1,9 @@
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 type Props = {
   id: string;
+  icon: LucideIcon;
   title: string;
   description?: string;
   // Beside the title, on the right: a count or a small control.
@@ -11,7 +13,7 @@ type Props = {
 
 // One numbered part of the Add page: a card with its own heading, so the page reads as Images → Details →
 // Collections and a screen reader can jump between them.
-function FormSection({ id, title, description, aside, children }: Props) {
+function FormSection({ id, icon: Icon, title, description, aside, children }: Props) {
   const headingId = `${id}-heading`;
 
   return (
@@ -23,7 +25,8 @@ function FormSection({ id, title, description, aside, children }: Props) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h2 id={headingId} className="font-heading text-base font-semibold">
+          <h2 id={headingId} className="flex items-center gap-2 font-heading text-base font-semibold">
+            <Icon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
             {title}
           </h2>
           {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}

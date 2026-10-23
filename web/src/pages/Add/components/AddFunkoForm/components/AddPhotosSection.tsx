@@ -1,4 +1,5 @@
 import PhotoPicker from '@components/PhotoPicker';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import { FieldError } from '@components/ui/field';
 import type { usePendingPhotos } from '../hooks/usePendingPhotos';
 import FormSection from './FormSection';
@@ -18,6 +19,7 @@ function AddPhotosSection({ pendingPhotos, isSubmitting, isMissingPhotos }: Prop
   return (
     <FormSection
       id={SECTION_ID}
+      icon={PAGE_ICONS.IMAGES}
       title="Images"
       description="At least one. The main one is what the grid shows; the star makes another one main."
     >
