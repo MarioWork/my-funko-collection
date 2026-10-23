@@ -1,11 +1,25 @@
 import { Camera, ImagePlus } from 'lucide-react';
-import { useRef, type ChangeEvent, type ReactNode } from 'react';
-import { CAMERA_ACCEPT, LIBRARY_ACCEPT, MAX_PHOTOS_PER_BATCH, type PendingPhoto } from '@utils/pendingPhotoUtils';
+import { useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import InlineAlert from '@components/InlineAlert';
+import {
+  CAMERA_ACCEPT,
+  isTooLargePhoto,
+  LIBRARY_ACCEPT,
+  MAX_PHOTO_MEGABYTES,
+  MAX_PHOTOS_PER_BATCH,
+  type PendingPhoto,
+} from '@utils/pendingPhotoUtils';
 import PendingPhotoList from './components/PendingPhotoList';
 import PickButton from './components/PickButton';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 
 const FULL_BATCH_REASON = `${MAX_PHOTOS_PER_BATCH} images is the most at once. Remove one to add another.`;
+
+function tooLargeMessage(fileNames: string[]): string {
+  const subject = fileNames.length === 1 ? `${fileNames[0]} is` : `${fileNames.join(', ')} are`;
+
+  return `${subject} over ${MAX_PHOTO_MEGABYTES} MB, so left out. Pick a smaller image.`;
+}
 
 type Props = {
   photos: PendingPhoto[];
@@ -25,10 +39,15 @@ function PhotoPicker({ photos, isDisabled, onAdd, onRemove, errorId, children }:
   const cameraInput = useRef<HTMLInputElement>(null);
   const canAddMore = photos.length < MAX_PHOTOS_PER_BATCH;
   const pickDisabledReason = isDisabled ? DISABLED_REASONS.UPLOADING : reasonWhen(!canAddMore, FULL_BATCH_REASON);
+  // The files of the last pick that were over the size limit, named in a message until the next pick.
+  const [tooLargeNames, setTooLargeNames] = useState<string[]>([]);
 
   const addFiles = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []).slice(0, MAX_PHOTOS_PER_BATCH - photos.length);
+    const picked = Array.from(event.target.files ?? []);
+    const tooLarge = picked.filter(isTooLargePhoto);
+    const files = picked.filter((file) => !isTooLargePhoto(file)).slice(0, MAX_PHOTOS_PER_BATCH - photos.length);
 
+    setTooLargeNames(tooLarge.map((file) => file.name));
     onAdd(files);
     // iOS replaces input.files each time; clearing lets the same picker add again.
     event.target.value = '';
@@ -76,6 +95,7 @@ function PhotoPicker({ photos, isDisabled, onAdd, onRemove, errorId, children }:
         />
         {children}
       </div>
+      {tooLargeNames.length > 0 ? <InlineAlert tone="error">{tooLargeMessage(tooLargeNames)}</InlineAlert> : null}
       <PendingPhotoList photos={photos} isDisabled={isDisabled} onRemove={onRemove} />
     </div>
   );
