@@ -3,6 +3,7 @@ import { useState } from 'react';
 import IconButton from '@components/IconButton';
 import { Spinner } from '@components/ui/spinner';
 import { toast } from '@components/ui/toast';
+import { cn } from '@utils/classNameUtils';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 import { downloadImageAsJpeg } from '@utils/imageDownloadUtils';
 
@@ -11,6 +12,8 @@ type Props = {
   funkoName: string;
   // 1-based, for the file name.
   imageNumber: number;
+  // Where it sits: the caller places it (the gallery pins it to the frame's corner).
+  className?: string;
 };
 
 const NON_FILENAME_CHARACTERS = /[^a-z0-9]+/g;
@@ -25,8 +28,8 @@ function downloadFileName(funkoName: string, imageNumber: number): string {
 }
 
 // Saves the shown image at full size (2000 px) as a JPEG, converted in the browser. Spins while it works; a
-// failure says so in a toast. It sits on the frame, beside (not inside) the button that opens the viewer.
-function ImageDownloadButton({ url, funkoName, imageNumber }: Props) {
+// failure says so in a toast.
+function ImageDownloadButton({ url, funkoName, imageNumber, className }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const fileName = downloadFileName(funkoName, imageNumber);
 
@@ -47,7 +50,7 @@ function ImageDownloadButton({ url, funkoName, imageNumber }: Props) {
       aria-label="Download image"
       variant="outline"
       size="sm"
-      className="absolute right-2 bottom-2 rounded-full bg-card/90 shadow-sm backdrop-blur-sm"
+      className={cn('rounded-full bg-card/90 shadow-sm backdrop-blur-sm', className)}
       disabled={isSaving}
       disabledReason={DISABLED_REASONS.DOWNLOADING}
       onClick={() => void save()}

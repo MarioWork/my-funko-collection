@@ -1,4 +1,5 @@
 import { categoryMockHandlers } from './category';
+import { imageMockHandlers } from './image';
 import { seriesMockHandlers } from './series';
 import { collectionMockHandlers } from './collection';
 import { collectionItemMockHandlers } from './collectionItem';
@@ -16,6 +17,7 @@ export const getHandlers = (baseUrl: string) => [
   ...categoryMockHandlers(baseUrl),
   ...seriesMockHandlers(baseUrl),
   ...tagMockHandlers(baseUrl),
+  ...imageMockHandlers(baseUrl),
   ...funkoMockHandlers(baseUrl),
   ...funkoImageMockHandlers(baseUrl),
   ...collectionMockHandlers(baseUrl),
