@@ -93,6 +93,11 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   Forms use `useFormCompat` (`'use no memo'`) with `<Field>` + `<Controller>` + `yupResolver`.
 - List state (q, filters, sort, page) lives in the URL through `useListParams` / `useItemListParams`; the loader
   reads it and the mocks filter, sort and page the same way.
+- Things that come and go glide (View Transitions; `index.css` sets the timing, reduced motion turns them off):
+  rows the server adds or removes are wrapped in React's `<ViewTransition default={LIST_ITEM_TRANSITION_CLASS}>`;
+  a local state change runs through `withViewTransition` (`@utils/viewTransitionUtils`). Never React Router's
+  `viewTransition` option on `setSearchParams` or a fetcher (deprecated, and it aborts React's); search keystrokes
+  use `flushSync` so typing never animates.
 - The React Compiler lint forbids setState in an effect: derive state during render (the previous-prop pattern) or
   move the write into the event handler.
 - `VITE_BASE_API_URL` is always `/api` (same origin): Vite proxies it in dev, Caddy in production. Image URLs from

@@ -12,5 +12,9 @@ export const ENTER_UP_CLASS = `${FADE_IN_CLASS} motion-safe:slide-in-from-bottom
 export const ENTER_FROM_RIGHT_CLASS = `${FADE_IN_CLASS} motion-safe:slide-in-from-right-6`;
 
 // Content that is being replaced (a list while its loader runs, a row while it is removed): dims, then comes back.
+// The view-transition class of a list row wrapped in React's <ViewTransition>: a row the server adds or removes
+// fades in or out, and the rows around it slide into place (timing in index.css). Off with reduced motion.
+export const LIST_ITEM_TRANSITION_CLASS = 'list-item';
+
 export const DIMMABLE_CLASS = 'transition-opacity duration-200 ease-standard';
 export const DIMMED_CLASS = 'opacity-50';

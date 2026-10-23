@@ -16,6 +16,14 @@ type Props = {
   onClearAll: () => void;
 };
 
+const CHIP_TRANSITION_PREFIX = 'filter-chip';
+// A view-transition name must be a plain identifier.
+const UNSAFE_NAME_CHARACTERS = /[^a-zA-Z0-9-]/g;
+
+function chipTransitionName(key: string): string {
+  return `${CHIP_TRANSITION_PREFIX}-${key.replace(UNSAFE_NAME_CHARACTERS, '-')}`;
+}
+
 // The applied filters, each removable, with "Clear all"; scrolls sideways on narrow screens. A new chip grows in.
 function FilterChips({ chips, onClearAll }: Props) {
   if (chips.length === 0) return null;
@@ -24,7 +32,12 @@ function FilterChips({ chips, onClearAll }: Props) {
     <div className={cn('flex scrollbar-none items-center gap-2 overflow-x-auto pb-1', FADE_IN_CLASS)}>
       <ul className="flex items-center gap-2" aria-label="Applied filters">
         {chips.map((chip) => (
-          <li key={chip.key} className={cn(FADE_IN_CLASS, 'motion-safe:zoom-in-90')}>
+          <li
+            key={chip.key}
+            // Filter changes already run as a view transition (useListParams); a name lets each chip glide.
+            style={{ viewTransitionName: chipTransitionName(chip.key) }}
+            className={cn(FADE_IN_CLASS, 'motion-safe:zoom-in-90', '[view-transition-class:filter-chip]')}
+          >
             <Badge
               variant="secondary"
               render={<button type="button" onClick={chip.onRemove} aria-label={`Remove filter ${chip.label}`} />}

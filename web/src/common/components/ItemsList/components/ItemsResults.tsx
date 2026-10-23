@@ -1,7 +1,9 @@
+import { ViewTransition } from 'react';
 import type { CollectionItemApiModel } from '@app-types/models';
 import type { FunkoGridDensityUtil } from '@app-types/utility';
 import FunkoGrid from '@components/FunkoGrid';
 import { useIsDesktop } from '@hooks/useIsDesktop';
+import { LIST_ITEM_TRANSITION_CLASS } from '@utils/motionUtils';
 import ItemCard from './ItemCard';
 import ItemGridCard from './ItemGridCard';
 import ItemTable from './ItemTable';
@@ -12,7 +14,8 @@ type Props = {
   density: FunkoGridDensityUtil | null;
 };
 
-// The items in the chosen layout: a large or small grid, or a list (a table from `lg`, rows below it).
+// The items in the chosen layout: a large or small grid, or a list (a table from `lg`, rows below it). Each item
+// is a <ViewTransition>, so one removed (or put back by Undo) fades and the others slide into place.
 function ItemsResults({ items, density }: Props) {
   const isDesktop = useIsDesktop();
 
@@ -20,7 +23,9 @@ function ItemsResults({ items, density }: Props) {
     return (
       <FunkoGrid label="Items" density={density}>
         {items.map((item) => (
-          <ItemGridCard key={item.id} item={item} density={density} />
+          <ViewTransition key={item.id} default={LIST_ITEM_TRANSITION_CLASS}>
+            <ItemGridCard item={item} density={density} />
+          </ViewTransition>
         ))}
       </FunkoGrid>
     );
@@ -31,7 +36,9 @@ function ItemsResults({ items, density }: Props) {
   return (
     <ul className="flex flex-col gap-2">
       {items.map((item) => (
-        <ItemCard key={item.id} item={item} />
+        <ViewTransition key={item.id} default={LIST_ITEM_TRANSITION_CLASS}>
+          <ItemCard item={item} />
+        </ViewTransition>
       ))}
     </ul>
   );

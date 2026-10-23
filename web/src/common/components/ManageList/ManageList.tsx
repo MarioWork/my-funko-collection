@@ -1,4 +1,6 @@
+import { ViewTransition } from 'react';
 import EmptyState from '@components/EmptyState';
+import { LIST_ITEM_TRANSITION_CLASS } from '@utils/motionUtils';
 import ManageRowItem from './components/ManageRowItem';
 import type { ManageRow } from './types';
 
@@ -13,7 +15,7 @@ type Props = {
 };
 
 // A short list of named things (categories, tags) with inline rename / delete per row. Adding is the page's
-// "New …" button (ManageAddPanel).
+// "New …" button (ManageAddPanel). A row added or deleted fades in or out and the others slide into place.
 function ManageList({ rows, noun, hasNotes, rowPath, emptyTitle, emptyDescription }: Props) {
   return (
     <div className="flex flex-col gap-4">
@@ -22,7 +24,9 @@ function ManageList({ rows, noun, hasNotes, rowPath, emptyTitle, emptyDescriptio
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map((row) => (
-            <ManageRowItem key={row.id} row={row} rowPath={rowPath(String(row.id))} hasNotes={hasNotes} noun={noun} />
+            <ViewTransition key={row.id} default={LIST_ITEM_TRANSITION_CLASS}>
+              <ManageRowItem row={row} rowPath={rowPath(String(row.id))} hasNotes={hasNotes} noun={noun} />
+            </ViewTransition>
           ))}
         </ul>
       )}
