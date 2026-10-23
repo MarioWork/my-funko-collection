@@ -1,4 +1,5 @@
 import { yupResolver } from '@hookform/resolvers/yup';
+import { BookOpen } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useLoaderData } from 'react-router';
 import type { CollectionId } from '@app-types/models';
@@ -86,7 +87,7 @@ function AddFunkoForm({
     >
       <div className="flex flex-col gap-4">
         <AddPhotosSection pendingPhotos={pendingPhotos} isSubmitting={isSubmitting} isMissingPhotos={isMissingPhotos} />
-        <FormSection id={DETAILS_SECTION_ID} title="Details" description="As printed on the box.">
+        <FormSection id={DETAILS_SECTION_ID} icon={BookOpen} title="Details" description="As printed on the box.">
           <FunkoFormFields control={control} categories={categories} idPrefix={FORM_ID} />
         </FormSection>
         <AddCollectionsSection

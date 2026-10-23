@@ -3,6 +3,7 @@ import { useLoaderData, useLocation } from 'react-router';
 import type { LoaderDataUtil } from '@app-types/utility';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import PageHeader from '@components/PageHeader';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import { useAddDestination } from '@hooks/useAddDestination';
 import { useGoBack } from './hooks/useGoBack';
 import { AddStepUtil } from './addUtils';
@@ -47,7 +48,12 @@ function Add() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={STEP_TITLES[flow.step]} description={STEP_DESCRIPTIONS[flow.step]} onBack={goBack} />
+      <PageHeader
+        icon={PAGE_ICONS.FUNKOS}
+        title={STEP_TITLES[flow.step]}
+        description={STEP_DESCRIPTIONS[flow.step]}
+        onBack={goBack}
+      />
       <AddSteps flow={flow} destinationState={destinationState} collections={collections} />
     </div>
   );
