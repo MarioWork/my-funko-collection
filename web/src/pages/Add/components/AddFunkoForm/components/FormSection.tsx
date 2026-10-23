@@ -15,7 +15,12 @@ function FormSection({ id, title, description, aside, children }: Props) {
   const headingId = `${id}-heading`;
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4 rounded-xl border bg-card p-4 sm:p-5">
+    <section
+      aria-labelledby={headingId}
+      // Named for the View Transitions of the Add page, so a section that grows or shrinks glides (index.css).
+      style={{ viewTransitionName: id }}
+      className="flex flex-col gap-4 rounded-xl border bg-card p-4 [view-transition-class:add-form] sm:p-5"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h2 id={headingId} className="font-heading text-base font-semibold">

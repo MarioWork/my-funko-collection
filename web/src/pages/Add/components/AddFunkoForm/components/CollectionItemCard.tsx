@@ -1,6 +1,6 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useWatch } from 'react-hook-form';
 import type { CollectionApiModel, CollectionId, NamedApiModel } from '@app-types/models';
 import IconButton from '@components/IconButton';
@@ -16,8 +16,11 @@ type Props = {
   tags: NamedApiModel[];
   initialTagIds: number[];
   isSubmitting: boolean;
-  // Closed for the collections already picked when the page opened (bar the first); a newly picked one opens.
-  isInitiallyOpen: boolean;
+  // Unfolded; the form decides (a newly picked collection opens and folds the others).
+  isOpen: boolean;
+  onToggle: (collectionId: CollectionId) => void;
+  // Asked when the card does not pass its checks on Save, so its error is seen.
+  onOpen: (collectionId: CollectionId) => void;
   onRegister: (collectionId: CollectionId, handle: ItemFormHandle) => () => void;
   onRemove: (collectionId: CollectionId) => void;
 };
@@ -32,7 +35,9 @@ function CollectionItemCard({
   tags,
   initialTagIds,
   isSubmitting,
-  isInitiallyOpen,
+  isOpen,
+  onToggle,
+  onOpen,
   onRegister,
   onRemove,
 }: Props) {
@@ -41,7 +46,6 @@ function CollectionItemCard({
     resolver: yupResolver(itemFormSchema),
   });
   const values = useWatch({ control });
-  const [isOpen, setIsOpen] = useState(isInitiallyOpen);
   const idPrefix = `${ID_PREFIX}-${collection.id}`;
   const headingId = `${idPrefix}-heading`;
   const panelId = `${idPrefix}-panel`;
@@ -56,17 +60,21 @@ function CollectionItemCard({
           values = valid;
         },
         // A folded card with a mistake opens, so its error is seen.
-        () => setIsOpen(true),
+        () => onOpen(collection.id),
       )();
 
       return values;
     };
 
     return onRegister(collection.id, { read });
-  }, [collection.id, handleSubmit, onRegister]);
+  }, [collection.id, handleSubmit, onOpen, onRegister]);
 
   return (
-    <article aria-labelledby={headingId} className="flex flex-col rounded-lg border bg-background px-4 py-1.5">
+    <article
+      aria-labelledby={headingId}
+      style={{ viewTransitionName: idPrefix }}
+      className="flex flex-col rounded-lg border bg-background px-4 py-1.5 [view-transition-class:add-form]"
+    >
       <div className="flex items-center justify-between gap-2">
         <CollectionCardToggle
           headingId={headingId}
@@ -74,7 +82,7 @@ function CollectionItemCard({
           name={collection.name}
           isOpen={isOpen}
           summary={itemSummary(values, tags)}
-          onToggle={() => setIsOpen(!isOpen)}
+          onToggle={() => onToggle(collection.id)}
         />
         <IconButton
           variant="ghost"

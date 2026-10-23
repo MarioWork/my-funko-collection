@@ -349,9 +349,11 @@
     animation-timing-function: var(--ease-standard);
   }
 }
-/* A new funko's photo made main glides to the front while the others shift over (PendingPhotoList). */
+/* The Add page: a photo made main glides to the front while the others shift over (PendingPhotoList); photos and
+   collection cards added or removed make room or close the gap, and the sections around them follow. */
 @media (prefers-reduced-motion: no-preference) {
-  ::view-transition-group(*.pending-photo) {
+  ::view-transition-group(*.pending-photo),
+  ::view-transition-group(*.add-form) {
     animation-duration: 350ms;
     animation-timing-function: var(--ease-standard);
   }

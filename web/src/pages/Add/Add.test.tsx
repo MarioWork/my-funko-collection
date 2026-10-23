@@ -63,6 +63,22 @@ it('folds a collection card to one row that still shows what it holds', async ()
   expect(toggle).toHaveAccessibleDescription(/×1 · 14,99/);
 });
 
+it('folds the other collection cards when another collection is picked', async () => {
+  renderAddForm();
+
+  const ownedToggle = within(await screen.findByRole('article', { name: 'Owned' })).getByRole('button', {
+    name: 'Owned',
+  });
+
+  await userEvent.type(screen.getByRole('combobox', { name: 'Add to collections' }), 'Wish');
+  await userEvent.click(await screen.findByRole('option', { name: 'Wishlist' }));
+
+  const wishlistCard = await screen.findByRole('article', { name: 'Wishlist' });
+
+  expect(within(wishlistCard).getByRole('button', { name: 'Wishlist' })).toHaveAttribute('aria-expanded', 'true');
+  expect(ownedToggle).toHaveAttribute('aria-expanded', 'false');
+});
+
 it('shows a bad price inside its own collection card when Save is pressed', async () => {
   renderAddForm();
 

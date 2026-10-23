@@ -17,10 +17,10 @@ test('adds a funko by hand with two photos into two collections, each with its o
   await add.choosePhotos(PHOTOS);
 
   await expect(add.photosToUpload()).toHaveCount(PHOTOS.length);
-  await expect(add.pickedCollections()).toHaveText(['Owned']);
+  await expect(add.pickedCollections()).toHaveText([/^Owned/]);
 
   await add.pickCollection('Wishlist');
-  await expect(add.pickedCollections()).toHaveText(['Owned', 'Wishlist']);
+  await expect(add.pickedCollections()).toHaveText([/^Owned/, /^Wishlist/]);
   await add.fillPrice('Owned', '14.99');
   await add.save();
 
@@ -50,7 +50,7 @@ test('"Add another" opens an empty form that keeps the collections picked last t
   await add.addAnother();
 
   await expect(page.getByLabel('Name', { exact: true })).toHaveValue('');
-  await expect(add.pickedCollections()).toHaveText(['Wishlist']);
+  await expect(add.pickedCollections()).toHaveText([/^Wishlist/]);
 });
 
 test('a typed barcode of a funko already in the catalog offers +1 instead of a duplicate', async ({ page }) => {

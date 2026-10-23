@@ -47,13 +47,21 @@ export class AddPage {
     return this.page.getByRole('list', { name: 'Images to upload' }).getByRole('listitem');
   }
 
-  // One card per picked collection, named by its heading.
+  // One card per picked collection, named by its heading. A folded card's heading row also shows a summary
+  // ("Owned ×1"), so match the start of each.
   pickedCollections() {
     return this.main.getByRole('article').getByRole('heading', { level: 3 });
   }
 
+  // Picking another collection folds the others, so the card is unfolded first when it needs to be.
   async fillPrice(collectionName: string, price: string) {
-    await this.main.getByRole('article', { name: collectionName }).getByLabel('Paid (EUR)').fill(price);
+    const card = this.main.getByRole('article', { name: collectionName });
+    const toggle = card.getByRole('button', { name: collectionName, exact: true });
+    const isFolded = (await toggle.getAttribute('aria-expanded')) === 'false';
+
+    if (isFolded) await toggle.click();
+
+    await card.getByLabel('Paid (EUR)').fill(price);
   }
 
   async pickCollection(name: string) {

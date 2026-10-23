@@ -8,12 +8,14 @@ type Props = {
   collections: CollectionApiModel[];
   tags: NamedApiModel[];
   collectionIds: CollectionId[];
-  // Picked when the page opened: these start folded, except the first.
-  initialCollectionIds: CollectionId[];
+  // The cards that are unfolded.
+  openIds: CollectionId[];
   // The tags a new card starts with: the ones used last time.
   initialTagIds: number[];
   isSubmitting: boolean;
   onCollectionsChange: (collectionIds: CollectionId[]) => void;
+  onToggle: (collectionId: CollectionId) => void;
+  onOpen: (collectionId: CollectionId) => void;
   onRegister: (collectionId: CollectionId, handle: ItemFormHandle) => () => void;
 };
 
@@ -26,14 +28,15 @@ function AddCollectionsSection({
   collections,
   tags,
   collectionIds,
-  initialCollectionIds,
+  openIds,
   initialTagIds,
   isSubmitting,
   onCollectionsChange,
+  onToggle,
+  onOpen,
   onRegister,
 }: Props) {
   const chosen = collections.filter((collection) => collectionIds.includes(collection.id));
-  const initiallyFoldedIds = initialCollectionIds.slice(1);
 
   const remove = (collectionId: CollectionId) =>
     onCollectionsChange(collectionIds.filter((candidate) => candidate !== collectionId));
@@ -60,7 +63,9 @@ function AddCollectionsSection({
             tags={tags}
             initialTagIds={initialTagIds}
             isSubmitting={isSubmitting}
-            isInitiallyOpen={!initiallyFoldedIds.includes(collection.id)}
+            isOpen={openIds.includes(collection.id)}
+            onToggle={onToggle}
+            onOpen={onOpen}
             onRegister={onRegister}
             onRemove={remove}
           />
