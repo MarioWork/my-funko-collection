@@ -3,11 +3,13 @@ import type { LoaderDataUtil } from '@app-types/utility';
 import { ADD_ROUTES_PATHS, COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import ItemsList from '@components/ItemsList';
 import LinkButton from '@components/LinkButton';
+import { useGoBack } from '@hooks/useGoBack';
 import type { loader } from './allItemsLoader';
 
 // Every item across every collection: "everything in Box 3", whatever list it is in.
 function AllItems() {
   const data = useLoaderData<LoaderDataUtil<typeof loader>>();
+  const goBack = useGoBack(COLLECTION_ROUTES_PATHS.BASE);
 
   return (
     <div className="flex flex-col gap-4">
@@ -15,8 +17,7 @@ function AllItems() {
         header={{
           title: 'All items',
           description: 'Across every collection. Filter by tag to find a box.',
-          backTo: COLLECTION_ROUTES_PATHS.BASE,
-          backLabel: 'Collections',
+          onBack: goBack,
         }}
         itemsResponse={data.itemsResponse}
         page={data.page}

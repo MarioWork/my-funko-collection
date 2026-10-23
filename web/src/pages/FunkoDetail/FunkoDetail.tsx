@@ -3,7 +3,8 @@ import { Outlet, useLoaderData } from 'react-router';
 import type { LoaderDataUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { ArrowLeft } from 'lucide-react';
-import LinkButton from '@components/LinkButton';
+import { Button } from '@components/ui/button';
+import { useGoBack } from '@hooks/useGoBack';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import FunkoActionsMenu from './components/FunkoActionsMenu';
 import FunkoCollectionToggles from './components/FunkoCollectionToggles';
@@ -13,22 +14,24 @@ import FunkoMemberships from './components/FunkoMemberships';
 import FunkoSummary from './components/FunkoSummary';
 import type { loader } from './funkoDetailLoader';
 
-// Just a back link on top; the name, its actions and the facts live in the summary tile. Two panes from the `lg`
+// Just a Back button on top; the name, its actions and the facts live in the summary tile. Two panes from the `lg`
 // container width: photos left, summary and collections right. Stacked on phones.
 function FunkoDetail() {
   const childPage = useMobileChildPage();
   const { funko, collections, items } = useLoaderData<LoaderDataUtil<typeof loader>>();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  // Back to wherever the funko was opened from (a collection, Search, Home); the Funkos list for a shared link.
+  const goBack = useGoBack(FUNKO_ROUTES_PATHS.BASE);
 
   // On phones Edit is its own page.
   if (childPage) return childPage;
 
   return (
     <div className="flex flex-col gap-4">
-      <LinkButton to={FUNKO_ROUTES_PATHS.BASE} variant="ghost" size="sm" className="self-start">
+      <Button variant="ghost" size="sm" className="self-start" onClick={goBack}>
         <ArrowLeft data-icon="inline-start" aria-hidden="true" />
-        Funkos
-      </LinkButton>
+        Back
+      </Button>
       <div className="grid items-start gap-6 @3xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
         <FunkoGallery funko={funko} />
         {/* Beside the gallery, this column ends at the screen's bottom (less the top bar, back link and padding), so

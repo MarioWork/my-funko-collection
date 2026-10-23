@@ -4,6 +4,7 @@ import type { LoaderDataUtil } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import ItemsList from '@components/ItemsList';
 import LinkButton from '@components/LinkButton';
+import { useGoBack } from '@hooks/useGoBack';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import { formatCents } from '@utils/moneyUtils';
 import type { loader } from './collectionDetailLoader';
@@ -11,6 +12,8 @@ import type { loader } from './collectionDetailLoader';
 function CollectionDetail() {
   const childPage = useMobileChildPage();
   const data = useLoaderData<LoaderDataUtil<typeof loader>>();
+  // Back to wherever the collection was opened from; the Collections list for a shared link.
+  const goBack = useGoBack(COLLECTION_ROUTES_PATHS.BASE);
   const { collection } = data;
   const id = String(collection.id);
   const summary = `${collection.itemCount} funkos · ${collection.totalQuantity} pieces · ${formatCents(collection.totalSpentCents)} total`;
@@ -24,8 +27,7 @@ function CollectionDetail() {
         header={{
           title: collection.name,
           description: collection.notes ? `${collection.notes} · ${summary}` : summary,
-          backTo: COLLECTION_ROUTES_PATHS.BASE,
-          backLabel: 'Collections',
+          onBack: goBack,
           actions: (
             <LinkButton to={COLLECTION_ROUTES_PATHS.edit(id)} variant="outline">
               <Pencil data-icon="inline-start" aria-hidden="true" />
