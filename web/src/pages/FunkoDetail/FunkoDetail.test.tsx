@@ -1,7 +1,22 @@
-import { renderRoutes, screen, userEvent, within } from '@test-utils';
+import { http, HttpResponse } from 'msw/http';
+import { deferred, renderRoutes, screen, userEvent, waitFor, within } from '@test-utils';
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { mockStore } from '@mocks/mockStore';
+import { server, TEST_BASE_API_URL } from '@mocks/server';
+
+const WISHLIST_NAME = 'Wishlist';
+const SERVER_ERROR_STATUS = 500;
+
+// A funko the seed does not have on the Wishlist yet.
+function funkoOffTheWishlist() {
+  const wishlist = mockStore.collections.find((collection) => collection.name === WISHLIST_NAME);
+  const wishedIds = new Set(
+    mockStore.items.filter((item) => item.collectionId === wishlist?.id).map((item) => item.funkoId),
+  );
+
+  return mockStore.funkos.find((funko) => !wishedIds.has(funko.id));
+}
 
 it('exports the funko as a spreadsheet, CSV or JSON from the Export submenu of its actions', async () => {
   const [funko] = mockStore.funkos;
@@ -33,4 +48,26 @@ it('announces why the delete failed, as an alert in the dialog, when the funko i
   await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
   expect(await within(dialog).findByRole('alert')).toHaveTextContent(/still in a collection/);
+});
+
+it('shows the Wishlist toggle pressed at once and flips it back when the add fails', async () => {
+  const funko = funkoOffTheWishlist();
+  const answer = deferred<Response>();
+  server.use(http.post(`${TEST_BASE_API_URL}/collections/:collectionId/items`, () => answer.promise));
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(funko?.id))] });
+
+  const toggle = await screen.findByRole('button', { name: WISHLIST_NAME });
+  expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+  await userEvent.click(toggle);
+
+  expect(screen.getByRole('button', { name: WISHLIST_NAME })).toHaveAttribute('aria-pressed', 'true');
+
+  answer.resolve(
+    HttpResponse.json({ code: 'INTERNAL_ERROR', message: 'Something went wrong' }, { status: SERVER_ERROR_STATUS }),
+  );
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: WISHLIST_NAME })).toHaveAttribute('aria-pressed', 'false'),
+  );
 });
