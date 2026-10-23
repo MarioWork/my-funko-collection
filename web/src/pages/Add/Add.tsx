@@ -5,7 +5,7 @@ import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import PageHeader from '@components/PageHeader';
 import { PAGE_ICONS } from '@utils/navigationUtils';
 import { useAddDestination } from '@hooks/useAddDestination';
-import { useGoBack } from './hooks/useGoBack';
+import { useGoBack } from '@hooks/useGoBack';
 import { AddStepUtil } from './addUtils';
 import AddSteps from './components/AddSteps';
 import type { loader } from './addLoader';
