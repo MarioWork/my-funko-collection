@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react';
+import { Plus, type LucideIcon } from 'lucide-react';
 import { useState, type KeyboardEvent } from 'react';
 import type { NamedApiModel } from '@app-types/models';
 import DisabledReason from '@components/DisabledReason';
@@ -17,7 +17,7 @@ type Props = {
   // "category", "series": in the button's name and the field label.
   noun: string;
   actionPath: string;
-  // The icon of this kind of thing, as in the sidebar: Book, Library.
+  // The icon of this kind of thing, as in the sidebar (Book, Library): on the Create button. The trigger is a "+".
   icon: LucideIcon;
   onCreated: (created: NamedApiModel) => void;
 };
@@ -60,7 +60,7 @@ function CreateNamedButton({ noun, actionPath, icon: Icon, onCreated }: Props) {
       <PopoverTrigger
         render={<IconButton aria-label={`New ${noun}`} variant="outline" className="border-input bg-card" />}
       >
-        <Icon aria-hidden="true" />
+        <Plus aria-hidden="true" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72">
         <Field data-invalid={errorMessage ? true : undefined}>
