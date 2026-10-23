@@ -1,6 +1,13 @@
 import { buildApp, type App } from '../../../app.ts';
 import { prepareTestDb, resetTestDb } from '../../../db/testDb.ts';
-import { createCategory, createCollection, createFunko, createItem, createTag } from '../../../testFixtures.ts';
+import {
+  createCategory,
+  createCollection,
+  createFunko,
+  createItem,
+  createSeries,
+  createTag,
+} from '../../../testFixtures.ts';
 
 const MISSING_ID = 999;
 
@@ -110,6 +117,28 @@ describe('GET /collections/:collectionId/items', () => {
     expect(byCondition.json<ListBody>().totalResultNumber).toBe(2);
     expect(byDate.json<ListBody>().data.map((item) => item.funko.name)).toEqual(['Spider-Man']);
     expect(byPrice.json<ListBody>().data.map((item) => item.purchasePriceCents)).toEqual([2999, 1499, 899]);
+  });
+
+  it('filters by series id and embeds the series in the funko summary', async () => {
+    const { owned, spiderMan, vader } = await seed();
+    const mandalorian = await createSeries('The Mandalorian');
+    const grogu = await createFunko({ name: 'Grogu', seriesId: mandalorian.id });
+    await createItem(owned.id, spiderMan.id);
+    await createItem(owned.id, vader.id);
+    await createItem(owned.id, grogu.id);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: itemsUrl(owned.id),
+      query: { seriesId: String(mandalorian.id) },
+    });
+
+    const body = response.json<ListBody>();
+    expect(body.totalResultNumber).toBe(1);
+    expect(body.data[0]?.funko).toMatchObject({
+      name: 'Grogu',
+      series: { id: mandalorian.id, name: 'The Mandalorian' },
+    });
   });
 
   it('returns 404 for an unknown collection', async () => {

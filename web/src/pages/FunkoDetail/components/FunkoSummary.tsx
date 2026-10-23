@@ -4,7 +4,7 @@ import { FUNKO_TYPE_LABELS } from '@app-types/utility';
 import { Badge } from '@components/ui/badge';
 import { Separator } from '@components/ui/separator';
 import { formatDateTime } from '@utils/dateUtils';
-import { funkosInCategoryPath } from '@utils/funkoLinkUtils';
+import { funkosInCategoryPath, funkosInSeriesPath } from '@utils/funkoLinkUtils';
 
 type Props = {
   funko: FunkoDetailApiModel;
@@ -30,7 +30,7 @@ function SpecRow({ label, children }: RowProps) {
   );
 }
 
-// The page's one h1, its number and category (the category links to the filtered catalog), and the actions.
+// The page's one h1, its number, category and series (each links to the filtered catalog), and the actions.
 function SummaryHeading({ funko, actions }: HeadingProps) {
   return (
     <div className="flex items-start justify-between gap-3">
@@ -46,6 +46,17 @@ function SummaryHeading({ funko, actions }: HeadingProps) {
           >
             {funko.category.name}
           </Link>
+          {funko.series ? (
+            <>
+              {' · '}
+              <Link
+                to={funkosInSeriesPath(funko.series.id)}
+                className="underline-offset-4 hover:text-foreground hover:underline"
+              >
+                {funko.series.name}
+              </Link>
+            </>
+          ) : null}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1">{actions}</div>

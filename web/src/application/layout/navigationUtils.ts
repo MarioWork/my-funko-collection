@@ -1,9 +1,10 @@
-import { FolderHeart, House, Package, Search, Tag, Tags, type LucideIcon } from 'lucide-react';
+import { Book, FolderHeart, House, Library, Package, Search, Tag, type LucideIcon } from 'lucide-react';
 import {
   BASE_ROUTES_PATHS,
   CATEGORY_ROUTES_PATHS,
   COLLECTION_ROUTES_PATHS,
   FUNKO_ROUTES_PATHS,
+  SERIES_ROUTES_PATHS,
   TAG_ROUTES_PATHS,
 } from '@application/routes/routesUtils';
 
@@ -23,7 +24,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 
 // The manage pages: in the sidebar on desktop, under Settings on phones (the bottom bar keeps its four tabs).
 export const MANAGE_ITEMS: NavigationItem[] = [
-  { label: 'Categories', to: CATEGORY_ROUTES_PATHS.BASE, icon: Tags },
+  { label: 'Categories', to: CATEGORY_ROUTES_PATHS.BASE, icon: Book },
+  { label: 'Series', to: SERIES_ROUTES_PATHS.BASE, icon: Library },
   { label: 'Tags', to: TAG_ROUTES_PATHS.BASE, icon: Tag },
 ];
 

@@ -1,4 +1,4 @@
-import { Camera, Coins, Package, Boxes } from 'lucide-react';
+import { Boxes, Coins, Images, Package } from 'lucide-react';
 import type { StatsApiModel } from '@app-types/models';
 import { COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import StatTile from '@components/StatTile';
@@ -38,7 +38,7 @@ function StatsGrid({ stats }: Props) {
         hint={ownedLabel}
         to={ownedPath}
       />
-      <StatTile icon={Camera} label="Photos" value={String(stats.imageCount)} hint={formatBytes(stats.imageBytes)} />
+      <StatTile icon={Images} label="Images" value={String(stats.imageCount)} hint={formatBytes(stats.imageBytes)} />
     </section>
   );
 }

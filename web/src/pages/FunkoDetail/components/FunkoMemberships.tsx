@@ -97,19 +97,23 @@ function MembershipRow({ item, isBusy, onRemove }: RowProps) {
 }
 
 // The collections this funko sits in: one tile, a compact row per collection divided by hairlines. Removal is
-// undoable from the toast.
+// undoable from the toast. It may shrink (min-h-0): beside the gallery it fills what is left of the screen and its
+// list scrolls inside it instead of the page.
 function FunkoMemberships({ items }: Props) {
   const { busyItemId, remove } = useItemActions();
 
   return (
-    <section aria-labelledby="memberships-heading" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <section
+      aria-labelledby="memberships-heading"
+      className="flex min-h-0 flex-col gap-3 rounded-xl border bg-card p-4"
+    >
       <h2 id="memberships-heading" className="text-lg font-semibold">
         Collections
       </h2>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Not in any collection yet. Use the icons by the name to add it.</p>
       ) : (
-        <ul className="flex flex-col divide-y">
+        <ul className="-mr-3 -ml-1 flex min-h-0 flex-col divide-y overflow-y-auto pr-3 pl-1">
           {items.map((item) => (
             <MembershipRow key={item.id} item={item} isBusy={busyItemId === item.id} onRemove={remove} />
           ))}

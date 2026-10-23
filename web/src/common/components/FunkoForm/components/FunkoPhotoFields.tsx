@@ -13,7 +13,7 @@ type Props = {
   isMissingPhotos: boolean;
 };
 
-const PHOTOS_REQUIRED_MESSAGE = 'Add at least one photo';
+const PHOTOS_REQUIRED_MESSAGE = 'Add at least one image';
 
 // The photos part of FunkoForm. Adding: pick at least one, sent with Save. Editing: the photo manager, where every
 // change applies right away.
@@ -23,8 +23,8 @@ function FunkoPhotoFields({ funko, formId, pendingPhotos, isSubmitting, isMissin
   if (funko) {
     return (
       <FieldSet className="gap-3">
-        <FieldLegend variant="label">Photos</FieldLegend>
-        <FieldDescription>Changes to photos apply right away.</FieldDescription>
+        <FieldLegend variant="label">Images</FieldLegend>
+        <FieldDescription>Changes to images apply right away.</FieldDescription>
         <FunkoPhotoManager funko={funko} />
       </FieldSet>
     );
@@ -32,7 +32,7 @@ function FunkoPhotoFields({ funko, formId, pendingPhotos, isSubmitting, isMissin
 
   return (
     <FieldSet className="gap-3" data-invalid={isMissingPhotos || undefined}>
-      <FieldLegend variant="label">Photos</FieldLegend>
+      <FieldLegend variant="label">Images</FieldLegend>
       <PhotoPicker
         photos={pendingPhotos.photos}
         isDisabled={isSubmitting}

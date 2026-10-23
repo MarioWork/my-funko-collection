@@ -1,5 +1,6 @@
 export type { ApiError, ApiErrorIssue } from './apiError.type';
 export type { CategoryApiModel, CategoryId } from './categoryApiModel.type';
+export type { SeriesApiModel, SeriesId } from './seriesApiModel.type';
 export type { TagApiModel, TagId } from './tagApiModel.type';
 export type {
   FunkoApiModel,

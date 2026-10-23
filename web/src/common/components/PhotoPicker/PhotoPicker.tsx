@@ -6,7 +6,7 @@ import PendingPhotoList from './components/PendingPhotoList';
 import DisabledReason from '@components/DisabledReason';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 
-const FULL_BATCH_REASON = `${MAX_PHOTOS_PER_BATCH} photos is the most at once. Remove one to add another.`;
+const FULL_BATCH_REASON = `${MAX_PHOTOS_PER_BATCH} images is the most at once. Remove one to add another.`;
 
 type Props = {
   photos: PendingPhoto[];
@@ -43,7 +43,7 @@ function PhotoPicker({ photos, isDisabled, onAdd, onRemove, errorId, children }:
         accept={LIBRARY_ACCEPT}
         multiple
         className="sr-only"
-        aria-label="Photo files"
+        aria-label="Image files"
         onChange={addFiles}
       />
       <input
@@ -66,7 +66,7 @@ function PhotoPicker({ photos, isDisabled, onAdd, onRemove, errorId, children }:
             onClick={() => libraryInput.current?.click()}
           >
             <ImagePlus data-icon="inline-start" aria-hidden="true" />
-            Choose photos
+            Choose images
           </Button>
         </DisabledReason>
         <DisabledReason reason={pickDisabledReason}>

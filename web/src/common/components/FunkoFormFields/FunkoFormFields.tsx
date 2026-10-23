@@ -7,6 +7,7 @@ import { NativeSelect, NativeSelectOption } from '@components/ui/native-select';
 import { Switch } from '@components/ui/switch';
 import FunkoBarcodeField from './components/FunkoBarcodeField';
 import FunkoCategoryField from './components/FunkoCategoryField';
+import FunkoSeriesField from './components/FunkoSeriesField';
 import type { FunkoFormValues } from './funkoFormUtils';
 
 type Props = {
@@ -83,6 +84,7 @@ function FunkoFormFields({ control, categories, idPrefix, barcodeAddon }: Props)
         />
       </div>
       <FunkoCategoryField control={control} categories={categories} id={id('category')} />
+      <FunkoSeriesField control={control} id={id('series')} />
       <Controller
         control={control}
         name="isChase"

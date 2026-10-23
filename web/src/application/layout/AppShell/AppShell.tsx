@@ -12,6 +12,10 @@ import { useCommandPalette } from './hooks/useCommandPalette';
 const MOBILE_SHELL_STYLE = { '--bottom-nav-height': '4rem' } as React.CSSProperties;
 // shadcn's sidebar is a fixed column; this is as wide as the logo (mark + wordmark), not the 16rem default.
 const SIDEBAR_STYLE = { '--sidebar-width': '15rem' } as React.CSSProperties;
+// The sidebar opens and closes at once. Animated, the page beside it reflows on every frame (its grids cross
+// container-query breakpoints mid-way) and the labels and logo swap before the width catches up: the UI bounces.
+const SIDEBAR_NO_ANIMATION_CLASS =
+  '**:data-[slot=sidebar-gap]:transition-none **:data-[slot=sidebar-container]:transition-none **:data-[sidebar=menu-button]:transition-none';
 
 function AppShell() {
   const isDesktop = useIsDesktop();
@@ -19,7 +23,7 @@ function AppShell() {
 
   if (isDesktop) {
     return (
-      <SidebarProvider style={SIDEBAR_STYLE}>
+      <SidebarProvider style={SIDEBAR_STYLE} className={SIDEBAR_NO_ANIMATION_CLASS}>
         <AppSidebar />
         <SidebarInset>
           <TopBar isDesktop />

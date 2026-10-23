@@ -4,4 +4,5 @@ export * from './collectionItemTags.ts';
 export * from './collections.ts';
 export * from './funkoImages.ts';
 export * from './funkos.ts';
+export * from './series.ts';
 export * from './tags.ts';

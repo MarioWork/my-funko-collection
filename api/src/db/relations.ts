@@ -6,14 +6,20 @@ import { collectionItemTags } from './schema/collectionItemTags.ts';
 import { collections } from './schema/collections.ts';
 import { funkoImages } from './schema/funkoImages.ts';
 import { funkos } from './schema/funkos.ts';
+import { series } from './schema/series.ts';
 import { tags } from './schema/tags.ts';
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
   funkos: many(funkos),
 }));
 
+export const seriesRelations = relations(series, ({ many }) => ({
+  funkos: many(funkos),
+}));
+
 export const funkosRelations = relations(funkos, ({ one, many }) => ({
   category: one(categories, { fields: [funkos.categoryId], references: [categories.id] }),
+  series: one(series, { fields: [funkos.seriesId], references: [series.id] }),
   images: many(funkoImages),
   collectionItems: many(collectionItems),
 }));

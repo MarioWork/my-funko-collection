@@ -27,8 +27,8 @@ type IncrementFormData = {
 export type AddActionData = JSONResponseUtil<AddResult>;
 
 const MIN_PHOTOS = 1;
-const PHOTOS_REQUIRED = 'Add at least one photo.';
-const PHOTOS_WARNING = 'The photos did not upload. Add them from its page.';
+const PHOTOS_REQUIRED = 'Add at least one image.';
+const PHOTOS_WARNING = 'The images did not upload. Add them from its page.';
 const COLLECTION_WARNING = 'It could not be added to one of the lists. Add it from its page.';
 
 async function uploadPhotos(funkoId: number, photos: File[]): Promise<string[]> {

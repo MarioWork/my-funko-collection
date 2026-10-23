@@ -12,6 +12,7 @@ import {
   collections,
   funkoImages,
   funkos,
+  series,
   tags,
   type FunkoType,
   type ItemCondition,
@@ -21,6 +22,7 @@ type SeedFunko = {
   name: string;
   number: string;
   category: string;
+  series?: string;
   type?: FunkoType;
   isChase?: boolean;
   exclusive?: string;
@@ -37,6 +39,7 @@ type SeedItem = {
 };
 
 const CATEGORY_NAMES = ['Pop! Marvel', 'Pop! Television', 'Star Wars', 'Pop! Animation', 'Pop! Games'];
+const SERIES_NAMES = ['Daredevil: Born Again', 'The Mandalorian', 'Stranger Things'];
 const COLLECTIONS: { name: string; isDefault: boolean; notes: string | null }[] = [
   { name: 'Owned', isDefault: true, notes: 'Everything on the shelves and in the boxes' },
   { name: 'Wishlist', isDefault: false, notes: 'Next buys' },
@@ -53,15 +56,17 @@ const FUNKOS: SeedFunko[] = [
   { name: 'Thanos', number: '78', category: 'Pop! Marvel', isChase: true },
   { name: 'Groot', number: '1203', category: 'Pop! Marvel' },
   { name: 'Spider-Man (Integrated Suit)', number: '913', category: 'Pop! Marvel', exclusive: 'Walmart' },
-  { name: 'Eleven', number: '421', category: 'Pop! Television' },
-  { name: 'Eddie Munson', number: '1250', category: 'Pop! Television' },
-  { name: 'Dustin', number: '424', category: 'Pop! Television' },
-  { name: 'Vecna', number: '1312', category: 'Pop! Television' },
+  { name: 'Daredevil', number: '1406', category: 'Pop! Marvel', series: 'Daredevil: Born Again' },
+  { name: 'Kingpin', number: '1408', category: 'Pop! Marvel', series: 'Daredevil: Born Again' },
+  { name: 'Eleven', number: '421', category: 'Pop! Television', series: 'Stranger Things' },
+  { name: 'Eddie Munson', number: '1250', category: 'Pop! Television', series: 'Stranger Things' },
+  { name: 'Dustin', number: '424', category: 'Pop! Television', series: 'Stranger Things' },
+  { name: 'Vecna', number: '1312', category: 'Pop! Television', series: 'Stranger Things' },
   { name: 'Walter White', number: '162', category: 'Pop! Television' },
   { name: 'Darth Vader', number: '01', category: 'Star Wars' },
   { name: 'Boba Fett', number: '08', category: 'Star Wars' },
-  { name: 'Grogu', number: '368', category: 'Star Wars' },
-  { name: 'The Mandalorian', number: '345', category: 'Star Wars' },
+  { name: 'Grogu', number: '368', category: 'Star Wars', series: 'The Mandalorian' },
+  { name: 'The Mandalorian', number: '345', category: 'Star Wars', series: 'The Mandalorian' },
   { name: 'Ahsoka Tano', number: '464', category: 'Star Wars' },
   { name: 'Darth Maul', number: '09', category: 'Star Wars', exclusive: 'SDCC 2024' },
   { name: 'Goku', number: '09', category: 'Pop! Animation' },
@@ -226,6 +231,7 @@ await db.delete(collectionItemTags);
 await db.delete(collectionItems);
 await db.delete(funkoImages);
 await db.delete(funkos);
+await db.delete(series);
 await db.delete(collections);
 await db.delete(tags);
 await db.delete(categories);
@@ -237,6 +243,12 @@ const categoryRows = await db
   .returning({ id: categories.id, name: categories.name });
 const categoryIds = new Map(categoryRows.map((row) => [row.name, row.id]));
 
+const seriesRows = await db
+  .insert(series)
+  .values(SERIES_NAMES.map((name) => ({ name })))
+  .returning({ id: series.id, name: series.name });
+const seriesIds = new Map(seriesRows.map((row) => [row.name, row.id]));
+
 const funkoRows = await db
   .insert(funkos)
   .values(
@@ -245,6 +257,7 @@ const funkoRows = await db
       number: funko.number,
       type: funko.type ?? 'POP',
       categoryId: categoryIds.get(funko.category) ?? 0,
+      seriesId: funko.series ? (seriesIds.get(funko.series) ?? null) : null,
       isChase: funko.isChase ?? false,
       exclusive: funko.exclusive ?? '',
     })),
@@ -315,6 +328,7 @@ for (const [index, row] of funkoRows.entries()) {
 logger.info(
   {
     categories: categoryRows.length,
+    series: seriesRows.length,
     funkos: funkoRows.length,
     collections: collectionRows.length,
     tags: tagRows.length,

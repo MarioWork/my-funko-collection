@@ -5,6 +5,7 @@ import { addRoutes, nestedAddRoutes } from './featureRoutes/addRoutes';
 import { categoryRoutes } from './featureRoutes/categoryRoutes';
 import { collectionRoutes } from './featureRoutes/collectionRoutes';
 import { funkoRoutes } from './featureRoutes/funkoRoutes';
+import { seriesRoutes } from './featureRoutes/seriesRoutes';
 import { tagRoutes } from './featureRoutes/tagRoutes';
 import { BASE_ROUTES_PATHS, defaultRedirectRoute } from './routesUtils';
 
@@ -41,6 +42,7 @@ const routes: RouteObject[] = [
       ...addRoutes,
       ...collectionRoutes,
       ...categoryRoutes,
+      ...seriesRoutes,
       ...tagRoutes,
     ],
   },

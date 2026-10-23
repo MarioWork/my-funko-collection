@@ -64,6 +64,12 @@ export const CATEGORY_ROUTES_PATHS = {
   update: (categoryId?: string) => (categoryId ? `/categories/${categoryId}` : '/categories/:categoryId'),
 };
 
+export const SERIES_ROUTES_PATHS = {
+  BASE: '/series',
+  ADD: 'add',
+  update: (seriesId?: string) => (seriesId ? `/series/${seriesId}` : '/series/:seriesId'),
+};
+
 export const TAG_ROUTES_PATHS = {
   BASE: '/tags',
   ADD: 'add',

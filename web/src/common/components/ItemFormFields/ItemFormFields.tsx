@@ -1,6 +1,7 @@
 import { Controller, type Control } from 'react-hook-form';
 import type { NamedApiModel } from '@app-types/models';
 import { ITEM_CONDITION_LABELS, ItemConditionUtil } from '@app-types/utility';
+import { TAG_ROUTES_PATHS } from '@application/routes/routesUtils';
 import TagPicker from '@components/TagPicker';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@components/ui/field';
 import { Input } from '@components/ui/input';
@@ -93,6 +94,7 @@ function ItemFormFields({ control, tags, idPrefix }: Props) {
           <Field>
             <FieldLabel htmlFor={id('tags')}>Tags</FieldLabel>
             <TagPicker
+              createActionPath={TAG_ROUTES_PATHS.BASE}
               id={id('tags')}
               tags={tags}
               value={tags.filter((tag) => value.includes(tag.id))}

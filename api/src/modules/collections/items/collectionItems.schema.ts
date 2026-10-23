@@ -46,6 +46,7 @@ export const ListCollectionItemsQuerySchema = PaginationQuerySchema.extend({
   funkoId: IdListQuerySchema.optional(),
   tagId: IdListQuerySchema.optional(),
   categoryId: IdListQuerySchema.optional(),
+  seriesId: IdListQuerySchema.optional(),
   condition: z.enum(ITEM_CONDITIONS).optional(),
   purchasedFrom: IsoDateSchema.optional(),
   purchasedTo: IsoDateSchema.optional(),

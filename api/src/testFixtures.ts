@@ -7,6 +7,7 @@ import {
   collectionItemTags,
   collections,
   funkos,
+  series,
   tags,
   type FunkoType,
   type ItemCondition,
@@ -25,10 +26,15 @@ export async function createCategory(name = nextName('Category')): Promise<{ id:
   return db.insert(categories).values({ name }).returning({ id: categories.id, name: categories.name }).get();
 }
 
+export async function createSeries(name = nextName('Series')): Promise<{ id: number; name: string }> {
+  return db.insert(series).values({ name }).returning({ id: series.id, name: series.name }).get();
+}
+
 type FunkoOverrides = {
   name?: string;
   number?: string;
   categoryId?: number;
+  seriesId?: number | null;
   type?: FunkoType;
   isChase?: boolean;
   exclusive?: string;
@@ -37,7 +43,7 @@ type FunkoOverrides = {
 
 export async function createFunko(
   overrides: FunkoOverrides = {},
-): Promise<{ id: number; name: string; categoryId: number }> {
+): Promise<{ id: number; name: string; categoryId: number; seriesId: number | null }> {
   const categoryId = overrides.categoryId ?? (await createCategory()).id;
 
   return db
@@ -46,13 +52,14 @@ export async function createFunko(
       name: overrides.name ?? nextName('Funko'),
       number: overrides.number ?? String(sequence),
       categoryId,
+      seriesId: overrides.seriesId ?? null,
       type: overrides.type ?? 'POP',
       isChase: overrides.isChase ?? false,
       exclusive: overrides.exclusive ?? '',
       // Stored the way the service stores it, so lookups by either barcode form find the row.
       barcode: overrides.barcode ? normaliseBarcode(overrides.barcode) : null,
     })
-    .returning({ id: funkos.id, name: funkos.name, categoryId: funkos.categoryId })
+    .returning({ id: funkos.id, name: funkos.name, categoryId: funkos.categoryId, seriesId: funkos.seriesId })
     .get();
 }
 

@@ -1,5 +1,6 @@
 import { useLoaderData } from 'react-router';
 import type { CollectionApiModel, CollectionId, NamedApiModel } from '@app-types/models';
+import { TAG_ROUTES_PATHS } from '@application/routes/routesUtils';
 import CollectionPicker from '@components/CollectionPicker';
 import TagPicker from '@components/TagPicker';
 import { Field, FieldDescription, FieldLabel } from '@components/ui/field';
@@ -57,6 +58,7 @@ function FunkoDestinationFields({
         <Field>
           <FieldLabel htmlFor={tagsId}>Tags</FieldLabel>
           <TagPicker
+            createActionPath={TAG_ROUTES_PATHS.BASE}
             id={tagsId}
             tags={tags}
             value={selectedTags}

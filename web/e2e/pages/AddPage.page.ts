@@ -40,11 +40,11 @@ export class AddPage {
   }
 
   async choosePhotos(paths: string[]) {
-    await this.page.getByLabel('Photo files').setInputFiles(paths);
+    await this.page.getByLabel('Image files').setInputFiles(paths);
   }
 
   photosToUpload() {
-    return this.page.getByRole('list', { name: 'Photos to upload' }).getByRole('listitem');
+    return this.page.getByRole('list', { name: 'Images to upload' }).getByRole('listitem');
   }
 
   // Base UI's combobox chips have no role; data-slot is the shadcn wrapper's hook for them.
@@ -66,7 +66,7 @@ export class AddPage {
   }
 
   photosError() {
-    return this.main.getByText('Add at least one photo');
+    return this.main.getByText('Add at least one image');
   }
 
   async addAnother() {

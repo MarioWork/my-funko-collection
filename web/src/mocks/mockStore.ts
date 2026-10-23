@@ -10,6 +10,7 @@ import {
 import { createMockImageUrls } from './mockImageUtils';
 
 export type MockCategoryRow = { id: number; name: string; createdAt: string; updatedAt: string };
+export type MockSeriesRow = { id: number; name: string; createdAt: string; updatedAt: string };
 export type MockTagRow = { id: number; name: string; notes: string | null; createdAt: string; updatedAt: string };
 export type MockCollectionRow = {
   id: number;
@@ -25,6 +26,7 @@ export type MockFunkoRow = {
   number: string;
   type: FunkoType;
   categoryId: number;
+  seriesId: number | null;
   isChase: boolean;
   exclusive: string;
   barcode: string | null;
@@ -49,6 +51,7 @@ export type MockItemRow = {
 
 export type MockStore = {
   categories: MockCategoryRow[];
+  series: MockSeriesRow[];
   tags: MockTagRow[];
   collections: MockCollectionRow[];
   funkos: MockFunkoRow[];
@@ -67,11 +70,14 @@ export function mockDate(index: number): string {
 
 const CATEGORY_NAMES = ['Pop! Marvel', 'Pop! Television', 'Star Wars', 'Pop! Animation', 'Pop! Games'];
 const TAG_NAMES = ['Box 1', 'Box 2', 'Display shelf'];
+const SERIES_NAMES = ['Daredevil: Born Again', 'The Mandalorian', 'Stranger Things'];
 
 type SeedFunko = {
   name: string;
   number: string;
   category: number;
+  // 1-based index into SERIES_NAMES; most funkos have none.
+  series?: number;
   type?: FunkoType;
   isChase?: boolean;
   exclusive?: string;
@@ -88,15 +94,15 @@ const SEED_FUNKOS: SeedFunko[] = [
   { name: 'Thanos', number: '78', category: 1, isChase: true },
   { name: 'Groot', number: '1203', category: 1 },
   { name: 'Spider-Man (Integrated Suit)', number: '913', category: 1, exclusive: 'Walmart' },
-  { name: 'Eleven', number: '421', category: 2 },
-  { name: 'Eddie Munson', number: '1250', category: 2 },
-  { name: 'Dustin', number: '424', category: 2 },
-  { name: 'Vecna', number: '1312', category: 2 },
+  { name: 'Eleven', number: '421', category: 2, series: 3 },
+  { name: 'Eddie Munson', number: '1250', category: 2, series: 3 },
+  { name: 'Dustin', number: '424', category: 2, series: 3 },
+  { name: 'Vecna', number: '1312', category: 2, series: 3 },
   { name: 'Walter White', number: '162', category: 2 },
   { name: 'Darth Vader', number: '01', category: 3 },
   { name: 'Boba Fett', number: '08', category: 3 },
-  { name: 'Grogu', number: '368', category: 3 },
-  { name: 'The Mandalorian', number: '345', category: 3 },
+  { name: 'Grogu', number: '368', category: 3, series: 2 },
+  { name: 'The Mandalorian', number: '345', category: 3, series: 2 },
   { name: 'Ahsoka Tano', number: '464', category: 3 },
   { name: 'Darth Maul', number: '09', category: 3, exclusive: 'SDCC 2024' },
   { name: 'Goku', number: '09', category: 4 },
@@ -284,6 +290,12 @@ export function createMockStore(): MockStore {
     createdAt: mockDate(index),
     updatedAt: mockDate(index),
   }));
+  const series = SERIES_NAMES.map((name, index) => ({
+    id: index + 1,
+    name,
+    createdAt: mockDate(index),
+    updatedAt: mockDate(index),
+  }));
   const tags = TAG_NAMES.map((name, index) => ({
     id: index + 1,
     name,
@@ -308,6 +320,7 @@ export function createMockStore(): MockStore {
     number: seed.number,
     type: seed.type ?? FunkoTypeUtil.POP,
     categoryId: seed.category,
+    seriesId: seed.series ?? null,
     isChase: seed.isChase ?? false,
     exclusive: seed.exclusive ?? '',
     barcode: seed.barcode ?? null,
@@ -329,7 +342,7 @@ export function createMockStore(): MockStore {
     updatedAt: mockDate(index),
   }));
 
-  return { categories, tags, collections, funkos, images: createImages(funkos), items };
+  return { categories, series, tags, collections, funkos, images: createImages(funkos), items };
 }
 
 export let mockStore: MockStore = createMockStore();

@@ -20,7 +20,7 @@ function Search() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Search" description="Funkos, categories, collections and tags, all at once.">
+      <PageHeader title="Search" description="Funkos, categories, series, collections and tags, all at once.">
         <div className="flex items-center gap-2">
           <InputGroup className="flex-1 border-input bg-card">
             <InputGroupAddon>
@@ -31,8 +31,8 @@ function Search() {
               type="text"
               inputMode="search"
               enterKeyHint="search"
-              aria-label="Search funkos, categories, collections and tags"
-              placeholder="Name, number, barcode, box…"
+              aria-label="Search funkos, categories, series, collections and tags"
+              placeholder="Name, number, series, barcode, box…"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />

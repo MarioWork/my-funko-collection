@@ -22,6 +22,7 @@ export const FunkoSummarySchema = z
     exclusive: z.string(),
     barcode: z.string().nullable(),
     category: z.object({ id: z.number().int(), name: z.string() }),
+    series: z.object({ id: z.number().int(), name: z.string() }).nullable(),
     primaryImage: PrimaryImageSchema.nullable(),
   })
   .meta({ id: 'FunkoSummary' });

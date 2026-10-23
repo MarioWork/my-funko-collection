@@ -2,7 +2,7 @@
 export const DISABLED_REASONS = {
   SAVING: 'Saving, one moment.',
   WORKING: 'Finishing the last change, one moment.',
-  UPLOADING: 'Uploading the photos, one moment.',
+  UPLOADING: 'Uploading the images, one moment.',
 } as const;
 
 // The reason while `isBusy`, nothing otherwise: `disabledReason={reasonWhen(isSubmitting, DISABLED_REASONS.SAVING)}`.

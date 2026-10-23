@@ -34,13 +34,14 @@ function FunkoListToolbar({ layout, onLayoutChange }: Props) {
           value={query}
           onChange={setQuery}
           label="Search funkos"
-          placeholder="Search name, number, tag…"
+          placeholder="Search name, number, series, tag…"
           className="min-w-56 flex-1"
         />
         <SortSelect options={sortOptions} field={data.sort.field} direction={data.sort.direction} onChange={setSort} />
         <FilterPanel activeCount={chips.length} resultCount={data.funkosResponse.totalResultNumber}>
           <FunkoFilters
             categories={data.categories}
+            series={data.series}
             collections={data.collections}
             tags={data.tags}
             filters={filters}

@@ -7,6 +7,7 @@ import { collectionItemTags } from '../../db/schema/collectionItemTags.ts';
 import { collections } from '../../db/schema/collections.ts';
 import { funkoImages } from '../../db/schema/funkoImages.ts';
 import { funkos, type FunkoSortField, type FunkoType } from '../../db/schema/funkos.ts';
+import { series } from '../../db/schema/series.ts';
 import { tags } from '../../db/schema/tags.ts';
 import { toLimitOffset } from '../../lib/pagination.ts';
 import type { CreateFunko, ListFunkosQuery, UpdateFunko } from './funkos.schema.ts';
@@ -21,6 +22,8 @@ const FUNKO_COLUMNS = {
   barcode: funkos.barcode,
   categoryId: funkos.categoryId,
   categoryName: categories.name,
+  seriesId: funkos.seriesId,
+  seriesName: series.name,
   createdAt: funkos.createdAt,
   updatedAt: funkos.updatedAt,
 } as const;
@@ -45,7 +48,11 @@ const SORT_FIELD_MAP: Record<Exclude<FunkoSortField, 'RELEVANCE'>, SQLWrapper> =
   NUMBER: numberAsInteger,
   CREATION_DATE: funkos.createdAt,
   CATEGORY: categories.name,
+  SERIES: series.name,
 };
+
+// Funkos without a series sort after the ones with one, in either direction.
+const seriesMissingLast = sql`${series.name} is null`;
 
 function categoryNameMatches(text: string): SQL {
   return exists(
@@ -53,6 +60,15 @@ function categoryNameMatches(text: string): SQL {
       .select({ one: sql`1` })
       .from(categories)
       .where(and(eq(categories.id, funkos.categoryId), likeContains(categories.name, text))),
+  );
+}
+
+function seriesNameMatches(text: string): SQL {
+  return exists(
+    db
+      .select({ one: sql`1` })
+      .from(series)
+      .where(and(eq(series.id, funkos.seriesId), likeContains(series.name, text))),
   );
 }
 
@@ -100,6 +116,7 @@ function wordFilter(word: string): SQL | undefined {
     likeContains(funkos.barcode, word),
     likeContains(funkos.exclusive, word),
     categoryNameMatches(word),
+    seriesNameMatches(word),
     tagMatches(likeContains(tags.name, word)),
     collectionMatches(likeContains(collections.name, word)),
   );
@@ -124,6 +141,8 @@ function buildListFilter(query: ListFunkosQuery): SQL | undefined {
   const chaseFilter = query.isChase === undefined ? undefined : eq(funkos.isChase, query.isChase);
   const categoryIdFilter = query.categoryId ? inArray(funkos.categoryId, query.categoryId) : undefined;
   const categoryNameFilter = query.category ? categoryNameMatches(query.category) : undefined;
+  const seriesIdFilter = query.seriesId ? inArray(funkos.seriesId, query.seriesId) : undefined;
+  const seriesNameFilter = query.series ? seriesNameMatches(query.series) : undefined;
   const tagIdFilter = query.tagId ? tagMatches(inArray(collectionItemTags.tagId, query.tagId)) : undefined;
   const tagNameFilter = query.tag ? tagMatches(likeContains(tags.name, query.tag)) : undefined;
   const collectionIdFilter = query.collectionId ? inAnyCollection(query.collectionId) : undefined;
@@ -152,6 +171,8 @@ function buildListFilter(query: ListFunkosQuery): SQL | undefined {
     chaseFilter,
     categoryIdFilter,
     categoryNameFilter,
+    seriesIdFilter,
+    seriesNameFilter,
     tagIdFilter,
     tagNameFilter,
     collectionIdFilter,
@@ -189,11 +210,17 @@ function buildOrderBy(query: ListFunkosQuery): SQL[] {
     return [...relevance, asc(funkos.name), asc(funkos.id)];
   }
 
-  return [direction(SORT_FIELD_MAP[sortField]), asc(funkos.number), asc(funkos.id)];
+  const missingSeriesLast = sortField === 'SERIES' ? [asc(seriesMissingLast)] : [];
+
+  return [...missingSeriesLast, direction(SORT_FIELD_MAP[sortField]), asc(funkos.number), asc(funkos.id)];
 }
 
 function selectFunkos(executor: DbExecutor) {
-  return executor.select(FUNKO_COLUMNS).from(funkos).innerJoin(categories, eq(categories.id, funkos.categoryId));
+  return executor
+    .select(FUNKO_COLUMNS)
+    .from(funkos)
+    .innerJoin(categories, eq(categories.id, funkos.categoryId))
+    .leftJoin(series, eq(series.id, funkos.seriesId));
 }
 
 async function groupByFunkoId<Row extends { funkoId: number }>(
@@ -332,6 +359,8 @@ export type FunkoRow = {
   barcode: string | null;
   categoryId: number;
   categoryName: string;
+  seriesId: number | null;
+  seriesName: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

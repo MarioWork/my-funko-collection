@@ -38,7 +38,7 @@ function EditablePhotoThumbnail({ image, index, count, funkoId, isPrimary, onOpe
     <li className={cn('relative shrink-0', isBusy && 'opacity-60')}>
       <PhotoThumbnail
         image={image}
-        label={`Open photo ${index + 1} of ${count}${isPrimary ? ' (main photo)' : ''}`}
+        label={`Open image ${index + 1} of ${count}${isPrimary ? ' (main image)' : ''}`}
         isHighlighted={isPrimary}
         onClick={onOpen}
       />
@@ -46,7 +46,7 @@ function EditablePhotoThumbnail({ image, index, count, funkoId, isPrimary, onOpe
         <DropdownMenuTrigger
           render={
             <IconButton
-              aria-label={`Photo ${index + 1} options`}
+              aria-label={`Image ${index + 1} options`}
               size="sm"
               variant="secondary"
               className="absolute top-1 right-1"

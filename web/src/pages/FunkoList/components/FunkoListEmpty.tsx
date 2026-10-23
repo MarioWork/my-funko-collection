@@ -1,4 +1,4 @@
-import { PackagePlus, ScanBarcode } from 'lucide-react';
+import { Package, ScanBarcode } from 'lucide-react';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import EmptyState from '@components/EmptyState';
 import LinkButton from '@components/LinkButton';
@@ -37,9 +37,9 @@ function FunkoListEmpty({ isFiltered, onClearFilters }: Props) {
         <ScanBarcode data-icon="inline-start" aria-hidden="true" />
         Scan
       </LinkButton>
-      <LinkButton to={ADD_ROUTES_PATHS.NESTED_FORM} variant="outline">
-        <PackagePlus data-icon="inline-start" aria-hidden="true" />
-        Add
+      <LinkButton to={ADD_ROUTES_PATHS.NESTED_FORM} variant="outline" aria-label="New funko">
+        <Package data-icon="inline-start" aria-hidden="true" />
+        New
       </LinkButton>
     </EmptyState>
   );

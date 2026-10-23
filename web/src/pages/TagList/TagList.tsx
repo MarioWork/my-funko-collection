@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Tag } from 'lucide-react';
 import { Outlet, useLoaderData } from 'react-router';
 import type { TagApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
@@ -38,9 +38,9 @@ function TagList() {
         title="Tags"
         description="Labels on your items: which box, which shelf, anything you like. Deleting one only removes the label."
         actions={
-          <LinkButton to={TAG_ROUTES_PATHS.ADD} className="hidden lg:inline-flex">
-            <Plus data-icon="inline-start" aria-hidden="true" />
-            New tag
+          <LinkButton to={TAG_ROUTES_PATHS.ADD} aria-label="New tag" className="hidden lg:inline-flex">
+            <Tag data-icon="inline-start" aria-hidden="true" />
+            New
           </LinkButton>
         }
       />

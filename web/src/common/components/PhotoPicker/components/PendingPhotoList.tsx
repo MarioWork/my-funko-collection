@@ -13,7 +13,7 @@ function PendingPhotoList({ photos, isDisabled, onRemove }: Props) {
   if (photos.length === 0) return null;
 
   return (
-    <ul className="grid grid-cols-4 gap-2 @md:grid-cols-6" aria-label="Photos to upload">
+    <ul className="grid grid-cols-4 gap-2 @md:grid-cols-6" aria-label="Images to upload">
       {photos.map((photo) => (
         <li key={photo.id} className="relative aspect-3/4 overflow-hidden rounded-lg bg-muted">
           <img src={photo.previewUrl} alt="" className="size-full object-cover" />

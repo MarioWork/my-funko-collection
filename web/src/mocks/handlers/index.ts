@@ -1,4 +1,5 @@
 import { categoryMockHandlers } from './category';
+import { seriesMockHandlers } from './series';
 import { collectionMockHandlers } from './collection';
 import { collectionItemMockHandlers } from './collectionItem';
 import { exportMockHandlers } from './export';
@@ -13,6 +14,7 @@ const MOCK_DELAY = 200;
 
 export const getHandlers = (baseUrl: string) => [
   ...categoryMockHandlers(baseUrl),
+  ...seriesMockHandlers(baseUrl),
   ...tagMockHandlers(baseUrl),
   ...funkoMockHandlers(baseUrl),
   ...funkoImageMockHandlers(baseUrl),

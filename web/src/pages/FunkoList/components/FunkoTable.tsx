@@ -93,7 +93,7 @@ function FunkoTableHead() {
   return (
     <TableRow className={TABLE_HEADER_ROW_CLASS}>
       <TableHead className="w-16">
-        <span className="sr-only">Photo</span>
+        <span className="sr-only">Image</span>
       </TableHead>
       <TableHead>Name</TableHead>
       <TableHead className="w-24">Number</TableHead>

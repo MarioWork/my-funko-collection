@@ -1,4 +1,4 @@
-import { PackagePlus, ScanBarcode } from 'lucide-react';
+import { Package, ScanBarcode } from 'lucide-react';
 import { Outlet } from 'react-router';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AddFab from '@components/AddFab';
@@ -23,9 +23,9 @@ function DesktopActions() {
         <ScanBarcode data-icon="inline-start" aria-hidden="true" />
         Scan
       </LinkButton>
-      <LinkButton to={ADD_ROUTES_PATHS.NESTED_FORM}>
-        <PackagePlus data-icon="inline-start" aria-hidden="true" />
-        Add
+      <LinkButton to={ADD_ROUTES_PATHS.NESTED_FORM} aria-label="New funko">
+        <Package data-icon="inline-start" aria-hidden="true" />
+        New
       </LinkButton>
     </>
   );
