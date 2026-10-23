@@ -10,7 +10,7 @@ import { Input } from '@components/ui/input';
 import { Switch } from '@components/ui/switch';
 import { Textarea } from '@components/ui/textarea';
 import { useFormCompat } from '@hooks/useFormCompat';
-import { createFormData } from '@utils/formDataUtils';
+import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import { collectionFormSchema, getInitialCollectionValues, toCollectionPayload } from './collectionFormUtils';
 import type { loader } from './collectionDialogLoader';
 import SubmitButton from '@components/SubmitButton';
@@ -44,7 +44,17 @@ function CollectionDialog() {
   }, [fetcher.state, fetcher.data]);
 
   const onSubmit = handleSubmit((values) => {
-    void fetcher.submit(createFormData({ collection: toCollectionPayload(values) }), {
+    const payload = toCollectionPayload(values);
+    const isUnchanged = isEdit && isSamePayload(toCollectionPayload(getInitialCollectionValues(collection)), payload);
+
+    // Editing and nothing to save: just close.
+    if (isUnchanged) {
+      close();
+
+      return;
+    }
+
+    void fetcher.submit(createFormData({ collection: payload }), {
       method: isEdit ? HttpVerbsUtil.PATCH : HttpVerbsUtil.POST,
     });
   });

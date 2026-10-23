@@ -1,15 +1,15 @@
-import { PackageOpen } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 import type { CategoryApiModel, CollectionApiModel, CollectionItemApiModel, TagApiModel } from '@app-types/models';
 import type { ResponseWithPaginationUtil, SortingDirectionUtil } from '@app-types/utility';
-import EmptyState from '@components/EmptyState';
 import FunkoGrid from '@components/FunkoGrid';
 import ListPagination from '@components/ListPagination';
 import PageHeader from '@components/PageHeader';
 import { useItemActions } from '@hooks/useItemActions';
+import { useItemListParams } from '@hooks/useItemListParams';
 import { useLayoutPreference } from '@hooks/useLayoutPreference';
 import { useIsDesktop } from '@hooks/useMediaQuery';
 import ItemCard from './components/ItemCard';
+import ItemsEmpty from './components/ItemsEmpty';
 import ItemGridCard from './components/ItemGridCard';
 import ItemTable from './components/ItemTable';
 import ItemsToolbar from './components/ItemsToolbar';
@@ -53,6 +53,18 @@ function ItemsList({
   const { layout, density, setLayout } = useLayoutPreference(ITEMS_LAYOUT_STORAGE_KEY);
   const hasItems = itemsResponse.data.length > 0;
   const isList = density === null;
+  const { query, chips, setQuery, clearFilters } = useItemListParams({
+    categories,
+    tags,
+    collections,
+    hasCollectionFilter,
+  });
+  const isFiltered = query.length > 0 || chips.length > 0;
+
+  const clearAll = () => {
+    setQuery('');
+    clearFilters();
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -70,9 +82,13 @@ function ItemsList({
       </PageHeader>
       <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
         {!hasItems ? (
-          <EmptyState icon={PackageOpen} title={emptyTitle} description={emptyDescription}>
-            {emptyAction}
-          </EmptyState>
+          <ItemsEmpty
+            isFiltered={isFiltered}
+            emptyTitle={emptyTitle}
+            emptyDescription={emptyDescription}
+            emptyAction={emptyAction}
+            onClearFilters={clearAll}
+          />
         ) : null}
         {hasItems && density ? (
           <FunkoGrid label="Items" density={density}>

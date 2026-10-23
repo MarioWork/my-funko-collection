@@ -29,7 +29,7 @@ function FunkoDetail() {
         <ArrowLeft data-icon="inline-start" aria-hidden="true" />
         Funkos
       </LinkButton>
-      <div className="grid gap-6 @3xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 @3xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
         <FunkoGallery funko={funko} />
         <div className="flex flex-col gap-4">
           <FunkoSummary

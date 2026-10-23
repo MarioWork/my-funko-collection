@@ -1,4 +1,4 @@
-import { Plus, Tag } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Outlet, useLoaderData } from 'react-router';
 import type { TagApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
@@ -49,7 +49,6 @@ function TagList() {
         noun="tag"
         hasNotes
         rowPath={TAG_ROUTES_PATHS.update}
-        emptyIcon={Tag}
         emptyTitle="No tags yet"
         emptyDescription="Add the first one, like Box 1 or Display shelf."
       />

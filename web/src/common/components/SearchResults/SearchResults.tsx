@@ -1,7 +1,8 @@
-import { ArrowRight, SearchX } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router';
 import type { SuggestApiModel } from '@app-types/models';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
+import EmptyState from '@components/EmptyState';
 import FunkoImage from '@components/FunkoImage';
 import { Spinner } from '@components/ui/spinner';
 import { allFunkosPath, categoryPath, collectionPath, tagPath, type SearchGroup } from './searchResultsUtils';
@@ -21,7 +22,7 @@ type GroupProps = {
 
 const THUMB_SIZES = '40px';
 const RESULT_LINK_CLASS =
-  'flex min-h-11 items-center gap-3 rounded-lg px-2 py-1.5 text-sm outline-none hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-ring';
+  'flex min-h-11 items-center gap-3 rounded-lg px-2 py-1.5 text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring';
 
 function NamedGroup({ group, onPick }: GroupProps) {
   if (group.entries.length === 0) return null;
@@ -104,9 +105,19 @@ function SearchResults({ query, suggestions, isLoading, onPick }: Props) {
 
   if (!suggestions || countHits(suggestions) === 0) {
     return (
-      <p role="status" className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
-        <SearchX aria-hidden="true" className="size-4" /> Nothing matches &ldquo;{query}&rdquo;.
-      </p>
+      <div role="status">
+        <EmptyState
+          pose="notFound"
+          title="Nothing found"
+          description={
+            <>
+              Nothing matches “{query}”.
+              <br />
+              Try another word, a number or a barcode.
+            </>
+          }
+        />
+      </div>
     );
   }
 

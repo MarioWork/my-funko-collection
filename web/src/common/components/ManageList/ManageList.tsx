@@ -1,4 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
 import EmptyState from '@components/EmptyState';
 import ManageRowItem from './components/ManageRowItem';
 import type { ManageRow } from './manageListUtils';
@@ -9,18 +8,17 @@ type Props = {
   noun: string;
   hasNotes: boolean;
   rowPath: (id: string) => string;
-  emptyIcon: LucideIcon;
   emptyTitle: string;
   emptyDescription: string;
 };
 
 // A short list of named things (categories, tags) with inline rename / delete per row. Adding is the page's
 // "New …" button (ManageAddPanel).
-function ManageList({ rows, noun, hasNotes, rowPath, emptyIcon, emptyTitle, emptyDescription }: Props) {
+function ManageList({ rows, noun, hasNotes, rowPath, emptyTitle, emptyDescription }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {rows.length === 0 ? (
-        <EmptyState icon={emptyIcon} title={emptyTitle} description={emptyDescription} />
+        <EmptyState pose="waiting" title={emptyTitle} description={emptyDescription} />
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map((row) => (
