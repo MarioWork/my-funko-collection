@@ -12,7 +12,7 @@ test('deleting a funko that sits in a collection asks to remove it there too', a
   await list.openFunko('Pikachu');
   await expect(detail.title).toHaveText('Pikachu');
 
-  await detail.openDeleteDialog();
+  await detail.openDeleteDialog('Pikachu');
 
   const dialog = page.getByRole('alertdialog');
 

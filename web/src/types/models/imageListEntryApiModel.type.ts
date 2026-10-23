@@ -20,5 +20,3 @@ export interface ImageListEntryApiModel {
   smallUrl: string | null;
   placeholder: string | null;
 }
-
-export type ImageListEntryKey = ImageListEntryApiModel['key'];

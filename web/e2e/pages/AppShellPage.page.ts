@@ -20,7 +20,7 @@ export class AppShellPage {
 
   async setTheme(name: ThemeName) {
     await this.page.getByRole('button', { name: 'Theme' }).click();
-    await this.page.getByRole('menuitem', { name }).click();
+    await this.page.getByRole('menuitemradio', { name }).click();
   }
 
   // The theme is a `dark` class on <html> (Tailwind's class strategy); there is no accessible signal to read instead.

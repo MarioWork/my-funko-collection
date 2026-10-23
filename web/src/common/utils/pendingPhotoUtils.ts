@@ -4,6 +4,8 @@ import { resizeImageFiles } from '@utils/imageResizeUtils';
 // image/jpeg first: Safari transcodes HEIC to the first listed type. No `capture` on this input, so iOS offers
 // Take Photo / Photo Library; the camera-only input is separate and single-file.
 export const LIBRARY_ACCEPT = 'image/jpeg,image/png,image/webp';
+// The camera always hands back a JPEG.
+export const CAMERA_ACCEPT = 'image/jpeg';
 // The multipart field the API reads every image from; one name, owned by the service.
 export const PHOTO_FIELD = IMAGE_FILE_FIELD;
 export const MAX_PHOTOS_PER_BATCH = 10;

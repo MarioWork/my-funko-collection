@@ -17,14 +17,23 @@ type Props = {
 type ConfirmChoice = { isChecked: boolean };
 
 const CONFLICT_STATUS = 409;
+const STILL_IN_COLLECTION_MESSAGE = 'It is still in a collection: tick the box above to remove it from there as well.';
+
+// What went wrong with the last delete, if it failed: still in a collection (409), or anything else.
+function failureMessage(answer: JSONResponseUtil | undefined): string | undefined {
+  if (answer?.success !== false) return undefined;
+
+  if (answer.error?.statusCode === CONFLICT_STATUS) return STILL_IN_COLLECTION_MESSAGE;
+
+  return GENERIC_WRITE_ERROR;
+}
 
 // Deleting is not undoable (photos go too), so it confirms. In a collection: the checkbox maps to ?force=true.
 function FunkoDeleteDialog({ funko, items, isOpen, onClose }: Props) {
   const fetcher = useFetcher<JSONResponseUtil>();
   const collectionNames = [...new Set(items.map((item) => item.collection.name))];
   const isInCollections = collectionNames.length > 0;
-  const hasConflict = fetcher.data?.success === false && fetcher.data.error?.statusCode === CONFLICT_STATUS;
-  const hasOtherFailure = fetcher.data?.success === false && !hasConflict;
+  const errorMessage = failureMessage(fetcher.data);
 
   const confirm = ({ isChecked }: ConfirmChoice) =>
     void fetcher.submit(createFormData({ force: isChecked }), {
@@ -36,13 +45,8 @@ function FunkoDeleteDialog({ funko, items, isOpen, onClose }: Props) {
     <ConfirmDialog
       isOpen={isOpen}
       title={`Delete ${funko.name}?`}
-      description={
-        <>
-          Its images are deleted too. This cannot be undone.
-          {hasConflict ? ' It is still in a collection: tick the box below to remove it from there as well.' : ''}
-          {hasOtherFailure ? ` ${GENERIC_WRITE_ERROR}` : ''}
-        </>
-      }
+      description="Its images are deleted too. This cannot be undone."
+      errorMessage={errorMessage}
       confirmLabel="Delete"
       isDestructive
       isPending={fetcher.state !== 'idle'}

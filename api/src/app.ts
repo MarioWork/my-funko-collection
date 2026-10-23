@@ -36,6 +36,9 @@ const BODY_LIMIT_BYTES = 1_048_576;
 const RATE_LIMIT_MAX = 600;
 const RATE_LIMIT_WINDOW = '1 minute';
 const DOCS_ROUTE_PREFIX = '/docs';
+const REQUEST_LOG_MESSAGE = 'request';
+// A request no route matched (a 404) has no pattern to log.
+const UNMATCHED_ROUTE = '(no route)';
 
 // Builds the configured instance and never listens: tests call it and use app.inject(); server.ts listens.
 export async function buildApp() {
@@ -55,14 +58,13 @@ export async function buildApp() {
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);
 
-  // One line per request: "GET /funkos → 200 (4 ms)". The URL only: never headers or bodies.
+  // One line per request, as fields: the route's pattern (/funkos/:funkoId), never the URL, whose query string
+  // holds search text; never headers or bodies. pino-pretty shows it as "GET /funkos/:funkoId → 200 (4 ms)".
   app.addHook('onResponse', async (request, reply) => {
+    const route = request.routeOptions.url ?? UNMATCHED_ROUTE;
     const durationMs = Math.round(reply.elapsedTime);
 
-    request.log.info(
-      { statusCode: reply.statusCode, durationMs },
-      `${request.method} ${request.url} → ${reply.statusCode} (${durationMs} ms)`,
-    );
+    request.log.info({ method: request.method, route, statusCode: reply.statusCode, durationMs }, REQUEST_LOG_MESSAGE);
   });
 
   // Infrastructure in a fixed order: sensible → cors → helmet → rate-limit → swagger → db → auth → uploads → routes.

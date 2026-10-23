@@ -72,12 +72,14 @@ export const authRepository = {
 
   countUsers,
 
-  // Users cascade to their passkeys and sessions; challenges and setup codes go with them.
-  deleteEverything: async (executor: DbExecutor = db): Promise<void> => {
-    await executor.delete(users);
-    await executor.delete(authChallenges);
-    await executor.delete(setupCodes);
-  },
+  // Users cascade to their passkeys and sessions; challenges and setup codes go with them. All or nothing: a reset
+  // that fails halfway must not leave, say, the passkeys gone but the old setup code still valid.
+  deleteEverything: (): Promise<void> =>
+    db.transaction(async (tx) => {
+      await tx.delete(users);
+      await tx.delete(authChallenges);
+      await tx.delete(setupCodes);
+    }),
 
   replaceSetupCode: async (codeHash: string, executor: DbExecutor = db): Promise<void> => {
     await executor.delete(setupCodes);

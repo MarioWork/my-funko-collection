@@ -33,12 +33,6 @@ export default {
     return response.data;
   },
 
-  getSeries: async (id: SeriesId): Promise<SeriesApiModel> => {
-    const response = await axios.get<SeriesApiModel>(`${BASE_SERIES_URL}/${id}`);
-
-    return response.data;
-  },
-
   addSeries: async (fields: CreateSeries): Promise<JSONResponseUtil<SeriesApiModel>> =>
     axiosActions<SeriesApiModel>({ url: BASE_SERIES_URL, method: HttpVerbsUtil.POST, data: fields }),
 

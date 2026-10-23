@@ -1,15 +1,16 @@
-import { Check, Moon, Sun, SunMoon } from 'lucide-react';
-import { THEME_OPTIONS, ThemeUtil } from '@application/theme/themeUtils';
+import { Moon, Sun } from 'lucide-react';
+import { THEME_OPTIONS, type ThemeUtil } from '@application/theme/themeUtils';
 import { Button } from '@components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
 import { useTheme } from '@hooks/useTheme';
 
+// The sidebar's theme button: Light, Dark or System as radio items, so the current one is announced as checked.
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
@@ -20,15 +21,14 @@ function ThemeToggle() {
         <Moon className="hidden dark:block" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuGroup>
-          {THEME_OPTIONS.map((option) => (
-            <DropdownMenuItem key={option.value} onClick={() => setTheme(option.value)}>
-              {option.value === ThemeUtil.SYSTEM ? <SunMoon aria-hidden="true" /> : null}
-              {option.label}
-              {option.value === theme ? <Check className="ml-auto" aria-hidden="true" /> : null}
-            </DropdownMenuItem>
+        <DropdownMenuRadioGroup value={theme} onValueChange={(picked: ThemeUtil) => setTheme(picked)}>
+          {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+            <DropdownMenuRadioItem key={value} value={value} closeOnClick>
+              <Icon aria-hidden="true" />
+              {label}
+            </DropdownMenuRadioItem>
           ))}
-        </DropdownMenuGroup>
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

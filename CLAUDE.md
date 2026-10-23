@@ -85,6 +85,9 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   two ramps: warm grey (stone) for everything, one teal accent from the logo for buttons, links, focus and selection.
   No `dark:` colour overrides, no hex in a component.
 - Every write is a React Router action through `useFetcher`; `fetcher.submit` returns a promise, so `void` it.
+- Two reads call a service outside a loader, on purpose (kept 2026-10-23): the scanner's barcode lookup in
+  `pages/Add/hooks/useAddFlow.ts` (reads `error.response` to tell "not found" from a failure) and the type-ahead in
+  `common/hookUtils/useSuggestions.ts` (an effect, debounced). Do not add a third without asking.
   Forms use `useFormCompat` (`'use no memo'`) with `<Field>` + `<Controller>` + `yupResolver`.
 - List state (q, filters, sort, page) lives in the URL through `useListParams` / `useItemListParams`; the loader
   reads it and the mocks filter, sort and page the same way.

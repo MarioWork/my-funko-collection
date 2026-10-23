@@ -54,7 +54,7 @@ export function resolveTheme(theme: ThemeUtil): typeof ThemeUtil.LIGHT | typeof 
   return window.matchMedia(DARK_SCHEME_QUERY).matches ? ThemeUtil.DARK : ThemeUtil.LIGHT;
 }
 
-// Mirrors the inline <head> script in index.html, which runs before React for a flash-free first paint.
+// Mirrors public/theme-init.js, which runs before React for a flash-free first paint.
 export function applyTheme(theme: ThemeUtil, { withTransition = false } = {}): void {
   const root = window.document.documentElement;
   const resolved = resolveTheme(theme);

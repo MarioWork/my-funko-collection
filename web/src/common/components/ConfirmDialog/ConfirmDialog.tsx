@@ -13,6 +13,7 @@ import { Checkbox } from '@components/ui/checkbox';
 import { Label } from '@components/ui/label';
 import { Spinner } from '@components/ui/spinner';
 import DisabledReason from '@components/DisabledReason';
+import InlineAlert from '@components/InlineAlert';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 
 // What the user chose besides confirming: the optional extra consent.
@@ -29,6 +30,8 @@ type Props = {
   isPending?: boolean;
   // An optional extra consent, e.g. "Also remove it from Owned and Wishlist" for a forced delete.
   checkboxLabel?: string;
+  // Why the last confirm failed, shown in the dialog as an alert (announced by screen readers).
+  errorMessage?: string;
   onConfirm: (choice: ConfirmChoice) => void;
   onClose: () => void;
 };
@@ -42,6 +45,7 @@ function ConfirmDialog({
   isDestructive = false,
   isPending = false,
   checkboxLabel,
+  errorMessage,
   onConfirm,
   onClose,
 }: Props) {
@@ -65,6 +69,7 @@ function ConfirmDialog({
             <Label htmlFor={checkboxId}>{checkboxLabel}</Label>
           </div>
         ) : null}
+        {errorMessage ? <InlineAlert tone="error">{errorMessage}</InlineAlert> : null}
         <AlertDialogFooter>
           <DisabledReason reason={reasonWhen(isPending, DISABLED_REASONS.WORKING)} mode="wrapper">
             <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>

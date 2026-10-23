@@ -2,6 +2,7 @@ import cookie from '@fastify/cookie';
 import type { FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { env } from '../config/env.ts';
+import { ErrorResponseSchema } from '../lib/errorHandler.ts';
 import { ForbiddenError, UnauthorizedError } from '../lib/httpErrors.ts';
 import { SESSION_COOKIE_NAME } from '../lib/sessionCookie.ts';
 import { getSession, type AuthSession } from '../modules/auth/auth.service.ts';
@@ -21,6 +22,8 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 // `none` is a request the person started themselves (typed URL, bookmark), never one another site made.
 const TRUSTED_FETCH_SITES = new Set(['same-origin', 'none']);
 const DOCS_PATH = '/docs';
+const UNAUTHORIZED_STATUS = 401;
+const FORBIDDEN_STATUS = 403;
 const APP_ORIGIN = new URL(env.APP_ORIGIN).origin;
 
 // The OpenAPI page is only registered outside production and reads no data of its own. Matched on the route's
@@ -63,6 +66,20 @@ export const authPlugin = fp(async (app) => {
   await app.register(cookie);
 
   app.decorateRequest('session', null);
+
+  // Every route documents what this plugin can answer for it, so the OpenAPI shows the envelope: 401 on a locked
+  // route, 403 (a cross-site write) on any write. Added here once instead of on each of the routes.
+  app.addHook('onRoute', (route) => {
+    const response = route.schema?.response as Record<number, unknown> | undefined;
+
+    if (!response) return;
+
+    const methods = Array.isArray(route.method) ? route.method : [route.method];
+    const isWrite = methods.some((method) => !SAFE_METHODS.has(method));
+
+    if (route.config?.isPublic !== true) response[UNAUTHORIZED_STATUS] ??= ErrorResponseSchema;
+    if (isWrite) response[FORBIDDEN_STATUS] ??= ErrorResponseSchema;
+  });
 
   app.addHook('onRequest', async (request) => {
     if (isCrossSiteWrite(request)) {

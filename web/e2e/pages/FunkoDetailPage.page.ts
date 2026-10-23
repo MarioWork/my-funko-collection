@@ -12,10 +12,11 @@ export class FunkoDetailPage {
     this.title = page.getByRole('heading', { level: 1 });
   }
 
-  async openDeleteDialog() {
+  // The funko's own ⋯ menu; each collection row has one too ("Actions for Owned").
+  async openDeleteDialog(funkoName: string) {
     await this.page
       .getByRole('main')
-      .getByRole('button', { name: /^Actions for / })
+      .getByRole('button', { name: `Actions for ${funkoName}`, exact: true })
       .click();
     await this.page.getByRole('menuitem', { name: 'Delete' }).click();
   }

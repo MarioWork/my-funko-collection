@@ -6,7 +6,7 @@ type Props = {
   children: ReactNode;
 };
 
-// Light / dark / system, remembered in localStorage. The first paint is handled by the inline script in index.html.
+// Light / dark / system, remembered in localStorage. The first paint is handled by public/theme-init.js.
 function ThemeProvider({ children }: Props) {
   const [theme, setThemeState] = useState<ThemeUtil>(readStoredTheme);
 

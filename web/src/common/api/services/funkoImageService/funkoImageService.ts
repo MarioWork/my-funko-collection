@@ -1,11 +1,10 @@
 import { axiosActions } from '@api/axiosActions';
 import type { FunkoId, FunkoImageApiModel, FunkoImageId } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
-import type { ImageFromUrl, ReorderImages, RotateImage } from './funkoImageService.type';
+import type { ReorderImages, RotateImage } from './funkoImageService.type';
 
 const BASE_FUNKOS_URL = '/funkos';
 const IMAGES_SEGMENT = 'images';
-const FROM_URL_SEGMENT = 'from-url';
 const ORDER_SEGMENT = 'order';
 const ROTATE_SEGMENT = 'rotate';
 // The multipart field name the API reads every file from.
@@ -33,13 +32,6 @@ export default {
       headers: { [CONTENT_TYPE_HEADER]: MULTIPART_CONTENT_TYPE },
     });
   },
-
-  addFunkoImageFromUrl: async (funkoId: FunkoId, fields: ImageFromUrl): Promise<JSONResponseUtil<FunkoImageApiModel>> =>
-    axiosActions<FunkoImageApiModel>({
-      url: `${imagesUrl(funkoId)}/${FROM_URL_SEGMENT}`,
-      method: HttpVerbsUtil.POST,
-      data: fields,
-    }),
 
   reorderFunkoImages: async (
     funkoId: FunkoId,
