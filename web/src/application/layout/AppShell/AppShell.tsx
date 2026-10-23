@@ -16,10 +16,10 @@ const MOBILE_SHELL_CLASS = 'flex min-h-svh flex-col [--bottom-nav-height:4rem]';
 // shadcn's sidebar is a fixed column; this is as wide as the logo (mark + wordmark), not the 16rem default. A style
 // prop, not a class: SidebarProvider sets its own --sidebar-width inline and merges only `style` over it.
 const SIDEBAR_STYLE = { '--sidebar-width': '15rem' } as React.CSSProperties;
-// The sidebar opens and closes at once. Animated, the page beside it reflows on every frame (its grids cross
-// container-query breakpoints mid-way) and the labels and logo swap before the width catches up: the UI bounces.
-const SIDEBAR_NO_ANIMATION_CLASS =
-  '**:data-[slot=sidebar-gap]:transition-none **:data-[slot=sidebar-container]:transition-none **:data-[sidebar=menu-button]:transition-none';
+// The sidebar slides open and shut (200 ms, eased); its menu buttons do not animate their padding, which made the
+// labels and icons bounce while the width moved. Reduced motion makes it instant.
+const SIDEBAR_MOTION_CLASS =
+  '**:data-[slot=sidebar-gap]:ease-out **:data-[slot=sidebar-container]:ease-out **:data-[sidebar=menu-button]:transition-none motion-reduce:**:data-[slot=sidebar-gap]:transition-none motion-reduce:**:data-[slot=sidebar-container]:transition-none';
 
 function AppShell() {
   const isDesktop = useIsDesktop();
@@ -27,12 +27,11 @@ function AppShell() {
 
   if (isDesktop) {
     return (
-      <SidebarProvider style={SIDEBAR_STYLE} className={SIDEBAR_NO_ANIMATION_CLASS}>
+      <SidebarProvider style={SIDEBAR_STYLE} className={SIDEBAR_MOTION_CLASS}>
         <NavigationProgress />
         <AppSidebar />
         <SidebarInset>
           <DemoBanner />
-          <TopBar isDesktop />
           {/* SidebarInset is the <main>; this is only the container-query root. */}
           <PageOutlet className="@container mx-auto w-full max-w-7xl flex-1 p-6" />
         </SidebarInset>
@@ -46,7 +45,7 @@ function AppShell() {
     <div className={MOBILE_SHELL_CLASS}>
       <NavigationProgress />
       <DemoBanner />
-      <TopBar isDesktop={false} />
+      <TopBar />
       <main className="@container flex-1 px-4 pt-4 pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1.5rem)]">
         <PageOutlet />
       </main>
