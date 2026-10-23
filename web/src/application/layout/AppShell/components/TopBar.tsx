@@ -23,6 +23,7 @@ function TopBar({ isDesktop }: Props) {
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/95 px-2 backdrop-blur-sm supports-backdrop-filter:bg-card/80">
       <MobileMenu />
       <Link
+        viewTransition
         to={BASE_ROUTES_PATHS.HOME}
         aria-label={`${APP_NAME} home`}
         className="min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"

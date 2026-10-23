@@ -1,4 +1,5 @@
 import { Navigate, type RouteObject } from 'react-router';
+import AppLoading from '@application/layout/AppLoading';
 import AppShell from '@application/layout/AppShell';
 import RouteError from '@pages/Error/RouteError';
 import { addRoutes, nestedAddRoutes } from './featureRoutes/addRoutes';
@@ -15,11 +16,7 @@ const routes: RouteObject[] = [
     element: <AppShell />,
     errorElement: <RouteError />,
     // Shown while the first page's lazy module and loader resolve on the initial load.
-    hydrateFallbackElement: (
-      <p role="status" className="p-6">
-        Loading…
-      </p>
-    ),
+    hydrateFallbackElement: <AppLoading />,
     children: [
       {
         index: true,

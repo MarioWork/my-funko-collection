@@ -10,6 +10,8 @@ import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import type { ManageEntityFormData, ManageFormValues, ManageRow } from '../manageListUtils';
 import ManageForm from './ManageForm';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
+import { cn } from '@utils/classNameUtils';
+import { FADE_IN_CLASS } from '@utils/motionUtils';
 
 type Props = {
   row: ManageRow;
@@ -64,9 +66,10 @@ function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
       (SUCCESS_MESSAGE_MAP[fetcher.formMethod ?? ''] ?? SUCCESS_MESSAGE_MAP[HttpVerbsUtil.PATCH])(row.name),
   });
 
+  // Editing and viewing are keyed apart, so switching mounts a fresh row and it fades in rather than snapping.
   if (isEditing) {
     return (
-      <li className="rounded-xl border bg-card p-4">
+      <li key="edit" className={cn('rounded-xl border bg-card p-4', FADE_IN_CLASS, 'motion-safe:zoom-in-[0.98]')}>
         <ManageForm
           idPrefix={`${noun}-${row.id}`}
           defaultValues={{ name: row.name, notes: row.notes ?? '' }}
@@ -82,7 +85,7 @@ function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
   }
 
   return (
-    <li className="flex flex-col gap-2 rounded-xl border bg-card p-3 pl-4">
+    <li key="view" className={cn('flex flex-col gap-2 rounded-xl border bg-card p-3 pl-4', FADE_IN_CLASS)}>
       <div className="flex items-center gap-3">
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-medium">{row.name}</span>

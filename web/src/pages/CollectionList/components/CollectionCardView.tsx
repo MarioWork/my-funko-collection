@@ -18,6 +18,7 @@ function CollectionCardView({ collection, menu }: Props) {
       <CardHeader>
         <CardTitle>
           <Link
+            viewTransition
             to={COLLECTION_ROUTES_PATHS.detail(String(collection.id))}
             className="outline-none after:absolute after:inset-0 after:rounded-xl"
           >

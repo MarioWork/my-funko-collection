@@ -41,6 +41,7 @@ function SummaryHeading({ funko, actions }: HeadingProps) {
         <p className="text-sm text-muted-foreground">
           <span className="tabular-nums">#{funko.number}</span> ·{' '}
           <Link
+            viewTransition
             to={funkosInCategoryPath(funko.category.id)}
             className="underline-offset-4 hover:text-foreground hover:underline"
           >
@@ -50,6 +51,7 @@ function SummaryHeading({ funko, actions }: HeadingProps) {
             <>
               {' · '}
               <Link
+                viewTransition
                 to={funkosInSeriesPath(funko.series.id)}
                 className="underline-offset-4 hover:text-foreground hover:underline"
               >

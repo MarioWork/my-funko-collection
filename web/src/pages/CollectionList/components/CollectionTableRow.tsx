@@ -16,6 +16,7 @@ function CollectionTableRow({ collection, menu }: Props) {
     <TableRow className="relative">
       <TableCell className="font-medium">
         <Link
+          viewTransition
           to={COLLECTION_ROUTES_PATHS.detail(String(collection.id))}
           className="rounded-sm outline-none after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-ring"
         >

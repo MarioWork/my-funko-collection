@@ -78,7 +78,7 @@ function FunkoActionsMenu({ funko, collections, items, onDelete }: Props) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link to={FUNKO_ROUTES_PATHS.edit(String(funko.id))} />}>
+          <DropdownMenuItem render={<Link viewTransition to={FUNKO_ROUTES_PATHS.edit(String(funko.id))} />}>
             <Pencil aria-hidden="true" />
             Edit
           </DropdownMenuItem>

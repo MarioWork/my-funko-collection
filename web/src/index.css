@@ -39,6 +39,26 @@
 
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+
+  /* The page-loading bar: waits a beat (fast loads never show it), then creeps towards the end and holds there
+     until the page arrives. */
+  --animate-progress: progress 8s var(--ease-decelerate) 150ms both;
+  /* A pressed toggle's small bounce. */
+  --animate-pop: pop 250ms var(--ease-decelerate);
+
+  @keyframes progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(0.9);
+    }
+  }
+  @keyframes pop {
+    50% {
+      transform: scale(1.15);
+    }
+  }
 }
 
 /* Semantic tokens: the values that switch with the theme. shadcn's @theme inline block below maps each to a
@@ -198,6 +218,9 @@
   }
   html {
     @apply font-sans;
+    /* Always keep room for the page scrollbar, so going from a short page to a long one does not shift everything
+       sideways when it appears. */
+    scrollbar-gutter: stable;
   }
   body {
     @apply bg-background text-foreground;
@@ -250,6 +273,33 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background-color: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+  }
+}
+
+/* Page changes through a link are a view transition: the browser's own cross-fade, old page into new, instead of
+   one swapping for the other. Only its timing is set: keeping the browser's fade (same length both ways, blended)
+   is what keeps the parts that do not change, the sidebar and the top of the page, perfectly still. Moving or
+   timing the two halves differently makes them bounce or flicker. Off with reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 200ms;
+    animation-timing-function: var(--ease-standard);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}
+
+/* A field's error fades in under it instead of popping. The vendored FieldError has no animation of its own and
+   src/common/components/ui is not edited, so it is styled here by its data-slot. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-slot='field-error'] {
+    @apply animate-in duration-200 ease-decelerate fade-in slide-in-from-top-1;
   }
 }
 

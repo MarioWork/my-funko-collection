@@ -13,6 +13,7 @@ function BottomNav() {
         {NAVIGATION_ITEMS.map(({ label, to, icon: Icon }) => (
           <li key={to} className="flex">
             <NavLink
+              viewTransition
               to={to}
               className={({ isActive }) =>
                 cn(

@@ -27,7 +27,7 @@ function StatTile({ label, value, hint, icon: Icon, to }: Props) {
         <CardDescription className="flex items-center gap-2">
           {Icon ? <Icon className="size-4" aria-hidden="true" /> : null}
           {to ? (
-            <Link to={to} className="outline-none after:absolute after:inset-0 after:rounded-xl">
+            <Link viewTransition to={to} className="outline-none after:absolute after:inset-0 after:rounded-xl">
               {label}
             </Link>
           ) : (

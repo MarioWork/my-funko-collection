@@ -63,6 +63,7 @@ function FunkoTableRow({ funko }: RowProps) {
       </TableCell>
       <TableCell className="font-medium">
         <Link
+          viewTransition
           to={FUNKO_ROUTES_PATHS.detail(String(funko.id))}
           className="rounded-sm outline-none after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-ring"
         >

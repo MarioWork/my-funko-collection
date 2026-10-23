@@ -22,6 +22,7 @@ type MenuLinkProps = {
 function MenuLink({ item: { label, to, icon: Icon }, onNavigate }: MenuLinkProps) {
   return (
     <NavLink
+      viewTransition
       to={to}
       onClick={onNavigate}
       className={({ isActive }) =>

@@ -4,6 +4,7 @@ import FunkoForm from '@components/FunkoForm';
 import { Button } from '@components/ui/button';
 import type { useAddDestination } from '@hooks/useAddDestination';
 import { cn } from '@utils/classNameUtils';
+import { ENTER_UP_CLASS } from '@utils/motionUtils';
 import { AddStepUtil } from '../addUtils';
 import type { useAddFlow } from '../hooks/useAddFlow';
 import SavedCard from './SavedCard';
@@ -19,7 +20,7 @@ type Props = {
 };
 
 // What the Add flow shows at each step: the scanner, the found card (+1), the form, then the saved card.
-function AddSteps({ flow, destinationState, categories, collections, isInDialog }: Props) {
+function CurrentStep({ flow, destinationState, categories, collections, isInDialog }: Props) {
   const { step, lookup } = flow;
 
   if (step === AddStepUtil.SCAN) {
@@ -72,6 +73,18 @@ function AddSteps({ flow, destinationState, categories, collections, isInDialog 
   }
 
   return null;
+}
+
+// Each step rises in as the last one goes, so scan → found → form → saved reads as one flow instead of a swap.
+// Keyed by the form too: "Add another" starts a fresh form and plays it again.
+function AddSteps({ flow, ...stepProps }: Props) {
+  const stepKey = `${flow.step}-${flow.formKey}`;
+
+  return (
+    <div key={stepKey} className={cn('flex flex-col gap-4', ENTER_UP_CLASS)}>
+      <CurrentStep flow={flow} {...stepProps} />
+    </div>
+  );
 }
 
 export default AddSteps;

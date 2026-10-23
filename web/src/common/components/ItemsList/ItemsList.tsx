@@ -4,10 +4,13 @@ import type { ResponseWithPaginationUtil, SortingDirectionUtil } from '@app-type
 import FunkoGrid from '@components/FunkoGrid';
 import ListPagination from '@components/ListPagination';
 import PageHeader from '@components/PageHeader';
+import { useIsRefreshing } from '@hooks/useIsRefreshing';
 import { useItemActions } from '@hooks/useItemActions';
 import { useItemListParams } from '@hooks/useItemListParams';
 import { useLayoutPreference } from '@hooks/useLayoutPreference';
 import { useIsDesktop } from '@hooks/useMediaQuery';
+import { cn } from '@utils/classNameUtils';
+import { DIMMABLE_CLASS, DIMMED_CLASS } from '@utils/motionUtils';
 import ItemCard from './components/ItemCard';
 import ItemsEmpty from './components/ItemsEmpty';
 import ItemGridCard from './components/ItemGridCard';
@@ -49,6 +52,7 @@ function ItemsList({
   emptyAction,
 }: Props) {
   const isDesktop = useIsDesktop();
+  const isRefreshing = useIsRefreshing();
   const { busyItemId, move, remove } = useItemActions();
   const { layout, density, setLayout } = useLayoutPreference(ITEMS_LAYOUT_STORAGE_KEY);
   const hasItems = itemsResponse.data.length > 0;
@@ -80,7 +84,15 @@ function ItemsList({
           onLayoutChange={setLayout}
         />
       </PageHeader>
-      <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+      {/* Dims while new results load. */}
+      <div
+        aria-busy={isRefreshing}
+        className={cn(
+          'flex flex-col gap-4 rounded-xl border bg-card p-4',
+          DIMMABLE_CLASS,
+          isRefreshing && DIMMED_CLASS,
+        )}
+      >
         {!hasItems ? (
           <ItemsEmpty
             isFiltered={isFiltered}
