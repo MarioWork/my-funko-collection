@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const DEFAULT_UPLOADS_DIR = './data/uploads';
-// 5 MB per image; the web app checks the same limit when a photo is picked (pendingPhotoUtils).
+// 5 MB per image. The web app shrinks photos to 2000 px JPEGs before upload, so this only stops odd cases.
 const BYTES_PER_MEGABYTE = 1024 * 1024;
 const DEFAULT_MAX_IMAGE_BYTES = 5 * BYTES_PER_MEGABYTE;
 const DEFAULT_MAX_IMAGES_PER_FUNKO = 10;
