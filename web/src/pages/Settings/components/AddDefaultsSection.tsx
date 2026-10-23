@@ -1,4 +1,5 @@
 import type { CollectionApiModel, TagApiModel } from '@app-types/models';
+import { TAG_ROUTES_PATHS } from '@application/routes/routesUtils';
 import CollectionPicker from '@components/CollectionPicker';
 import TagPicker from '@components/TagPicker';
 import { Field, FieldDescription, FieldLabel } from '@components/ui/field';
@@ -32,7 +33,13 @@ function AddDefaultsSection({ collections, tags }: Props) {
       {isCatalogOnly ? null : (
         <Field>
           <FieldLabel htmlFor={TAGS_ID}>Tags</FieldLabel>
-          <TagPicker id={TAGS_ID} tags={tags} value={selectedTags} onChange={setTags} />
+          <TagPicker
+            createActionPath={TAG_ROUTES_PATHS.BASE}
+            id={TAGS_ID}
+            tags={tags}
+            value={selectedTags}
+            onChange={setTags}
+          />
           <FieldDescription>Put on every new item, like the box you are filling right now.</FieldDescription>
         </Field>
       )}

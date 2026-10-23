@@ -1,7 +1,6 @@
 import { CircleAlert } from 'lucide-react';
-import { Link } from 'react-router';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { Button } from '@components/ui/button';
+import LinkButton from '@components/LinkButton';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia } from '@components/ui/empty';
 
 function RouteErrorHeader() {
@@ -23,7 +22,7 @@ function RouteError() {
       <Empty>
         <RouteErrorHeader />
         <EmptyContent>
-          <Button render={<Link to={BASE_ROUTES_PATHS.HOME} />}>Back to home</Button>
+          <LinkButton to={BASE_ROUTES_PATHS.HOME}>Back to home</LinkButton>
         </EmptyContent>
       </Empty>
     </main>

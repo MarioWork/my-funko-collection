@@ -21,6 +21,10 @@ function categoryName(row: MockFunkoRow): string {
   return mockStore.categories.find((category) => category.id === row.categoryId)?.name ?? '';
 }
 
+function seriesName(row: MockFunkoRow): string {
+  return mockStore.series.find((series) => series.id === row.seriesId)?.name ?? '';
+}
+
 function tagNames(row: MockFunkoRow): string[] {
   const tagIds = new Set(itemsOf(row.id).flatMap((item) => item.tagIds));
 
@@ -47,6 +51,7 @@ export function matchedFields(row: MockFunkoRow, words: string[]): FunkoMatchFie
     if (contains(row.barcode, word)) matched.add(FunkoMatchFieldUtil.BARCODE);
     if (contains(row.exclusive, word)) matched.add(FunkoMatchFieldUtil.EXCLUSIVE);
     if (contains(categoryName(row), word)) matched.add(FunkoMatchFieldUtil.CATEGORY);
+    if (contains(seriesName(row), word)) matched.add(FunkoMatchFieldUtil.SERIES);
     if (tagNames(row).some((name) => contains(name, word))) matched.add(FunkoMatchFieldUtil.TAG);
     if (collectionNames(row).some((name) => contains(name, word))) matched.add(FunkoMatchFieldUtil.COLLECTION);
   }
@@ -69,6 +74,8 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
   const isChase = params.get(FunkoApiSearchFields.IS_CHASE);
   const categoryIds = idList(params.get(FunkoApiSearchFields.CATEGORY_ID));
   const category = params.get(FunkoApiSearchFields.CATEGORY);
+  const seriesIds = idList(params.get(FunkoApiSearchFields.SERIES_ID));
+  const series = params.get(FunkoApiSearchFields.SERIES);
   const tagIds = idList(params.get(FunkoApiSearchFields.TAG_ID));
   const tag = params.get(FunkoApiSearchFields.TAG);
   const collectionIds = idList(params.get(FunkoApiSearchFields.COLLECTION_ID));
@@ -92,6 +99,8 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
       isChase === null || row.isChase === (isChase === 'true'),
       !categoryIds || categoryIds.includes(row.categoryId),
       !category || contains(categoryName(row), category),
+      !seriesIds || (row.seriesId !== null && seriesIds.includes(row.seriesId)),
+      !series || contains(seriesName(row), series),
       !tagIds || tagIds.some((tagId) => rowTagIds.has(tagId)),
       !tag || tagNames(row).some((tagName) => contains(tagName, tag)),
       !collectionIds || collectionIds.some((collectionId) => rowCollectionIds.has(collectionId)),

@@ -40,6 +40,7 @@ export default (baseUrl: string) => [
         .slice(0, FUNKO_LIMIT)
         .map(toFunkoSummary),
       categories: byName(mockStore.categories),
+      series: byName(mockStore.series),
       collections: byName(mockStore.collections),
       tags: byName(mockStore.tags),
     });

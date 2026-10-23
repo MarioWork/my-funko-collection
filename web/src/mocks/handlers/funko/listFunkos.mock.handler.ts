@@ -8,6 +8,8 @@ import { toFunkoModel } from '@mocks/mockResponses';
 import { FunkoApiSearchFields, FunkoApiSortingFields } from '@services/funkoService/funkoService';
 import { filterFunkos, matchedFields, splitWords } from './funkoSearchUtils';
 
+const NO_SERIES_SORT_KEY = '\uffff';
+
 // Exact name first, then a name that starts with the query, then the rest (the API's relevance order).
 function relevance(name: string, query: string): number {
   const lowered = name.toLowerCase();
@@ -54,6 +56,8 @@ export default (baseUrl: string) => [
             [FunkoApiSortingFields.NUMBER]: (funko) => Number.parseInt(funko.number, 10) || 0,
             [FunkoApiSortingFields.CREATION_DATE]: (funko) => funko.createdAt,
             [FunkoApiSortingFields.CATEGORY]: (funko) => `${funko.category.name} ${funko.number.padStart(6, '0')}`,
+            // No series sorts after every name ascending (the API keeps it last both ways; close enough here).
+            [FunkoApiSortingFields.SERIES]: (funko) => funko.series?.name ?? NO_SERIES_SORT_KEY,
           },
         }),
       );

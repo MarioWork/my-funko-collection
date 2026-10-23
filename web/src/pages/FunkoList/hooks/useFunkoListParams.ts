@@ -8,6 +8,7 @@ import type { loader } from '../funkoListLoader';
 
 const FILTER_FIELDS = [
   FunkoApiSearchFields.CATEGORY_ID,
+  FunkoApiSearchFields.SERIES_ID,
   FunkoApiSearchFields.TYPE,
   FunkoApiSearchFields.IS_CHASE,
   FunkoApiSearchFields.COLLECTION_ID,
@@ -28,6 +29,7 @@ export function useFunkoListParams() {
   const query = getParam(FunkoApiSearchFields.QUERY) ?? '';
   const filters: Record<FilterField, string | undefined> = {
     [FunkoApiSearchFields.CATEGORY_ID]: getParam(FunkoApiSearchFields.CATEGORY_ID),
+    [FunkoApiSearchFields.SERIES_ID]: getParam(FunkoApiSearchFields.SERIES_ID),
     [FunkoApiSearchFields.TYPE]: getParam(FunkoApiSearchFields.TYPE),
     [FunkoApiSearchFields.IS_CHASE]: getParam(FunkoApiSearchFields.IS_CHASE),
     [FunkoApiSearchFields.COLLECTION_ID]: getParam(FunkoApiSearchFields.COLLECTION_ID),
@@ -38,12 +40,13 @@ export function useFunkoListParams() {
 
   const chipLabels: Record<FilterField, (value: string) => string> = {
     [FunkoApiSearchFields.CATEGORY_ID]: (value) => `Category: ${nameOf(data.categories, value)}`,
+    [FunkoApiSearchFields.SERIES_ID]: (value) => `Series: ${nameOf(data.series, value)}`,
     [FunkoApiSearchFields.TYPE]: (value) => `Type: ${FUNKO_TYPE_LABELS[value as FunkoTypeUtil] ?? value}`,
     [FunkoApiSearchFields.IS_CHASE]: (value) => (value === 'true' ? 'Chase only' : 'No chase'),
     [FunkoApiSearchFields.COLLECTION_ID]: (value) => `In: ${nameOf(data.collections, value)}`,
     [FunkoApiSearchFields.NOT_IN_COLLECTION_ID]: (value) => `Not in: ${nameOf(data.collections, value)}`,
     [FunkoApiSearchFields.TAG_ID]: (value) => `Tag: ${nameOf(data.tags, value)}`,
-    [FunkoApiSearchFields.HAS_IMAGES]: (value) => (value === 'true' ? 'With photos' : 'Without photos'),
+    [FunkoApiSearchFields.HAS_IMAGES]: (value) => (value === 'true' ? 'With images' : 'Without images'),
   };
 
   const chips: FilterChip[] = FILTER_FIELDS.flatMap((field) => {

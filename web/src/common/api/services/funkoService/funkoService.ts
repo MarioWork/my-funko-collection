@@ -68,6 +68,7 @@ export const FunkoApiSortingFields = {
   NUMBER: 'NUMBER',
   CREATION_DATE: 'CREATION_DATE',
   CATEGORY: 'CATEGORY',
+  SERIES: 'SERIES',
 } as const;
 export type FunkoApiSortingFields = (typeof FunkoApiSortingFields)[keyof typeof FunkoApiSortingFields];
 
@@ -82,6 +83,8 @@ export const FunkoApiSearchFields = {
   IS_CHASE: 'isChase',
   CATEGORY_ID: 'categoryId',
   CATEGORY: 'category',
+  SERIES_ID: 'seriesId',
+  SERIES: 'series',
   TAG_ID: 'tagId',
   TAG: 'tag',
   COLLECTION_ID: 'collectionId',

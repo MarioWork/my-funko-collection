@@ -20,6 +20,7 @@ export const FUNKO_MATCH_FIELDS = [
   'BARCODE',
   'EXCLUSIVE',
   'CATEGORY',
+  'SERIES',
   'TAG',
   'COLLECTION',
 ] as const;
@@ -46,6 +47,8 @@ const FunkoInsertSchema = createInsertSchema(funkos, {
   exclusive: (schema) => schema.trim().max(FUNKO_EXCLUSIVE_MAX_LENGTH),
   barcode: (schema) => schema.trim().min(BARCODE_MIN_LENGTH).max(BARCODE_MAX_LENGTH).regex(BARCODE_PATTERN),
   categoryId: (schema) => schema.int().positive(),
+  // Optional: null (or left out) means no series; on a patch, null clears it.
+  seriesId: (schema) => schema.int().positive(),
 }).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const CreateFunkoSchema = z.strictObject(FunkoInsertSchema.shape);
@@ -64,6 +67,8 @@ export const ListFunkosQuerySchema = PaginationQuerySchema.extend({
   isChase: BooleanQuerySchema.optional(),
   categoryId: IdListQuerySchema.optional(),
   category: ContainsQuerySchema,
+  seriesId: IdListQuerySchema.optional(),
+  series: ContainsQuerySchema,
   tagId: IdListQuerySchema.optional(),
   tag: ContainsQuerySchema,
   collectionId: IdListQuerySchema.optional(),

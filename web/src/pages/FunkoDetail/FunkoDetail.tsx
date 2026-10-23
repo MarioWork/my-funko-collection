@@ -31,7 +31,9 @@ function FunkoDetail() {
       </LinkButton>
       <div className="grid items-start gap-6 @3xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
         <FunkoGallery funko={funko} />
-        <div className="flex flex-col gap-4">
+        {/* Beside the gallery, this column ends at the screen's bottom (less the top bar, back link and padding), so
+            a long Collections list scrolls in its tile rather than the page. */}
+        <div className="flex flex-col gap-4 @3xl:max-h-[calc(100dvh-9rem)]">
           <FunkoSummary
             funko={funko}
             actions={

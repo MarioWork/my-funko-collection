@@ -5,3 +5,8 @@ import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
 export function funkosInCategoryPath(categoryId: number): string {
   return `${FUNKO_ROUTES_PATHS.BASE}?${FunkoApiSearchFields.CATEGORY_ID}=${categoryId}`;
 }
+
+// The funko catalog narrowed to one series.
+export function funkosInSeriesPath(seriesId: number): string {
+  return `${FUNKO_ROUTES_PATHS.BASE}?${FunkoApiSearchFields.SERIES_ID}=${seriesId}`;
+}

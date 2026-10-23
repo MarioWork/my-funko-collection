@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Book } from 'lucide-react';
 import { Outlet, useLoaderData } from 'react-router';
 import type { CategoryApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
@@ -37,9 +37,9 @@ function CategoryList() {
         title="Categories"
         description="The line printed on the box, like Pop! Marvel. A line with funkos in it cannot be deleted."
         actions={
-          <LinkButton to={CATEGORY_ROUTES_PATHS.ADD} className="hidden lg:inline-flex">
-            <Plus data-icon="inline-start" aria-hidden="true" />
-            New category
+          <LinkButton to={CATEGORY_ROUTES_PATHS.ADD} aria-label="New category" className="hidden lg:inline-flex">
+            <Book data-icon="inline-start" aria-hidden="true" />
+            New
           </LinkButton>
         }
       />

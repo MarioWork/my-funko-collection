@@ -67,7 +67,7 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
         className="h-dvh max-h-dvh w-screen max-w-none rounded-none border-0 bg-black p-0 text-white sm:max-w-none"
       >
         <DialogTitle className="sr-only">
-          {title}, photo {index + 1} of {count}
+          {title}, image {index + 1} of {count}
         </DialogTitle>
         <div
           className="relative flex size-full items-center justify-center"
@@ -97,7 +97,7 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
           {count > 1 ? (
             <>
               <IconButton
-                aria-label="Previous photo"
+                aria-label="Previous image"
                 variant="ghost"
                 size="lg"
                 className="absolute left-2 text-white hover:bg-white/10 hover:text-white"
@@ -106,7 +106,7 @@ function Lightbox({ images, openIndex, title, onClose }: Props) {
                 <ChevronLeft aria-hidden="true" />
               </IconButton>
               <IconButton
-                aria-label="Next photo"
+                aria-label="Next image"
                 variant="ghost"
                 size="lg"
                 className="absolute right-2 text-white hover:bg-white/10 hover:text-white"

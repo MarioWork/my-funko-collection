@@ -34,7 +34,7 @@ function FunkoDeleteDialog({ funko, items, isOpen, onClose }: Props) {
       title={`Delete ${funko.name}?`}
       description={
         <>
-          Its photos are deleted too. This cannot be undone.
+          Its images are deleted too. This cannot be undone.
           {hasConflict ? ' It is still in a collection: tick the box below to remove it from there as well.' : ''}
           {hasOtherFailure ? ' Something went wrong. Please try again.' : ''}
         </>

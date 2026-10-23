@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useLoaderData, useLocation } from 'react-router';
 import type { LoaderDataUtil } from '@app-types/utility';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
@@ -14,14 +15,14 @@ import { useAddFlow } from './hooks/useAddFlow';
 const STEP_TITLES: Record<AddStepUtil, string> = {
   [AddStepUtil.SCAN]: 'Scan a box',
   [AddStepUtil.FOUND]: 'Scan a box',
-  [AddStepUtil.FORM]: 'Add a funko',
+  [AddStepUtil.FORM]: 'New funko',
   [AddStepUtil.SAVED]: 'Saved',
 };
 
 const STEP_DESCRIPTIONS: Record<AddStepUtil, string> = {
   [AddStepUtil.SCAN]: 'Point the camera at the barcode.',
   [AddStepUtil.FOUND]: 'Already in your catalog.',
-  [AddStepUtil.FORM]: 'Details, photos and collections. One Save does it all.',
+  [AddStepUtil.FORM]: 'Details, collections and images. One Save does it all.',
   [AddStepUtil.SAVED]: 'On to the next one.',
 };
 
@@ -43,6 +44,12 @@ function Add() {
     rememberDestination: destinationState.remember,
     rememberCategory: destinationState.rememberCategory,
   });
+
+  // The page twin of FormPanel's scrollKey: each step starts at the top.
+  useEffect(() => {
+    if (!isDialog) window.scrollTo({ top: 0 });
+  }, [flow.step, isDialog]);
+
   const steps = (
     <AddSteps
       flow={flow}
@@ -55,7 +62,13 @@ function Add() {
 
   if (isDialog) {
     return (
-      <FormPanel title={STEP_TITLES[flow.step]} description={STEP_DESCRIPTIONS[flow.step]} onClose={goBack} isWide>
+      <FormPanel
+        title={STEP_TITLES[flow.step]}
+        description={STEP_DESCRIPTIONS[flow.step]}
+        onClose={goBack}
+        isWide
+        scrollKey={flow.step}
+      >
         {steps}
       </FormPanel>
     );

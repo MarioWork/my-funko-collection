@@ -5,7 +5,14 @@ import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import EmptyState from '@components/EmptyState';
 import FunkoImage from '@components/FunkoImage';
 import { Spinner } from '@components/ui/spinner';
-import { allFunkosPath, categoryPath, collectionPath, tagPath, type SearchGroup } from './searchResultsUtils';
+import {
+  allFunkosPath,
+  categoryPath,
+  collectionPath,
+  seriesPath,
+  tagPath,
+  type SearchGroup,
+} from './searchResultsUtils';
 
 type Props = {
   query: string;
@@ -85,7 +92,11 @@ function FunkoGroup({ query, funkos, onPick }: FunkoGroupProps) {
 }
 
 const countHits = (suggestions: SuggestApiModel) =>
-  suggestions.funkos.length + suggestions.categories.length + suggestions.collections.length + suggestions.tags.length;
+  suggestions.funkos.length +
+  suggestions.categories.length +
+  suggestions.series.length +
+  suggestions.collections.length +
+  suggestions.tags.length;
 
 // Hits from /suggest grouped Funkos / Categories / Collections / Tags, plus "all results" into the catalog search.
 function SearchResults({ query, suggestions, isLoading, onPick }: Props) {
@@ -123,6 +134,7 @@ function SearchResults({ query, suggestions, isLoading, onPick }: Props) {
 
   const namedGroups: SearchGroup[] = [
     { heading: 'Categories', entries: suggestions.categories, toPath: categoryPath },
+    { heading: 'Series', entries: suggestions.series, toPath: seriesPath },
     { heading: 'Collections', entries: suggestions.collections, toPath: collectionPath },
     { heading: 'Tags', entries: suggestions.tags, toPath: tagPath },
   ];

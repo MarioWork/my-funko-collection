@@ -27,7 +27,7 @@ function PhotoMenu({ index, count, isPrimary, onMove, onMakePrimary, onRotate, o
     <DropdownMenuContent align="end">
       <DropdownMenuGroup>
         <DisabledReason
-          reason={reasonWhen(isPrimary, 'This is already the main photo.')}
+          reason={reasonWhen(isPrimary, 'This is already the main image.')}
           mode="wrapper"
           wrapperClassName="block"
         >
@@ -37,7 +37,7 @@ function PhotoMenu({ index, count, isPrimary, onMove, onMakePrimary, onRotate, o
           </DropdownMenuItem>
         </DisabledReason>
         <DisabledReason
-          reason={reasonWhen(isFirst, 'This photo is already first.')}
+          reason={reasonWhen(isFirst, 'This image is already first.')}
           mode="wrapper"
           wrapperClassName="block"
         >
@@ -47,7 +47,7 @@ function PhotoMenu({ index, count, isPrimary, onMove, onMakePrimary, onRotate, o
           </DropdownMenuItem>
         </DisabledReason>
         <DisabledReason
-          reason={reasonWhen(isLast, 'This photo is already last.')}
+          reason={reasonWhen(isLast, 'This image is already last.')}
           mode="wrapper"
           wrapperClassName="block"
         >
@@ -65,7 +65,7 @@ function PhotoMenu({ index, count, isPrimary, onMove, onMakePrimary, onRotate, o
       <DropdownMenuGroup>
         <DropdownMenuItem variant="destructive" onClick={onDelete}>
           <Trash2 aria-hidden="true" />
-          Delete photo
+          Delete image
         </DropdownMenuItem>
       </DropdownMenuGroup>
     </DropdownMenuContent>

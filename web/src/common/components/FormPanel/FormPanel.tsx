@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import PageHeader from '@components/PageHeader';
 import {
   Dialog,
@@ -20,18 +20,35 @@ type Props = {
   footer?: ReactNode;
   // Wider dialog for long forms.
   isWide?: boolean;
+  // When it changes (the next step of a flow), the panel scrolls back to its top.
+  scrollKey?: string;
   children: ReactNode;
 };
 
 // A routed form's surface: a dialog over the page on desktop, its own page on phones (the parent steps aside
 // through useMobileChildPage). The form inside is the same in both.
-function FormPanel({ title, description, onClose, footer, isWide = false, children }: Props) {
+function FormPanel({ title, description, onClose, footer, isWide = false, scrollKey, children }: Props) {
   const isDesktop = useIsDesktop();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // A new step starts at its top, not where the last one was scrolled to (the Save button at the bottom).
+  useEffect(() => {
+    if (isDesktop) {
+      dialogRef.current?.scrollTo({ top: 0 });
+
+      return;
+    }
+
+    window.scrollTo({ top: 0 });
+  }, [scrollKey, isDesktop]);
 
   if (isDesktop) {
     return (
       <Dialog open onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}>
-        <DialogContent className={cn('max-h-dvh overflow-y-auto', isWide && 'sm:max-w-2xl')}>
+        <DialogContent
+          ref={dialogRef}
+          className={cn('max-h-[calc(100dvh-4rem)] overflow-y-auto', isWide && 'sm:max-w-2xl')}
+        >
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             {description ? <DialogDescription>{description}</DialogDescription> : null}

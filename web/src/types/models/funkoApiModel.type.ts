@@ -23,6 +23,8 @@ export interface FunkoSummaryApiModel {
   exclusive: string;
   barcode: string | null;
   category: NamedApiModel;
+  // The series it belongs to; optional.
+  series: NamedApiModel | null;
   primaryImage: PrimaryImageApiModel | null;
 }
 

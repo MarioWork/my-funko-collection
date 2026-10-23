@@ -48,7 +48,7 @@ function FunkoEdit() {
   return (
     <FormPanel
       title={`Edit ${funko.name}`}
-      description="Details, photos and collections. Quantity, price and tags are on each collection's item."
+      description="Details, collections and images. Quantity, price and tags are on each collection's item."
       onClose={close}
       isWide
     >

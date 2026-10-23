@@ -43,7 +43,7 @@ function FunkoPhotoManager({ funko }: Props) {
   return (
     <div className="flex flex-col gap-3">
       {images.length > 0 ? (
-        <ul className="-m-1 flex gap-2 overflow-x-auto p-1" aria-label="Photos">
+        <ul className="-m-1 flex gap-2 overflow-x-auto p-1" aria-label="Images">
           {images.map((image, index) => (
             <EditablePhotoThumbnail
               key={image.id}

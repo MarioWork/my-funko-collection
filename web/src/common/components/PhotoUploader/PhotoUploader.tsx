@@ -27,7 +27,7 @@ function PhotoUploader({ actionPath, onUploaded }: Props) {
   const hasFailed = fetcher.state === 'idle' && fetcher.data?.success === false;
 
   useActionToast(fetcher, {
-    successMessage: (data) => `${Array.isArray(data) ? data.length : 1} photo(s) added`,
+    successMessage: (data) => `${Array.isArray(data) ? data.length : 1} image(s) added`,
   });
 
   const addFiles = (files: File[]) => setPending((current) => [...current, ...toPendingPhotos(files)]);
@@ -60,7 +60,7 @@ function PhotoUploader({ actionPath, onUploaded }: Props) {
               ) : (
                 <Upload data-icon="inline-start" aria-hidden="true" />
               )}
-              Upload {pending.length} photo{pending.length === 1 ? '' : 's'}
+              Upload {pending.length} image{pending.length === 1 ? '' : 's'}
             </Button>
           </DisabledReason>
         ) : null}

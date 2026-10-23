@@ -1,4 +1,4 @@
-import { FolderPlus, LayoutGrid, List } from 'lucide-react';
+import { FolderHeart, LayoutGrid, List } from 'lucide-react';
 import { Outlet, useLoaderData } from 'react-router';
 import type { LoaderDataUtil } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS, ITEM_ROUTES_PATHS } from '@application/routes/routesUtils';
@@ -52,9 +52,9 @@ function CollectionList() {
               <List data-icon="inline-start" aria-hidden="true" />
               All items
             </LinkButton>
-            <LinkButton to={COLLECTION_ROUTES_PATHS.ADD} className="hidden lg:inline-flex">
-              <FolderPlus data-icon="inline-start" aria-hidden="true" />
-              New collection
+            <LinkButton to={COLLECTION_ROUTES_PATHS.ADD} aria-label="New collection" className="hidden lg:inline-flex">
+              <FolderHeart data-icon="inline-start" aria-hidden="true" />
+              New
             </LinkButton>
           </>
         }

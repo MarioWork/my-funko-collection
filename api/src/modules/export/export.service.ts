@@ -9,6 +9,7 @@ const CSV_HEADER = [
   'name',
   'number',
   'category',
+  'series',
   'type',
   'is_chase',
   'exclusive',
@@ -39,8 +40,9 @@ function groupBy<Row, Key>(rows: Row[], keyOf: (row: Row) => Key): Map<Key, Row[
 }
 
 async function loadEverything() {
-  const [categories, funkos, images, collections, tags, items, itemTags] = await Promise.all([
+  const [categories, series, funkos, images, collections, tags, items, itemTags] = await Promise.all([
     exportRepository.categories(),
+    exportRepository.series(),
     exportRepository.funkos(),
     exportRepository.images(),
     exportRepository.collections(),
@@ -49,7 +51,7 @@ async function loadEverything() {
     exportRepository.itemTags(),
   ]);
 
-  return { categories, funkos, images, collections, tags, items, itemTags };
+  return { categories, series, funkos, images, collections, tags, items, itemTags };
 }
 
 export async function getExport(): Promise<ExportResponse> {
@@ -74,6 +76,7 @@ export async function getExport(): Promise<ExportResponse> {
   return {
     exportedAt: new Date().toISOString(),
     categories: data.categories,
+    series: data.series,
     funkos,
     collections: data.collections,
     tags: data.tags,
@@ -104,6 +107,7 @@ function centsToUnits(cents: number | null): string | null {
 export async function getItemsCsv(): Promise<string> {
   const data = await loadEverything();
   const categoryNames = new Map(data.categories.map((category) => [category.id, category.name]));
+  const seriesNames = new Map(data.series.map((oneSeries) => [oneSeries.id, oneSeries.name]));
   const collectionNames = new Map(data.collections.map((collection) => [collection.id, collection.name]));
   const tagNames = new Map(data.tags.map((tag) => [tag.id, tag.name]));
   const funkosById = new Map(data.funkos.map((funko) => [funko.id, funko]));
@@ -123,6 +127,7 @@ export async function getItemsCsv(): Promise<string> {
         funko.name,
         funko.number,
         categoryNames.get(funko.categoryId) ?? '',
+        funko.seriesId === null ? null : (seriesNames.get(funko.seriesId) ?? ''),
         funko.type,
         funko.isChase,
         funko.exclusive,

@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs } from 'react-router';
 import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE, SortingDirectionUtil } from '@app-types/utility';
 import categoryService, { DEFAULT_CATEGORY_SORT_FIELD } from '@services/categoryService/categoryService';
+import seriesService, { DEFAULT_SERIES_SORT_FIELD } from '@services/seriesService/seriesService';
 import collectionService, { DEFAULT_COLLECTION_SORT_FIELD } from '@services/collectionService/collectionService';
 import funkoService, {
   FunkoApiSearchFields,
@@ -67,9 +68,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   };
   const optionsPagination = { page: DEFAULT_FIRST_PAGE, size: FILTER_OPTIONS_PAGE_SIZE };
 
-  const [funkosResponse, categoriesResponse, collectionsResponse, tagsResponse] = await Promise.all([
+  const [funkosResponse, categoriesResponse, seriesResponse, collectionsResponse, tagsResponse] = await Promise.all([
     funkoService.getFunkos(fields),
     categoryService.getCategories({ pagination: optionsPagination, sortingField: DEFAULT_CATEGORY_SORT_FIELD }),
+    seriesService.getSeriesList({ pagination: optionsPagination, sortingField: DEFAULT_SERIES_SORT_FIELD }),
     collectionService.getCollections({ pagination: optionsPagination, sortingField: DEFAULT_COLLECTION_SORT_FIELD }),
     tagService.getTags({ pagination: optionsPagination, sortingField: DEFAULT_TAG_SORT_FIELD }),
   ]);
@@ -77,6 +79,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return {
     funkosResponse,
     categories: categoriesResponse.data,
+    series: seriesResponse.data,
     collections: collectionsResponse.data,
     tags: tagsResponse.data,
     sort,

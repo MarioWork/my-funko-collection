@@ -6,12 +6,15 @@ import { collectionItemTags } from '../../db/schema/collectionItemTags.ts';
 import { collections } from '../../db/schema/collections.ts';
 import { funkoImages } from '../../db/schema/funkoImages.ts';
 import { funkos } from '../../db/schema/funkos.ts';
+import { series } from '../../db/schema/series.ts';
 import { tags } from '../../db/schema/tags.ts';
 
 // Whole tables, explicit columns, ordered by id so two exports of the same data are byte-identical.
 export const exportRepository = {
   categories: () =>
     db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.id)),
+
+  series: () => db.select({ id: series.id, name: series.name }).from(series).orderBy(asc(series.id)),
 
   funkos: () =>
     db
@@ -21,6 +24,7 @@ export const exportRepository = {
         number: funkos.number,
         type: funkos.type,
         categoryId: funkos.categoryId,
+        seriesId: funkos.seriesId,
         isChase: funkos.isChase,
         exclusive: funkos.exclusive,
         barcode: funkos.barcode,

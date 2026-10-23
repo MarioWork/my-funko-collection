@@ -22,7 +22,7 @@ const { funkosRepository } = await import('./funkos.repository.ts');
 const { assertCategoryExists } = await import('../categories/categories.service.ts');
 
 const EXISTING_ID = 42;
-const INPUT = { name: 'Thanos', number: '78', categoryId: 1, exclusive: '', barcode: null };
+const INPUT = { name: 'Thanos', number: '78', categoryId: 1, seriesId: null, exclusive: '', barcode: null };
 
 describe('addFunko', () => {
   it('throws ConflictError carrying the existing id when the identity is taken', async () => {

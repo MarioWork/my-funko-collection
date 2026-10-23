@@ -29,12 +29,20 @@ export default (baseUrl: string) => [
 
     if (!categoryExists) return badRequest(`Category ${body.categoryId} does not exist`);
 
+    const isSeriesMissing =
+      body.seriesId !== null &&
+      body.seriesId !== undefined &&
+      !mockStore.series.some((series) => series.id === body.seriesId);
+
+    if (isSeriesMissing) return badRequest(`Series ${body.seriesId} does not exist`);
+
     const row: MockFunkoRow = {
       id: nextId(mockStore.funkos),
       name: body.name,
       number: body.number,
       type: body.type,
       categoryId: body.categoryId,
+      seriesId: body.seriesId ?? null,
       isChase: body.isChase,
       exclusive: body.exclusive,
       barcode: body.barcode ?? null,

@@ -1,6 +1,6 @@
 import { buildApp, type App } from '../../app.ts';
 import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
-import { createCategory, createCollection, createFunko, createTag } from '../../testFixtures.ts';
+import { createCategory, createCollection, createFunko, createSeries, createTag } from '../../testFixtures.ts';
 
 let app: App;
 
@@ -39,6 +39,20 @@ describe('GET /suggest', () => {
     expect(body.categories.map((category) => category.name)).toEqual(['Pop! Marvel']);
     expect(body.collections.map((collection) => collection.name)).toEqual(['Marvel shelf']);
     expect(body.tags.map((tag) => tag.name)).toEqual(['Marvel box']);
+  });
+
+  it('returns matching series with their funkos carrying the series', async () => {
+    const mandalorian = await createSeries('The Mandalorian');
+    await createSeries('Stranger Things');
+    await createFunko({ name: 'Grogu', seriesId: mandalorian.id });
+
+    const response = await app.inject({ method: 'GET', url: '/suggest', query: { q: 'mandalorian' } });
+
+    const body = response.json<{ funkos: { name: string; series: unknown }[]; series: unknown[] }>();
+    expect(body.series).toEqual([{ id: mandalorian.id, name: 'The Mandalorian' }]);
+    expect(body.funkos).toEqual([
+      expect.objectContaining({ name: 'Grogu', series: { id: mandalorian.id, name: 'The Mandalorian' } }),
+    ]);
   });
 
   it('returns 400 without a query', async () => {

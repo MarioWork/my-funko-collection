@@ -2,6 +2,7 @@ import { object, type InferType } from 'yup';
 import {
   funkoBarcodeSchema,
   funkoCategoryIdSchema,
+  funkoSeriesIdSchema,
   funkoExclusiveSchema,
   funkoIsChaseSchema,
   funkoNameSchema,
@@ -14,6 +15,7 @@ export const CreateFunkoSchema = object({
   number: funkoNumberSchema,
   type: funkoTypeSchema,
   categoryId: funkoCategoryIdSchema,
+  seriesId: funkoSeriesIdSchema,
   isChase: funkoIsChaseSchema,
   exclusive: funkoExclusiveSchema,
   barcode: funkoBarcodeSchema,

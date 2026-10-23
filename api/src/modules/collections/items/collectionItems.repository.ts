@@ -55,6 +55,7 @@ function buildListFilter(query: ListAllItemsQuery): SQL | undefined {
   const funkoFilter = query.funkoId ? inArray(collectionItems.funkoId, query.funkoId) : undefined;
   const tagFilter = query.tagId ? hasAnyTag(query.tagId) : undefined;
   const categoryFilter = query.categoryId ? inArray(funkos.categoryId, query.categoryId) : undefined;
+  const seriesFilter = query.seriesId ? inArray(funkos.seriesId, query.seriesId) : undefined;
   const conditionFilter = query.condition ? eq(collectionItems.condition, query.condition) : undefined;
   const fromFilter = query.purchasedFrom ? gte(collectionItems.purchasedAt, query.purchasedFrom) : undefined;
   const toFilter = query.purchasedTo ? lte(collectionItems.purchasedAt, query.purchasedTo) : undefined;
@@ -65,6 +66,7 @@ function buildListFilter(query: ListAllItemsQuery): SQL | undefined {
     funkoFilter,
     tagFilter,
     categoryFilter,
+    seriesFilter,
     conditionFilter,
     fromFilter,
     toFilter,

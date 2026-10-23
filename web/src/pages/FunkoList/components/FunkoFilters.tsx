@@ -1,4 +1,4 @@
-import type { CategoryApiModel, CollectionApiModel, TagApiModel } from '@app-types/models';
+import type { CategoryApiModel, CollectionApiModel, SeriesApiModel, TagApiModel } from '@app-types/models';
 import { FUNKO_TYPE_LABELS, FunkoTypeUtil } from '@app-types/utility';
 import { Field, FieldLabel } from '@components/ui/field';
 import { NativeSelect, NativeSelectOption } from '@components/ui/native-select';
@@ -7,6 +7,7 @@ import type { FunkoFilterField } from '../hooks/useFunkoListParams';
 
 type Props = {
   categories: CategoryApiModel[];
+  series: SeriesApiModel[];
   collections: CollectionApiModel[];
   tags: TagApiModel[];
   filters: Record<FunkoFilterField, string | undefined>;
@@ -48,7 +49,7 @@ const YES_NO_OPTIONS = [
   { value: 'false', label: 'No' },
 ];
 
-function FunkoFilters({ categories, collections, tags, filters, onChange }: Props) {
+function FunkoFilters({ categories, series, collections, tags, filters, onChange }: Props) {
   return (
     <>
       <SelectFilter
@@ -58,6 +59,14 @@ function FunkoFilters({ categories, collections, tags, filters, onChange }: Prop
         value={filters[FunkoApiSearchFields.CATEGORY_ID]}
         options={named(categories)}
         onChange={(value) => onChange(FunkoApiSearchFields.CATEGORY_ID, value)}
+      />
+      <SelectFilter
+        id="filter-series"
+        label="Series"
+        anyLabel="Any series"
+        value={filters[FunkoApiSearchFields.SERIES_ID]}
+        options={named(series)}
+        onChange={(value) => onChange(FunkoApiSearchFields.SERIES_ID, value)}
       />
       <SelectFilter
         id="filter-type"
@@ -101,12 +110,12 @@ function FunkoFilters({ categories, collections, tags, filters, onChange }: Prop
       />
       <SelectFilter
         id="filter-has-images"
-        label="Photos"
+        label="Images"
         anyLabel="With or without"
         value={filters[FunkoApiSearchFields.HAS_IMAGES]}
         options={[
-          { value: 'true', label: 'With photos' },
-          { value: 'false', label: 'Without photos' },
+          { value: 'true', label: 'With images' },
+          { value: 'false', label: 'Without images' },
         ]}
         onChange={(value) => onChange(FunkoApiSearchFields.HAS_IMAGES, value)}
       />

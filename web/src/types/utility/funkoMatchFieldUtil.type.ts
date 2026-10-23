@@ -6,6 +6,7 @@ export const FunkoMatchFieldUtil = {
   BARCODE: 'BARCODE',
   EXCLUSIVE: 'EXCLUSIVE',
   CATEGORY: 'CATEGORY',
+  SERIES: 'SERIES',
   TAG: 'TAG',
   COLLECTION: 'COLLECTION',
 } as const;
@@ -18,6 +19,7 @@ export const FUNKO_MATCH_FIELD_LABELS: Record<FunkoMatchFieldUtil, string> = {
   BARCODE: 'barcode',
   EXCLUSIVE: 'exclusive',
   CATEGORY: 'category',
+  SERIES: 'series',
   TAG: 'tag',
   COLLECTION: 'collection',
 };

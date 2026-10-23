@@ -7,6 +7,7 @@ import type {
   FunkoDetailApiModel,
   FunkoSummaryApiModel,
   NamedApiModel,
+  SeriesApiModel,
   TagApiModel,
 } from '@app-types/models';
 import { HttpResponse } from 'msw/http';
@@ -14,6 +15,7 @@ import { toPrimaryImage } from './mockImageUtils';
 import {
   mockStore,
   type MockCategoryRow,
+  type MockSeriesRow,
   type MockCollectionRow,
   type MockFunkoRow,
   type MockItemRow,
@@ -22,6 +24,10 @@ import {
 
 export function toCategoryModel(row: MockCategoryRow): CategoryApiModel {
   return { ...row, funkoCount: mockStore.funkos.filter((funko) => funko.categoryId === row.id).length };
+}
+
+export function toSeriesModel(row: MockSeriesRow): SeriesApiModel {
+  return { ...row, funkoCount: mockStore.funkos.filter((funko) => funko.seriesId === row.id).length };
 }
 
 export function toTagModel(row: MockTagRow): TagApiModel {
@@ -37,6 +43,12 @@ export function toCollectionModel(row: MockCollectionRow): CollectionApiModel {
     totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
     totalSpentCents: items.reduce((sum, item) => sum + (item.purchasePriceCents ?? 0) * item.quantity, 0),
   };
+}
+
+function toSeriesRef(seriesId: number | null): NamedApiModel | null {
+  const series = mockStore.series.find((candidate) => candidate.id === seriesId);
+
+  return series ? { id: series.id, name: series.name } : null;
 }
 
 function named(row: { id: number; name: string } | undefined): NamedApiModel {
@@ -57,6 +69,7 @@ export function toFunkoSummary(row: MockFunkoRow): FunkoSummaryApiModel {
     exclusive: row.exclusive,
     barcode: row.barcode,
     category: named(mockStore.categories.find((category) => category.id === row.categoryId)),
+    series: toSeriesRef(row.seriesId),
     primaryImage: toPrimaryImage(primary),
   };
 }

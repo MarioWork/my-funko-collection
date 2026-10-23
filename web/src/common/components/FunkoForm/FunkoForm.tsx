@@ -30,7 +30,7 @@ type Props = {
   onSubmit: (submission: FunkoFormSubmission) => void;
 };
 
-// Everything about a funko in one place: its details, its photos, and the collections it is in. Adding: one Save
+// Everything about a funko in one place: its details, the collections it is in, and its photos last. Adding: one Save
 // creates it, uploads the photos and files it. Editing: the same form, filled in. The page or dialog around it
 // supplies the card; the Save button sticks to the bottom on phones.
 function FunkoForm({
@@ -81,14 +81,6 @@ function FunkoForm({
     >
       <FunkoFormFields control={control} categories={categories} idPrefix={formId} />
       <FieldSeparator />
-      <FunkoPhotoFields
-        funko={funko}
-        formId={formId}
-        pendingPhotos={pendingPhotos}
-        isSubmitting={isSubmitting}
-        isMissingPhotos={isMissingPhotos}
-      />
-      <FieldSeparator />
       <FunkoDestinationFields
         idPrefix={formId}
         hasTags={!isEdit}
@@ -97,6 +89,14 @@ function FunkoForm({
         selectedTags={selectedTags}
         onCollectionsChange={setCollectionIds}
         onTagsChange={setSelectedTags}
+      />
+      <FieldSeparator />
+      <FunkoPhotoFields
+        funko={funko}
+        formId={formId}
+        pendingPhotos={pendingPhotos}
+        isSubmitting={isSubmitting}
+        isMissingPhotos={isMissingPhotos}
       />
       {errorMessage ? <InlineAlert tone="error">{errorMessage}</InlineAlert> : null}
       <div className="sticky bottom-[calc(var(--bottom-nav-height,0px)+env(safe-area-inset-bottom))] -mx-4 -mb-4 border-t bg-card p-4 lg:static lg:m-0 lg:border-0 lg:p-0">

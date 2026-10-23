@@ -15,6 +15,7 @@ export const SuggestResponseSchema = z
   .object({
     funkos: z.array(FunkoSummarySchema),
     categories: z.array(NamedSchema),
+    series: z.array(NamedSchema),
     collections: z.array(NamedSchema),
     tags: z.array(NamedSchema),
   })

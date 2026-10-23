@@ -24,6 +24,7 @@ import { collectionsRoutes } from './modules/collections/collections.route.ts';
 import { allItemsRoutes } from './modules/collections/items/collectionItems.route.ts';
 import { exportRoutes } from './modules/export/export.route.ts';
 import { funkosRoutes } from './modules/funkos/funkos.route.ts';
+import { seriesRoutes } from './modules/series/series.route.ts';
 import { tagsRoutes } from './modules/tags/tags.route.ts';
 import { dbPlugin } from './plugins/db.plugin.ts';
 import { uploadsPlugin } from './plugins/uploads.plugin.ts';
@@ -67,6 +68,7 @@ export async function buildApp() {
 
   await app.register(healthRoutes);
   await app.register(categoriesRoutes, { prefix: '/categories' });
+  await app.register(seriesRoutes, { prefix: '/series' });
   await app.register(funkosRoutes, { prefix: '/funkos' });
   await app.register(collectionsRoutes, { prefix: '/collections' });
   await app.register(allItemsRoutes, { prefix: '/items' });

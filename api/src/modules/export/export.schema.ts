@@ -4,6 +4,8 @@ import { ITEM_CONDITIONS } from '../../db/schema/collectionItems.ts';
 
 const ExportCategorySchema = z.object({ id: z.number().int(), name: z.string() });
 
+const ExportSeriesSchema = z.object({ id: z.number().int(), name: z.string() });
+
 const ExportImageSchema = z.object({ id: z.number().int(), fileKey: z.string(), position: z.number().int() });
 
 const ExportFunkoSchema = z.object({
@@ -12,6 +14,7 @@ const ExportFunkoSchema = z.object({
   number: z.string(),
   type: z.enum(FUNKO_TYPES),
   categoryId: z.number().int(),
+  seriesId: z.number().int().nullable(),
   isChase: z.boolean(),
   exclusive: z.string(),
   barcode: z.string().nullable(),
@@ -48,6 +51,7 @@ export const ExportResponseSchema = z
   .object({
     exportedAt: z.iso.datetime(),
     categories: z.array(ExportCategorySchema),
+    series: z.array(ExportSeriesSchema),
     funkos: z.array(ExportFunkoSchema),
     collections: z.array(ExportCollectionSchema),
     tags: z.array(ExportTagSchema),

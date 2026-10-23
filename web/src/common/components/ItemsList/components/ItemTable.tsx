@@ -51,7 +51,7 @@ function ActionsCell({ item, collections, busyItemId, onMove, onRemove }: Action
 
 const photoColumn = columnHelper.display({
   id: 'photo',
-  header: () => <span className="sr-only">Photo</span>,
+  header: () => <span className="sr-only">Image</span>,
   cell: ({ row }) => (
     <FunkoImage
       image={row.original.funko.primaryImage}

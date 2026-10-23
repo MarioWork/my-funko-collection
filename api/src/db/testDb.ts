@@ -9,6 +9,7 @@ import {
   collections,
   funkoImages,
   funkos,
+  series,
   tags,
 } from './schema/index.ts';
 
@@ -36,6 +37,7 @@ export async function resetTestDb(): Promise<void> {
   await db.delete(collectionItems);
   await db.delete(funkoImages);
   await db.delete(funkos);
+  await db.delete(series);
   await db.delete(collections);
   await db.delete(tags);
   await db.delete(categories);

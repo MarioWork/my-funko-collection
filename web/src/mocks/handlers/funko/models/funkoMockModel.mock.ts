@@ -12,6 +12,7 @@ export const createFunkoSummaryMockModel = (overrides?: Partial<FunkoSummaryApiM
   exclusive: '',
   barcode: '889698624008',
   category: { id: 1, name: 'Pop! Marvel' },
+  series: null,
   primaryImage: toPrimaryImage({
     id: 1,
     position: 0,

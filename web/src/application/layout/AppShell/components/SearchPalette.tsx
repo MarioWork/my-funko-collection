@@ -18,7 +18,7 @@ function SearchPalette({ isOpen, onOpenChange }: Props) {
       <DialogContent className="top-[15%] translate-y-0 gap-3 p-3 sm:max-w-xl" showCloseButton={false}>
         <DialogHeader className="sr-only">
           <DialogTitle>Search</DialogTitle>
-          <DialogDescription>Funkos, categories, collections and tags.</DialogDescription>
+          <DialogDescription>Funkos, categories, series, collections and tags.</DialogDescription>
         </DialogHeader>
         {isOpen ? <PaletteBody onPick={() => onOpenChange(false)} /> : null}
       </DialogContent>
@@ -39,7 +39,7 @@ function PaletteBody({ onPick }: { onPick: () => void }) {
         <InputGroupInput
           type="text"
           inputMode="search"
-          aria-label="Search funkos, categories, collections and tags"
+          aria-label="Search funkos, categories, series, collections and tags"
           placeholder="Search everything…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}

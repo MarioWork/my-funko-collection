@@ -23,7 +23,7 @@ function FunkoImage({ image, alt, sizes, fit = 'cover', isPriority = false, clas
     return (
       <div
         role="img"
-        aria-label={`${alt} (no photo yet)`}
+        aria-label={`${alt} (no image yet)`}
         className={cn('flex items-center justify-center bg-muted text-muted-foreground', className)}
       >
         <FunkoFigureArt className="w-1/2 max-w-32" />

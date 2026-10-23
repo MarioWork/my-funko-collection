@@ -19,6 +19,7 @@ export const FUNKO_SORT_OPTIONS: SortOption[] = [
   { field: FunkoApiSortingFields.CREATION_DATE, direction: SortingDirectionUtil.DESC, label: 'Newest first' },
   { field: FunkoApiSortingFields.CREATION_DATE, direction: SortingDirectionUtil.ASC, label: 'Oldest first' },
   { field: FunkoApiSortingFields.CATEGORY, direction: SortingDirectionUtil.ASC, label: 'Category' },
+  { field: FunkoApiSortingFields.SERIES, direction: SortingDirectionUtil.ASC, label: 'Series' },
 ];
 
 // A chip under the search that sets one filter to one value.
@@ -44,6 +45,6 @@ export function buildQuickFilters(collections: CollectionApiModel[]): QuickFilte
   return [
     ...collectionFilters,
     { key: 'chase', label: 'Chase', field: FunkoApiSearchFields.IS_CHASE, value: TRUE_VALUE },
-    { key: 'no-photos', label: 'No photos', field: FunkoApiSearchFields.HAS_IMAGES, value: FALSE_VALUE },
+    { key: 'no-photos', label: 'No images', field: FunkoApiSearchFields.HAS_IMAGES, value: FALSE_VALUE },
   ];
 }

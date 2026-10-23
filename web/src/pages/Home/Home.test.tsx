@@ -9,7 +9,7 @@ it('shows the stats, the recent funkos and every collection', async () => {
   const overview = await screen.findByRole('region', { name: 'Overview' });
 
   expect(overview).toHaveTextContent(/Funkos30/);
-  expect(overview).toHaveTextContent(/Photos60/);
+  expect(overview).toHaveTextContent(/Images60/);
   expect(screen.getByRole('heading', { name: 'Recently added' })).toBeVisible();
   expect(screen.getByRole('link', { name: 'Owned' })).toBeVisible();
   expect(screen.getByRole('link', { name: 'Wishlist' })).toBeVisible();

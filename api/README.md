@@ -28,7 +28,7 @@ yarn dev                 # http://localhost:3000, OpenAPI UI at /docs
 | `yarn test`         | Vitest: in-memory SQLite and a temp uploads folder per test file           |
 | `yarn db:generate`  | New migration after a schema change: `--name=<change>` (commit `drizzle/`) |
 | `yarn db:migrate`   | Applies pending migrations                                                 |
-| `yarn db:seed`      | Example categories, funkos, collections, items, tags, images               |
+| `yarn db:seed`      | Example categories, series, funkos, collections, items, tags, images       |
 | `yarn db:studio`    | Drizzle Studio                                                             |
 | `yarn images:prune` | Deletes image files no row references                                      |
 
@@ -56,7 +56,8 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 | Table                  | What                                                                           |
 | ---------------------- | ------------------------------------------------------------------------------ |
 | `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Star Wars"                 |
-| `funkos`               | One figure: name, number, type, category, chase / exclusive flags, barcode     |
+| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"            |
+| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode  |
 | `funko_images`         | A photo of a funko: position, size, three WebP variants + blur placeholder     |
 | `collections`          | One of the user's own lists: "Owned" (exactly one is the default), "Wishlist"  |
 | `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes |
@@ -84,6 +85,11 @@ Text filters are case-insensitive "contains"; id filters take a comma-separated 
 | `POST /categories`                         | `{ name }`                                                                                                                                            |
 | `PATCH /categories/:id`                    |                                                                                                                                                       |
 | `DELETE /categories/:id`                   | 409 while funkos still use it                                                                                                                         |
+| `GET /series`                              | List with funko counts; `name`; sort `NAME` \| `CREATION_DATE`                                                                                        |
+| `GET /series/:id`                          |                                                                                                                                                       |
+| `POST /series`                             | `{ name }`; 409 when the name is taken                                                                                                                |
+| `PATCH /series/:id`                        |                                                                                                                                                       |
+| `DELETE /series/:id`                       | Its funkos stay, with `series: null`                                                                                                                  |
 | `GET /funkos`                              | List and search: `q` searches every field; named params narrow one (below)                                                                            |
 | `GET /funkos/by-barcode/:barcode`          | For a phone scanner                                                                                                                                   |
 | `GET /funkos/:id`                          | With all its images                                                                                                                                   |
@@ -109,18 +115,20 @@ Text filters are case-insensitive "contains"; id filters take a comma-separated 
 | `GET /items`                               | Items across all collections; same filters plus `collectionId`                                                                                        |
 | `GET /tags`                                | List with item counts; `name`; sort `NAME` \| `CREATION_DATE`                                                                                         |
 | `GET /tags/:id`, `POST`, `PATCH`, `DELETE` | Delete only removes the label from items                                                                                                              |
-| `GET /suggest?q=`                          | Search-bar suggestions: funkos, categories, collections, tags at once                                                                                 |
+| `GET /suggest?q=`                          | Search-bar suggestions: funkos, categories, series, collections, tags at once                                                                         |
 | `GET /stats`                               | Totals for the home page: counts, per collection, per category, image bytes                                                                           |
-| `GET /export`                              | Everything as one JSON download                                                                                                                       |
-| `GET /export/items.csv`                    | One CSV line per collection item                                                                                                                      |
+| `GET /export`                              | Everything as one JSON download (top-level `series`, `seriesId` on each funko)                                                                        |
+| `GET /export/items.csv`                    | One CSV line per collection item (`series` column after `category`)                                                                                   |
 | `GET /uploads/...`                         | The image files (immutable, cached for a year)                                                                                                        |
 
 `GET /funkos` filters: `q`, `name`, `number`, `barcode`, `exclusive`, `type`, `isChase`, `categoryId`, `category`,
-`tagId`, `tag`, `collectionId`, `collection`, `notInCollectionId`, `hasImages`; sort `RELEVANCE` (default with
-`q`), `NAME`, `NUMBER`, `CREATION_DATE`, `CATEGORY`. Each hit carries `matchedOn` (which fields the search hit),
-`collections` (where it sits, with quantity) and `primaryImage`.
+`seriesId`, `series`, `tagId`, `tag`, `collectionId`, `collection`, `notInCollectionId`, `hasImages`; sort
+`RELEVANCE` (default with `q`), `NAME`, `NUMBER`, `CREATION_DATE`, `CATEGORY`, `SERIES` (funkos without a series
+come last in both directions). Each hit carries `category`, `series` (or null), `matchedOn` (which fields the search
+hit, `SERIES` among them), `collections` (where it sits, with quantity) and `primaryImage`. A funko body takes an
+optional `seriesId` (null or left out means none; null on a `PATCH` clears it; a missing series answers 400).
 
-Item list filters: `name`, `funkoId`, `tagId`, `categoryId`, `condition`, `purchasedFrom`, `purchasedTo`; sort
+Item list filters: `name`, `funkoId`, `tagId`, `categoryId`, `seriesId`, `condition`, `purchasedFrom`, `purchasedTo`; sort
 `NAME`, `NUMBER`, `CREATION_DATE`, `UPDATE_DATE`, `PURCHASE_DATE`, `PURCHASE_PRICE` (default `CREATION_DATE`).
 
 ### Errors

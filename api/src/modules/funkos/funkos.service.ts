@@ -3,6 +3,7 @@ import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
 import { removeFunkoFolder, variantUrl } from '../../lib/imageStorage.ts';
 import { logger } from '../../lib/logger.ts';
 import { assertCategoryExists } from '../categories/categories.service.ts';
+import { assertSeriesExists } from '../series/series.service.ts';
 import { getImages } from './images/funkoImages.service.ts';
 import {
   funkosRepository,
@@ -48,6 +49,19 @@ function toPrimaryImage(row: PrimaryImageRow | undefined): PrimaryImageSummary |
   };
 }
 
+// A series id in a body is checked only when one is given: null and a missing key both mean "no series".
+async function assertSeriesIfGiven(seriesId: number | null | undefined): Promise<void> {
+  const hasSeries = seriesId !== undefined && seriesId !== null;
+
+  if (hasSeries) await assertSeriesExists(seriesId);
+}
+
+function toSeries(row: FunkoRow): FunkoSummary['series'] {
+  if (row.seriesId === null || row.seriesName === null) return null;
+
+  return { id: row.seriesId, name: row.seriesName };
+}
+
 function toSummary(row: FunkoRow, primaryImage: PrimaryImageRow | undefined): FunkoSummary {
   return {
     id: row.id,
@@ -58,6 +72,7 @@ function toSummary(row: FunkoRow, primaryImage: PrimaryImageRow | undefined): Fu
     exclusive: row.exclusive,
     barcode: row.barcode,
     category: { id: row.categoryId, name: row.categoryName },
+    series: toSeries(row),
     primaryImage: toPrimaryImage(primaryImage),
   };
 }
@@ -79,6 +94,7 @@ function matchedFields(row: FunkoRow, extras: FunkoExtras, words: string[]): Fun
     if (includes(row.barcode, word)) matched.add('BARCODE');
     if (includes(row.exclusive, word)) matched.add('EXCLUSIVE');
     if (includes(row.categoryName, word)) matched.add('CATEGORY');
+    if (includes(row.seriesName, word)) matched.add('SERIES');
     if (extras.tagNames.some((name) => includes(name, word))) matched.add('TAG');
     if (extras.collections.some((collection) => includes(collection.name, word))) matched.add('COLLECTION');
   }
@@ -198,6 +214,7 @@ export async function addFunko(input: CreateFunko): Promise<FunkoResponse> {
   };
 
   await assertCategoryExists(data.categoryId);
+  await assertSeriesIfGiven(data.seriesId);
   await assertUnique(identity, data.barcode);
 
   const row = await funkosRepository.create(data);
@@ -224,6 +241,7 @@ export async function updateFunko(id: number, input: UpdateFunko): Promise<Funko
   };
 
   if (data.categoryId !== undefined) await assertCategoryExists(data.categoryId);
+  await assertSeriesIfGiven(data.seriesId);
   await assertUnique(identity, data.barcode === undefined ? current.barcode : data.barcode, id);
 
   const row = await funkosRepository.update(id, data);
