@@ -15,7 +15,7 @@ import { Button } from '@components/ui/button';
 import { useListParams } from '@hooks/useListParams';
 import { useLocalStorage } from '@hooks/useLocalStorage';
 import { CollectionApiSearchFields } from '@services/collectionService/collectionService';
-import { COLLECTION_LAYOUT_STORAGE_KEY, CollectionLayoutUtil } from './collectionListUtils';
+import { COLLECTION_LAYOUT_STORAGE_KEY, CollectionLayoutUtil } from '@utils/layoutUtils';
 import CollectionCard from './components/CollectionCard';
 import CollectionTable from './components/CollectionTable';
 import type { loader } from './collectionListLoader';

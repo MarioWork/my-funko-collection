@@ -7,13 +7,8 @@ import imageService, {
   ImageApiSortingFields,
 } from '@services/imageService/imageService';
 import { readSearchFields, readSortDirection, readSortField } from '@utils/listParamsUtils';
-import {
-  DEFAULT_IMAGE_VIEW,
-  IMAGE_GROUP_PAGE_SIZE,
-  IMAGE_PAGE_SIZE,
-  IMAGE_VIEW_PARAM,
-  ImageViewUtil,
-} from './imageListUtils';
+import { ImageViewUtil, readStoredImageView } from '@utils/layoutUtils';
+import { IMAGE_GROUP_PAGE_SIZE, IMAGE_PAGE_SIZE, IMAGE_VIEW_PARAM } from './imageListUtils';
 
 const SORT_FIELDS = Object.values(ImageApiSortingFields);
 const SEARCH_FIELDS = Object.values(ImageApiSearchFields);
@@ -27,7 +22,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const sortField = readSortField(sortParam, SORT_FIELDS) ?? DEFAULT_IMAGE_SORT_FIELD;
   const direction = readSortDirection(directionParam) ?? DEFAULT_IMAGE_SORT_DIRECTION;
   const page = searchParams.get(ApiUrlParamsUtil.page) ?? DEFAULT_FIRST_PAGE;
-  const viewParam = searchParams.get(IMAGE_VIEW_PARAM) ?? DEFAULT_IMAGE_VIEW;
+  // A view in the URL wins; otherwise the one saved on this device (Settings → Layouts, or the last one picked).
+  const viewParam = searchParams.get(IMAGE_VIEW_PARAM) ?? readStoredImageView();
   const isGrouped = viewParam !== ImageViewUtil.IMAGES;
   const pageSize = isGrouped ? IMAGE_GROUP_PAGE_SIZE : IMAGE_PAGE_SIZE;
   const fields = {

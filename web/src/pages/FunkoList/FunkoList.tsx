@@ -22,7 +22,7 @@ import FunkoListEmpty from './components/FunkoListEmpty';
 import FunkoListToolbar from './components/FunkoListToolbar';
 import FunkoTable from './components/FunkoTable';
 import type { loader } from './funkoListLoader';
-import { FUNKO_LAYOUT_STORAGE_KEY } from './funkoListUtils';
+import { FUNKO_LAYOUT_STORAGE_KEY } from '@utils/layoutUtils';
 import { useFunkoListParams } from './hooks/useFunkoListParams';
 
 function DesktopActions() {
