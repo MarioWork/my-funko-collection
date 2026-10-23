@@ -1,10 +1,13 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import LinkButton from '@components/LinkButton';
 import { Button } from '@components/ui/button';
+import PageTitle from './components/PageTitle';
 
 type Props = {
   title: string;
+  // The page's icon, as in the navigation, left of the title.
+  icon?: LucideIcon;
   description?: string;
   // A fixed destination (the list a detail belongs to)…
   backTo?: string;
@@ -21,7 +24,17 @@ type Props = {
 
 // The one h1 per page, on a card like the page's own content, with an optional back link, an actions slot that
 // wraps under the title on phones, and icon actions that stay on the title's row.
-function PageHeader({ title, description, backTo, onBack, backLabel = 'Back', actions, iconActions, children }: Props) {
+function PageHeader({
+  title,
+  icon: Icon,
+  description,
+  backTo,
+  onBack,
+  backLabel = 'Back',
+  actions,
+  iconActions,
+  children,
+}: Props) {
   return (
     <header className="flex flex-col gap-3 rounded-xl border bg-card p-4">
       {backTo ? (
@@ -37,10 +50,7 @@ function PageHeader({ title, description, backTo, onBack, backLabel = 'Back', ac
         </Button>
       ) : null}
       <div className="flex flex-wrap items-start gap-3">
-        <div className="flex min-w-0 flex-1 basis-0 flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-balance lg:text-3xl">{title}</h1>
-          {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
-        </div>
+        <PageTitle title={title} icon={Icon} description={description} />
         {actions ? (
           <div className="order-3 flex max-w-full basis-full flex-wrap items-center gap-2 lg:order-2 lg:basis-auto">
             {actions}

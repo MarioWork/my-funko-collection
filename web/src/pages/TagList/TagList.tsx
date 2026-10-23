@@ -1,4 +1,5 @@
 import { Tag } from 'lucide-react';
+import { PAGE_ICONS } from '@application/layout/navigationUtils';
 import { Outlet, useLoaderData } from 'react-router';
 import type { TagApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
@@ -40,6 +41,7 @@ function TagList() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
+        icon={PAGE_ICONS.TAGS}
         title="Tags"
         description="Labels on your items: which box, which shelf, anything you like. Deleting one only removes the label."
         actions={

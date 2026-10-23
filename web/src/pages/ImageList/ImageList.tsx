@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PAGE_ICONS } from '@application/layout/navigationUtils';
 import type { ImageGroupApiModel, ImageListEntryApiModel } from '@app-types/models';
 import type { LoaderDataUtil, ResponseWithPaginationUtil } from '@app-types/utility';
 import EmptyState from '@components/EmptyState';
@@ -62,6 +63,7 @@ function ImageList() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
+        icon={PAGE_ICONS.IMAGES}
         title="Images"
         description={TOTAL_DESCRIBER_MAP[data.view](total, isFiltered)}
         iconActions={

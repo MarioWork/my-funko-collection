@@ -1,4 +1,5 @@
 import { ScanBarcode, Search as SearchIcon, X } from 'lucide-react';
+import { PAGE_ICONS } from '@application/layout/navigationUtils';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
@@ -22,7 +23,11 @@ function Search() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Search" description="Funkos, categories, series, collections and tags, all at once.">
+      <PageHeader
+        icon={PAGE_ICONS.SEARCH}
+        title="Search"
+        description="Funkos, categories, series, collections and tags, all at once."
+      >
         <div className="flex items-center gap-2">
           <InputGroup className="flex-1 border-input bg-card">
             <InputGroupAddon>

@@ -1,4 +1,5 @@
 import { Library } from 'lucide-react';
+import { PAGE_ICONS } from '@application/layout/navigationUtils';
 import { Outlet, useLoaderData } from 'react-router';
 import type { SeriesApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
@@ -42,6 +43,7 @@ function SeriesList() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
+        icon={PAGE_ICONS.SERIES}
         title="Series"
         description="The series a funko belongs to, like Daredevil: Born Again. Optional; deleting one only clears it from its funkos."
         actions={

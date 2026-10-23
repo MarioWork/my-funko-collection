@@ -20,6 +20,19 @@ import {
   TAG_ROUTES_PATHS,
 } from '@application/routes/routesUtils';
 
+// One icon per page, shared by the sidebar, the bottom bar and each page's title (PageHeader).
+export const PAGE_ICONS = {
+  HOME: House,
+  FUNKOS: Package,
+  COLLECTIONS: FolderHeart,
+  SEARCH: Search,
+  CATEGORIES: Book,
+  SERIES: Library,
+  TAGS: Tag,
+  IMAGES: Images,
+  SETTINGS: Settings,
+} satisfies Record<string, LucideIcon>;
+
 export type NavigationItem = {
   label: string;
   to: string;
@@ -28,21 +41,25 @@ export type NavigationItem = {
 
 // The four destinations of the bottom bar and the sidebar. "Add" is an action, so it is a button, never a tab.
 export const NAVIGATION_ITEMS: NavigationItem[] = [
-  { label: 'Home', to: BASE_ROUTES_PATHS.HOME, icon: House },
-  { label: 'Funkos', to: FUNKO_ROUTES_PATHS.BASE, icon: Package },
-  { label: 'Collections', to: COLLECTION_ROUTES_PATHS.BASE, icon: FolderHeart },
-  { label: 'Search', to: BASE_ROUTES_PATHS.SEARCH, icon: Search },
+  { label: 'Home', to: BASE_ROUTES_PATHS.HOME, icon: PAGE_ICONS.HOME },
+  { label: 'Funkos', to: FUNKO_ROUTES_PATHS.BASE, icon: PAGE_ICONS.FUNKOS },
+  { label: 'Collections', to: COLLECTION_ROUTES_PATHS.BASE, icon: PAGE_ICONS.COLLECTIONS },
+  { label: 'Search', to: BASE_ROUTES_PATHS.SEARCH, icon: PAGE_ICONS.SEARCH },
 ];
 
 // The manage pages: in the sidebar on desktop, under Settings on phones (the bottom bar keeps its four tabs).
 export const MANAGE_ITEMS: NavigationItem[] = [
-  { label: 'Categories', to: CATEGORY_ROUTES_PATHS.BASE, icon: Book },
-  { label: 'Series', to: SERIES_ROUTES_PATHS.BASE, icon: Library },
-  { label: 'Tags', to: TAG_ROUTES_PATHS.BASE, icon: Tag },
-  { label: 'Images', to: IMAGE_ROUTES_PATHS.BASE, icon: Images },
+  { label: 'Categories', to: CATEGORY_ROUTES_PATHS.BASE, icon: PAGE_ICONS.CATEGORIES },
+  { label: 'Series', to: SERIES_ROUTES_PATHS.BASE, icon: PAGE_ICONS.SERIES },
+  { label: 'Tags', to: TAG_ROUTES_PATHS.BASE, icon: PAGE_ICONS.TAGS },
+  { label: 'Images', to: IMAGE_ROUTES_PATHS.BASE, icon: PAGE_ICONS.IMAGES },
 ];
 
 // Settings: the sidebar's footer on desktop, the last entry of the phone menu.
-export const SETTINGS_ITEM: NavigationItem = { label: 'Settings', to: BASE_ROUTES_PATHS.SETTINGS, icon: Settings };
+export const SETTINGS_ITEM: NavigationItem = {
+  label: 'Settings',
+  to: BASE_ROUTES_PATHS.SETTINGS,
+  icon: PAGE_ICONS.SETTINGS,
+};
 
 export const APP_NAME = 'MyFunkoCollection';

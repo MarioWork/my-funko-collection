@@ -1,4 +1,5 @@
 import { Package, ScanBarcode } from 'lucide-react';
+import { PAGE_ICONS } from '@application/layout/navigationUtils';
 import { Outlet } from 'react-router';
 import type { FunkoApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
@@ -69,6 +70,7 @@ function FunkoList() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
+        icon={PAGE_ICONS.FUNKOS}
         title="Funkos"
         description={
           isFiltered
