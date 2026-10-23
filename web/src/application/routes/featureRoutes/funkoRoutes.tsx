@@ -16,6 +16,11 @@ export const funkoRoutes: RouteObject[] = [
         path: FUNKO_ROUTES_PATHS.edit(),
         lazy: () => import('@pages/FunkoDetail/components/FunkoEdit/FunkoEdit.route'),
       },
+      // The collection page's item sheet, opened over this page instead of sending you to the collection.
+      {
+        path: FUNKO_ROUTES_PATHS.editItem(),
+        lazy: () => import('@pages/CollectionDetail/components/EditItemSheet/EditItemSheet.route'),
+      },
     ],
   },
   {
