@@ -3,6 +3,7 @@ import type { FunkoApiModel } from '@app-types/models';
 import { FUNKO_TYPE_LABELS } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoImage from '@components/FunkoImage';
+import TableSkeletonRows from '@components/TableSkeletonRows';
 import { Badge } from '@components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip';
@@ -10,6 +11,8 @@ import { TABLE_HEADER_ROW_CLASS } from '@utils/tableUtils';
 
 type Props = {
   funkos: FunkoApiModel[];
+  // The next page is loading: placeholder rows under the last one.
+  isLoadingMore?: boolean;
 };
 
 type RowProps = {
@@ -24,6 +27,9 @@ const THUMB_SIZES = '48px';
 // More than this and the rest fold into "+N", so a funko in many collections keeps a one-line row.
 const VISIBLE_COLLECTIONS = 2;
 const NONE = '—';
+const WIDE_ONLY = 'hidden @3xl:table-cell';
+// Image, name, number, category, then the two columns that only show on a wide pane.
+const SKELETON_COLUMNS = ['w-16', '', 'w-24', '', WIDE_ONLY, WIDE_ONLY];
 
 // The first collections by name, the rest as "+N" with the full list in its tooltip (and read out in full).
 function CollectionNames({ names }: CollectionNamesProps) {
@@ -106,7 +112,7 @@ function FunkoTableHead() {
 }
 
 // The list view: a real table with the thumbnail always present. Extra columns appear as the pane widens.
-function FunkoTable({ funkos }: Props) {
+function FunkoTable({ funkos, isLoadingMore = false }: Props) {
   return (
     <div className="overflow-x-auto rounded-xl border bg-card">
       <Table>
@@ -117,6 +123,7 @@ function FunkoTable({ funkos }: Props) {
           {funkos.map((funko) => (
             <FunkoTableRow key={funko.id} funko={funko} />
           ))}
+          {isLoadingMore ? <TableSkeletonRows columnClassNames={SKELETON_COLUMNS} /> : null}
         </TableBody>
       </Table>
     </div>

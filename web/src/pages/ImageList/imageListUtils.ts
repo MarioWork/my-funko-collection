@@ -16,6 +16,9 @@ export const ImageViewUtil = {
 } as const;
 export type ImageViewUtil = (typeof ImageViewUtil)[keyof typeof ImageViewUtil];
 
+// Placeholder rows while the next page loads, column by column like the real ones.
+export const IMAGE_SKELETON_COLUMNS = ['', 'hidden @3xl:table-cell', '', 'hidden @3xl:table-cell'];
+
 // All three stored sizes (2000 / 1200 / 480 px) on disk: fewer means some went missing.
 export const COMPLETE_VARIANT_COUNT = 3;
 

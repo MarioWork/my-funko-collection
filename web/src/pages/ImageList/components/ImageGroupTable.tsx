@@ -1,16 +1,20 @@
 import { ChevronRight } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import type { ImageGroupApiModel, ImageListEntryApiModel } from '@app-types/models';
+import TableSkeletonRows from '@components/TableSkeletonRows';
 import { Table, TableBody, TableCell, TableRow } from '@components/ui/table';
 import { formatBytes } from '@utils/byteUtils';
 import { cn } from '@utils/classNameUtils';
 import { formatDateTime } from '@utils/dateUtils';
+import { IMAGE_SKELETON_COLUMNS } from '../imageListUtils';
 import ImageTableHead from './ImageTableHead';
 import ImageTableRow from './ImageTableRow';
 
 type Props = {
   groups: ImageGroupApiModel[];
   onOpen: (image: ImageListEntryApiModel) => void;
+  // The next page is loading: placeholder rows under the last one.
+  isLoadingMore?: boolean;
 };
 
 type GroupRowProps = {
@@ -61,7 +65,7 @@ function GroupRow({ group, isExpanded, onToggle }: GroupRowProps) {
 }
 
 // One row per funko with its totals; opening a row lists its images under it, each opening its preview.
-function ImageGroupTable({ groups, onOpen }: Props) {
+function ImageGroupTable({ groups, onOpen, isLoadingMore = false }: Props) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   const toggle = (key: string) => {
@@ -89,6 +93,7 @@ function ImageGroupTable({ groups, onOpen }: Props) {
             </Fragment>
           );
         })}
+        {isLoadingMore ? <TableSkeletonRows columnClassNames={IMAGE_SKELETON_COLUMNS} /> : null}
       </TableBody>
     </Table>
   );
