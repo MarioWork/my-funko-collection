@@ -48,7 +48,7 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 | `TRUST_PROXY_HOPS`     | `0`                     | Proxies in front (1 behind Caddy), for the real client IP                                 |
 | `CORS_ORIGINS`         | (none)                  | Browser origins, comma-separated, never `*`; empty = off                                  |
 | `UPLOADS_DIR`          | `./data/uploads`        | Where image files live (the Docker volume mounts over it)                                 |
-| `MAX_IMAGE_BYTES`      | `10485760`              | Per uploaded file                                                                         |
+| `MAX_IMAGE_BYTES`      | `5242880`               | Per uploaded file                                                                         |
 | `MAX_IMAGES_PER_FUNKO` | `10`                    |                                                                                           |
 | `IMAGE_LARGE_PX`       | `2000`                  | Longest side of the `lg` variant                                                          |
 | `IMAGE_MEDIUM_PX`      | `1200`                  | `md` variant                                                                              |

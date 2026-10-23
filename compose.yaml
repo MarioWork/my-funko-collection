@@ -43,7 +43,7 @@ services:
       TRUST_PROXY_HOPS: 1
       # Passkeys are checked against this origin, and writes from any other origin are refused.
       APP_ORIGIN: *app-address
-      MAX_IMAGE_BYTES: 10485760
+      MAX_IMAGE_BYTES: 5242880
       MAX_IMAGES_PER_FUNKO: 10
     volumes:
       - ./data:/app/data

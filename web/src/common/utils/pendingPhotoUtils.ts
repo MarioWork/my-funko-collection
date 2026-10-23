@@ -9,6 +9,14 @@ export const CAMERA_ACCEPT = 'image/jpeg';
 // The multipart field the API reads every image from; one name, owned by the service.
 export const PHOTO_FIELD = IMAGE_FILE_FIELD;
 export const MAX_PHOTOS_PER_BATCH = 10;
+// The most one image may weigh, picked or uploaded. Keep in step with the API's MAX_IMAGE_BYTES default.
+export const MAX_PHOTO_MEGABYTES = 5;
+const BYTES_PER_MEGABYTE = 1024 * 1024;
+export const MAX_PHOTO_BYTES = MAX_PHOTO_MEGABYTES * BYTES_PER_MEGABYTE;
+
+export function isTooLargePhoto(file: File): boolean {
+  return file.size > MAX_PHOTO_BYTES;
+}
 
 export type PendingPhoto = {
   id: string;
