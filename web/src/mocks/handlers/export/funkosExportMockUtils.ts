@@ -30,7 +30,7 @@ export const CSV_HEADER = [
   'purchased_at',
   'tags',
   'notes',
-  'photo_urls',
+  'image_urls',
 ];
 
 export type Cell = string | number | boolean | null;
@@ -91,7 +91,7 @@ export function toFunkoFields(funko: MockFunkoRow) {
     isChase: funko.isChase,
     exclusive: funko.exclusive,
     barcode: funko.barcode,
-    photoUrls: mockStore.images.filter((image) => image.funkoId === funko.id).map((image) => image.url),
+    imageUrls: mockStore.images.filter((image) => image.funkoId === funko.id).map((image) => image.url),
   };
 }
 
@@ -132,7 +132,7 @@ export function toCells(funko: MockFunkoRow, item: MockItemRow | null): Cell[] {
     itemFields?.purchasedAt ?? null,
     itemFields?.tags.join(TAG_SEPARATOR) ?? '',
     itemFields?.notes ?? null,
-    fields.photoUrls.join(' '),
+    fields.imageUrls.join(' '),
   ];
 }
 

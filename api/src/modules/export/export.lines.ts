@@ -54,13 +54,13 @@ export function buildLookups(data: EverythingData) {
     tagNames: new Map(data.tags.map((tag) => [tag.id, tag.name])),
     tagIdsByItem: groupBy(data.itemTags, (itemTag) => itemTag.itemId),
     funkoNames: new Map(data.funkos.map((funko) => [funko.id, funko.name])),
-    // Already ordered by position, so the main photo comes first.
+    // Already ordered by position, so the main image comes first.
     imagesByFunko: groupBy(data.images, (image) => image.funkoId),
   };
 }
 
-// Absolute links, so a link copied out of a spreadsheet still opens the photo.
-function photoUrlsOf(funkoId: number, lookups: Lookups): string[] {
+// Absolute links, so a link copied out of a spreadsheet still opens the image.
+function imageUrlsOf(funkoId: number, lookups: Lookups): string[] {
   const images = lookups.imagesByFunko.get(funkoId) ?? [];
 
   return images.map((image) => new URL(variantUrl(funkoId, image.fileKey, 'large'), env.APP_ORIGIN).toString());
@@ -88,7 +88,7 @@ export function toExportLine(funko: FunkoRow, item: ItemRow | null, lookups: Loo
     isChase: funko.isChase,
     exclusive: funko.exclusive,
     barcode: funko.barcode,
-    photoUrls: photoUrlsOf(funko.id, lookups),
+    imageUrls: imageUrlsOf(funko.id, lookups),
   };
 
   if (!item) return { funko: fields, item: null, itemId: null };

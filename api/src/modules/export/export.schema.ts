@@ -101,8 +101,8 @@ const FunkoExportFieldsSchema = z.object({
   isChase: z.boolean(),
   exclusive: z.string(),
   barcode: z.string().nullable(),
-  // A full-size link to each photo, main first. It opens for a signed-in browser.
-  photoUrls: z.array(z.string()),
+  // A full-size link to each image, main first. It opens for a signed-in browser.
+  imageUrls: z.array(z.string()),
 });
 
 const FunkoExportSchema = FunkoExportFieldsSchema.extend({ items: z.array(FunkoExportItemSchema) });
