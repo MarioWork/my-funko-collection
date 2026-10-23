@@ -1,50 +1,183 @@
-# My Funko Collection
+<p align="center">
+  <img src="assets/logos/my-funko-collection-logo.png" alt="MyFunkoCollection" width="240" />
+</p>
 
-A small self-hosted app to track a Funko Pop collection: the catalog of figures you care about, your own photos of
-them, the collections you sort them into (Owned, Wishlist, ...) and the tags that say which box they live in.
+<p align="center">
+  <strong>Your Funko Pop shelf, in your pocket.</strong><br />
+  A small, self-hosted app to catalog your Pops, snap their photos, and always know which box they're in.
+</p>
 
-```
-api/          Fastify + SQLite API (Node 24, TypeScript, Drizzle, sharp)    ← this is what runs today
-web/          React app (planned)
-compose.yaml  one-command deploy on the home server
-docs/         research notes (why there is no external Funko API)
-```
+<p align="center">
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript&logoColor=white" />
+  <img alt="Fastify" src="https://img.shields.io/badge/Fastify-5-000000?logo=fastify&logoColor=white" />
+  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local-0f80cc?logo=sqlite&logoColor=white" />
+  <img alt="Docker Compose" src="https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white" />
+</p>
 
-## Run it at home (Docker Compose)
+<p align="center">
+  <img src="docs/screenshots/funkos.webp" alt="The Funkos page: a grid of funko photos with search, sort, filters and quick filters" width="900" />
+</p>
+
+---
+
+## Contents
+
+- [Why this exists](#why-this-exists)
+- [What it does](#what-it-does)
+- [A quick tour](#a-quick-tour)
+- [Get it running at home](#get-it-running-at-home)
+  - [Trust the certificate](#trust-the-certificate-once-per-device)
+  - [Where your data lives](#where-your-data-lives)
+  - [Using it away from home](#using-it-away-from-home)
+- [Try it without a server](#try-it-without-a-server)
+- [How it's built](#how-its-built)
+
+## Why this exists
+
+Spreadsheets get messy, and catalog apps want an account, a subscription, or your data. **MyFunkoCollection**
+runs on a machine in your house, keeps everything in one folder you can back up, and works great on your phone,
+right next to the shelf.
+
+- **Yours, not a cloud's.** No sign-up, no tracking, no external Funko database. Your photos stay on your server.
+- **Phone-first, desktop-friendly.** Scan a box with the camera on the go, browse a wide grid at your desk.
+- **Built for real shelves.** Tag each Pop with the box it lives in, so "where's my Grogu?" takes two seconds.
+
+## What it does
+
+|                            |                                                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------------------- |
+| 📷 **Scan to add**         | Point the camera at the barcode: already have it? +1. New one? The form opens with the code in.    |
+| 🖼️ **Your own photos**     | Upload a photo and it's stored sharp in three sizes, with a blurred preview while it loads.        |
+| 🗂️ **Collections**         | Owned, Wishlist, Display, For sale… one funko can be in several, each with its own price and date. |
+| 🏷️ **Tags**                | Mark where each one is stored ("Box 3", "Display shelf"), plus anything else you like.             |
+| 🎬 **Categories & series** | The line on the box (Pop! Marvel) and the show or film it's from (Stranger Things).                |
+| 🔎 **Search everything**   | One box finds names, numbers, barcodes, series, tags and boxes. <kbd>⌘K</kbd> from anywhere.       |
+| 🎛️ **Filter & sort**       | By category, series, collection, tag, chase, images… or what's missing: no series, no collection.  |
+| 💾 **Images page**         | See what your photos take up, grouped by funko, and spot files nothing uses.                       |
+| 📤 **Export**              | Download everything as JSON, or your items as a spreadsheet (CSV).                                 |
+| 🌙 **Light & dark**        | Follows your system, with smooth, calm motion that switches off if you prefer reduced motion.      |
+| ♿ **Accessible**          | Keyboard and screen-reader friendly, aiming at WCAG 2.2 AA.                                        |
+
+## A quick tour
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/funko.webp" alt="A funko's page with its photo gallery, details and collections" /></td>
+    <td width="50%"><img src="docs/screenshots/images.webp" alt="The Images page grouped by funko, with image counts and total sizes" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Every funko gets its own page: photos, details and the collections it's in.</sub></td>
+    <td align="center"><sub>The Images page shows what your photos take up, per funko.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/home.webp" alt="The home page with totals, recent funkos and collections" /></td>
+    <td width="50%"><img src="docs/screenshots/funkos-dark.webp" alt="The Funkos page in dark mode" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Home: your collection at a glance.</sub></td>
+    <td align="center"><sub>Dark mode, for late-night shelf sorting.</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/screenshots/phone-funkos.webp" alt="The Funkos page on a phone" width="260" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/phone-add.webp" alt="Adding a new funko on a phone" width="260" />
+</p>
+<p align="center"><sub>On your phone: browse with one thumb, add a new Pop in one save.</sub></p>
+
+## Get it running at home
+
+You need a machine that stays on (a mini PC, a NAS, a Raspberry Pi 5) with **Docker** installed.
 
 ```bash
-# 1. Set the browser origin of the (future) web app in compose.yaml: CORS_ORIGINS
-# 2. Build and start
+git clone https://github.com/MarioWork/my-funko-collection.git
+cd my-funko-collection
+
+# Set the address you'll open it at: SITE_ADDRESS and CORS_ORIGINS in compose.yaml
+# (your server's LAN IP works without any DNS setup, e.g. https://192.168.1.20)
+
 docker compose up --build -d
-
-# 3. Check
-curl http://<server-ip>:3000/ready        # {"status":"ok"}
 ```
 
-The API listens on port 3000. Migrations run at boot (`MIGRATE_ON_START=true`). All data lives in `./data`:
+Then open that address on any device on your Wi-Fi. That's it: the database is created on first start, with an
+**Owned** and a **Wishlist** collection ready to go.
+
+### Trust the certificate (once per device)
+
+The app is served over HTTPS by Caddy with its own local certificate. HTTPS is what lets the phone camera scan
+barcodes. To stop the browser warning, install Caddy's root certificate on each device:
+
+```bash
+docker compose cp web:/data/caddy/pki/authorities/local/root.crt ./my-funko-collection-ca.crt
+```
+
+- **iPhone / iPad:** AirDrop or email the file to yourself, open it, then install it in _Settings → Profile
+  Downloaded_, and switch it on in _Settings → General → About → Certificate Trust Settings_.
+- **Android:** _Settings → Security → Encryption & credentials → Install a certificate → CA certificate_.
+- **Mac:** double-click it, then set it to _Always Trust_ in Keychain Access.
+
+Tip: on your phone, use _Add to Home Screen_, and it opens like a regular app.
+
+### Where your data lives
+
+Everything is in `./data`. That one folder is your whole collection:
 
 ```
-data/app.db            SQLite database
-data/uploads/funkos/   images, three WebP sizes per photo
+data/app.db            the SQLite database
+data/uploads/funkos/   your photos, three WebP sizes each
 ```
 
-### Backups
-
-Everything is in `./data`. Copy it while the container runs with:
+**Back it up** while it runs:
 
 ```bash
 sqlite3 data/app.db ".backup data/backup-$(date +%F).db"
 rsync -a data/uploads/ /path/to/backup/uploads/
 ```
 
-Or download a snapshot from the API: `GET /export` (JSON of everything) and `GET /export/items.csv` (a spreadsheet of
-your items).
+Or grab a copy from inside the app: _Settings → Data_ downloads everything as JSON, or your items as a
+spreadsheet (CSV).
 
-### Remote access
+### Using it away from home
 
-There is no login. Keep the port on your LAN. If you want it from outside, put the server on Tailscale (or another
-VPN) rather than forwarding the port.
+There is no login, on purpose: it's meant for your home network. To reach it from outside, put the server on
+[Tailscale](https://tailscale.com) (or another VPN) instead of opening a port on your router.
 
-## Develop
+## Try it without a server
 
-See [`api/README.md`](api/README.md).
+Want a look first? The web app can run on built-in sample data, right in your browser:
+
+```bash
+cd web
+corepack enable && yarn install
+yarn dev:big        # http://localhost:5173 with 330 sample funkos
+```
+
+Changes live in that browser tab only, so play as much as you like.
+
+## How it's built
+
+```
+api/          Fastify 5 + zod + Drizzle on SQLite, sharp for images (Node 24, TypeScript)
+web/          React 19 + Vite 8 + Tailwind 4 + shadcn/ui (Base UI), React Router data mode
+compose.yaml  the home-server deploy: Caddy (HTTPS, serves the app) in front of the API
+docs/         research notes and the screenshots above
+assets/       logo and illustrations
+```
+
+Developing? Each half has its own guide: [`api/README.md`](api/README.md) and [`web/README.md`](web/README.md).
+
+### Why no automatic Funko lookup?
+
+Funko has never published an API (and its terms forbid apps that talk to its services), the one real catalog
+charges at least $1,200 for access, and product photos are Funko's copyright wherever they're hosted. So entry is
+manual (scanning makes it quick) and the photos are your own. The full research is in
+[`docs/funko-data-research.md`](docs/funko-data-research.md).
+
+---
+
+<p align="center">
+  <img src="assets/logo-face.png" alt="" width="48" /><br />
+  <sub>A fan-made hobby project. Funko and Pop! are trademarks of Funko, LLC. This project is not affiliated with or endorsed by Funko.</sub>
+</p>
