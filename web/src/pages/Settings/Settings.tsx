@@ -9,6 +9,7 @@ import ConfigurationSection from './components/ConfigurationSection';
 import DataSection from './components/DataSection';
 import DefaultCollectionSection from './components/DefaultCollectionSection';
 import SecuritySection from './components/SecuritySection';
+import ShortcutsSection from './components/ShortcutsSection';
 import type { loader } from './settingsLoader';
 
 function Settings() {
@@ -24,6 +25,7 @@ function Settings() {
         <SecuritySection passkeys={passkeys} />
         <ConfigurationSection />
         <DataSection />
+        <ShortcutsSection />
         <AboutSection />
       </div>
     </div>

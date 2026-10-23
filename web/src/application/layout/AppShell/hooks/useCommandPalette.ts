@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { SEARCH_SHORTCUT_KEY } from '@utils/keyboardUtils';
 
-const PALETTE_KEY = 'k';
+const PALETTE_KEY = SEARCH_SHORTCUT_KEY;
 
 // ⌘K on Mac, Ctrl+K elsewhere, opens the palette from anywhere; Escape is handled by the dialog itself.
 export function useCommandPalette() {
