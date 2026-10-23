@@ -349,11 +349,15 @@
     animation-timing-function: var(--ease-standard);
   }
 }
-/* The Add page: a photo made main glides to the front while the others shift over (PendingPhotoList); photos and
-   collection cards added or removed make room or close the gap, and the sections around them follow. */
+/* Things that come and go glide instead of jumping. The Add page: a photo made main glides to the front while the
+   others shift over (PendingPhotoList); photos and collection cards added or removed make room or close the gap,
+   and the sections around them follow. Lists: rows the server adds or removes (LIST_ITEM_TRANSITION_CLASS), and
+   filter chips (FilterChips). */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-group(*.pending-photo),
-  ::view-transition-group(*.add-form) {
+  ::view-transition-group(*.add-form),
+  ::view-transition-group(*.list-item),
+  ::view-transition-group(*.filter-chip) {
     animation-duration: 350ms;
     animation-timing-function: var(--ease-standard);
   }

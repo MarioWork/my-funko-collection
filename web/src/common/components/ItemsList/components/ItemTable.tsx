@@ -1,8 +1,9 @@
 import { useTable } from '@tanstack/react-table';
+import { ViewTransition } from 'react';
 import type { CollectionItemApiModel } from '@app-types/models';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@components/ui/table';
 import { cn } from '@utils/classNameUtils';
-import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
+import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS, LIST_ITEM_TRANSITION_CLASS } from '@utils/motionUtils';
 import { TABLE_HEADER_ROW_CLASS } from '@utils/tableUtils';
 import { useItemsListContext } from '../hooks/useItemsListContext';
 import { itemTableFeatures } from './itemTableColumnHelper';
@@ -34,16 +35,15 @@ function ItemTable({ items }: Props) {
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.map((row) => (
-            <TableRow
-              key={row.id}
-              className={cn(FADE_IN_CLASS, DIMMABLE_CLASS, busyItemId === row.original.id && DIMMED_CLASS)}
-            >
-              {row.getAllCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  <table.FlexRender cell={cell} />
-                </TableCell>
-              ))}
-            </TableRow>
+            <ViewTransition key={row.id} default={LIST_ITEM_TRANSITION_CLASS}>
+              <TableRow className={cn(FADE_IN_CLASS, DIMMABLE_CLASS, busyItemId === row.original.id && DIMMED_CLASS)}>
+                {row.getAllCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    <table.FlexRender cell={cell} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            </ViewTransition>
           ))}
         </TableBody>
       </Table>

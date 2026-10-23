@@ -262,6 +262,10 @@ covers what only a person notices: how it looks, feels, reads and recovers.
 
 - [ ] New pages, Add steps, rows, chips, alerts and images fade or rise in; nothing jumps or bounces.
 - [ ] Folding and unfolding (Add page cards, the funko page's collections) eases open and shut.
+- [ ] Rows that come and go glide instead of jumping: a funko page's collection row (Owned / Wishlist, ⋯ → Lists),
+      a collection's items on Remove and Undo (grid, table and phone list), Categories / Series / Tags on add and
+      delete, and filter chips; the rows around them slide into place.
+- [ ] Typing in a search box never animates or freezes what you type; the console shows no errors from any of it.
 - [ ] Lists dim while new results load and come back when they arrive.
 - [ ] With **Reduce motion** on, all of it is instant; nothing slides, pulses or spins except a loading spinner.
 

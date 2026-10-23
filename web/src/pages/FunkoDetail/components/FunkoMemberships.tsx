@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, ViewTransition } from 'react';
 import type { CollectionItemApiModel } from '@app-types/models';
 import { ITEM_CONDITION_LABELS } from '@app-types/utility';
 import FoldPanel from '@components/FoldPanel';
@@ -6,7 +6,7 @@ import FoldToggle from '@components/FoldToggle';
 import { useItemActions } from '@hooks/useItemActions';
 import { cn } from '@utils/classNameUtils';
 import { formatCents } from '@utils/moneyUtils';
-import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
+import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS, LIST_ITEM_TRANSITION_CLASS } from '@utils/motionUtils';
 import MembershipActions from './MembershipActions';
 import MembershipDetails from './MembershipDetails';
 
@@ -79,7 +79,9 @@ function FunkoMemberships({ items }: Props) {
       ) : (
         <ul className="-mr-3 -ml-1 flex min-h-0 flex-col divide-y overflow-y-auto pr-3 pl-1">
           {items.map((item) => (
-            <MembershipRow key={item.id} item={item} isBusy={busyItemId === item.id} onRemove={remove} />
+            <ViewTransition key={item.id} default={LIST_ITEM_TRANSITION_CLASS}>
+              <MembershipRow item={item} isBusy={busyItemId === item.id} onRemove={remove} />
+            </ViewTransition>
           ))}
         </ul>
       )}
