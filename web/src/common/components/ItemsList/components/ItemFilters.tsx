@@ -1,8 +1,8 @@
 import type { CategoryApiModel, CollectionApiModel, TagApiModel } from '@app-types/models';
 import { ITEM_CONDITION_LABELS, ItemConditionUtil } from '@app-types/utility';
+import SelectFilter from '@components/SelectFilter';
 import { Field, FieldLabel } from '@components/ui/field';
 import { Input } from '@components/ui/input';
-import { NativeSelect, NativeSelectOption } from '@components/ui/native-select';
 import type { ItemFilterField } from '@hooks/useItemListParams';
 import { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
 
@@ -14,33 +14,6 @@ type Props = {
   filters: Record<ItemFilterField, string | undefined>;
   onChange: (field: ItemFilterField, value: string | undefined) => void;
 };
-
-type SelectFilterProps = {
-  id: string;
-  label: string;
-  anyLabel: string;
-  value: string | undefined;
-  options: { value: string; label: string }[];
-  onChange: (value: string | undefined) => void;
-};
-
-const ANY = '';
-
-function SelectFilter({ id, label, anyLabel, value, options, onChange }: SelectFilterProps) {
-  return (
-    <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <NativeSelect id={id} value={value ?? ANY} onChange={(event) => onChange(event.target.value || undefined)}>
-        <NativeSelectOption value={ANY}>{anyLabel}</NativeSelectOption>
-        {options.map((option) => (
-          <NativeSelectOption key={option.value} value={option.value}>
-            {option.label}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
-    </Field>
-  );
-}
 
 const named = (rows: { id: number; name: string }[]) => rows.map((row) => ({ value: String(row.id), label: row.name }));
 

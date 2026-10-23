@@ -74,6 +74,11 @@ export const ListFunkosQuerySchema = PaginationQuerySchema.extend({
   collectionId: IdListQuerySchema.optional(),
   collection: ContainsQuerySchema,
   notInCollectionId: IdListQuerySchema.optional(),
+  // false: in no collection at all; true: in at least one.
+  hasCollections: BooleanQuerySchema.optional(),
+  hasSeries: BooleanQuerySchema.optional(),
+  // false: none of its items carries a tag.
+  hasTags: BooleanQuerySchema.optional(),
   hasImages: BooleanQuerySchema.optional(),
 });
 

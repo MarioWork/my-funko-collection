@@ -140,6 +140,20 @@ describe('GET /funkos', () => {
     expect(names(response.json<ListBody>())).toEqual(['Thanos', 'Thanos']);
   });
 
+  it('lists funkos in no collection and funkos with no tags', async () => {
+    await seedCatalog();
+
+    const inNone = await app.inject({ method: 'GET', url: URL, query: { hasCollections: 'false' } });
+    const inSome = await app.inject({ method: 'GET', url: URL, query: { hasCollections: 'true' } });
+    const untagged = await app.inject({ method: 'GET', url: URL, query: { hasTags: 'false' } });
+    const tagged = await app.inject({ method: 'GET', url: URL, query: { hasTags: 'true' } });
+
+    expect(names(inNone.json<ListBody>())).toEqual(['Thanos']);
+    expect(names(inSome.json<ListBody>())).toEqual(['Darth Vader', 'Spider-Man', 'Thanos']);
+    expect(names(untagged.json<ListBody>())).toEqual(['Darth Vader', 'Thanos', 'Thanos']);
+    expect(names(tagged.json<ListBody>())).toEqual(['Spider-Man']);
+  });
+
   it('sorts by the numeric value of the box number', async () => {
     const category = await createCategory();
     await createFunko({ name: 'Ten', number: '10', categoryId: category.id });
@@ -470,6 +484,18 @@ describe('series on funkos', () => {
 
     expect(names(byIds.json<ListBody>())).toEqual(['Eleven', 'Grogu']);
     expect(names(byName.json<ListBody>())).toEqual(['Eleven']);
+  });
+
+  it('lists funkos with no series and with one through hasSeries', async () => {
+    const strangerThings = await createSeries('Stranger Things');
+    await createFunko({ name: 'Eleven', seriesId: strangerThings.id });
+    await createFunko({ name: 'Groot' });
+
+    const without = await app.inject({ method: 'GET', url: URL, query: { hasSeries: 'false' } });
+    const withSeries = await app.inject({ method: 'GET', url: URL, query: { hasSeries: 'true' } });
+
+    expect(names(without.json<ListBody>())).toEqual(['Groot']);
+    expect(names(withSeries.json<ListBody>())).toEqual(['Eleven']);
   });
 
   it('finds a funko through its series name with q and reports SERIES', async () => {

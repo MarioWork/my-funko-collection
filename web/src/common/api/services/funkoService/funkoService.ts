@@ -90,6 +90,9 @@ export const FunkoApiSearchFields = {
   COLLECTION_ID: 'collectionId',
   COLLECTION: 'collection',
   NOT_IN_COLLECTION_ID: 'notInCollectionId',
+  HAS_COLLECTIONS: 'hasCollections',
+  HAS_SERIES: 'hasSeries',
+  HAS_TAGS: 'hasTags',
   HAS_IMAGES: 'hasImages',
 } as const;
 export type FunkoApiSearchFields = (typeof FunkoApiSearchFields)[keyof typeof FunkoApiSearchFields];

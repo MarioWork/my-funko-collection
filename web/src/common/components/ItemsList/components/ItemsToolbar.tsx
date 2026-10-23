@@ -6,7 +6,7 @@ import SearchInput from '@components/SearchInput';
 import LayoutToggle from '@components/LayoutToggle';
 import SortSelect from '@components/SortSelect';
 import { useItemListParams } from '@hooks/useItemListParams';
-import { ITEM_SORT_OPTIONS } from '@utils/itemListUtils';
+import { ITEM_SORT_FIELDS } from '@utils/itemListUtils';
 import type { FunkoLayoutUtil } from '@utils/layoutUtils';
 import ItemFilters from './ItemFilters';
 
@@ -48,7 +48,7 @@ function ItemsToolbar({
           placeholder="Search by name…"
           className="min-w-56 flex-1"
         />
-        <SortSelect options={ITEM_SORT_OPTIONS} field={sort.field} direction={sort.direction} onChange={setSort} />
+        <SortSelect fields={ITEM_SORT_FIELDS} field={sort.field} direction={sort.direction} onChange={setSort} />
         <FilterPanel activeCount={chips.length} resultCount={resultCount}>
           <ItemFilters
             categories={categories}

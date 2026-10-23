@@ -81,6 +81,9 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
   const collectionIds = idList(params.get(FunkoApiSearchFields.COLLECTION_ID));
   const collection = params.get(FunkoApiSearchFields.COLLECTION);
   const notInCollectionIds = idList(params.get(FunkoApiSearchFields.NOT_IN_COLLECTION_ID));
+  const hasCollections = params.get(FunkoApiSearchFields.HAS_COLLECTIONS);
+  const hasSeries = params.get(FunkoApiSearchFields.HAS_SERIES);
+  const hasTags = params.get(FunkoApiSearchFields.HAS_TAGS);
   const hasImages = params.get(FunkoApiSearchFields.HAS_IMAGES);
 
   return mockStore.funkos.filter((row) => {
@@ -106,6 +109,9 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
       !collectionIds || collectionIds.some((collectionId) => rowCollectionIds.has(collectionId)),
       !collection || collectionNames(row).some((collectionName) => contains(collectionName, collection)),
       !notInCollectionIds || !notInCollectionIds.some((collectionId) => rowCollectionIds.has(collectionId)),
+      hasCollections === null || rowCollectionIds.size > 0 === (hasCollections === 'true'),
+      hasSeries === null || (row.seriesId !== null) === (hasSeries === 'true'),
+      hasTags === null || rowTagIds.size > 0 === (hasTags === 'true'),
       hasImages === null || imageCount > 0 === (hasImages === 'true'),
     ];
 

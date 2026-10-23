@@ -1,5 +1,6 @@
 import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE, SortingDirectionUtil } from '@app-types/utility';
-import type { SortOption } from '@components/SortSelect';
+import type { SortField } from '@components/SortSelect';
+import { DATE_LABELS, ALPHABETICAL_LABELS, NUMERIC_LABELS } from '@utils/sortUtils';
 import {
   ItemApiSearchFields,
   ItemApiSortingFields,
@@ -12,15 +13,37 @@ export const ITEM_OPTIONS_PAGE_SIZE = '100';
 const SORT_FIELDS = new Set<string>(Object.values(ItemApiSortingFields));
 const DIRECTIONS = new Set<string>(Object.values(SortingDirectionUtil));
 
-export const ITEM_SORT_OPTIONS: SortOption[] = [
-  { field: ItemApiSortingFields.CREATION_DATE, direction: SortingDirectionUtil.DESC, label: 'Newest first' },
-  { field: ItemApiSortingFields.CREATION_DATE, direction: SortingDirectionUtil.ASC, label: 'Oldest first' },
-  { field: ItemApiSortingFields.NAME, direction: SortingDirectionUtil.ASC, label: 'Name A–Z' },
-  { field: ItemApiSortingFields.NAME, direction: SortingDirectionUtil.DESC, label: 'Name Z–A' },
-  { field: ItemApiSortingFields.NUMBER, direction: SortingDirectionUtil.ASC, label: 'Number, low first' },
-  { field: ItemApiSortingFields.PURCHASE_DATE, direction: SortingDirectionUtil.DESC, label: 'Bought last' },
-  { field: ItemApiSortingFields.PURCHASE_PRICE, direction: SortingDirectionUtil.DESC, label: 'Price, high first' },
-  { field: ItemApiSortingFields.PURCHASE_PRICE, direction: SortingDirectionUtil.ASC, label: 'Price, low first' },
+export const ITEM_SORT_FIELDS: SortField[] = [
+  {
+    field: ItemApiSortingFields.CREATION_DATE,
+    label: 'Date added',
+    defaultDirection: SortingDirectionUtil.DESC,
+    directionLabels: DATE_LABELS,
+  },
+  {
+    field: ItemApiSortingFields.NAME,
+    label: 'Name',
+    defaultDirection: SortingDirectionUtil.ASC,
+    directionLabels: ALPHABETICAL_LABELS,
+  },
+  {
+    field: ItemApiSortingFields.NUMBER,
+    label: 'Number',
+    defaultDirection: SortingDirectionUtil.ASC,
+    directionLabels: NUMERIC_LABELS,
+  },
+  {
+    field: ItemApiSortingFields.PURCHASE_DATE,
+    label: 'Date bought',
+    defaultDirection: SortingDirectionUtil.DESC,
+    directionLabels: DATE_LABELS,
+  },
+  {
+    field: ItemApiSortingFields.PURCHASE_PRICE,
+    label: 'Price',
+    defaultDirection: SortingDirectionUtil.DESC,
+    directionLabels: NUMERIC_LABELS,
+  },
 ];
 
 export type ItemListState = {

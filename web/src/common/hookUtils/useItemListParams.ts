@@ -61,7 +61,7 @@ export function useItemListParams({ categories, tags, collections, hasCollection
     query,
     filters,
     chips,
-    setQuery: (value: string) => setParams({ [ItemApiSearchFields.NAME]: value }),
+    setQuery: (value: string) => setParams({ [ItemApiSearchFields.NAME]: value }, { isTyping: true }),
     setFilter: (field: ItemFilterField, value: string | undefined) => setParams({ [field]: value }),
     setSort: ({ field, direction }: SortOption) =>
       setParams({ [ApiUrlParamsUtil.sorting_fields]: field, [ApiUrlParamsUtil.sortingDirection]: direction }),

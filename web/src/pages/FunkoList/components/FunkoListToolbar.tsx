@@ -5,7 +5,7 @@ import LayoutToggle from '@components/LayoutToggle';
 import SortSelect from '@components/SortSelect';
 import type { FunkoLayoutUtil } from '@utils/layoutUtils';
 import { FunkoApiSortingFields } from '@services/funkoService/funkoService';
-import { buildQuickFilters, FUNKO_SORT_OPTIONS } from '../funkoListUtils';
+import { buildQuickFilters, FUNKO_SORT_FIELDS } from '../funkoListUtils';
 import { useFunkoListParams } from '../hooks/useFunkoListParams';
 import FunkoFilters from './FunkoFilters';
 import QuickFilters from './QuickFilters';
@@ -17,10 +17,10 @@ type Props = {
 
 // Search, sort, filters and the layout choice; quick filters under them, then the other applied filters.
 function FunkoListToolbar({ layout, onLayoutChange }: Props) {
-  const { data, query, filters, chips, setQuery, setFilter, setSort, clearFilters } = useFunkoListParams();
-  const sortOptions = query
-    ? FUNKO_SORT_OPTIONS
-    : FUNKO_SORT_OPTIONS.filter((option) => option.field !== FunkoApiSortingFields.RELEVANCE);
+  const { data, query, filters, chips, setQuery, setFilter, setFilters, setSort, clearFilters } = useFunkoListParams();
+  const sortFields = query
+    ? FUNKO_SORT_FIELDS
+    : FUNKO_SORT_FIELDS.filter((option) => option.field !== FunkoApiSortingFields.RELEVANCE);
   const quickFilters = buildQuickFilters(data.collections);
   // A filter set by a pressed quick chip is already on screen; listing it again under "Applied" would repeat it.
   const otherChips = chips.filter(
@@ -37,7 +37,7 @@ function FunkoListToolbar({ layout, onLayoutChange }: Props) {
           placeholder="Search name, number, series, tag…"
           className="min-w-56 flex-1"
         />
-        <SortSelect options={sortOptions} field={data.sort.field} direction={data.sort.direction} onChange={setSort} />
+        <SortSelect fields={sortFields} field={data.sort.field} direction={data.sort.direction} onChange={setSort} />
         <FilterPanel activeCount={chips.length} resultCount={data.funkosResponse.totalResultNumber}>
           <FunkoFilters
             categories={data.categories}
@@ -45,7 +45,7 @@ function FunkoListToolbar({ layout, onLayoutChange }: Props) {
             collections={data.collections}
             tags={data.tags}
             filters={filters}
-            onChange={setFilter}
+            onChange={setFilters}
           />
         </FilterPanel>
         {/* Right-aligned beside the filters; on a phone they wrap to their own row and start at the left. */}

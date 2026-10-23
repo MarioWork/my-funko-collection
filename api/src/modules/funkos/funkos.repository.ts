@@ -1,4 +1,19 @@
-import { and, asc, count, desc, eq, exists, inArray, notExists, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  exists,
+  inArray,
+  isNotNull,
+  isNull,
+  notExists,
+  or,
+  sql,
+  type SQL,
+  type SQLWrapper,
+} from 'drizzle-orm';
 import { db, type DbExecutor } from '../../db/client.ts';
 import { likeContains } from '../../db/like.ts';
 import { categories } from '../../db/schema/categories.ts';
@@ -159,6 +174,10 @@ function buildListFilter(query: ListFunkosQuery): SQL | undefined {
           ),
       )
     : undefined;
+  const hasCollectionsFilter =
+    query.hasCollections === undefined ? undefined : hasCollectionsFilterFor(query.hasCollections);
+  const hasSeriesFilter = query.hasSeries === undefined ? undefined : hasSeriesFilterFor(query.hasSeries);
+  const hasTagsFilter = query.hasTags === undefined ? undefined : hasTagsFilterFor(query.hasTags);
   const hasImagesFilter = query.hasImages === undefined ? undefined : hasImagesFilterFor(query.hasImages);
 
   return and(
@@ -178,8 +197,35 @@ function buildListFilter(query: ListFunkosQuery): SQL | undefined {
     collectionIdFilter,
     collectionNameFilter,
     notInCollectionFilter,
+    hasCollectionsFilter,
+    hasSeriesFilter,
+    hasTagsFilter,
     hasImagesFilter,
   );
+}
+
+function hasCollectionsFilterFor(hasCollections: boolean): SQL {
+  const itemsSubquery = db
+    .select({ one: sql`1` })
+    .from(collectionItems)
+    .where(eq(collectionItems.funkoId, funkos.id));
+
+  return hasCollections ? exists(itemsSubquery) : notExists(itemsSubquery);
+}
+
+function hasSeriesFilterFor(hasSeries: boolean): SQL {
+  return hasSeries ? isNotNull(funkos.seriesId) : isNull(funkos.seriesId);
+}
+
+// A tag sits on an item, so "has tags" means any of the funko's items carries one.
+function hasTagsFilterFor(hasTags: boolean): SQL {
+  const tagsSubquery = db
+    .select({ one: sql`1` })
+    .from(collectionItemTags)
+    .innerJoin(collectionItems, eq(collectionItems.id, collectionItemTags.collectionItemId))
+    .where(eq(collectionItems.funkoId, funkos.id));
+
+  return hasTags ? exists(tagsSubquery) : notExists(tagsSubquery);
 }
 
 function hasImagesFilterFor(hasImages: boolean): SQL {
