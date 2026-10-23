@@ -1,6 +1,6 @@
 // The .xlsx exports: typed cells, a coloured frozen header with filter arrows, striped rows, chase funkos in gold,
-// long text wrapped instead of spilling, photo links as short "3 photos" links, a list's funkos folded under each
-// entry, and a funko's photos on a sheet of their own.
+// long text wrapped instead of spilling, one short "Open" link per image, a list's funkos folded under each entry,
+// and a funko's images on a sheet of their own.
 import writeExcelFile, { type Cell, type Row } from 'write-excel-file/node';
 import { COLUMNS, IMAGE_COLUMNS, LIST_COLUMNS, type CellValue, type SheetColumn } from './export.formats.ts';
 import type { ListEntry } from './export.lines.ts';
@@ -15,11 +15,11 @@ const IMAGES_SHEET_NAME = 'Images';
 const HEADER_ROWS = 1;
 const FIRST_DATA_ROW = HEADER_ROWS + 1;
 const CHASE_COLUMN_HEADER = 'is_chase';
-const PHOTOS_COLUMN_HEADER = 'photo_urls';
+const IMAGES_COLUMN_HEADER = 'image_urls';
 // Text that may be long wraps inside its column (taller row) instead of running over the next ones.
 const WRAPPED_COLUMN_HEADERS = new Set(['collection', 'name', 'category', 'series', 'exclusive', 'tags', 'notes']);
-// A short link instead of a column of addresses; every link is still in the CSV and the JSON.
-const PHOTOS_COLUMN_WIDTH = 11;
+// One column per image ("Image 1" is the main one), each a short link; a cell holds one link only. As many
+// columns as the funko with the most images needs.
 const IMAGE_LINK_COLUMN_WIDTH = 9;
 const IMAGE_LINK_TEXT = 'Open';
 // Row height for wrapped text: Excel does not grow a row by itself when a file is opened, so it is estimated here.
@@ -74,10 +74,6 @@ function toLinkCell(url: string, text: string): Cell {
   return { type: 'Formula', value: `HYPERLINK(${quoted(url)},${quoted(text)})`, alignVertical: 'top', ...LINK_STYLE };
 }
 
-function photoCountLabel(count: number): string {
-  return count === 1 ? '1 photo' : `${count} photos`;
-}
-
 // How many lines a wrapped cell needs at its column's width, at most MAX_LINES_PER_ROW.
 function linesNeeded(value: CellValue, width: number): number {
   if (typeof value !== 'string' || value.length === 0) return 1;
@@ -85,23 +81,31 @@ function linesNeeded(value: CellValue, width: number): number {
   return Math.min(MAX_LINES_PER_ROW, Math.ceil(value.length / (width * CHARACTERS_PER_WIDTH_UNIT)));
 }
 
-// A funko line as sheet cells: everything at the top of its row, long text wrapped (the row grown to fit), and the
-// photos as one link to the main photo, named with how many there are.
-function toFunkoRow(line: FunkoExportLine): Row {
+// The columns that hold text, then one "Image n" column per image of the funko with the most: the spreadsheet's
+// funko columns for these lines.
+function sheetFunkoColumns(lines: FunkoExportLine[]): SheetColumn[] {
+  const imageColumnCount = Math.max(0, ...lines.map((line) => line.funko.imageUrls.length));
+  const textColumns = COLUMNS.filter((column) => column.csvHeader !== IMAGES_COLUMN_HEADER);
+  const imageColumns = Array.from({ length: imageColumnCount }, (_, index) => ({
+    title: `Image ${index + 1}`,
+    width: IMAGE_LINK_COLUMN_WIDTH,
+  }));
+
+  return [...textColumns, ...imageColumns];
+}
+
+const TEXT_COLUMNS = COLUMNS.filter((column) => column.csvHeader !== IMAGES_COLUMN_HEADER);
+
+// A funko line as sheet cells: everything at the top of its row, long text wrapped (the row grown to fit), then an
+// "Open" link per image, up to `imageColumnCount` (blank where this funko has fewer).
+function toFunkoRow(line: FunkoExportLine, imageColumnCount: number): Row {
   const lineCount = Math.max(
-    ...COLUMNS.filter((column) => WRAPPED_COLUMN_HEADERS.has(column.csvHeader)).map((column) =>
+    ...TEXT_COLUMNS.filter((column) => WRAPPED_COLUMN_HEADERS.has(column.csvHeader)).map((column) =>
       linesNeeded(column.valueOf(line), column.width),
     ),
   );
   const height = lineCount > 1 ? lineCount * LINE_HEIGHT_POINTS : undefined;
-
-  return COLUMNS.map((column, index) => {
-    if (column.csvHeader === PHOTOS_COLUMN_HEADER) {
-      const [mainPhoto] = line.funko.photoUrls;
-
-      return mainPhoto ? toLinkCell(mainPhoto, photoCountLabel(line.funko.photoUrls.length)) : null;
-    }
-
+  const textCells: Row = TEXT_COLUMNS.map((column, index) => {
     const value = column.valueOf(line);
 
     if (value === null) return null;
@@ -111,12 +115,18 @@ function toFunkoRow(line: FunkoExportLine): Row {
 
     return { value, format: column.format, wrap, alignVertical: 'top', ...rowHeight };
   });
+  const imageCells: Row = Array.from({ length: imageColumnCount }, (_, index) => {
+    const url = line.funko.imageUrls[index];
+
+    return url ? toLinkCell(url, IMAGE_LINK_TEXT) : null;
+  });
+
+  return [...textCells, ...imageCells];
 }
 
-// The funko columns as the spreadsheet sizes them (the photos column only holds a short link).
-const SHEET_FUNKO_COLUMNS: SheetColumn[] = COLUMNS.map((column) =>
-  column.csvHeader === PHOTOS_COLUMN_HEADER ? { ...column, width: PHOTOS_COLUMN_WIDTH } : column,
-);
+function imageColumnCountOf(columns: SheetColumn[]): number {
+  return columns.length - TEXT_COLUMNS.length;
+}
 
 // A table sheet: coloured frozen header with filter arrows, sized columns, optional stripes and chase highlight.
 function toTableSheet({ name, columns, rows, isStriped, chaseColumn, groups }: TableOptions): BuiltSheet {
@@ -148,7 +158,13 @@ function toTableSheet({ name, columns, rows, isStriped, chaseColumn, groups }: T
       // First match wins: a chase row stays gold on a striped line.
       conditionalFormatting: [...chaseRule, ...stripeRule],
     },
-    organization: { sheetName: name, filter: { rowCount: lastRow, columnCount: columns.length }, groups },
+    // No filter on a folded sheet: LibreOffice reads rows that are both hidden and inside a filter range as
+    // filtered out, and a filtered row cannot be unfolded with "+".
+    organization: {
+      sheetName: name,
+      filter: groups ? undefined : { rowCount: lastRow, columnCount: columns.length },
+      groups,
+    },
   };
 }
 
@@ -166,13 +182,15 @@ function columnLetter(column: number): string {
   return letters;
 }
 
-const CHASE_COLUMN = COLUMNS.findIndex((column) => column.csvHeader === CHASE_COLUMN_HEADER) + 1;
+const CHASE_COLUMN = TEXT_COLUMNS.findIndex((column) => column.csvHeader === CHASE_COLUMN_HEADER) + 1;
 
 function toFunkosSheet(lines: FunkoExportLine[]): BuiltSheet {
+  const columns = sheetFunkoColumns(lines);
+
   return toTableSheet({
     name: FUNKOS_SHEET_NAME,
-    columns: SHEET_FUNKO_COLUMNS,
-    rows: lines.map(toFunkoRow),
+    columns,
+    rows: lines.map((line) => toFunkoRow(line, imageColumnCountOf(columns))),
     isStriped: true,
     chaseColumn: CHASE_COLUMN,
   });
@@ -206,8 +224,8 @@ const ENTRY_SUMMARIES: Record<ExportListKind, (summary: ListEntry['summary']) =>
 };
 
 // The entry's row: its name (bold) across the first columns, its totals across the rest.
-function toEntryRow(kind: ExportListKind, entry: ListEntry): Row {
-  const restSpan = COLUMNS.length - NAME_SPAN;
+function toEntryRow(kind: ExportListKind, entry: ListEntry, columnCount: number): Row {
+  const restSpan = columnCount - NAME_SPAN;
 
   return [
     { value: entry.name, columnSpan: NAME_SPAN, ...GROUP_TITLE_STYLE },
@@ -224,20 +242,21 @@ function toFoldedListSheet(kind: ExportListKind, groups: FunkoGroup[]): BuiltShe
   const rows: Row[] = [];
   const memberRows = new Set<number>();
   const titleRows = new Set<number>();
+  const columns = sheetFunkoColumns(groups.flatMap((group) => group.lines));
 
   for (const group of groups) {
-    rows.push(toEntryRow(kind, group.entry));
+    rows.push(toEntryRow(kind, group.entry, columns.length));
     titleRows.add(rows.length + HEADER_ROWS);
 
     for (const line of group.lines) {
-      rows.push(toFunkoRow(line));
+      rows.push(toFunkoRow(line, imageColumnCountOf(columns)));
       memberRows.add(rows.length + HEADER_ROWS);
     }
   }
 
   return toTableSheet({
     name: LIST_SHEET_NAMES[kind],
-    columns: SHEET_FUNKO_COLUMNS,
+    columns,
     rows,
     isStriped: false,
     chaseColumn: CHASE_COLUMN,
@@ -252,12 +271,12 @@ async function writeWorkbook(builtSheets: BuiltSheet[], extraSheets: Sheet[] = [
   return writeExcelFile(sheets, { features: [organizeSheets(organizations)] }).toBuffer();
 }
 
-// --- A funko's photos ---------------------------------------------------------------------------------------------
+// --- A funko's images ---------------------------------------------------------------------------------------------
 
-// A photo to place on the Photos sheet, already JPEG (Excel cannot show WebP).
-export type SheetPhoto = { content: Buffer; width: number; height: number };
+// An image to place on the Images sheet, already JPEG (Excel cannot show WebP).
+export type SheetImage = { content: Buffer; width: number; height: number };
 
-const PHOTOS_SHEET_NAME = 'Photos';
+const FUNKO_IMAGES_SHEET_NAME = 'Images';
 const JPEG_CONTENT_TYPE = 'image/jpeg';
 // Each photo is shown this wide, its height kept in proportion, in a row exactly that tall (Excel, Numbers and
 // LibreOffice disagree on the default row height, so counting default rows would make photos overlap).
@@ -269,12 +288,12 @@ const PHOTO_COLUMN_WIDTH = 50;
 const PHOTO_COLUMN = 2;
 const SCREEN_DPI = 96;
 
-// One photo per row, its number beside it at the top.
-function toPhotosSheet(photos: SheetPhoto[]): Sheet {
+// One image per row, its number beside it at the top.
+function toFunkoImagesSheet(photos: SheetImage[]): Sheet {
   const heights = photos.map((photo) => Math.round((photo.height / photo.width) * PHOTO_DISPLAY_WIDTH));
   const data: Row[] = heights.map((height, index) => [
     {
-      value: `Photo ${index + 1}`,
+      value: `Image ${index + 1}`,
       alignVertical: 'top',
       height: Math.ceil((height + PHOTO_ROW_PADDING_PX) * POINTS_PER_PIXEL),
     },
@@ -289,7 +308,7 @@ function toPhotosSheet(photos: SheetPhoto[]): Sheet {
   }));
 
   return {
-    sheet: PHOTOS_SHEET_NAME,
+    sheet: FUNKO_IMAGES_SHEET_NAME,
     data,
     columns: [{ width: LABEL_COLUMN_WIDTH }, { width: PHOTO_COLUMN_WIDTH }],
     images,
@@ -298,9 +317,9 @@ function toPhotosSheet(photos: SheetPhoto[]): Sheet {
 
 // --- The downloads ------------------------------------------------------------------------------------------------
 
-// The funkos of a scope; with `photos` (a single funko), a second sheet shows them.
-export async function toSpreadsheet(lines: FunkoExportLine[], photos: SheetPhoto[] = []): Promise<Buffer> {
-  const photoSheets = photos.length > 0 ? [toPhotosSheet(photos)] : [];
+// The funkos of a scope; with `photos` (a single funko's images), a second sheet shows them.
+export async function toSpreadsheet(lines: FunkoExportLine[], photos: SheetImage[] = []): Promise<Buffer> {
+  const photoSheets = photos.length > 0 ? [toFunkoImagesSheet(photos)] : [];
 
   return writeWorkbook([toFunkosSheet(lines)], photoSheets);
 }

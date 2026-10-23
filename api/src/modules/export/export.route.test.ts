@@ -82,7 +82,7 @@ describe('GET /export/items.csv', () => {
     expect(response.headers['content-type']).toBe('text/csv; charset=utf-8');
     const [header, line] = response.body.split('\r\n');
     expect(header).toBe(
-      'collection,funko_id,name,number,category,series,type,is_chase,exclusive,barcode,quantity,condition,purchase_price,purchase_currency,purchased_at,tags,notes,photo_urls',
+      'collection,funko_id,name,number,category,series,type,is_chase,exclusive,barcode,quantity,condition,purchase_price,purchase_currency,purchased_at,tags,notes,image_urls',
     );
     expect(line).toBe(
       `Owned,${funko.id},"Spider-Man, ""Classic""",03,Pop! Marvel,Homecoming,POP,false,,,1,,14.99,EUR,2024-03-02,Box 3,,`,
@@ -343,7 +343,8 @@ describe('GET /export/<list>.{csv,json,xlsx}', () => {
     // Header, "Empty series" (nothing to open), "Homecoming" (collapsed), its one funko (hidden inside the group).
     expect(sheet).toMatch(/<row r="3"[^>]*collapsed="1"/);
     expect(sheet).toMatch(/<row r="4"[^>]*outlineLevel="1"[^>]*hidden="1"/);
-    expect(sheet).toContain('<autoFilter ref="A1:R4"/>');
+    // No filter arrows here: LibreOffice reads hidden rows inside a filter range as filtered out, not folded.
+    expect(sheet).not.toContain('<autoFilter');
   });
 
   it('keeps the plain table when funkos are not included', async () => {
@@ -367,17 +368,17 @@ describe('GET /export/<list>.{csv,json,xlsx}', () => {
 describe('GET /export/funkos.{csv,json,xlsx}?funkoId=', () => {
   async function seedWithPhotos() {
     const { funko } = await seed();
-    const photos = [await makeImage({ width: 600, height: 800 }), await makeImage({ width: 800, height: 600 })];
+    const images = [await makeImage({ width: 600, height: 800 }), await makeImage({ width: 800, height: 600 })];
     await api.inject({
       method: 'POST',
       url: `/funkos/${funko.id}/images`,
-      payload: toFormData(photos.map((buffer) => ({ buffer }))),
+      payload: toFormData(images.map((buffer) => ({ buffer }))),
     });
 
     return funko;
   }
 
-  it('links every photo in full size when one funko is exported as JSON', async () => {
+  it('links every image in full size when one funko is exported as JSON', async () => {
     const funko = await seedWithPhotos();
 
     const response = await api.inject({
@@ -388,16 +389,16 @@ describe('GET /export/funkos.{csv,json,xlsx}?funkoId=', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-disposition']).toBe('attachment; filename="funko-spider-man-classic.json"');
-    const body = response.json<{ scope: unknown; funkos: { photoUrls: string[] }[] }>();
+    const body = response.json<{ scope: unknown; funkos: { imageUrls: string[] }[] }>();
     expect(body.scope).toEqual({ kind: 'funko', name: 'Spider-Man, "Classic"' });
     expect(body.funkos).toHaveLength(1);
-    expect(body.funkos[0]?.photoUrls).toEqual([
+    expect(body.funkos[0]?.imageUrls).toEqual([
       expect.stringMatching(new RegExp(`^http://localhost:5173/uploads/funkos/${funko.id}/.+\\.webp$`)),
       expect.stringMatching(/\.webp$/),
     ]);
   });
 
-  it('puts the photo links in the last CSV column when one funko is exported as CSV', async () => {
+  it('puts the image links in the last CSV column when one funko is exported as CSV', async () => {
     const funko = await seedWithPhotos();
 
     const response = await api.inject({
@@ -410,7 +411,7 @@ describe('GET /export/funkos.{csv,json,xlsx}?funkoId=', () => {
     expect(line?.split(',').at(-1)?.split(' ')).toHaveLength(2);
   });
 
-  it('embeds the photos on a sheet of their own when one funko is exported as a spreadsheet', async () => {
+  it('embeds the images on a sheet of their own when one funko is exported as a spreadsheet', async () => {
     const funko = await seedWithPhotos();
 
     const response = await api.inject({
@@ -426,7 +427,7 @@ describe('GET /export/funkos.{csv,json,xlsx}?funkoId=', () => {
     expect(response.rawPayload.includes('xl/media/sheet2-image2.jpeg')).toBe(true);
   });
 
-  it('shows the photos as one short link to the main photo when one funko is exported as a spreadsheet', async () => {
+  it('gives each image its own short Open link when one funko is exported as a spreadsheet', async () => {
     const funko = await seedWithPhotos();
 
     const response = await api.inject({
@@ -437,11 +438,11 @@ describe('GET /export/funkos.{csv,json,xlsx}?funkoId=', () => {
 
     const sheet = readXlsxFile(response.rawPayload, 'xl/worksheets/sheet1.xml') ?? '';
     expect(sheet).toMatch(
-      /<f>HYPERLINK\("http:\/\/localhost:5173\/uploads\/funkos\/\d+\/[^"]+\.webp","2 photos"\)<\/f>/,
+      /<f>HYPERLINK\("http:\/\/localhost:5173\/uploads\/funkos\/\d+\/[^"]+\.webp","Open"\)<\/f>.*<f>HYPERLINK\("[^"]+","Open"\)<\/f>/,
     );
   });
 
-  it('keeps the spreadsheet to one sheet when the funko has no photos', async () => {
+  it('keeps the spreadsheet to one sheet when the funko has no images', async () => {
     const { funko } = await seed();
 
     const response = await api.inject({

@@ -6,7 +6,7 @@ import type { ExportListKind, FunkoExport, FunkoExportLine, ImageExport } from '
 const CSV_SEPARATOR = ',';
 const CSV_LINE_BREAK = '\r\n';
 const TAG_SEPARATOR = '; ';
-const PHOTO_URL_SEPARATOR = ' ';
+const IMAGE_URL_SEPARATOR = ' ';
 const NEEDS_QUOTING = /[",\r\n]/;
 // A cell a spreadsheet would run as a formula (=, +, -, @, or a leading tab or return). Plain numbers like -12.50
 // stay numbers.
@@ -60,10 +60,10 @@ export const COLUMNS: ExportColumn[] = [
   { csvHeader: 'tags', title: 'Tags', width: 20, valueOf: (line) => line.item?.tags.join(TAG_SEPARATOR) ?? '' },
   { csvHeader: 'notes', title: 'Notes', width: 30, valueOf: (line) => line.item?.notes ?? null },
   {
-    csvHeader: 'photo_urls',
-    title: 'Photos',
+    csvHeader: 'image_urls',
+    title: 'Images',
     width: 40,
-    valueOf: (line) => line.funko.photoUrls.join(PHOTO_URL_SEPARATOR),
+    valueOf: (line) => line.funko.imageUrls.join(IMAGE_URL_SEPARATOR),
   },
 ];
 

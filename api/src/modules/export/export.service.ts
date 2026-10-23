@@ -27,7 +27,7 @@ import type {
   ImagesExportResponse,
   ListExportResponse,
 } from './export.schema.ts';
-import { toImagesSpreadsheet, toListSpreadsheet, toSpreadsheet, type SheetPhoto } from './export.spreadsheet.ts';
+import { toImagesSpreadsheet, toListSpreadsheet, toSpreadsheet, type SheetImage } from './export.spreadsheet.ts';
 
 const LIST_FILE_PREFIX = 'my-funko-collection';
 const WITH_FUNKOS_SUFFIX = '-with-funkos';
@@ -90,13 +90,13 @@ async function getScopedLines(query: ExportFunkosQuery) {
   return { scope, lines: collectScopedLines(scope, data, lookups), lookups };
 }
 
-// One funko's photos for the spreadsheet, main first, at the 480 px size (sharp enough at the size shown, and it
+// One funko's images for the spreadsheet, main first, at the 480 px size (sharp enough at the size shown, and it
 // keeps the file small). A file missing on disk is left out.
-async function loadSheetPhotos(funkoId: number, lookups: Lookups): Promise<SheetPhoto[]> {
+async function loadSheetImages(funkoId: number, lookups: Lookups): Promise<SheetImage[]> {
   const images = lookups.imagesByFunko.get(funkoId) ?? [];
-  const photos = await Promise.all(images.map((image) => readVariantAsJpeg(funkoId, image.fileKey, 'small')));
+  const jpegs = await Promise.all(images.map((image) => readVariantAsJpeg(funkoId, image.fileKey, 'small')));
 
-  return photos.filter((photo) => photo !== undefined);
+  return jpegs.filter((jpeg) => jpeg !== undefined);
 }
 
 export async function getFunkosCsv(query: ExportFunkosQuery): Promise<ExportFile<string>> {
@@ -105,12 +105,12 @@ export async function getFunkosCsv(query: ExportFunkosQuery): Promise<ExportFile
   return { fileName: `${scope.fileBase}.csv`, content: toCsv(lines) };
 }
 
-// A single funko's spreadsheet also carries its photos, on a sheet of their own; a bigger scope only links them.
+// A single funko's spreadsheet also carries its images, on a sheet of their own; a bigger scope only links them.
 export async function getFunkosSpreadsheet(query: ExportFunkosQuery): Promise<ExportFile<Buffer>> {
   const { scope, lines, lookups } = await getScopedLines(query);
-  const photos = query.funkoId === undefined ? [] : await loadSheetPhotos(query.funkoId, lookups);
+  const images = query.funkoId === undefined ? [] : await loadSheetImages(query.funkoId, lookups);
 
-  return { fileName: `${scope.fileBase}.xlsx`, content: await toSpreadsheet(lines, photos) };
+  return { fileName: `${scope.fileBase}.xlsx`, content: await toSpreadsheet(lines, images) };
 }
 
 export async function getFunkosJson(query: ExportFunkosQuery): Promise<ExportFile<FunkosExportResponse>> {
