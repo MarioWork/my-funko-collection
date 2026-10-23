@@ -58,6 +58,7 @@ function FunkoEdit() {
         initialTags={[]}
         isSubmitting={isSubmitting}
         errorMessage={failure ? (failure.message ?? GENERIC_WRITE_ERROR) : undefined}
+        existingFunkoId={failure?.existingId}
         onSubmit={submit}
       />
     </FormPanel>
