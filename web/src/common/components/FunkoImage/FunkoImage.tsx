@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { PrimaryImageApiModel } from '@app-types/models';
 import { cn } from '@utils/classNameUtils';
 import FunkoFigureArt from '@components/FunkoFigureArt';
@@ -16,8 +17,52 @@ type Props = {
 const SMALL_WIDTH = 480;
 const MEDIUM_WIDTH = 1200;
 
-// srcset over the API's three variants, the blur placeholder as background until the real file lands, explicit
-// dimensions so nothing jumps. Dark mode dims white box backgrounds slightly and adds a hairline ring.
+type LoadedImageProps = {
+  image: PrimaryImageApiModel;
+  alt: string;
+  sizes: string;
+  fit: 'cover' | 'contain';
+  isPriority: boolean;
+};
+
+const FIT_CLASS_MAP: Record<LoadedImageProps['fit'], string> = {
+  cover: 'object-cover',
+  contain: 'object-contain',
+};
+
+// The real file, invisible until it has loaded, then faded in over the blur. An image the browser already had
+// (cached, or done before React attached onLoad) is caught by the ref and shown at once.
+function LoadedImage({ image, alt, sizes, fit, isPriority }: LoadedImageProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const markIfComplete = (element: HTMLImageElement | null) => {
+    if (element?.complete) setIsLoaded(true);
+  };
+
+  return (
+    <img
+      ref={markIfComplete}
+      src={image.smallUrl}
+      srcSet={`${image.smallUrl} ${SMALL_WIDTH}w, ${image.mediumUrl} ${MEDIUM_WIDTH}w`}
+      sizes={sizes}
+      alt={alt}
+      width={image.width}
+      height={image.height}
+      loading={isPriority ? 'eager' : 'lazy'}
+      decoding="async"
+      onLoad={() => setIsLoaded(true)}
+      className={cn(
+        'block size-full motion-safe:transition-opacity motion-safe:duration-300 motion-safe:ease-standard',
+        FIT_CLASS_MAP[fit],
+        !isLoaded && 'opacity-0',
+      )}
+    />
+  );
+}
+
+// srcset over the API's three variants, the blur placeholder behind it until the real file fades in, explicit
+// dimensions so nothing jumps. Keyed by the file, so switching to another image (the gallery) fades in again.
+// Dark mode dims white box backgrounds slightly and adds a hairline ring.
 function FunkoImage({ image, alt, sizes, fit = 'cover', isPriority = false, className }: Props) {
   if (!image) {
     return (
@@ -32,22 +77,15 @@ function FunkoImage({ image, alt, sizes, fit = 'cover', isPriority = false, clas
   }
 
   return (
-    <img
-      src={image.smallUrl}
-      srcSet={`${image.smallUrl} ${SMALL_WIDTH}w, ${image.mediumUrl} ${MEDIUM_WIDTH}w`}
-      sizes={sizes}
-      alt={alt}
-      width={image.width}
-      height={image.height}
-      loading={isPriority ? 'eager' : 'lazy'}
-      decoding="async"
+    <span
       style={{ backgroundImage: `url(${image.placeholder})` }}
       className={cn(
-        'bg-cover bg-center dark:ring-1 dark:ring-white/10 dark:brightness-90',
-        fit === 'cover' ? 'object-cover' : 'object-contain',
+        'block overflow-hidden bg-cover bg-center dark:ring-1 dark:ring-white/10 dark:brightness-90',
         className,
       )}
-    />
+    >
+      <LoadedImage key={image.smallUrl} image={image} alt={alt} sizes={sizes} fit={fit} isPriority={isPriority} />
+    </span>
   );
 }
 

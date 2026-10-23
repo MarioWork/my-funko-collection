@@ -23,7 +23,11 @@ function CategoryBars({ categories }: Props) {
       <ol className="flex flex-col gap-2">
         {sorted.map((category) => (
           <li key={category.id} className="grid grid-cols-[minmax(7rem,1fr)_3fr_auto] items-center gap-3 text-sm">
-            <Link to={funkosInCategoryPath(category.id)} className="truncate underline-offset-4 hover:underline">
+            <Link
+              viewTransition
+              to={funkosInCategoryPath(category.id)}
+              className="truncate underline-offset-4 hover:underline"
+            >
               {category.name}
             </Link>
             <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">

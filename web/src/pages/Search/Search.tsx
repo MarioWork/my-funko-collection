@@ -8,6 +8,8 @@ import PageHeader from '@components/PageHeader';
 import SearchResults from '@components/SearchResults';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@components/ui/input-group';
 import { useSuggestions } from '@hooks/useSuggestions';
+import { cn } from '@utils/classNameUtils';
+import { DIMMABLE_CLASS, DIMMED_CLASS } from '@utils/motionUtils';
 
 const INPUT_ID = 'search-everything';
 
@@ -48,7 +50,7 @@ function Search() {
             variant="outline"
             aria-label="Find by scanning a barcode"
             className="border-input bg-card"
-            render={<Link to={ADD_ROUTES_PATHS.BASE} />}
+            render={<Link viewTransition to={ADD_ROUTES_PATHS.BASE} />}
             nativeButton={false}
             // Base UI would announce it as a button; it navigates, so it is a link (as LinkButton does).
             role="link"
@@ -57,7 +59,7 @@ function Search() {
           </IconButton>
         </div>
       </PageHeader>
-      <div className="rounded-xl border bg-card p-4">
+      <div className={cn('rounded-xl border bg-card p-4', DIMMABLE_CLASS, isLoading && hasQuery && DIMMED_CLASS)}>
         {hasQuery ? (
           <SearchResults query={debouncedQuery} suggestions={suggestions} isLoading={isLoading} />
         ) : (

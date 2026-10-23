@@ -28,7 +28,7 @@ function NavigationEntry({ item: { label, to, icon: Icon }, isActive, size = 'de
       <SidebarMenuButton
         isActive={isActive}
         tooltip={label}
-        render={<NavLink to={to} />}
+        render={<NavLink viewTransition to={to} />}
         size={size}
         className="group-data-[collapsible=icon]:justify-center data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:hover:bg-primary-hover data-active:hover:text-sidebar-primary-foreground"
       >
@@ -50,6 +50,7 @@ function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="gap-3 p-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
         <Link
+          viewTransition
           to={BASE_ROUTES_PATHS.HOME}
           aria-label={`${APP_NAME} home`}
           className="min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"

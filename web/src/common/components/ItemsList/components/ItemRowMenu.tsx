@@ -47,7 +47,7 @@ function ItemRowMenu({ item, collections, editPath, isBusy, onMove, onRemove, is
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link to={editPath} />}>
+          <DropdownMenuItem render={<Link viewTransition to={editPath} />}>
             <Pencil aria-hidden="true" />
             Edit
           </DropdownMenuItem>

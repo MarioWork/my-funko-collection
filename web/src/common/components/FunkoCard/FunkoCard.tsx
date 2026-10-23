@@ -23,6 +23,7 @@ function FunkoCard({ funko, quantity, density = 'comfortable' }: Props) {
 
   return (
     <Link
+      viewTransition
       to={FUNKO_ROUTES_PATHS.detail(String(funko.id))}
       className="group flex flex-col gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >

@@ -7,9 +7,12 @@ import FunkoGrid from '@components/FunkoGrid';
 import LinkButton from '@components/LinkButton';
 import ListPagination from '@components/ListPagination';
 import PageHeader from '@components/PageHeader';
+import { useIsRefreshing } from '@hooks/useIsRefreshing';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import { useLayoutPreference } from '@hooks/useLayoutPreference';
 import { useIsDesktop } from '@hooks/useMediaQuery';
+import { cn } from '@utils/classNameUtils';
+import { DIMMABLE_CLASS, DIMMED_CLASS } from '@utils/motionUtils';
 import FunkoListEmpty from './components/FunkoListEmpty';
 import FunkoListToolbar from './components/FunkoListToolbar';
 import FunkoTable from './components/FunkoTable';
@@ -33,6 +36,7 @@ function DesktopActions() {
 
 function FunkoList() {
   const childPage = useMobileChildPage();
+  const isRefreshing = useIsRefreshing();
   const { data, query, chips, clearFilters } = useFunkoListParams();
   const { layout, density, setLayout } = useLayoutPreference(FUNKO_LAYOUT_STORAGE_KEY);
   const isDesktop = useIsDesktop();
@@ -57,8 +61,15 @@ function FunkoList() {
         <FunkoListToolbar layout={layout} onLayoutChange={setLayout} />
       </PageHeader>
 
-      {/* One tile behind the results, like the header above it. */}
-      <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+      {/* One tile behind the results, like the header above it. Dims while new results load. */}
+      <div
+        aria-busy={isRefreshing}
+        className={cn(
+          'flex flex-col gap-4 rounded-xl border bg-card p-4',
+          DIMMABLE_CLASS,
+          isRefreshing && DIMMED_CLASS,
+        )}
+      >
         {!hasFunkos ? <FunkoListEmpty isFiltered={isFiltered} onClearFilters={clearFilters} /> : null}
 
         {hasFunkos && density ? (

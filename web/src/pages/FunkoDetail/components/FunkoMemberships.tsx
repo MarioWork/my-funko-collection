@@ -10,6 +10,8 @@ import { useItemActions } from '@hooks/useItemActions';
 import { formatIsoDate } from '@utils/dateUtils';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 import { formatCents } from '@utils/moneyUtils';
+import { cn } from '@utils/classNameUtils';
+import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
 
 type Props = {
   items: CollectionItemApiModel[];
@@ -86,7 +88,14 @@ function MembershipActions({ item, isBusy, onRemove }: RowProps) {
 // One collection the funko is in: its name and actions, then one line of facts, then tags and notes when set.
 function MembershipRow({ item, isBusy, onRemove }: RowProps) {
   return (
-    <li className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
+    <li
+      className={cn(
+        'flex flex-col gap-1 py-3 first:pt-0 last:pb-0',
+        FADE_IN_CLASS,
+        DIMMABLE_CLASS,
+        isBusy && DIMMED_CLASS,
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
         <h3 className="truncate font-medium">{item.collection.name}</h3>
         <MembershipActions item={item} isBusy={isBusy} onRemove={onRemove} />

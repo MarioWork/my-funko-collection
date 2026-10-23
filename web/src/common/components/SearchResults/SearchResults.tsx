@@ -40,7 +40,7 @@ function NamedGroup({ group, onPick }: GroupProps) {
       <ul className="flex flex-col">
         {group.entries.map((entry) => (
           <li key={entry.id}>
-            <Link to={group.toPath(entry)} onClick={onPick} className={RESULT_LINK_CLASS}>
+            <Link viewTransition to={group.toPath(entry)} onClick={onPick} className={RESULT_LINK_CLASS}>
               {entry.name}
             </Link>
           </li>
@@ -63,6 +63,7 @@ function FunkoGroup({ query, funkos, onPick }: FunkoGroupProps) {
       <div className="flex items-center justify-between gap-2 px-2">
         <h2 className="text-xs font-medium text-muted-foreground uppercase">Funkos</h2>
         <Link
+          viewTransition
           to={allFunkosPath(query)}
           onClick={onPick}
           className="flex min-h-11 items-center gap-1 rounded-md text-xs font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
@@ -75,7 +76,12 @@ function FunkoGroup({ query, funkos, onPick }: FunkoGroupProps) {
       <ul className="flex flex-col">
         {funkos.map((funko) => (
           <li key={funko.id}>
-            <Link to={FUNKO_ROUTES_PATHS.detail(String(funko.id))} onClick={onPick} className={RESULT_LINK_CLASS}>
+            <Link
+              viewTransition
+              to={FUNKO_ROUTES_PATHS.detail(String(funko.id))}
+              onClick={onPick}
+              className={RESULT_LINK_CLASS}
+            >
               <FunkoImage image={funko.primaryImage} alt="" sizes={THUMB_SIZES} className="aspect-3/4 w-8 rounded-sm" />
               <span className="flex min-w-0 flex-col">
                 <span className="truncate font-medium">{funko.name}</span>

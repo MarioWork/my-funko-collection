@@ -27,7 +27,7 @@ type QuickCollection = { collection: CollectionApiModel; icon: LucideIcon };
 // Round icon buttons: an outline when the funko is not in the collection, a filled icon on a soft primary tint when
 // it is. Named after the collection; pressed state says which.
 const TOGGLE_CLASS =
-  'size-9 rounded-full bg-card p-0 aria-pressed:border-primary aria-pressed:bg-selected aria-pressed:text-selected-foreground';
+  'size-9 rounded-full bg-card p-0 aria-pressed:border-primary aria-pressed:bg-selected aria-pressed:text-selected-foreground motion-safe:aria-pressed:animate-pop';
 
 function CollectionToggle({ collection, icon: Icon, isMember, isBusy, onToggle }: ToggleProps) {
   const hint = isMember ? `In ${collection.name} · tap to remove` : `Add to ${collection.name}`;
@@ -40,7 +40,7 @@ function CollectionToggle({ collection, icon: Icon, isMember, isBusy, onToggle }
       onPressedChange={() => onToggle(collection)}
       className={TOGGLE_CLASS}
     >
-      <Icon aria-hidden="true" className={cn(isMember && 'fill-current')} />
+      <Icon aria-hidden="true" className={cn('transition-[fill] duration-200', isMember && 'fill-current')} />
     </Toggle>
   );
 

@@ -11,6 +11,8 @@ import { formatCents } from '@utils/moneyUtils';
 import ItemRowMenu from './ItemRowMenu';
 import { funkosInCategoryPath } from '@utils/funkoLinkUtils';
 import { TABLE_HEADER_ROW_CLASS } from '@utils/tableUtils';
+import { cn } from '@utils/classNameUtils';
+import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
 
 type ItemActions = {
   busyItemId: number | undefined;
@@ -67,6 +69,7 @@ const nameColumn = columnHelper.accessor((item) => item.funko.name, {
   header: 'Funko',
   cell: ({ row, getValue }) => (
     <Link
+      viewTransition
       to={FUNKO_ROUTES_PATHS.detail(String(row.original.funko.id))}
       className="font-medium underline-offset-4 hover:underline"
     >
@@ -90,7 +93,11 @@ const categoryColumn = columnHelper.accessor((item) => item.funko.category.name,
   id: 'category',
   header: 'Category',
   cell: ({ row, getValue }) => (
-    <Link to={funkosInCategoryPath(row.original.funko.category.id)} className="underline-offset-4 hover:underline">
+    <Link
+      viewTransition
+      to={funkosInCategoryPath(row.original.funko.category.id)}
+      className="underline-offset-4 hover:underline"
+    >
       {getValue()}
     </Link>
   ),
@@ -185,7 +192,10 @@ function ItemTable({ items, collections, showCollection, busyItemId, onMove, onR
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow
+              key={row.id}
+              className={cn(FADE_IN_CLASS, DIMMABLE_CLASS, busyItemId === row.original.id && DIMMED_CLASS)}
+            >
               {row.getAllCells().map((cell) => (
                 <TableCell key={cell.id}>
                   <table.FlexRender cell={cell} />

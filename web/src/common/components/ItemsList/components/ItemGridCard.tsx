@@ -4,6 +4,8 @@ import FunkoCard from '@components/FunkoCard';
 import type { FunkoGridDensity } from '@utils/layoutUtils';
 import ItemGridFacts from './ItemGridFacts';
 import ItemRowMenu from './ItemRowMenu';
+import { cn } from '@utils/classNameUtils';
+import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
 
 type Props = {
   item: CollectionItemApiModel;
@@ -21,7 +23,7 @@ function ItemGridCard({ item, collections, density, isBusy, onMove, onRemove }: 
   const isLargeGrid = density === 'comfortable';
 
   return (
-    <li className="relative">
+    <li className={cn('relative', FADE_IN_CLASS, DIMMABLE_CLASS, isBusy && DIMMED_CLASS)}>
       <FunkoCard funko={item.funko} quantity={item.quantity} density={density} />
       {isLargeGrid ? <ItemGridFacts item={item} /> : null}
       <div className="absolute top-2 right-2">

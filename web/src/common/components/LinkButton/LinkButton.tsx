@@ -9,7 +9,7 @@ type Props = Omit<ComponentProps<typeof Button>, 'render' | 'nativeButton'> & {
 // A button-styled link: it navigates, so it is an <a> underneath (middle-click and "open in new tab" work) and it
 // keeps the link role; Base UI would otherwise announce it as a button.
 function LinkButton({ to, ...props }: Props) {
-  return <Button render={<Link to={to} />} nativeButton={false} role="link" {...props} />;
+  return <Button render={<Link viewTransition to={to} />} nativeButton={false} role="link" {...props} />;
 }
 
 export default LinkButton;
