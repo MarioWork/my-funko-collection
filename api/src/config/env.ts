@@ -20,7 +20,11 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1),
   // Apply pending migrations before listening. On in the container, off in dev (where `yarn db:migrate` is explicit).
   MIGRATE_ON_START: booleanFromString,
-  // Comma-separated list of allowed browser origins; never `*`.
+  // How many reverse proxies sit in front of the API: 1 behind Caddy, 0 when it is reached directly. Fastify then
+  // reads the client address from X-Forwarded-For, so rate limits count each device instead of the proxy.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
+  // Comma-separated list of allowed browser origins; never `*`. Empty (the default) turns CORS off: the app is
+  // same-origin in production (Caddy) and in dev (the Vite proxy), so only a separate client would need it.
   CORS_ORIGINS: z
     .string()
     .default('')

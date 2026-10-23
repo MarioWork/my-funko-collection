@@ -42,6 +42,8 @@ export async function buildApp() {
     requestIdHeader: 'x-request-id',
     genReqId: () => randomUUID(),
     bodyLimit: BODY_LIMIT_BYTES,
+    // Trust the nearest TRUST_PROXY_HOPS proxies. A function, because Fastify's types omit the hop-count form.
+    trustProxy: (_address: string, hop: number) => hop < env.TRUST_PROXY_HOPS,
   }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
@@ -51,7 +53,10 @@ export async function buildApp() {
 
   // Infrastructure in a fixed order: sensible → cors → helmet → rate-limit → swagger → db → uploads → routes.
   await app.register(sensible);
-  await app.register(cors, { origin: env.CORS_ORIGINS });
+  const hasCorsOrigins = env.CORS_ORIGINS.length > 0;
+  if (hasCorsOrigins) {
+    await app.register(cors, { origin: env.CORS_ORIGINS });
+  }
   await app.register(helmet);
   await app.register(rateLimit, { max: RATE_LIMIT_MAX, timeWindow: RATE_LIMIT_WINDOW });
   await app.register(swagger, {
