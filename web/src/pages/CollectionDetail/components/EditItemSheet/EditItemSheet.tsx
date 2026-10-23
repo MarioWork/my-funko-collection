@@ -12,7 +12,7 @@ import {
   type ItemFormValues,
 } from '@components/ItemFormFields/itemFormUtils';
 import { useFormCompat } from '@hooks/useFormCompat';
-import { createFormData } from '@utils/formDataUtils';
+import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import type { loader } from './editItemSheetLoader';
 import SubmitButton from '@components/SubmitButton';
 import CancelButton from '@components/CancelButton';
@@ -41,7 +41,16 @@ function EditItemSheet() {
   }, [fetcher.state, fetcher.data]);
 
   const onSubmit = handleSubmit((values) => {
-    void fetcher.submit(createFormData({ item: toItemPayload(values) }), { method: HttpVerbsUtil.PATCH });
+    const payload = toItemPayload(values);
+
+    // Nothing to save: just close.
+    if (isSamePayload(toItemPayload(itemToFormValues(item)), payload)) {
+      close();
+
+      return;
+    }
+
+    void fetcher.submit(createFormData({ item: payload }), { method: HttpVerbsUtil.PATCH });
   });
 
   return (

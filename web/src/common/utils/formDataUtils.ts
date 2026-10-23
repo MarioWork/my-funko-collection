@@ -41,3 +41,8 @@ export const parseFormData = <T>(data: FormData) => {
 
   return { ...result } as T;
 };
+
+// Whether an edit form would send exactly what is already saved: both sides go through the same payload builder, so
+// comparing their JSON is enough. Used to close an untouched edit without a request.
+export const isSamePayload = (saved: unknown, edited: unknown): boolean =>
+  JSON.stringify(saved) === JSON.stringify(edited);

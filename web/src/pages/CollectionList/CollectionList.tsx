@@ -1,4 +1,4 @@
-import { FolderPlus, LayoutGrid, List, SearchX } from 'lucide-react';
+import { FolderPlus, LayoutGrid, List } from 'lucide-react';
 import { Outlet, useLoaderData } from 'react-router';
 import type { LoaderDataUtil } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS, ITEM_ROUTES_PATHS } from '@application/routes/routesUtils';
@@ -77,7 +77,17 @@ function CollectionList() {
         </div>
       </PageHeader>
       {hasNoMatch ? (
-        <EmptyState icon={SearchX} title="No collection with that name" description={`Nothing matches “${query}”.`}>
+        <EmptyState
+          pose="notFound"
+          title="No collection with that name"
+          description={
+            <>
+              Nothing matches “{query}”.
+              <br />
+              Try another name.
+            </>
+          }
+        >
           <Button variant="outline" onClick={() => setQuery('')}>
             Show all collections
           </Button>

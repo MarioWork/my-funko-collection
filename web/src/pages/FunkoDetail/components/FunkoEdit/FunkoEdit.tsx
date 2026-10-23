@@ -5,8 +5,8 @@ import { HttpVerbsUtil, type JSONResponseUtil, type LoaderDataUtil } from '@app-
 import FormPanel from '@components/FormPanel';
 import FunkoForm from '@components/FunkoForm';
 import type { FunkoFormSubmission } from '@components/FunkoForm/funkoFormSubmission.type';
-import { funkoToFormValues } from '@components/FunkoFormFields/funkoFormUtils';
-import { createFormData } from '@utils/formDataUtils';
+import { funkoToFormValues, toFunkoPayload } from '@components/FunkoFormFields/funkoFormUtils';
+import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import type { loader } from './funkoEditLoader';
 
 const BACK = -1;
@@ -27,10 +27,23 @@ function FunkoEdit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data]);
 
-  const submit = ({ funko: details, destination }: FunkoFormSubmission) =>
+  const savedCollectionIds = items.map((item) => item.collection.id);
+
+  const submit = ({ funko: details, destination }: FunkoFormSubmission) => {
+    const isDetailsUnchanged = isSamePayload(toFunkoPayload(funkoToFormValues(funko)), details);
+    const isCollectionsUnchanged = isSamePayload([...savedCollectionIds].sort(), [...destination.collectionIds].sort());
+
+    // Nothing to save: just close.
+    if (isDetailsUnchanged && isCollectionsUnchanged) {
+      close();
+
+      return;
+    }
+
     void fetcher.submit(createFormData({ funko: details, collectionIds: destination.collectionIds }), {
       method: HttpVerbsUtil.PATCH,
     });
+  };
 
   return (
     <FormPanel
@@ -43,7 +56,7 @@ function FunkoEdit() {
         funko={funko}
         categories={categories}
         initialValues={funkoToFormValues(funko)}
-        initialCollectionIds={items.map((item) => item.collection.id)}
+        initialCollectionIds={savedCollectionIds}
         initialTags={[]}
         isSubmitting={isSubmitting}
         errorMessage={failure ? (failure.message ?? 'Something went wrong. Please try again.') : undefined}

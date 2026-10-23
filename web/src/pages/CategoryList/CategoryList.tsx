@@ -1,4 +1,4 @@
-import { Plus, Tags } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Outlet, useLoaderData } from 'react-router';
 import type { CategoryApiModel } from '@app-types/models';
 import type { LoaderDataUtil } from '@app-types/utility';
@@ -48,7 +48,6 @@ function CategoryList() {
         noun="category"
         hasNotes={false}
         rowPath={CATEGORY_ROUTES_PATHS.update}
-        emptyIcon={Tags}
         emptyTitle="No categories yet"
         emptyDescription="Add the first line; new funkos pick from this list."
       />

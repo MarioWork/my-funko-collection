@@ -6,7 +6,7 @@ import ConfirmDialog from '@components/ConfirmDialog';
 import IconButton from '@components/IconButton';
 import InlineAlert from '@components/InlineAlert';
 import { useActionToast } from '@hooks/useActionToast';
-import { createFormData } from '@utils/formDataUtils';
+import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import type { ManageEntityFormData, ManageFormValues, ManageRow } from '../manageListUtils';
 import ManageForm from './ManageForm';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
@@ -39,6 +39,16 @@ function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
   }
 
   const save = (values: ManageFormValues) => {
+    const saved = { name: row.name, notes: row.notes ?? '' };
+    const edited = { name: values.name, notes: values.notes ?? '' };
+
+    // Nothing to save: just leave the rename.
+    if (isSamePayload(saved, edited)) {
+      setIsEditing(false);
+
+      return;
+    }
+
     const payload: ManageEntityFormData = { entity: values };
 
     void fetcher.submit(createFormData(payload), { method: HttpVerbsUtil.PATCH, action: rowPath });
