@@ -13,7 +13,7 @@ type Props = {
   onAdd: (files: File[]) => void;
   onRemove: (photo: PendingPhoto) => void;
   // Set when the order matters (a new funko): the first photo is the main one, and any other can be made main.
-  onMakeMain?: (photo: PendingPhoto) => void;
+  onMakeMain?: (photo: PendingPhoto) => Promise<void>;
   // When the caller needs a photo and has none: the id of the message to link to the pick button.
   errorId?: string;
   // Rendered after the pick buttons, e.g. an Upload button.

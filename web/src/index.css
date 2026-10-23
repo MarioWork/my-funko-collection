@@ -349,6 +349,13 @@
     animation-timing-function: var(--ease-standard);
   }
 }
+/* A new funko's photo made main glides to the front while the others shift over (PendingPhotoList). */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(*.pending-photo) {
+    animation-duration: 350ms;
+    animation-timing-function: var(--ease-standard);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),
