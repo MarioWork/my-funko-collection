@@ -24,6 +24,12 @@ const CSV_HEADER = [
 ] as const;
 const CENTS_PER_UNIT = 100;
 const NEEDS_QUOTING = /[",\r\n]/;
+// A cell a spreadsheet would run as a formula (=, +, -, @, or a leading tab or return). Plain numbers like -12.50
+// stay numbers.
+const FORMULA_START = /^[=+\-@\t\r]/;
+const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/;
+// The usual guard (OWASP's CSV injection advice): a leading apostrophe makes it text, which Excel and Sheets hide.
+const FORMULA_ESCAPE = "'";
 
 function groupBy<Row, Key>(rows: Row[], keyOf: (row: Row) => Key): Map<Key, Row[]> {
   const grouped = new Map<Key, Row[]>();
@@ -84,11 +90,14 @@ export async function getExport(): Promise<ExportResponse> {
   };
 }
 
-// RFC 4180: quote a cell when it holds a separator, a quote or a line break; double the quotes inside.
+// RFC 4180: quote a cell when it holds a separator, a quote or a line break; double the quotes inside. Text that
+// would run as a formula when the file is opened is defused first.
 function toCsvCell(value: string | number | boolean | null): string {
   if (value === null) return '';
 
-  const text = String(value);
+  const raw = String(value);
+  const isFormula = typeof value === 'string' && FORMULA_START.test(raw) && !PLAIN_NUMBER.test(raw);
+  const text = isFormula ? `${FORMULA_ESCAPE}${raw}` : raw;
 
   if (!NEEDS_QUOTING.test(text)) return text;
 

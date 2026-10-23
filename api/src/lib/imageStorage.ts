@@ -85,6 +85,7 @@ async function writeAtomically(finalPath: string, data: Buffer): Promise<void> {
   }
 
   await rename(tmpPath, finalPath);
+  forgetStoredFiles();
 }
 
 async function decode(buffer: Buffer): Promise<sharp.Sharp> {
@@ -157,6 +158,7 @@ export async function processImage(funkoId: number, buffer: Buffer): Promise<Sto
     };
   } catch (error: unknown) {
     await Promise.all(writtenPaths.map((path) => unlink(path).catch(() => undefined)));
+    forgetStoredFiles();
     throw error;
   }
 }
@@ -174,6 +176,8 @@ export async function rotateBuffer(buffer: Buffer, degrees: number): Promise<Buf
 export async function removeImageFiles(funkoId: number, fileKey: string): Promise<void> {
   const folder = funkoFolder(funkoId);
 
+  forgetStoredFiles();
+
   for (const variant of IMAGE_VARIANTS) {
     try {
       await unlink(join(folder, variantFileName(fileKey, variant)));
@@ -184,6 +188,8 @@ export async function removeImageFiles(funkoId: number, fileKey: string): Promis
 }
 
 export async function removeFunkoFolder(funkoId: number): Promise<void> {
+  forgetStoredFiles();
+
   try {
     await rm(funkoFolder(funkoId), { recursive: true, force: true });
   } catch (error: unknown) {
@@ -247,7 +253,7 @@ async function listFolderImages(folder: string): Promise<StoredImageFiles[]> {
   return [...byKey.values()];
 }
 
-export async function listStoredImageFiles(): Promise<StoredImageFiles[]> {
+async function readStoredImageFiles(): Promise<StoredImageFiles[]> {
   const root = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER);
   const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
   const folders = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
@@ -256,9 +262,38 @@ export async function listStoredImageFiles(): Promise<StoredImageFiles[]> {
   return perFolder.flat();
 }
 
+// Listing every file is the slow part of the Images page, so the result is kept until this process writes or
+// deletes an image (which forgets it at once), or for a minute, which covers changes made outside the server
+// (`yarn images:prune`, a restored backup).
+const STORED_FILES_TTL_MS = 60_000;
+let storedFilesCache: { files: Promise<StoredImageFiles[]>; readAt: number } | null = null;
+
+// Also for whoever empties the folder behind the server's back (the test reset).
+export function forgetStoredFiles(): void {
+  storedFilesCache = null;
+}
+
+export async function listStoredImageFiles(): Promise<StoredImageFiles[]> {
+  const isFresh = storedFilesCache !== null && Date.now() - storedFilesCache.readAt < STORED_FILES_TTL_MS;
+
+  if (!isFresh || !storedFilesCache) {
+    const files = readStoredImageFiles();
+
+    storedFilesCache = { files, readAt: Date.now() };
+    // A failed read must not stick: the next call tries again.
+    files.catch(forgetStoredFiles);
+  }
+
+  return storedFilesCache.files;
+}
+
 export function storedFileUrl(folder: string, fileKey: string, variant: ImageVariant): string {
   return `${UPLOADS_URL_PREFIX}/${FUNKOS_UPLOAD_FOLDER}/${folder}/${variantFileName(fileKey, variant)}`;
 }
+
+// Loose files' dimensions, which mean decoding the file's header: remembered by file and size, so a changed file is
+// read again.
+const dimensionsCache = new Map<string, ImageDimensions | null>();
 
 // Width and height of one stored file; null when it cannot be read.
 export async function readImageDimensions(
@@ -266,11 +301,20 @@ export async function readImageDimensions(
   fileKey: string,
   variant: ImageVariant,
 ): Promise<ImageDimensions | null> {
-  try {
-    const path = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER, folder, variantFileName(fileKey, variant));
-    const { width, height } = await sharp(path).metadata();
+  const path = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER, folder, variantFileName(fileKey, variant));
 
-    return width && height ? { width, height } : null;
+  try {
+    const { size } = await stat(path);
+    const cacheKey = `${path}:${size}`;
+
+    if (dimensionsCache.has(cacheKey)) return dimensionsCache.get(cacheKey) ?? null;
+
+    const { width, height } = await sharp(path).metadata();
+    const dimensions = width && height ? { width, height } : null;
+
+    dimensionsCache.set(cacheKey, dimensions);
+
+    return dimensions;
   } catch (error: unknown) {
     log.warn({ err: error, folder, fileKey, variant }, 'could not read image dimensions');
 

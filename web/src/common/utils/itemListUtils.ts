@@ -8,7 +8,6 @@ import {
 } from '@services/collectionItemService/collectionItemService';
 
 export const ITEM_PAGE_SIZE = '60';
-export const ITEM_OPTIONS_PAGE_SIZE = '100';
 
 const SORT_FIELDS = new Set<string>(Object.values(ItemApiSortingFields));
 const DIRECTIONS = new Set<string>(Object.values(SortingDirectionUtil));

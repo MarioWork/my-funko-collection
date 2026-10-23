@@ -1,6 +1,7 @@
 import { rm } from 'node:fs/promises';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { env } from '../config/env.ts';
+import { forgetStoredFiles } from '../lib/imageStorage.ts';
 import { applyPragmas, client, db } from './client.ts';
 import {
   categories,
@@ -42,4 +43,5 @@ export async function resetTestDb(): Promise<void> {
   await db.delete(tags);
   await db.delete(categories);
   await rm(env.UPLOADS_DIR, { recursive: true, force: true });
+  forgetStoredFiles();
 }

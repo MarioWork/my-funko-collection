@@ -7,7 +7,6 @@ import type { FunkoFilterField } from './hooks/useFunkoListParams';
 
 // Divisible by 2, 3, 4, 5 and 6, so every grid width ends on a full row.
 export const FUNKO_PAGE_SIZE = '60';
-export const FILTER_OPTIONS_PAGE_SIZE = '100';
 
 export const FUNKO_LAYOUT_STORAGE_KEY = 'funkos.layout';
 

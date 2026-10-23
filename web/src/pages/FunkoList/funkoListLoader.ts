@@ -1,15 +1,13 @@
+import { isNextPageRequest } from '@utils/infiniteListUtils';
+import { getAllCategories, getAllCollections, getAllSeries, getAllTags } from '@api/optionLists';
 import type { LoaderFunctionArgs } from 'react-router';
 import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE, SortingDirectionUtil } from '@app-types/utility';
-import categoryService, { DEFAULT_CATEGORY_SORT_FIELD } from '@services/categoryService/categoryService';
-import seriesService, { DEFAULT_SERIES_SORT_FIELD } from '@services/seriesService/seriesService';
-import collectionService, { DEFAULT_COLLECTION_SORT_FIELD } from '@services/collectionService/collectionService';
 import funkoService, {
   FunkoApiSearchFields,
   FunkoApiSortingFields,
   type GetFunkosFields,
 } from '@services/funkoService/funkoService';
-import tagService, { DEFAULT_TAG_SORT_FIELD } from '@services/tagService/tagService';
-import { FILTER_OPTIONS_PAGE_SIZE, FUNKO_PAGE_SIZE } from './funkoListUtils';
+import { FUNKO_PAGE_SIZE } from './funkoListUtils';
 
 const SORT_FIELDS = new Set<string>(Object.values(FunkoApiSortingFields));
 const DIRECTIONS = new Set<string>(Object.values(SortingDirectionUtil));
@@ -66,22 +64,24 @@ export async function loader({ request }: LoaderFunctionArgs) {
     direction: sort.direction,
     ...searchFields,
   };
-  const optionsPagination = { page: DEFAULT_FIRST_PAGE, size: FILTER_OPTIONS_PAGE_SIZE };
 
-  const [funkosResponse, categoriesResponse, seriesResponse, collectionsResponse, tagsResponse] = await Promise.all([
+  // The next page of the infinite list needs the funkos only; the filters' lists are already on screen.
+  const isNextPage = isNextPageRequest(request);
+  const noOptions = Promise.resolve([]);
+  const [funkosResponse, categories, series, collections, tags] = await Promise.all([
     funkoService.getFunkos(fields),
-    categoryService.getCategories({ pagination: optionsPagination, sortingField: DEFAULT_CATEGORY_SORT_FIELD }),
-    seriesService.getSeriesList({ pagination: optionsPagination, sortingField: DEFAULT_SERIES_SORT_FIELD }),
-    collectionService.getCollections({ pagination: optionsPagination, sortingField: DEFAULT_COLLECTION_SORT_FIELD }),
-    tagService.getTags({ pagination: optionsPagination, sortingField: DEFAULT_TAG_SORT_FIELD }),
+    isNextPage ? noOptions : getAllCategories(),
+    isNextPage ? noOptions : getAllSeries(),
+    isNextPage ? noOptions : getAllCollections(),
+    isNextPage ? noOptions : getAllTags(),
   ]);
 
   return {
     funkosResponse,
-    categories: categoriesResponse.data,
-    series: seriesResponse.data,
-    collections: collectionsResponse.data,
-    tags: tagsResponse.data,
+    categories,
+    series,
+    collections,
+    tags,
     sort,
     page: Number(page),
     pageSize: Number(FUNKO_PAGE_SIZE),
