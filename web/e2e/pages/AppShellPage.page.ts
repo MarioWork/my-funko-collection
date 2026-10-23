@@ -18,7 +18,18 @@ export class AppShellPage {
     await this.page.reload();
   }
 
+  // Desktop: the sidebar's Theme menu. Phone: the top bar's Menu sheet, which has Light / Dark / System buttons.
   async setTheme(name: ThemeName) {
+    const menuButton = this.page.getByRole('banner').getByRole('button', { name: 'Menu' });
+    const isPhone = await menuButton.isVisible();
+
+    if (isPhone) {
+      await menuButton.click();
+      await this.page.getByRole('dialog').getByRole('group', { name: 'Theme' }).getByRole('button', { name }).click();
+
+      return;
+    }
+
     await this.page.getByRole('button', { name: 'Theme' }).click();
     await this.page.getByRole('menuitemradio', { name }).click();
   }

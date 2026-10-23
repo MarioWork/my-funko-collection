@@ -3,28 +3,30 @@ import { COLLECTION_ROUTES_PATHS } from '../../src/application/routes/routesUtil
 
 export class CollectionDetailPage {
   readonly main: Locator;
-  readonly rows: Locator;
 
   private readonly page: Page;
 
   constructor(page: Page) {
     this.page = page;
     this.main = page.getByRole('main');
-    this.rows = page.getByRole('table').getByRole('row');
   }
 
   async goto(collectionId: string) {
     await this.page.goto(COLLECTION_ROUTES_PATHS.detail(collectionId));
   }
 
-  // Items open in the large grid; the list (a table on desktop) shows each item's tags and details.
+  // Items open in the large grid; the list (a table on desktop, cards on a phone) shows each item's details.
   async showAsList() {
     await this.page.getByRole('button', { name: /^Layout:/ }).click();
     await this.page.getByRole('menuitemradio', { name: /^List/ }).click();
   }
 
-  rowFor(funkoName: string) {
-    return this.rows.filter({ hasText: funkoName });
+  // One item of the list: a table row on desktop, a list item on a phone. Matched by its funko's own link, so a
+  // tag's list item or "Spider-Man (Integrated Suit)" never counts as "Spider-Man".
+  itemFor(funkoName: string) {
+    const funkoLink = this.page.getByRole('link', { name: funkoName, exact: true });
+
+    return this.main.getByRole('row').or(this.main.getByRole('listitem')).filter({ has: funkoLink });
   }
 
   // Anything on the page that would add a funko or an item here: a link or button named Add / Scan / Pick.
@@ -35,7 +37,7 @@ export class CollectionDetailPage {
   }
 
   async removeItem(funkoName: string) {
-    await this.rowFor(funkoName)
+    await this.itemFor(funkoName)
       .getByRole('button', { name: `Actions for ${funkoName}` })
       .click();
     await this.page.getByRole('menuitem', { name: 'Remove', exact: true }).click();

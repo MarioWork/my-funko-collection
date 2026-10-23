@@ -65,7 +65,7 @@ Inside `web/`:
 
 ```
 yarn dev                         # http://localhost:5173/home, real API on :3000 (VITE_USE_MOCKS=true for MSW mocks)
-yarn tsc -b && yarn lint && yarn test && yarn test-e2e   # the definition of green (e2e starts its own dev server on 5173)
+yarn tsc -b && yarn lint && yarn test && yarn test-e2e   # the definition of green (e2e starts its own dev server on 5199, desktop + phone)
 yarn dlx shadcn@latest add <component>                   # vendors into src/common/components/ui/ (root tsconfig holds the paths)
 ```
 

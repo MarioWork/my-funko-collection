@@ -1,6 +1,7 @@
 // Row factories for tests. Each test creates its own data through these; nothing is shared between tests.
 import type { InjectOptions, LightMyRequestResponse } from 'fastify';
 import { randomBytes } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import type { App } from './app.ts';
 import { db } from './db/client.ts';
 import {
@@ -8,6 +9,7 @@ import {
   collectionItems,
   collectionItemTags,
   collections,
+  funkoImages,
   funkos,
   passkeys,
   series,
@@ -129,6 +131,11 @@ type ImageOptions = Partial<GeneratedImageOptions>;
 
 const DEFAULT_IMAGE_WIDTH = 64;
 const DEFAULT_IMAGE_HEIGHT = 48;
+
+// Drops a funko's image rows but leaves their files on disk: the state a crash between the two would leave.
+export async function forgetImageRows(funkoId: number): Promise<void> {
+  await db.delete(funkoImages).where(eq(funkoImages.funkoId, funkoId));
+}
 
 // A generated image; `noise: true` makes it incompressible, for size-limit tests.
 export async function makeImage(options: ImageOptions = {}): Promise<Buffer> {

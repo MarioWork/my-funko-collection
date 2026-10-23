@@ -137,6 +137,31 @@ describe('GET /funkos', () => {
     expect(names(byCategory.json<ListBody>())).toEqual(['Darth Vader']);
   });
 
+  it('filters by type when only type is sent', async () => {
+    await seedCatalog();
+    await createFunko({ name: 'Millennium Falcon', type: 'POP_RIDES' });
+
+    const response = await api.inject({ method: 'GET', url: URL, query: { type: 'POP_RIDES' } });
+
+    expect(names(response.json<ListBody>())).toEqual(['Millennium Falcon']);
+  });
+
+  it('splits funkos with and without images when hasImages is true or false', async () => {
+    const { vader } = await seedCatalog();
+    await api.inject({
+      method: 'POST',
+      url: `${URL}/${vader.id}/images`,
+      payload: toFormData([{ buffer: await makeImage() }]),
+    });
+
+    const withImages = await api.inject({ method: 'GET', url: URL, query: { hasImages: 'true' } });
+    const withoutImages = await api.inject({ method: 'GET', url: URL, query: { hasImages: 'false' } });
+
+    expect(names(withImages.json<ListBody>())).toEqual(['Darth Vader']);
+    expect(names(withoutImages.json<ListBody>())).not.toContain('Darth Vader');
+    expect(withoutImages.json<ListBody>().totalResultNumber).toBe(3);
+  });
+
   it('lists what is not in a collection yet when notInCollectionId is set', async () => {
     const { owned } = await seedCatalog();
 

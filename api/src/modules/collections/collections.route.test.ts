@@ -131,6 +131,15 @@ describe('PATCH /collections/:collectionId', () => {
     expect(previous.json()).toMatchObject({ isDefault: false });
   });
 
+  it('returns 409 when the new name is taken', async () => {
+    await createCollection({ name: 'Owned' });
+    const wishlist = await createCollection({ name: 'Wishlist' });
+
+    const response = await api.inject({ method: 'PATCH', url: `${URL}/${wishlist.id}`, payload: { name: 'Owned' } });
+
+    expect(response.statusCode).toBe(409);
+  });
+
   it('returns 409 when the body unsets the default directly', async () => {
     const owned = await createCollection({ name: 'Owned', isDefault: true });
 

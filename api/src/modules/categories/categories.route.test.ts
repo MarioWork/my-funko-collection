@@ -120,6 +120,19 @@ describe('PATCH /categories/:categoryId', () => {
     expect(response.json()).toMatchObject({ id: created.id, name: 'Renamed' });
   });
 
+  it('returns 409 when the new name is taken', async () => {
+    await createCategory('Pop! Marvel');
+    const created = await createCategory();
+
+    const response = await api.inject({
+      method: 'PATCH',
+      url: `${URL}/${created.id}`,
+      payload: { name: 'Pop! Marvel' },
+    });
+
+    expect(response.statusCode).toBe(409);
+  });
+
   it('returns 400 when the body carries an unknown key', async () => {
     const created = await createCategory();
 

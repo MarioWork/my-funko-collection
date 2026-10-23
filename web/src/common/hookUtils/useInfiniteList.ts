@@ -28,6 +28,12 @@ const FIRST_PAGE = 1;
 // The lists the user browsed, so Back puts back what was loaded and where they were. Lives until a reload.
 const listCache = new Map<string, CachedList<unknown>>();
 
+// Tests only: every test mounts a fresh router whose first entry counts as a Back (POP), so without this a list
+// would come back with the pages an earlier test loaded.
+export function forgetBrowsedLists(): void {
+  listCache.clear();
+}
+
 // The list's identity: its path and URL state without the page.
 function listKeyOf(pathname: string, search: string): string {
   const params = new URLSearchParams(search);

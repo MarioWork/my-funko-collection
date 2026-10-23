@@ -114,6 +114,15 @@ describe('PATCH /tags/:tagId', () => {
     expect(response.json()).toMatchObject({ name: 'Box 3', notes: 'Garage' });
   });
 
+  it('returns 409 when the new name is taken', async () => {
+    await createTag('Box 3');
+    const tag = await createTag();
+
+    const response = await api.inject({ method: 'PATCH', url: `${URL}/${tag.id}`, payload: { name: 'Box 3' } });
+
+    expect(response.statusCode).toBe(409);
+  });
+
   it('returns 400 when the name is empty', async () => {
     const tag = await createTag();
 

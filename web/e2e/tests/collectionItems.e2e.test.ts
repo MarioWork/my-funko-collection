@@ -20,9 +20,9 @@ test('removing an item can be undone from the toast', async ({ page }) => {
   await collection.showAsList();
   await collection.removeItem(SEED_OWNED_FUNKO);
 
-  await expect(collection.rowFor(SEED_OWNED_FUNKO)).toHaveCount(0);
+  await expect(collection.itemFor(SEED_OWNED_FUNKO)).toHaveCount(0);
 
   await collection.undo();
 
-  await expect(collection.rowFor(SEED_OWNED_FUNKO)).toHaveCount(1);
+  await expect(collection.itemFor(SEED_OWNED_FUNKO)).toHaveCount(1);
 });

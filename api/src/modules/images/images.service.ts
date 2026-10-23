@@ -1,6 +1,8 @@
 import {
   listStoredImageFiles,
+  pruneOrphanFiles,
   readImageDimensions,
+  storedFileKey,
   storedFileUrl,
   variantFileName,
   type ImageVariant,
@@ -119,7 +121,7 @@ async function collectEntries(query: ListImagesQuery): Promise<ImageListEntry[]>
   const [rows, storedFiles] = await Promise.all([imagesRepository.listLinked(), listStoredImageFiles()]);
   const filesByKey = new Map(storedFiles.map((files) => [storageKey(files.folder, files.fileKey), files]));
   const mainIds = mainImageIds(rows);
-  const linkedKeys = new Set(rows.map((row) => storageKey(row.funkoId, row.fileKey)));
+  const linkedKeys = new Set(rows.map((row) => storedFileKey(row.funkoId, row.fileKey)));
 
   const linked = rows.map((row) => toLinkedEntry(row, filesByKey.get(storageKey(row.funkoId, row.fileKey)), mainIds));
   const looseFiles = storedFiles.filter((files) => !linkedKeys.has(storageKey(files.folder, files.fileKey)));
@@ -194,4 +196,12 @@ export async function getImageGroups(query: ListImagesQuery): Promise<ImageGroup
   const { limit, offset } = toLimitOffset(query);
 
   return { data: ordered.slice(offset, offset + limit), totalResultNumber: ordered.length, currentPage: query.page };
+}
+
+// Deletes the image files on disk that no row points at (and folders left empty). Returns how many files went.
+export async function deleteOrphanImageFiles(): Promise<number> {
+  const rows = await imagesRepository.listLinked();
+  const knownKeys = new Set(rows.map((row) => storedFileKey(row.funkoId, row.fileKey)));
+
+  return pruneOrphanFiles(knownKeys);
 }
