@@ -24,7 +24,7 @@ import exportService from '@services/exportService/exportService';
 import { ExportFunkosScopeUtil } from '@app-types/utility';
 import DisabledReason from '@components/DisabledReason';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
-import { CollectionLayoutUtil } from '../collectionListUtils';
+import { CollectionLayoutUtil } from '@utils/layoutUtils';
 import CollectionTableRow from './CollectionTableRow';
 
 type Props = {

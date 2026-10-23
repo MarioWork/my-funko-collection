@@ -18,7 +18,7 @@ import ImagePreviewDialog from './components/ImagePreviewDialog';
 import ImageTable from './components/ImageTable';
 import { useImageListParams } from './hooks/useImageListParams';
 import type { loader } from './imageListLoader';
-import { ImageViewUtil } from './imageListUtils';
+import { ImageViewUtil } from '@utils/layoutUtils';
 
 type ImageLoaderData = LoaderDataUtil<typeof loader> | undefined;
 

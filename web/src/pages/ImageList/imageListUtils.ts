@@ -8,15 +8,8 @@ import { ALPHABETICAL_LABELS, DATE_LABELS, SIZE_LABELS } from '@utils/sortUtils'
 export const IMAGE_PAGE_SIZE = '50';
 export const IMAGE_GROUP_PAGE_SIZE = '25';
 
-// One row per funko with its images inside (the default), or every image as its own row.
+// The URL param a chosen view lives in; with none, the view saved in Settings → Layouts (layoutUtils).
 export const IMAGE_VIEW_PARAM = 'view';
-export const ImageViewUtil = {
-  IMAGES: 'images',
-  FUNKOS: 'funkos',
-} as const;
-export type ImageViewUtil = (typeof ImageViewUtil)[keyof typeof ImageViewUtil];
-
-export const DEFAULT_IMAGE_VIEW = ImageViewUtil.FUNKOS;
 
 // Placeholder rows while the next page loads, column by column like the real ones.
 export const IMAGE_SKELETON_COLUMNS = ['', 'hidden @3xl:table-cell', '', 'hidden @3xl:table-cell'];

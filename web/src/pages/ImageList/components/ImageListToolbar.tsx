@@ -6,7 +6,8 @@ import ViewMenu, { type ViewOption } from '@components/ViewMenu';
 import SelectFilter from '@components/SelectFilter';
 import SortSelect from '@components/SortSelect';
 import { useImageListParams } from '../hooks/useImageListParams';
-import { HAS_FUNKO_OPTIONS, IMAGE_SORT_FIELDS, ImageViewUtil } from '../imageListUtils';
+import { ImageViewUtil } from '@utils/layoutUtils';
+import { HAS_FUNKO_OPTIONS, IMAGE_SORT_FIELDS } from '../imageListUtils';
 
 const VIEW_OPTIONS: ViewOption<ImageViewUtil>[] = [
   {

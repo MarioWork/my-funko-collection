@@ -8,6 +8,7 @@ import AppearanceSection from './components/AppearanceSection';
 import ConfigurationSection from './components/ConfigurationSection';
 import DataSection from './components/DataSection';
 import DefaultCollectionSection from './components/DefaultCollectionSection';
+import LayoutsSection from './components/LayoutsSection';
 import SecuritySection from './components/SecuritySection';
 import ShortcutsSection from './components/ShortcutsSection';
 import type { loader } from './settingsLoader';
@@ -20,6 +21,7 @@ function Settings() {
       <PageHeader icon={PAGE_ICONS.SETTINGS} title="Settings" />
       <div className="grid gap-4 @3xl:grid-cols-2">
         <AppearanceSection />
+        <LayoutsSection />
         <DefaultCollectionSection collections={collections} />
         <AddDefaultsSection collections={collections} tags={tags} />
         <SecuritySection passkeys={passkeys} />

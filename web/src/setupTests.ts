@@ -23,6 +23,25 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
   });
 }
 
+// jsdom has no IntersectionObserver (the infinite lists' "load more" sentinel). jsdom never scrolls, so an
+// observer that never reports anything is what a real one would do here.
+class NeverIntersectingObserver implements IntersectionObserver {
+  readonly root = null;
+  readonly rootMargin = '0px';
+  readonly thresholds = [0];
+  readonly scrollMargin = '0px';
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+
+if (typeof window !== 'undefined' && typeof window.IntersectionObserver !== 'function') {
+  window.IntersectionObserver = NeverIntersectingObserver;
+}
+
 // A request with no handler fails the test instead of passing on a warning nobody reads.
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 // Every test starts from the same seeded in-memory data, whatever the previous one added or deleted.
