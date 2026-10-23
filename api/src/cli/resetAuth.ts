@@ -8,7 +8,7 @@ import { addSetupCode, deleteSignIns, getSetupLink } from '../modules/auth/auth.
 await deleteSignIns();
 const code = await addSetupCode();
 
-logger.warn('every passkey and sign-in removed: the new setup link is printed below');
+logger.warn('every passkey and sign-in removed: open the new setup link printed in this terminal');
 // The link is a secret: plain stdout, never the structured log.
 process.stdout.write(`\nOpen this link to make a new passkey (works once):\n${code ? getSetupLink(code) : ''}\n\n`);
 client.close();

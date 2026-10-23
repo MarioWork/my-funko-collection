@@ -27,7 +27,7 @@ if (env.MIGRATE_ON_START) await runMigrations();
 const setupCode = await addSetupCode();
 
 if (setupCode) {
-  logger.warn('not set up yet: the setup link is printed below');
+  logger.warn('not set up yet: open the setup link printed in this terminal');
   process.stdout.write(`\nOpen this link to make your passkey (works once):\n${getSetupLink(setupCode)}\n\n`);
 }
 
