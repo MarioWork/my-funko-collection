@@ -12,6 +12,7 @@ import {
   signIn,
   toFormData,
 } from '../../testFixtures.ts';
+import { readXlsxFile } from '../../testXlsx.ts';
 
 let app: App;
 let api: SignedInClient;
@@ -327,23 +328,32 @@ describe('GET /export/<list>.{csv,json,xlsx}', () => {
     expect(response.json<{ entries: object[] }>().entries[0]).not.toHaveProperty('funkos');
   });
 
-  it('adds a second sheet of funkos to the spreadsheet when funkos are included', async () => {
+  it('folds each series shut over its funkos, on one sheet, when funkos are included', async () => {
     await seed();
+    await createSeries('Empty series');
 
-    const withFunkos = await api.inject({
-      method: 'GET',
-      url: '/export/series.xlsx',
-      query: { includeFunkos: 'true' },
-    });
-    const listOnly = await api.inject({ method: 'GET', url: '/export/series.xlsx' });
+    const response = await api.inject({ method: 'GET', url: '/export/series.xlsx', query: { includeFunkos: 'true' } });
 
-    expect(withFunkos.statusCode).toBe(200);
-    expect(withFunkos.headers['content-disposition']).toBe(
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-disposition']).toBe(
       'attachment; filename="my-funko-collection-series-with-funkos.xlsx"',
     );
-    // The zip's file list names each sheet's XML file.
-    expect(withFunkos.rawPayload.includes('xl/worksheets/sheet2.xml')).toBe(true);
-    expect(listOnly.rawPayload.includes('xl/worksheets/sheet2.xml')).toBe(false);
+    expect(readXlsxFile(response.rawPayload, 'xl/worksheets/sheet2.xml')).toBeUndefined();
+    const sheet = readXlsxFile(response.rawPayload, 'xl/worksheets/sheet1.xml') ?? '';
+    // Header, "Empty series" (nothing to open), "Homecoming" (collapsed), its one funko (hidden inside the group).
+    expect(sheet).toMatch(/<row r="3"[^>]*collapsed="1"/);
+    expect(sheet).toMatch(/<row r="4"[^>]*outlineLevel="1"[^>]*hidden="1"/);
+    expect(sheet).toContain('<autoFilter ref="A1:R4"/>');
+  });
+
+  it('keeps the plain table when funkos are not included', async () => {
+    await seed();
+
+    const response = await api.inject({ method: 'GET', url: '/export/series.xlsx' });
+
+    const sheet = readXlsxFile(response.rawPayload, 'xl/worksheets/sheet1.xml') ?? '';
+    expect(sheet).not.toContain('outlineLevel');
+    expect(sheet).toContain('<autoFilter ref="A1:C2"/>');
   });
 
   it('returns 400 when includeFunkos is not true or false', async () => {
@@ -414,6 +424,21 @@ describe('GET /export/funkos.{csv,json,xlsx}?funkoId=', () => {
     expect(response.rawPayload.includes('xl/worksheets/sheet2.xml')).toBe(true);
     expect(response.rawPayload.includes('xl/media/sheet2-image1.jpeg')).toBe(true);
     expect(response.rawPayload.includes('xl/media/sheet2-image2.jpeg')).toBe(true);
+  });
+
+  it('shows the photos as one short link to the main photo when one funko is exported as a spreadsheet', async () => {
+    const funko = await seedWithPhotos();
+
+    const response = await api.inject({
+      method: 'GET',
+      url: '/export/funkos.xlsx',
+      query: { funkoId: String(funko.id) },
+    });
+
+    const sheet = readXlsxFile(response.rawPayload, 'xl/worksheets/sheet1.xml') ?? '';
+    expect(sheet).toMatch(
+      /<f>HYPERLINK\("http:\/\/localhost:5173\/uploads\/funkos\/\d+\/[^"]+\.webp","2 photos"\)<\/f>/,
+    );
   });
 
   it('keeps the spreadsheet to one sheet when the funko has no photos', async () => {
