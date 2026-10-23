@@ -1,7 +1,8 @@
+import { InternalError } from '../../../lib/errors.ts';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../lib/httpErrors.ts';
-import { assertFunkoExists, getFunkoSummaries } from '../../funkos/funkos.service.ts';
-import type { FunkoSummary } from '../../funkos/funkoSummary.schema.ts';
-import { assertCollectionExists } from '../collections.service.ts';
+import { getFunkoSummaries, getFunkoSummary } from '../../funkos/funkos.service.ts';
+import type { FunkoSummary } from '../../funkos/funkos.type.ts';
+import { getCollection } from '../collections.service.ts';
 import { collectionItemsRepository, type ItemRow, type TagRow } from './collectionItems.repository.ts';
 import type {
   CollectionItemListResponse,
@@ -56,6 +57,15 @@ async function toSingleResponse(row: ItemRow | undefined, id: number): Promise<C
   return response;
 }
 
+// Both answer NotFoundError (404) through the other module's get when the id does not exist.
+async function assertCollectionExists(collectionId: number): Promise<void> {
+  await getCollection(collectionId);
+}
+
+async function assertFunkoExists(funkoId: number): Promise<void> {
+  await getFunkoSummary(funkoId);
+}
+
 async function assertTagsExist(tagIds: number[] | undefined): Promise<void> {
   if (!tagIds || tagIds.length === 0) return;
 
@@ -103,7 +113,9 @@ export async function addCollectionItem(
 
   const row = await collectionItemsRepository.create({ ...data, collectionId }, [...new Set(tagIds ?? [])]);
 
-  return toSingleResponse(row, data.funkoId);
+  if (!row) throw new InternalError('The collection item was not found right after its insert');
+
+  return toSingleResponse(row, row.id);
 }
 
 // `tagIds` replaces the whole set; leaving it out keeps the tags as they are.

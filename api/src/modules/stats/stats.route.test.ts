@@ -18,7 +18,7 @@ beforeEach(async () => {
 });
 
 describe('GET /stats', () => {
-  it('totals funkos, categories, tags, images and every collection', async () => {
+  it('totals funkos, categories, tags, images and every collection when the catalog has data', async () => {
     const marvel = await createCategory('Pop! Marvel');
     const owned = await createCollection({ name: 'Owned', isDefault: true });
     await createTag();

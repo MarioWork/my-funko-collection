@@ -1,9 +1,12 @@
 import { normaliseBarcode } from '../../lib/barcode.ts';
-import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
+import { InternalError } from '../../lib/errors.ts';
+import { BadRequestError, ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
 import { removeFunkoFolder, variantUrl } from '../../lib/imageStorage.ts';
 import { logger } from '../../lib/logger.ts';
-import { assertCategoryExists } from '../categories/categories.service.ts';
-import { assertSeriesExists } from '../series/series.service.ts';
+import { getCategory } from '../categories/categories.service.ts';
+import { getSeries } from '../series/series.service.ts';
+// funkoImages.service imports getFunkoSummary back from here. The cycle is safe: both sides only call each other
+// inside functions, never while the modules load.
 import { getImages } from './images/funkoImages.service.ts';
 import {
   funkosRepository,
@@ -24,7 +27,7 @@ import type {
   ListFunkosQuery,
   UpdateFunko,
 } from './funkos.schema.ts';
-import type { FunkoSummary, PrimaryImageSummary } from './funkoSummary.schema.ts';
+import type { FunkoSummary, PrimaryImageSummary } from './funkos.type.ts';
 
 const ENTITY = 'Funko';
 const LEADING_HASH = /^#/;
@@ -49,11 +52,31 @@ function toPrimaryImage(row: PrimaryImageRow | undefined): PrimaryImageSummary |
   };
 }
 
+// A category or series a body points at that does not exist is the caller's input error: 400, not the 404 the
+// other module's get answers for its own route.
+async function assertReferenceExists(
+  entity: string,
+  id: number,
+  getOne: (id: number) => Promise<unknown>,
+): Promise<void> {
+  try {
+    await getOne(id);
+  } catch (error: unknown) {
+    if (error instanceof NotFoundError) throw new BadRequestError(`${entity} ${id} does not exist`, { cause: error });
+
+    throw error;
+  }
+}
+
+async function assertCategoryExists(categoryId: number): Promise<void> {
+  await assertReferenceExists('Category', categoryId, getCategory);
+}
+
 // A series id in a body is checked only when one is given: null and a missing key both mean "no series".
 async function assertSeriesIfGiven(seriesId: number | null | undefined): Promise<void> {
   const hasSeries = seriesId !== undefined && seriesId !== null;
 
-  if (hasSeries) await assertSeriesExists(seriesId);
+  if (hasSeries) await assertReferenceExists('Series', seriesId, getSeries);
 }
 
 function toSeries(row: FunkoRow): FunkoSummary['series'] {
@@ -219,7 +242,7 @@ export async function addFunko(input: CreateFunko): Promise<FunkoResponse> {
 
   const row = await funkosRepository.create(data);
 
-  if (!row) throw new NotFoundError(ENTITY, 'just created');
+  if (!row) throw new InternalError('The funko was not found right after its insert');
 
   log.info({ funkoId: row.id }, 'funko created');
 
@@ -290,4 +313,12 @@ export async function getFunkoSummaries(ids: number[]): Promise<Map<number, Funk
   return new Map(rows.map((row) => [row.id, toSummary(row, primaryImages.get(row.id))]));
 }
 
-export { assertFunkoExists } from './funkoLookup.service.ts';
+// For other modules (collection items, the funko's images): one summary, or NotFoundError.
+export async function getFunkoSummary(id: number): Promise<FunkoSummary> {
+  const summaries = await getFunkoSummaries([id]);
+  const summary = summaries.get(id);
+
+  if (!summary) throw new NotFoundError(ENTITY, id);
+
+  return summary;
+}

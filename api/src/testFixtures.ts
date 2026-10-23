@@ -1,5 +1,4 @@
 // Row factories for tests. Each test creates its own data through these; nothing is shared between tests.
-import sharp from 'sharp';
 import { db } from './db/client.ts';
 import {
   categories,
@@ -13,6 +12,7 @@ import {
   type ItemCondition,
 } from './db/schema/index.ts';
 import { normaliseBarcode } from './lib/barcode.ts';
+import { generateImage, type GeneratedImageOptions } from './lib/imageStorage.ts';
 
 let sequence = 0;
 
@@ -117,20 +117,14 @@ export async function createItem(
   return item;
 }
 
-type ImageOptions = { width?: number; height?: number; format?: 'png' | 'jpeg'; orientation?: number; noise?: boolean };
+type ImageOptions = Partial<GeneratedImageOptions>;
+
+const DEFAULT_IMAGE_WIDTH = 64;
+const DEFAULT_IMAGE_HEIGHT = 48;
 
 // A generated image; `noise: true` makes it incompressible, for size-limit tests.
 export async function makeImage(options: ImageOptions = {}): Promise<Buffer> {
-  const width = options.width ?? 64;
-  const height = options.height ?? 48;
-  const base = options.noise
-    ? sharp(Buffer.from(Array.from({ length: width * height * 3 }, () => Math.floor(Math.random() * 256))), {
-        raw: { width, height, channels: 3 },
-      })
-    : sharp({ create: { width, height, channels: 3, background: '#4466aa' } });
-  const withOrientation = options.orientation ? base.withMetadata({ orientation: options.orientation }) : base;
-
-  return options.format === 'jpeg' ? withOrientation.jpeg().toBuffer() : withOrientation.png().toBuffer();
+  return generateImage({ width: DEFAULT_IMAGE_WIDTH, height: DEFAULT_IMAGE_HEIGHT, ...options });
 }
 
 export function toFormData(files: { buffer: Buffer; name?: string; field?: string }[]): FormData {

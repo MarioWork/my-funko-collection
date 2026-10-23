@@ -74,4 +74,4 @@ export const categoriesRepository = {
     executor.delete(categories).where(eq(categories.id, id)).returning({ id: categories.id }).get(),
 };
 
-export type CategoryRow = { id: number; name: string; funkoCount: number; createdAt: Date; updatedAt: Date };
+export type CategoryRow = Awaited<ReturnType<typeof selectWithCount>>[number];

@@ -1,19 +1,28 @@
-import { pingDb } from '../../db/client.ts';
+import { ServiceUnavailableError } from '../../lib/httpErrors.ts';
+import { logger } from '../../lib/logger.ts';
+import { healthRepository } from './health.repository.ts';
 
 const OK_STATUS = 'ok' as const;
 
+const log = logger.child({ module: 'health' });
+
+type HealthStatus = { status: typeof OK_STATUS };
+
 // Liveness: the process answers. Nothing to check.
-export function getLiveness(): { status: typeof OK_STATUS } {
+export function getLiveness(): HealthStatus {
   return { status: OK_STATUS };
 }
 
-// Readiness: the database answers too. A failure is reported, never thrown, so the probe stays cheap.
-export async function isDatabaseReady(): Promise<boolean> {
+// Readiness: the database answers too. A failure is a 503 NOT_READY, with the database error kept as its cause.
+export async function getReadiness(): Promise<HealthStatus> {
   try {
-    await pingDb();
+    await healthRepository.ping();
+  } catch (error: unknown) {
+    // The error handler does not log a 4xx/503 it maps itself, so the cause is logged here.
+    log.error({ err: error }, 'readiness check failed: database not reachable');
 
-    return true;
-  } catch {
-    return false;
+    throw new ServiceUnavailableError('Database is not reachable', { code: 'NOT_READY', cause: error });
   }
+
+  return getLiveness();
 }

@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { FUNKO_SORT_FIELDS, FUNKO_TYPES, funkos } from '../../db/schema/funkos.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { BooleanQuerySchema, ContainsQuerySchema, IdListQuerySchema } from '../../lib/queryParams.ts';
-import { FunkoSummarySchema } from './funkoSummary.schema.ts';
-import { FunkoImageResponseSchema } from './images/funkoImages.schema.ts';
+import { FunkoSummarySchema } from './funkos.type.ts';
+import { FunkoImageResponseSchema } from './images/funkoImages.type.ts';
 
 export const FUNKO_NAME_MAX_LENGTH = 150;
 export const FUNKO_NUMBER_MAX_LENGTH = 20;

@@ -4,6 +4,7 @@ import { createCollection, createFunko, createItem, createTag } from '../../test
 
 const URL = '/tags';
 const MISSING_ID = 999;
+const INVALID_ID = 'abc';
 
 let app: App;
 
@@ -21,7 +22,7 @@ beforeEach(async () => {
 });
 
 describe('GET /tags', () => {
-  it('lists tags with how many items carry them', async () => {
+  it('lists tags with how many items carry them when no params are sent', async () => {
     const box = await createTag('Box 1');
     await createTag('Shelf');
     const collection = await createCollection();
@@ -37,10 +38,42 @@ describe('GET /tags', () => {
       ['Shelf', 0],
     ]);
   });
+
+  it('returns 400 with VALIDATION_ERROR when the direction is unknown', async () => {
+    const response = await app.inject({ method: 'GET', url: URL, query: { direction: 'UP' } });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+});
+
+describe('GET /tags/:tagId', () => {
+  it('returns the tag with its item count when it exists', async () => {
+    const tag = await createTag('Box 3');
+
+    const response = await app.inject({ method: 'GET', url: `${URL}/${tag.id}` });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ id: tag.id, name: 'Box 3', itemCount: 0 });
+  });
+
+  it('returns 400 when the id is not a positive integer', async () => {
+    const response = await app.inject({ method: 'GET', url: `${URL}/${INVALID_ID}` });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('returns 404 when it does not exist', async () => {
+    const response = await app.inject({ method: 'GET', url: `${URL}/${MISSING_ID}` });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ code: 'NOT_FOUND' });
+  });
 });
 
 describe('POST /tags', () => {
-  it('creates the tag with optional notes', async () => {
+  it('creates the tag with its notes when notes are sent', async () => {
     const response = await app.inject({ method: 'POST', url: URL, payload: { name: 'Box 3', notes: 'Attic' } });
 
     expect(response.statusCode).toBe(201);
@@ -63,7 +96,7 @@ describe('POST /tags', () => {
 });
 
 describe('PATCH /tags/:tagId', () => {
-  it('updates the notes and keeps the name', async () => {
+  it('updates the notes and keeps the name when only notes are sent', async () => {
     const tag = await createTag('Box 3');
 
     const response = await app.inject({ method: 'PATCH', url: `${URL}/${tag.id}`, payload: { notes: 'Garage' } });
@@ -71,10 +104,25 @@ describe('PATCH /tags/:tagId', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ name: 'Box 3', notes: 'Garage' });
   });
+
+  it('returns 400 when the name is empty', async () => {
+    const tag = await createTag();
+
+    const response = await app.inject({ method: 'PATCH', url: `${URL}/${tag.id}`, payload: { name: ' ' } });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('returns 404 when it does not exist', async () => {
+    const response = await app.inject({ method: 'PATCH', url: `${URL}/${MISSING_ID}`, payload: { notes: 'x' } });
+
+    expect(response.statusCode).toBe(404);
+  });
 });
 
 describe('DELETE /tags/:tagId', () => {
-  it('removes the tag from its items and answers 204', async () => {
+  it('removes the tag from its items and answers 204 when it exists', async () => {
     const tag = await createTag();
     const collection = await createCollection();
     const funko = await createFunko();
@@ -85,6 +133,12 @@ describe('DELETE /tags/:tagId', () => {
     expect(response.statusCode).toBe(204);
     const itemResponse = await app.inject({ method: 'GET', url: `/collections/${collection.id}/items/${item.id}` });
     expect(itemResponse.json()).toMatchObject({ tags: [] });
+  });
+
+  it('returns 400 when the id is not a positive integer', async () => {
+    const response = await app.inject({ method: 'DELETE', url: `${URL}/${INVALID_ID}` });
+
+    expect(response.statusCode).toBe(400);
   });
 
   it('returns 404 when it does not exist', async () => {

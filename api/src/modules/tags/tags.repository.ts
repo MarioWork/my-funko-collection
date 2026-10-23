@@ -70,11 +70,4 @@ export const tagsRepository = {
     executor.delete(tags).where(eq(tags.id, id)).returning({ id: tags.id }).get(),
 };
 
-export type TagRow = {
-  id: number;
-  name: string;
-  notes: string | null;
-  itemCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
+export type TagRow = Awaited<ReturnType<typeof selectWithCount>>[number];

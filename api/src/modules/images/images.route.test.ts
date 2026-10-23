@@ -1,8 +1,6 @@
-import { copyFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
 import { buildApp, type App } from '../../app.ts';
 import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
-import { funkoFolder } from '../../lib/imageStorage.ts';
+import { copyFunkoFile, listFunkoFolder } from '../../lib/imageStorage.ts';
 import { createFunko, makeImage, toFormData } from '../../testFixtures.ts';
 
 const URL = '/images';
@@ -59,15 +57,15 @@ async function seedImages() {
   await uploadImage(eleven.id, 200);
   await uploadImage(groot.id, 120);
 
-  const grootFolder = funkoFolder(groot.id);
-  const [grootLarge] = (await readdir(grootFolder)).filter((file) => !file.includes('.md.') && !file.includes('.sm.'));
-  await copyFile(join(grootFolder, grootLarge ?? ''), join(grootFolder, LOOSE_FILE_NAME));
+  const grootFiles = await listFunkoFolder(groot.id);
+  const [grootLarge] = grootFiles.filter((file) => !file.includes('.md.') && !file.includes('.sm.'));
+  await copyFunkoFile(groot.id, grootLarge ?? '', LOOSE_FILE_NAME);
 
   return { eleven, groot };
 }
 
 describe('GET /images', () => {
-  it('lists every image row with its funko, plus loose files with none', async () => {
+  it('lists every image row with its funko and the loose files without one when no params are sent', async () => {
     await seedImages();
 
     const response = await app.inject({ method: 'GET', url: URL });
@@ -83,7 +81,7 @@ describe('GET /images', () => {
     expect(mains.sort()).toEqual(['Eleven', 'Groot']);
   });
 
-  it('keeps only the loose files with hasFunko=false and only rows with true', async () => {
+  it('keeps only the loose files or only the rows when hasFunko is false or true', async () => {
     await seedImages();
 
     const loose = await app.inject({ method: 'GET', url: URL, query: { hasFunko: 'false' } });
@@ -93,7 +91,7 @@ describe('GET /images', () => {
     expect(linked.json<ListBody>().totalResultNumber).toBe(3);
   });
 
-  it('searches the funko name and the file name', async () => {
+  it('matches the funko name and the file name when q is set', async () => {
     await seedImages();
 
     const byFunko = await app.inject({ method: 'GET', url: URL, query: { q: 'elev' } });
@@ -103,7 +101,7 @@ describe('GET /images', () => {
     expect(byFile.json<ListBody>().data.map((entry) => entry.fileName)).toEqual([LOOSE_FILE_NAME]);
   });
 
-  it('sorts by size in either direction and pages the result', async () => {
+  it('sorts by size in either direction and pages the result when SIZE and a page are sent', async () => {
     await seedImages();
 
     const ascending = await app.inject({
@@ -124,7 +122,16 @@ describe('GET /images', () => {
     expect(secondPage.data.map((entry) => entry.sizeBytes)).toEqual(sizes.slice(0, 2).reverse());
   });
 
-  it('groups by funko with counts and total sizes, biggest first, loose files last', async () => {
+  it('returns 400 with VALIDATION_ERROR when the sort field is unknown', async () => {
+    const response = await app.inject({ method: 'GET', url: URL, query: { sorting_fields: 'COLOUR' } });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json<{ code: string }>().code).toBe('VALIDATION_ERROR');
+  });
+});
+
+describe('GET /images/groups', () => {
+  it('groups by funko with counts and total sizes, biggest first and loose files last, when no params are sent', async () => {
     await seedImages();
 
     const response = await app.inject({ method: 'GET', url: `${URL}/groups` });
@@ -138,7 +145,7 @@ describe('GET /images', () => {
     expect(eleven?.sizeBytes).toBe(eleven?.images.reduce((total, image) => total + image.sizeBytes, 0));
   });
 
-  it('filters and searches before grouping', async () => {
+  it('filters and searches before grouping when q and hasFunko are set', async () => {
     await seedImages();
 
     const response = await app.inject({ method: 'GET', url: `${URL}/groups`, query: { q: 'groot', hasFunko: 'true' } });
@@ -146,8 +153,8 @@ describe('GET /images', () => {
     expect(response.json<GroupListBody>().data.map((group) => group.funko?.name)).toEqual(['Groot']);
   });
 
-  it('rejects an unknown sort field with VALIDATION_ERROR', async () => {
-    const response = await app.inject({ method: 'GET', url: URL, query: { sorting_fields: 'COLOUR' } });
+  it('returns 400 with VALIDATION_ERROR when the page size is above the cap', async () => {
+    const response = await app.inject({ method: 'GET', url: `${URL}/groups`, query: { size: '101' } });
 
     expect(response.statusCode).toBe(400);
     expect(response.json<{ code: string }>().code).toBe('VALIDATION_ERROR');

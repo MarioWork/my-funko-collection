@@ -1,16 +1,11 @@
 import { and, asc, count, desc, eq, exists, gte, inArray, lte, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { db, type DbExecutor } from '../../../db/client.ts';
 import { likeContains } from '../../../db/like.ts';
-import {
-  collectionItems,
-  type ItemCondition,
-  type ItemSortField,
-  type NewCollectionItem,
-} from '../../../db/schema/collectionItems.ts';
+import { collectionItems, type ItemSortField, type NewCollectionItem } from '../../../db/schema/collectionItems.ts';
 import { collectionItemTags } from '../../../db/schema/collectionItemTags.ts';
 import { collections } from '../../../db/schema/collections.ts';
 import { funkos } from '../../../db/schema/funkos.ts';
-import { tags } from '../../../db/schema/tags.ts';
+import { tags, type Tag } from '../../../db/schema/tags.ts';
 import { toLimitOffset } from '../../../lib/pagination.ts';
 import type { ListAllItemsQuery, UpdateCollectionItem } from './collectionItems.schema.ts';
 
@@ -203,19 +198,5 @@ export const collectionItemsRepository = {
       .get(),
 };
 
-export type ItemRow = {
-  id: number;
-  collectionId: number;
-  collectionName: string;
-  funkoId: number;
-  quantity: number;
-  condition: ItemCondition | null;
-  purchasePriceCents: number | null;
-  purchaseCurrency: string;
-  purchasedAt: string | null;
-  notes: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type TagRow = { id: number; name: string };
+export type ItemRow = Awaited<ReturnType<typeof selectItems>>[number];
+export type TagRow = Pick<Tag, 'id' | 'name'>;

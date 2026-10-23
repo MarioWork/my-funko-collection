@@ -1,7 +1,6 @@
-import { access } from 'node:fs/promises';
 import { buildApp, type App } from '../../app.ts';
 import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
-import { funkoFolder } from '../../lib/imageStorage.ts';
+import { funkoFolderExists } from '../../lib/imageStorage.ts';
 import {
   createCategory,
   createCollection,
@@ -21,6 +20,8 @@ const STORED_BARCODE = `0${BARCODE}`;
 
 type FunkoBody = { id: number; name: string; number: string; matchedOn?: string[]; collections: { name: string }[] };
 type ListBody = { data: FunkoBody[]; totalResultNumber: number; currentPage: number };
+type SeriesSummary = { id: number; name: string } | null;
+type FunkoWithSeriesBody = FunkoBody & { series: SeriesSummary };
 
 let app: App;
 
@@ -76,7 +77,7 @@ describe('GET /funkos', () => {
     expect(body.data[1]?.collections.map((collection) => collection.name)).toEqual(['Owned']);
   });
 
-  it('finds funkos through a tag name with q and reports the matched field', async () => {
+  it('finds funkos and reports TAG as the matched field when q matches a tag name', async () => {
     await seedCatalog();
 
     const response = await app.inject({ method: 'GET', url: URL, query: { q: 'box' } });
@@ -86,7 +87,7 @@ describe('GET /funkos', () => {
     expect(body.data[0]?.matchedOn).toEqual(['TAG']);
   });
 
-  it('matches every word of q somewhere: a collection name and a category name', async () => {
+  it('keeps only funkos matched by every word when q has a collection name and a category name', async () => {
     await seedCatalog();
 
     const response = await app.inject({ method: 'GET', url: URL, query: { q: 'wishlist marvel' } });
@@ -96,7 +97,7 @@ describe('GET /funkos', () => {
     expect(body.data[0]?.matchedOn).toEqual(expect.arrayContaining(['COLLECTION', 'CATEGORY']));
   });
 
-  it('matches a box number written with a hash and an exclusive sticker text', async () => {
+  it('matches the box number and the exclusive sticker when q is a hashed number or sticker text', async () => {
     await seedCatalog();
 
     const byNumber = await app.inject({ method: 'GET', url: URL, query: { q: '#01' } });
@@ -106,7 +107,7 @@ describe('GET /funkos', () => {
     expect(names(byExclusive.json<ListBody>())).toEqual(['Darth Vader']);
   });
 
-  it('tightens q with named params that are all ANDed', async () => {
+  it('ANDs q with the named params when both are sent', async () => {
     const { marvel } = await seedCatalog();
 
     const response = await app.inject({
@@ -120,7 +121,7 @@ describe('GET /funkos', () => {
     expect(body.data[0]).toMatchObject({ name: 'Thanos', isChase: true });
   });
 
-  it('filters by tag id, collection name and category name without q', async () => {
+  it('filters by tag id, collection name and category name when only those params are sent', async () => {
     const { box } = await seedCatalog();
 
     const byTag = await app.inject({ method: 'GET', url: URL, query: { tagId: String(box.id) } });
@@ -132,7 +133,7 @@ describe('GET /funkos', () => {
     expect(names(byCategory.json<ListBody>())).toEqual(['Darth Vader']);
   });
 
-  it('lists what is not in a collection yet with notInCollectionId', async () => {
+  it('lists what is not in a collection yet when notInCollectionId is set', async () => {
     const { owned } = await seedCatalog();
 
     const response = await app.inject({ method: 'GET', url: URL, query: { notInCollectionId: String(owned.id) } });
@@ -140,7 +141,7 @@ describe('GET /funkos', () => {
     expect(names(response.json<ListBody>())).toEqual(['Thanos', 'Thanos']);
   });
 
-  it('lists funkos in no collection and funkos with no tags', async () => {
+  it('splits funkos by collection and tag presence when hasCollections or hasTags is set', async () => {
     await seedCatalog();
 
     const inNone = await app.inject({ method: 'GET', url: URL, query: { hasCollections: 'false' } });
@@ -154,7 +155,7 @@ describe('GET /funkos', () => {
     expect(names(tagged.json<ListBody>())).toEqual(['Spider-Man']);
   });
 
-  it('sorts by the numeric value of the box number', async () => {
+  it('orders by the numeric value of the box number when sorting by NUMBER', async () => {
     const category = await createCategory();
     await createFunko({ name: 'Ten', number: '10', categoryId: category.id });
     await createFunko({ name: 'Two', number: '2', categoryId: category.id });
@@ -176,7 +177,7 @@ describe('GET /funkos', () => {
     expect(names(response.json<ListBody>())).toEqual(['Groot', 'Groot Deluxe', 'Amazing Groot']);
   });
 
-  it('treats % and _ in the query as plain characters', async () => {
+  it('matches % and _ literally when the query contains them', async () => {
     const category = await createCategory();
     await createFunko({ name: '100% Soft Groot', categoryId: category.id });
     await createFunko({ name: 'Groot', categoryId: category.id });
@@ -188,7 +189,67 @@ describe('GET /funkos', () => {
     expect(names(underscore.json<ListBody>())).toEqual([]);
   });
 
-  it('rejects a malformed id list with VALIDATION_ERROR', async () => {
+  it('keeps funkos by series when seriesId lists ids or series names a fragment', async () => {
+    const strangerThings = await createSeries('Stranger Things');
+    const mandalorian = await createSeries('The Mandalorian');
+    await createFunko({ name: 'Eleven', seriesId: strangerThings.id });
+    await createFunko({ name: 'Grogu', seriesId: mandalorian.id });
+    await createFunko({ name: 'Groot' });
+
+    const byIds = await app.inject({
+      method: 'GET',
+      url: URL,
+      query: { seriesId: `${strangerThings.id},${mandalorian.id}` },
+    });
+    const byName = await app.inject({ method: 'GET', url: URL, query: { series: 'stranger' } });
+
+    expect(names(byIds.json<ListBody>())).toEqual(['Eleven', 'Grogu']);
+    expect(names(byName.json<ListBody>())).toEqual(['Eleven']);
+  });
+
+  it('splits funkos with and without a series when hasSeries is set', async () => {
+    const strangerThings = await createSeries('Stranger Things');
+    await createFunko({ name: 'Eleven', seriesId: strangerThings.id });
+    await createFunko({ name: 'Groot' });
+
+    const without = await app.inject({ method: 'GET', url: URL, query: { hasSeries: 'false' } });
+    const withSeries = await app.inject({ method: 'GET', url: URL, query: { hasSeries: 'true' } });
+
+    expect(names(without.json<ListBody>())).toEqual(['Groot']);
+    expect(names(withSeries.json<ListBody>())).toEqual(['Eleven']);
+  });
+
+  it('finds the funko and reports SERIES when q matches its series name', async () => {
+    const daredevil = await createSeries('Daredevil: Born Again');
+    await createFunko({ name: 'Kingpin', seriesId: daredevil.id });
+    await createFunko({ name: 'Groot' });
+
+    const response = await app.inject({ method: 'GET', url: URL, query: { q: 'born' } });
+
+    const body = response.json<{ data: FunkoWithSeriesBody[] }>();
+    expect(body.data.map((funko) => funko.name)).toEqual(['Kingpin']);
+    expect(body.data[0]?.matchedOn).toEqual(['SERIES']);
+  });
+
+  it('puts funkos without a series last in both directions when sorting by SERIES', async () => {
+    const alpha = await createSeries('Alpha');
+    const beta = await createSeries('Beta');
+    await createFunko({ name: 'No series' });
+    await createFunko({ name: 'In beta', seriesId: beta.id });
+    await createFunko({ name: 'In alpha', seriesId: alpha.id });
+
+    const ascending = await app.inject({ method: 'GET', url: URL, query: { sorting_fields: 'SERIES' } });
+    const descending = await app.inject({
+      method: 'GET',
+      url: URL,
+      query: { sorting_fields: 'SERIES', direction: 'DESC' },
+    });
+
+    expect(names(ascending.json<ListBody>())).toEqual(['In alpha', 'In beta', 'No series']);
+    expect(names(descending.json<ListBody>())).toEqual(['In beta', 'In alpha', 'No series']);
+  });
+
+  it('returns 400 with VALIDATION_ERROR when an id list is malformed', async () => {
     const response = await app.inject({ method: 'GET', url: URL, query: { tagId: '1,abc' } });
 
     expect(response.statusCode).toBe(400);
@@ -197,7 +258,7 @@ describe('GET /funkos', () => {
 });
 
 describe('GET /funkos/by-barcode/:barcode', () => {
-  it('returns the funko that carries the barcode', async () => {
+  it('returns the funko when a funko carries the barcode', async () => {
     await seedCatalog();
 
     const response = await app.inject({ method: 'GET', url: `${URL}/by-barcode/${BARCODE}` });
@@ -206,7 +267,14 @@ describe('GET /funkos/by-barcode/:barcode', () => {
     expect(response.json()).toMatchObject({ name: 'Spider-Man', barcode: STORED_BARCODE });
   });
 
-  it('returns 404 for an unknown barcode', async () => {
+  it('returns 400 when the barcode is not digits', async () => {
+    const response = await app.inject({ method: 'GET', url: `${URL}/by-barcode/ABCDEFGHIJ` });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('returns 404 when no funko carries the barcode', async () => {
     const response = await app.inject({ method: 'GET', url: `${URL}/by-barcode/000000000000` });
 
     expect(response.statusCode).toBe(404);
@@ -214,7 +282,7 @@ describe('GET /funkos/by-barcode/:barcode', () => {
 });
 
 describe('GET /funkos/:funkoId', () => {
-  it('returns the funko with its images, category and collections', async () => {
+  it('returns the funko with its images, category and collections when it exists', async () => {
     const { spiderMan } = await seedCatalog();
     await app.inject({
       method: 'POST',
@@ -235,6 +303,22 @@ describe('GET /funkos/:funkoId', () => {
     expect(body.category.name).toBe('Pop! Marvel');
   });
 
+  it('includes the series when the funko has one', async () => {
+    const strangerThings = await createSeries('Stranger Things');
+    const funko = await createFunko({ seriesId: strangerThings.id });
+
+    const response = await app.inject({ method: 'GET', url: `${URL}/${funko.id}` });
+
+    expect(response.json()).toMatchObject({ series: { id: strangerThings.id, name: 'Stranger Things' } });
+  });
+
+  it('returns 400 when the id is not a positive integer', async () => {
+    const response = await app.inject({ method: 'GET', url: `${URL}/0` });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
   it('returns 404 when it does not exist', async () => {
     const response = await app.inject({ method: 'GET', url: `${URL}/${MISSING_ID}` });
 
@@ -243,7 +327,7 @@ describe('GET /funkos/:funkoId', () => {
 });
 
 describe('POST /funkos', () => {
-  it('creates the funko with defaults and returns 201', async () => {
+  it('creates the funko with defaults and returns 201 when only the required fields are sent', async () => {
     const category = await createCategory();
 
     const response = await app.inject({
@@ -262,7 +346,22 @@ describe('POST /funkos', () => {
       barcode: null,
       primaryImage: null,
       collections: [],
+      series: null,
     });
+  });
+
+  it('returns the series in the response when the body names one', async () => {
+    const category = await createCategory();
+    const daredevil = await createSeries('Daredevil: Born Again');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: URL,
+      payload: { name: 'Daredevil', number: '1406', categoryId: category.id, seriesId: daredevil.id },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({ series: { id: daredevil.id, name: 'Daredevil: Born Again' } });
   });
 
   it('returns 409 with the existing id when the same funko already exists', async () => {
@@ -306,16 +405,47 @@ describe('POST /funkos', () => {
     expect(unknownCategory.statusCode).toBe(400);
     expect(badType.statusCode).toBe(400);
   });
+
+  it('returns 400 naming the series when the series does not exist', async () => {
+    const category = await createCategory();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: URL,
+      payload: { name: 'X', number: '1', categoryId: category.id, seriesId: MISSING_ID },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR', message: `Series ${MISSING_ID} does not exist` });
+  });
 });
 
 describe('PATCH /funkos/:funkoId', () => {
-  it('updates fields and keeps the rest', async () => {
+  it('updates the sent fields and keeps the rest when the funko exists', async () => {
     const { vader } = await seedCatalog();
 
     const response = await app.inject({ method: 'PATCH', url: `${URL}/${vader.id}`, payload: { isChase: true } });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ name: 'Darth Vader', isChase: true, exclusive: 'SDCC 2024' });
+  });
+
+  it('sets the series, keeps it across other changes and clears it when seriesId is null', async () => {
+    const mandalorian = await createSeries('The Mandalorian');
+    const funko = await createFunko({ name: 'Grogu' });
+
+    const setResponse = await app.inject({
+      method: 'PATCH',
+      url: `${URL}/${funko.id}`,
+      payload: { seriesId: mandalorian.id },
+    });
+    const renameResponse = await app.inject({ method: 'PATCH', url: `${URL}/${funko.id}`, payload: { name: 'Baby' } });
+    const clearResponse = await app.inject({ method: 'PATCH', url: `${URL}/${funko.id}`, payload: { seriesId: null } });
+
+    expect(setResponse.json()).toMatchObject({ series: { id: mandalorian.id, name: 'The Mandalorian' } });
+    expect(renameResponse.json()).toMatchObject({ name: 'Baby', series: { id: mandalorian.id } });
+    expect(clearResponse.statusCode).toBe(200);
+    expect(clearResponse.json()).toMatchObject({ series: null });
   });
 
   it('returns 409 when the change collides with another funko', async () => {
@@ -325,10 +455,37 @@ describe('PATCH /funkos/:funkoId', () => {
 
     expect(response.statusCode).toBe(409);
   });
+
+  it('returns 400 when the body points at a missing series', async () => {
+    const funko = await createFunko();
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `${URL}/${funko.id}`,
+      payload: { seriesId: MISSING_ID },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('returns 400 when the body carries an unknown key', async () => {
+    const funko = await createFunko();
+
+    const response = await app.inject({ method: 'PATCH', url: `${URL}/${funko.id}`, payload: { colour: 'red' } });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('returns 404 when it does not exist', async () => {
+    const response = await app.inject({ method: 'PATCH', url: `${URL}/${MISSING_ID}`, payload: { name: 'x' } });
+
+    expect(response.statusCode).toBe(404);
+  });
 });
 
 describe('DELETE /funkos/:funkoId', () => {
-  it('returns 409 naming the collections while the funko sits in one and force is not set', async () => {
+  it('returns 409 naming the collections when the funko sits in one and force is not set', async () => {
     const { spiderMan } = await seedCatalog();
 
     const response = await app.inject({ method: 'DELETE', url: `${URL}/${spiderMan.id}` });
@@ -362,7 +519,7 @@ describe('DELETE /funkos/:funkoId', () => {
     ]);
   });
 
-  it('rejects a force value that is not true or false', async () => {
+  it('returns 400 when force is not true or false', async () => {
     const { thanosChase } = await seedCatalog();
 
     const response = await app.inject({ method: 'DELETE', url: `${URL}/${thanosChase.id}`, query: { force: 'yes' } });
@@ -381,150 +538,12 @@ describe('DELETE /funkos/:funkoId', () => {
     const response = await app.inject({ method: 'DELETE', url: `${URL}/${thanosChase.id}` });
 
     expect(response.statusCode).toBe(204);
-    await expect(access(funkoFolder(thanosChase.id))).rejects.toThrow();
-  });
-});
-
-type SeriesSummary = { id: number; name: string } | null;
-type FunkoWithSeriesBody = FunkoBody & { series: SeriesSummary };
-
-describe('series on funkos', () => {
-  it('creates a funko with a series and returns it in the response', async () => {
-    const category = await createCategory();
-    const daredevil = await createSeries('Daredevil: Born Again');
-
-    const response = await app.inject({
-      method: 'POST',
-      url: URL,
-      payload: { name: 'Daredevil', number: '1406', categoryId: category.id, seriesId: daredevil.id },
-    });
-
-    expect(response.statusCode).toBe(201);
-    expect(response.json()).toMatchObject({ series: { id: daredevil.id, name: 'Daredevil: Born Again' } });
+    expect(await funkoFolderExists(thanosChase.id)).toBe(false);
   });
 
-  it('creates a funko without a series as series null', async () => {
-    const category = await createCategory();
+  it('returns 404 when it does not exist', async () => {
+    const response = await app.inject({ method: 'DELETE', url: `${URL}/${MISSING_ID}` });
 
-    const response = await app.inject({
-      method: 'POST',
-      url: URL,
-      payload: { name: 'Groot', number: '1203', categoryId: category.id },
-    });
-
-    expect(response.statusCode).toBe(201);
-    expect(response.json()).toMatchObject({ series: null });
-  });
-
-  it('returns 400 when the series does not exist', async () => {
-    const category = await createCategory();
-
-    const response = await app.inject({
-      method: 'POST',
-      url: URL,
-      payload: { name: 'X', number: '1', categoryId: category.id, seriesId: MISSING_ID },
-    });
-
-    expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR', message: `Series ${MISSING_ID} does not exist` });
-  });
-
-  it('sets a series with PATCH and clears it with null', async () => {
-    const mandalorian = await createSeries('The Mandalorian');
-    const funko = await createFunko({ name: 'Grogu' });
-
-    const setResponse = await app.inject({
-      method: 'PATCH',
-      url: `${URL}/${funko.id}`,
-      payload: { seriesId: mandalorian.id },
-    });
-    const renameResponse = await app.inject({ method: 'PATCH', url: `${URL}/${funko.id}`, payload: { name: 'Baby' } });
-    const clearResponse = await app.inject({ method: 'PATCH', url: `${URL}/${funko.id}`, payload: { seriesId: null } });
-
-    expect(setResponse.json()).toMatchObject({ series: { id: mandalorian.id, name: 'The Mandalorian' } });
-    expect(renameResponse.json()).toMatchObject({ name: 'Baby', series: { id: mandalorian.id } });
-    expect(clearResponse.statusCode).toBe(200);
-    expect(clearResponse.json()).toMatchObject({ series: null });
-  });
-
-  it('returns 400 when PATCH points at a missing series', async () => {
-    const funko = await createFunko();
-
-    const response = await app.inject({
-      method: 'PATCH',
-      url: `${URL}/${funko.id}`,
-      payload: { seriesId: MISSING_ID },
-    });
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  it('includes the series in the detail response', async () => {
-    const strangerThings = await createSeries('Stranger Things');
-    const funko = await createFunko({ seriesId: strangerThings.id });
-
-    const response = await app.inject({ method: 'GET', url: `${URL}/${funko.id}` });
-
-    expect(response.json()).toMatchObject({ series: { id: strangerThings.id, name: 'Stranger Things' } });
-  });
-
-  it('filters by seriesId list and by series name', async () => {
-    const strangerThings = await createSeries('Stranger Things');
-    const mandalorian = await createSeries('The Mandalorian');
-    await createFunko({ name: 'Eleven', seriesId: strangerThings.id });
-    await createFunko({ name: 'Grogu', seriesId: mandalorian.id });
-    await createFunko({ name: 'Groot' });
-
-    const byIds = await app.inject({
-      method: 'GET',
-      url: URL,
-      query: { seriesId: `${strangerThings.id},${mandalorian.id}` },
-    });
-    const byName = await app.inject({ method: 'GET', url: URL, query: { series: 'stranger' } });
-
-    expect(names(byIds.json<ListBody>())).toEqual(['Eleven', 'Grogu']);
-    expect(names(byName.json<ListBody>())).toEqual(['Eleven']);
-  });
-
-  it('lists funkos with no series and with one through hasSeries', async () => {
-    const strangerThings = await createSeries('Stranger Things');
-    await createFunko({ name: 'Eleven', seriesId: strangerThings.id });
-    await createFunko({ name: 'Groot' });
-
-    const without = await app.inject({ method: 'GET', url: URL, query: { hasSeries: 'false' } });
-    const withSeries = await app.inject({ method: 'GET', url: URL, query: { hasSeries: 'true' } });
-
-    expect(names(without.json<ListBody>())).toEqual(['Groot']);
-    expect(names(withSeries.json<ListBody>())).toEqual(['Eleven']);
-  });
-
-  it('finds a funko through its series name with q and reports SERIES', async () => {
-    const daredevil = await createSeries('Daredevil: Born Again');
-    await createFunko({ name: 'Kingpin', seriesId: daredevil.id });
-    await createFunko({ name: 'Groot' });
-
-    const response = await app.inject({ method: 'GET', url: URL, query: { q: 'born' } });
-
-    const body = response.json<{ data: FunkoWithSeriesBody[] }>();
-    expect(body.data.map((funko) => funko.name)).toEqual(['Kingpin']);
-    expect(body.data[0]?.matchedOn).toEqual(['SERIES']);
-  });
-
-  it('sorts by series name with funkos without a series last in both directions', async () => {
-    const alpha = await createSeries('Alpha');
-    const beta = await createSeries('Beta');
-    await createFunko({ name: 'No series' });
-    await createFunko({ name: 'In beta', seriesId: beta.id });
-    await createFunko({ name: 'In alpha', seriesId: alpha.id });
-
-    const ascending = await app.inject({ method: 'GET', url: URL, query: { sorting_fields: 'SERIES' } });
-    const descending = await app.inject({
-      method: 'GET',
-      url: URL,
-      query: { sorting_fields: 'SERIES', direction: 'DESC' },
-    });
-
-    expect(names(ascending.json<ListBody>())).toEqual(['In alpha', 'In beta', 'No series']);
-    expect(names(descending.json<ListBody>())).toEqual(['In beta', 'In alpha', 'No series']);
+    expect(response.statusCode).toBe(404);
   });
 });

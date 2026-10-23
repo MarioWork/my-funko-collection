@@ -1,4 +1,4 @@
-import { BadRequestError, NotFoundError } from '../../lib/httpErrors.ts';
+import { NotFoundError } from '../../lib/httpErrors.ts';
 import { categoriesRepository, type CategoryRow } from './categories.repository.ts';
 import type {
   CategoryListResponse,
@@ -46,13 +46,6 @@ export async function updateCategory(id: number, data: UpdateCategory): Promise<
   if (!row) throw new NotFoundError(ENTITY, id);
 
   return toResponse(row);
-}
-
-// For bodies that reference a category (a funko's categoryId): a missing one is the caller's input error, so 400.
-export async function assertCategoryExists(id: number): Promise<void> {
-  const row = await categoriesRepository.findById(id);
-
-  if (!row) throw new BadRequestError(`Category ${id} does not exist`);
 }
 
 // Deleting a category that still has funkos fails on the FK (restrict), which the error handler answers as 409.

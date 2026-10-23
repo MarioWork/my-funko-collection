@@ -4,6 +4,7 @@ import { createCategory, createFunko } from '../../testFixtures.ts';
 
 const URL = '/categories';
 const MISSING_ID = 999;
+const INVALID_ID = 'abc';
 
 let app: App;
 
@@ -38,7 +39,7 @@ describe('GET /categories', () => {
     expect(body.totalResultNumber).toBe(2);
   });
 
-  it('filters by a name fragment case-insensitively', async () => {
+  it('keeps the matching categories when name is a fragment in another case', async () => {
     await createCategory('Pop! Marvel');
     await createCategory('Star Wars');
 
@@ -49,7 +50,7 @@ describe('GET /categories', () => {
     ]);
   });
 
-  it('rejects a page size above the cap with VALIDATION_ERROR', async () => {
+  it('returns 400 with VALIDATION_ERROR when the page size is above the cap', async () => {
     const response = await app.inject({ method: 'GET', url: URL, query: { size: '101' } });
 
     expect(response.statusCode).toBe(400);
@@ -67,6 +68,13 @@ describe('GET /categories/:categoryId', () => {
     expect(response.json()).toMatchObject({ id: created.id, name: 'Star Wars', funkoCount: 0 });
   });
 
+  it('returns 400 when the id is not a positive integer', async () => {
+    const response = await app.inject({ method: 'GET', url: `${URL}/${INVALID_ID}` });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
   it('returns 404 when it does not exist', async () => {
     const response = await app.inject({ method: 'GET', url: `${URL}/${MISSING_ID}` });
 
@@ -76,7 +84,7 @@ describe('GET /categories/:categoryId', () => {
 });
 
 describe('POST /categories', () => {
-  it('creates the category and trims the name', async () => {
+  it('creates the category with a trimmed name when the name has spaces around it', async () => {
     const response = await app.inject({ method: 'POST', url: URL, payload: { name: '  Pop! Games  ' } });
 
     expect(response.statusCode).toBe(201);
@@ -110,6 +118,15 @@ describe('PATCH /categories/:categoryId', () => {
     expect(response.json()).toMatchObject({ id: created.id, name: 'Renamed' });
   });
 
+  it('returns 400 when the body carries an unknown key', async () => {
+    const created = await createCategory();
+
+    const response = await app.inject({ method: 'PATCH', url: `${URL}/${created.id}`, payload: { colour: 'red' } });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
   it('returns 404 when it does not exist', async () => {
     const response = await app.inject({ method: 'PATCH', url: `${URL}/${MISSING_ID}`, payload: { name: 'x' } });
 
@@ -118,7 +135,7 @@ describe('PATCH /categories/:categoryId', () => {
 });
 
 describe('DELETE /categories/:categoryId', () => {
-  it('removes an unused category with 204', async () => {
+  it('removes the category with 204 when no funko uses it', async () => {
     const created = await createCategory();
 
     const response = await app.inject({ method: 'DELETE', url: `${URL}/${created.id}` });
@@ -126,7 +143,7 @@ describe('DELETE /categories/:categoryId', () => {
     expect(response.statusCode).toBe(204);
   });
 
-  it('returns 409 while funkos still use it', async () => {
+  it('returns 409 when funkos still use it', async () => {
     const created = await createCategory();
     await createFunko({ categoryId: created.id });
 
@@ -134,6 +151,12 @@ describe('DELETE /categories/:categoryId', () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json()).toMatchObject({ code: 'CONFLICT' });
+  });
+
+  it('returns 400 when the id is not a positive integer', async () => {
+    const response = await app.inject({ method: 'DELETE', url: `${URL}/${INVALID_ID}` });
+
+    expect(response.statusCode).toBe(400);
   });
 
   it('returns 404 when it does not exist', async () => {

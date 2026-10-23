@@ -16,3 +16,6 @@ data/*.db-*
 
 # Uploaded images (the compose volume holds them on the server)
 data/uploads/
+
+# TypeScript incremental build state
+*.tsbuildinfo

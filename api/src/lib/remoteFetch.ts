@@ -37,22 +37,22 @@ async function assertPublicUrl(url: URL): Promise<void> {
   if (addresses.length === 0 || hasLocalAddress) throw new BadRequestError('The URL must point at a public host');
 }
 
-async function fetchOnce(url: URL): Promise<Response> {
+async function fetchOnce(url: URL, timeoutMs: number): Promise<Response> {
   try {
-    return await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), redirect: 'manual' });
+    return await fetch(url, { signal: AbortSignal.timeout(timeoutMs), redirect: 'manual' });
   } catch (error: unknown) {
     throw new BadRequestError('The remote file could not be downloaded', { cause: error });
   }
 }
 
 // Follows up to MAX_REDIRECTS hops, checking each target before it is contacted.
-async function fetchFollowingRedirects(startUrl: URL): Promise<Response> {
+async function fetchFollowingRedirects(startUrl: URL, timeoutMs: number): Promise<Response> {
   let url = startUrl;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
     await assertPublicUrl(url);
 
-    const response = await fetchOnce(url);
+    const response = await fetchOnce(url, timeoutMs);
     const isRedirect = REDIRECT_STATUSES.has(response.status);
 
     if (!isRedirect) return response;
@@ -87,8 +87,13 @@ async function readWithCap(response: Response, maxBytes: number): Promise<Buffer
   return Buffer.concat(chunks);
 }
 
-export async function fetchRemoteFile(rawUrl: string, maxBytes: number): Promise<Buffer> {
-  const response = await fetchFollowingRedirects(new URL(rawUrl));
+// `timeoutMs` bounds each hop; the default is for real use, tests pass a short one.
+export async function fetchRemoteFile(
+  rawUrl: string,
+  maxBytes: number,
+  timeoutMs: number = FETCH_TIMEOUT_MS,
+): Promise<Buffer> {
+  const response = await fetchFollowingRedirects(new URL(rawUrl), timeoutMs);
 
   if (!response.ok) throw new BadRequestError(`The remote server answered ${response.status}`);
 

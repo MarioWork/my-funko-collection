@@ -1,8 +1,6 @@
-import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { timestamps } from './_columns.ts';
 import { funkos } from './funkos.ts';
-
-const nowMs = sql`(cast(unixepoch('subsec') * 1000 as integer))`;
 
 // One uploaded photo. The three WebP variants on disk share `fileKey`: `<key>.webp`, `<key>.md.webp`, `<key>.sm.webp`.
 export const funkoImages = sqliteTable(
@@ -23,7 +21,7 @@ export const funkoImages = sqliteTable(
     // A tiny base64 WebP data URI shown while the real file loads.
     placeholder: text().notNull(),
     position: integer({ mode: 'number' }).notNull().default(0),
-    createdAt: integer({ mode: 'timestamp_ms' }).notNull().default(nowMs),
+    ...timestamps,
   },
   (t) => [
     index('funko_images_funko_id_position_idx').on(t.funkoId, t.position),

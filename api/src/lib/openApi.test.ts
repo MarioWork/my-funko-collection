@@ -12,8 +12,8 @@ afterAll(async () => {
   await app.close();
 });
 
-describe('OpenAPI document', () => {
-  it('lists each named schema once as a component and references it from the routes', async () => {
+describe('GET /docs/json', () => {
+  it('lists each named schema once as a component and references it from the routes when the app starts', async () => {
     const response = await app.inject({ method: 'GET', url: '/docs/json' });
 
     expect(response.statusCode).toBe(200);

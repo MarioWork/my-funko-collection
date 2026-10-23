@@ -29,7 +29,8 @@ const EnvSchema = z.object({
         .split(',')
         .map((origin) => origin.trim())
         .filter(Boolean),
-    ),
+    )
+    .pipe(z.array(z.url())),
   // Where uploaded images live. The Docker volume mounts over it.
   UPLOADS_DIR: z.string().min(1).default(DEFAULT_UPLOADS_DIR),
   MAX_IMAGE_BYTES: z.coerce.number().int().positive().default(DEFAULT_MAX_IMAGE_BYTES),

@@ -1,4 +1,4 @@
-import { BadRequestError, NotFoundError } from '../../lib/httpErrors.ts';
+import { NotFoundError } from '../../lib/httpErrors.ts';
 import { seriesRepository, type SeriesRow } from './series.repository.ts';
 import type {
   CreateSeries,
@@ -46,13 +46,6 @@ export async function updateSeries(id: number, data: UpdateSeries): Promise<Seri
   if (!row) throw new NotFoundError(ENTITY, id);
 
   return toResponse(row);
-}
-
-// For bodies that reference a series (a funko's seriesId): a missing one is the caller's input error, so 400.
-export async function assertSeriesExists(id: number): Promise<void> {
-  const row = await seriesRepository.findById(id);
-
-  if (!row) throw new BadRequestError(`Series ${id} does not exist`);
 }
 
 // Unlike a category, a series is optional on a funko: the FK sets their seriesId to null, so this never answers 409.

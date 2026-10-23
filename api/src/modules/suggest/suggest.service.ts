@@ -2,8 +2,7 @@
 import { DEFAULT_PAGE } from '../../lib/pagination.ts';
 import { getCategories } from '../categories/categories.service.ts';
 import { getCollections } from '../collections/collections.service.ts';
-import type { FunkoSummary } from '../funkos/funkoSummary.schema.ts';
-import type { FunkoResponse } from '../funkos/funkos.type.ts';
+import type { FunkoResponse, FunkoSummary } from '../funkos/funkos.type.ts';
 import { getFunkos } from '../funkos/funkos.service.ts';
 import { getSeriesList } from '../series/series.service.ts';
 import { getTags } from '../tags/tags.service.ts';

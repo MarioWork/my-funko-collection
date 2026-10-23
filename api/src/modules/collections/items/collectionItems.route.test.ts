@@ -10,6 +10,7 @@ import {
 } from '../../../testFixtures.ts';
 
 const MISSING_ID = 999;
+const INVALID_ID = 'abc';
 
 type ItemBody = {
   id: number;
@@ -57,7 +58,7 @@ async function seed() {
 }
 
 describe('GET /collections/:collectionId/items', () => {
-  it('lists the items of one collection with funko summary and tags', async () => {
+  it('lists the items of one collection with funko summary and tags when no params are sent', async () => {
     const { owned, wishlist, spiderMan, vader, box } = await seed();
     await createItem(owned.id, spiderMan.id, { tagIds: [box.id], purchasePriceCents: 1499 });
     await createItem(wishlist.id, vader.id);
@@ -76,7 +77,7 @@ describe('GET /collections/:collectionId/items', () => {
     });
   });
 
-  it('filters by tag, condition and purchase date range, and sorts by price', async () => {
+  it('filters by tag, condition and purchase date range and sorts by price when those params are sent', async () => {
     const { owned, spiderMan, vader, box } = await seed();
     const third = await createFunko({ name: 'Groot' });
     await createItem(owned.id, spiderMan.id, {
@@ -119,7 +120,7 @@ describe('GET /collections/:collectionId/items', () => {
     expect(byPrice.json<ListBody>().data.map((item) => item.purchasePriceCents)).toEqual([2999, 1499, 899]);
   });
 
-  it('filters by series id and embeds the series in the funko summary', async () => {
+  it('keeps the series items and embeds the series in the funko summary when seriesId is set', async () => {
     const { owned, spiderMan, vader } = await seed();
     const mandalorian = await createSeries('The Mandalorian');
     const grogu = await createFunko({ name: 'Grogu', seriesId: mandalorian.id });
@@ -141,15 +142,60 @@ describe('GET /collections/:collectionId/items', () => {
     });
   });
 
-  it('returns 404 for an unknown collection', async () => {
+  it('returns 400 with VALIDATION_ERROR when the condition is unknown', async () => {
+    const { owned } = await seed();
+
+    const response = await app.inject({ method: 'GET', url: itemsUrl(owned.id), query: { condition: 'SHINY' } });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('returns 404 when the collection does not exist', async () => {
     const response = await app.inject({ method: 'GET', url: itemsUrl(MISSING_ID) });
 
     expect(response.statusCode).toBe(404);
   });
 });
 
+describe('GET /collections/:collectionId/items/:itemId', () => {
+  it('returns the item with its funko and tags when it is in the collection', async () => {
+    const { owned, spiderMan, box } = await seed();
+    const item = await createItem(owned.id, spiderMan.id, { tagIds: [box.id], notes: 'Gift' });
+
+    const response = await app.inject({ method: 'GET', url: `${itemsUrl(owned.id)}/${item.id}` });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: item.id,
+      collection: { id: owned.id, name: 'Owned' },
+      funko: { id: spiderMan.id, name: 'Spider-Man' },
+      notes: 'Gift',
+      tags: [{ id: box.id, name: 'Box 3' }],
+    });
+  });
+
+  it('returns 400 when the item id is not a positive integer', async () => {
+    const { owned } = await seed();
+
+    const response = await app.inject({ method: 'GET', url: `${itemsUrl(owned.id)}/${INVALID_ID}` });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('returns 404 when the item is in another collection', async () => {
+    const { owned, wishlist, spiderMan } = await seed();
+    const item = await createItem(wishlist.id, spiderMan.id);
+
+    const response = await app.inject({ method: 'GET', url: `${itemsUrl(owned.id)}/${item.id}` });
+
+    expect(response.statusCode).toBe(404);
+  });
+});
+
 describe('GET /items', () => {
-  it('lists items across collections and narrows by collection and tag', async () => {
+  it('lists items across collections and narrows them when collectionId or tagId is set', async () => {
     const { owned, wishlist, spiderMan, vader, box } = await seed();
     await createItem(owned.id, spiderMan.id, { tagIds: [box.id] });
     await createItem(wishlist.id, vader.id, { tagIds: [box.id] });
@@ -164,10 +210,17 @@ describe('GET /items', () => {
     expect(all.json<ListBody>().totalResultNumber).toBe(2);
     expect(onlyWishlist.json<ListBody>().data.map((item) => item.funko.name)).toEqual(['Darth Vader']);
   });
+
+  it('returns 400 with VALIDATION_ERROR when a date filter is not an ISO date', async () => {
+    const response = await app.inject({ method: 'GET', url: '/items', query: { purchasedFrom: '02/03/2024' } });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
 });
 
 describe('POST /collections/:collectionId/items', () => {
-  it('adds a funko with tags, price and date and returns 201', async () => {
+  it('adds the funko with tags, price and date and returns 201 when every field is valid', async () => {
     const { owned, spiderMan, box, shelf } = await seed();
 
     const response = await app.inject({
@@ -205,7 +258,7 @@ describe('POST /collections/:collectionId/items', () => {
     expect(response.json()).toMatchObject({ code: 'CONFLICT', existingId: existing.id });
   });
 
-  it('returns 400 for an unknown tag, a zero quantity or a bad date', async () => {
+  it('returns 400 when a tag is unknown, the quantity is zero or the date is malformed', async () => {
     const { owned, spiderMan } = await seed();
 
     const unknownTag = await app.inject({
@@ -229,17 +282,29 @@ describe('POST /collections/:collectionId/items', () => {
     expect(badDate.statusCode).toBe(400);
   });
 
-  it('returns 404 for an unknown funko', async () => {
+  it('returns 404 when the funko does not exist', async () => {
     const { owned } = await seed();
 
     const response = await app.inject({ method: 'POST', url: itemsUrl(owned.id), payload: { funkoId: MISSING_ID } });
 
     expect(response.statusCode).toBe(404);
   });
+
+  it('returns 404 when the collection does not exist', async () => {
+    const { spiderMan } = await seed();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: itemsUrl(MISSING_ID),
+      payload: { funkoId: spiderMan.id },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
 });
 
 describe('PATCH /collections/:collectionId/items/:itemId', () => {
-  it('replaces the tag set when tagIds is sent and keeps it otherwise', async () => {
+  it('replaces the tag set when tagIds is sent and keeps it when it is not', async () => {
     const { owned, spiderMan, box, shelf } = await seed();
     const item = await createItem(owned.id, spiderMan.id, { tagIds: [box.id] });
 
@@ -270,10 +335,23 @@ describe('PATCH /collections/:collectionId/items/:itemId', () => {
 
     expect(response.statusCode).toBe(400);
   });
+
+  it('returns 404 when the item is in another collection', async () => {
+    const { owned, wishlist, spiderMan } = await seed();
+    const item = await createItem(wishlist.id, spiderMan.id);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `${itemsUrl(owned.id)}/${item.id}`,
+      payload: { notes: 'x' },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
 });
 
 describe('POST /collections/:collectionId/items/:itemId/move', () => {
-  it('moves the item to the other collection and keeps tags and notes', async () => {
+  it('moves the item and keeps its tags and notes when the target collection does not have the funko', async () => {
     const { owned, wishlist, spiderMan, box } = await seed();
     const item = await createItem(wishlist.id, spiderMan.id, { tagIds: [box.id], notes: 'Wanted' });
 
@@ -306,10 +384,37 @@ describe('POST /collections/:collectionId/items/:itemId/move', () => {
 
     expect(response.statusCode).toBe(409);
   });
+
+  it('returns 400 when the target is the collection the item is already in', async () => {
+    const { wishlist, spiderMan } = await seed();
+    const item = await createItem(wishlist.id, spiderMan.id);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `${itemsUrl(wishlist.id)}/${item.id}/move`,
+      payload: { toCollectionId: wishlist.id },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('returns 404 when the target collection does not exist', async () => {
+    const { wishlist, spiderMan } = await seed();
+    const item = await createItem(wishlist.id, spiderMan.id);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `${itemsUrl(wishlist.id)}/${item.id}/move`,
+      payload: { toCollectionId: MISSING_ID },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
 });
 
 describe('DELETE /collections/:collectionId/items/:itemId', () => {
-  it('removes the item and keeps the funko', async () => {
+  it('removes the item and keeps the funko when the item is in the collection', async () => {
     const { owned, spiderMan } = await seed();
     const item = await createItem(owned.id, spiderMan.id);
 
@@ -317,6 +422,14 @@ describe('DELETE /collections/:collectionId/items/:itemId', () => {
 
     expect(response.statusCode).toBe(204);
     expect((await app.inject({ method: 'GET', url: `/funkos/${spiderMan.id}` })).statusCode).toBe(200);
+  });
+
+  it('returns 400 when the item id is not a positive integer', async () => {
+    const { owned } = await seed();
+
+    const response = await app.inject({ method: 'DELETE', url: `${itemsUrl(owned.id)}/${INVALID_ID}` });
+
+    expect(response.statusCode).toBe(400);
   });
 
   it('returns 404 when the item is in another collection', async () => {
