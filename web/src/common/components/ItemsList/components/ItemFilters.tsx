@@ -1,6 +1,6 @@
-import type { CategoryApiModel, CollectionApiModel, TagApiModel } from '@app-types/models';
+import type { CategoryApiModel, CollectionApiModel, NamedApiModel, TagApiModel } from '@app-types/models';
 import { ITEM_CONDITION_LABELS, ItemConditionUtil } from '@app-types/utility';
-import SelectFilter from '@components/SelectFilter';
+import SelectFilter, { type FilterOption } from '@components/SelectFilter';
 import { Field, FieldLabel } from '@components/ui/field';
 import { Input } from '@components/ui/input';
 import type { ItemFilterField } from '@hooks/useItemListParams';
@@ -15,7 +15,9 @@ type Props = {
   onChange: (field: ItemFilterField, value: string | undefined) => void;
 };
 
-const named = (rows: { id: number; name: string }[]) => rows.map((row) => ({ value: String(row.id), label: row.name }));
+function toFilterOptions(rows: NamedApiModel[]): FilterOption[] {
+  return rows.map((row) => ({ value: String(row.id), label: row.name }));
+}
 
 function ItemFilters({ categories, tags, collections, hasCollectionFilter, filters, onChange }: Props) {
   return (
@@ -26,7 +28,7 @@ function ItemFilters({ categories, tags, collections, hasCollectionFilter, filte
           label="Collection"
           anyLabel="Any collection"
           value={filters[ItemApiSearchFields.COLLECTION_ID]}
-          options={named(collections)}
+          options={toFilterOptions(collections)}
           onChange={(value) => onChange(ItemApiSearchFields.COLLECTION_ID, value)}
         />
       ) : null}
@@ -35,7 +37,7 @@ function ItemFilters({ categories, tags, collections, hasCollectionFilter, filte
         label="Tag"
         anyLabel="Any tag"
         value={filters[ItemApiSearchFields.TAG_ID]}
-        options={named(tags)}
+        options={toFilterOptions(tags)}
         onChange={(value) => onChange(ItemApiSearchFields.TAG_ID, value)}
       />
       <SelectFilter
@@ -43,7 +45,7 @@ function ItemFilters({ categories, tags, collections, hasCollectionFilter, filte
         label="Category"
         anyLabel="Any category"
         value={filters[ItemApiSearchFields.CATEGORY_ID]}
-        options={named(categories)}
+        options={toFilterOptions(categories)}
         onChange={(value) => onChange(ItemApiSearchFields.CATEGORY_ID, value)}
       />
       <SelectFilter

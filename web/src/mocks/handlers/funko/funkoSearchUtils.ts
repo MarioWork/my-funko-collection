@@ -59,6 +59,17 @@ export function matchedFields(row: MockFunkoRow, words: string[]): FunkoMatchFie
   return [...matched];
 }
 
+// Exact name first, then a name that starts with the query, then the rest (the API's relevance order).
+export function relevance(name: string, query: string): number {
+  const lowered = name.toLowerCase();
+  const wanted = query.toLowerCase();
+
+  if (lowered === wanted) return 0;
+  if (lowered.startsWith(wanted)) return 1;
+
+  return 2;
+}
+
 export function splitWords(query: string | null): string[] {
   return (query ?? '').split(/\s+/).filter(Boolean);
 }

@@ -2,7 +2,7 @@ import type { ActionFunctionArgs } from 'react-router';
 import { ValidationError } from 'yup';
 import type { TagApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
-import type { ManageEntityFormData } from '@components/ManageList/manageListUtils';
+import type { ManageEntityFormData } from '@components/ManageForm';
 import tagService from '@services/tagService/tagService';
 import { CreateTagSchema, UpdateTagSchema } from '@services/tagService/tagService.type';
 import { parseFormData } from '@utils/formDataUtils';

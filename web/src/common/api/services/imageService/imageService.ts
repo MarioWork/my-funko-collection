@@ -8,6 +8,7 @@ import {
 } from '@app-types/utility';
 
 const BASE_IMAGES_URL = '/images';
+const GROUPS_SEGMENT = 'groups';
 
 export default {
   // Read-only: every stored image, including loose files no funko uses. Writes go through a funko's images.
@@ -37,15 +38,18 @@ export default {
     direction,
     ...searchFields
   }: GetImagesFields): Promise<ResponseWithPaginationUtil<ImageGroupApiModel>> => {
-    const response = await axios.get<ResponseWithPaginationUtil<ImageGroupApiModel>>(`${BASE_IMAGES_URL}/groups`, {
-      params: {
-        [ApiUrlParamsUtil.page]: pagination.page,
-        [ApiUrlParamsUtil.pageSize]: pagination.size,
-        [ApiUrlParamsUtil.sorting_fields]: sortingField,
-        [ApiUrlParamsUtil.sortingDirection]: direction,
-        ...searchFields,
+    const response = await axios.get<ResponseWithPaginationUtil<ImageGroupApiModel>>(
+      `${BASE_IMAGES_URL}/${GROUPS_SEGMENT}`,
+      {
+        params: {
+          [ApiUrlParamsUtil.page]: pagination.page,
+          [ApiUrlParamsUtil.pageSize]: pagination.size,
+          [ApiUrlParamsUtil.sorting_fields]: sortingField,
+          [ApiUrlParamsUtil.sortingDirection]: direction,
+          ...searchFields,
+        },
       },
-    });
+    );
 
     return response.data;
   },

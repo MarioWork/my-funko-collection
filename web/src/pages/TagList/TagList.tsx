@@ -6,7 +6,7 @@ import { TAG_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AddFab from '@components/AddFab';
 import LinkButton from '@components/LinkButton';
 import ManageList from '@components/ManageList';
-import type { ManageRow } from '@components/ManageList/manageListUtils';
+import type { ManageRow } from '@components/ManageList';
 import PageHeader from '@components/PageHeader';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import type { loader } from './tagListLoader';

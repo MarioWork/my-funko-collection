@@ -1,4 +1,4 @@
-import type { CollectionApiModel, NamedApiModel } from '@app-types/models';
+import type { CollectionApiModel, CollectionId, NamedApiModel, TagId } from '@app-types/models';
 import { useLocalStorage } from '@hooks/useLocalStorage';
 import {
   ADD_CATEGORY_STORAGE_KEY,
@@ -15,7 +15,7 @@ type Options = {
   tags: NamedApiModel[];
 };
 
-function knownCollectionIds(storedCollections: string, collections: CollectionApiModel[]): number[] {
+function knownCollectionIds(storedCollections: string, collections: CollectionApiModel[]): CollectionId[] {
   if (storedCollections === CATALOG_ONLY_VALUE) return [];
 
   const known = parseStoredIds(storedCollections).filter((collectionId) =>
@@ -47,10 +47,10 @@ export function useAddDestination({ collections, tags }: Options) {
   const selectedCollections = collections.filter((collection) => collectionIds.includes(collection.id));
   const destination: AddDestination = { collectionIds, tagIds };
 
-  const setCollectionIds = (ids: number[]) =>
+  const setCollectionIds = (ids: CollectionId[]) =>
     setStoredCollections(ids.length === 0 ? CATALOG_ONLY_VALUE : ids.join(','));
 
-  const setTagIds = (ids: number[]) => setStoredTags(ids.join(','));
+  const setTagIds = (ids: TagId[]) => setStoredTags(ids.join(','));
 
   return {
     destination,

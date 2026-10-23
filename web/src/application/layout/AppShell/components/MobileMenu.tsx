@@ -1,18 +1,14 @@
-import { Menu, Settings } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink } from 'react-router';
-import { MANAGE_ITEMS, type NavigationItem } from '@application/layout/navigationUtils';
-import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { MANAGE_ITEMS, SETTINGS_ITEM, type NavigationItem } from '@application/layout/navigationUtils';
 import AppLogo from '@components/AppLogo';
 import IconButton from '@components/IconButton';
 import ThemeSwitcher from '@components/ThemeSwitcher';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@components/ui/sheet';
 import { cn } from '@utils/classNameUtils';
 
-const MENU_ITEMS: NavigationItem[] = [
-  ...MANAGE_ITEMS,
-  { label: 'Settings', to: BASE_ROUTES_PATHS.SETTINGS, icon: Settings },
-];
+const MENU_ITEMS: NavigationItem[] = [...MANAGE_ITEMS, SETTINGS_ITEM];
 
 type MenuLinkProps = {
   item: NavigationItem;

@@ -1,4 +1,10 @@
-import type { CategoryApiModel, CollectionApiModel, SeriesApiModel, TagApiModel } from '@app-types/models';
+import type {
+  CategoryApiModel,
+  CollectionApiModel,
+  NamedApiModel,
+  SeriesApiModel,
+  TagApiModel,
+} from '@app-types/models';
 import { FUNKO_TYPE_LABELS, FunkoTypeUtil } from '@app-types/utility';
 import SelectFilter from '@components/SelectFilter';
 import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
@@ -14,7 +20,9 @@ type Props = {
   onChange: (updates: FunkoFilterUpdates) => void;
 };
 
-const named = (rows: { id: number; name: string }[]) => rows.map((row) => ({ value: String(row.id), label: row.name }));
+function toFilterOptions(rows: NamedApiModel[]) {
+  return rows.map((row) => ({ value: String(row.id), label: row.name }));
+}
 
 const YES_NO_OPTIONS = [
   { value: 'true', label: 'Yes' },
@@ -34,7 +42,7 @@ function FunkoFilters({ categories, series, collections, tags, filters, onChange
         label="Category"
         anyLabel="Any category"
         value={filters[FunkoApiSearchFields.CATEGORY_ID]}
-        options={named(categories)}
+        options={toFilterOptions(categories)}
         onChange={(value) => onChange({ [FunkoApiSearchFields.CATEGORY_ID]: value })}
       />
       <OptionalFilter
@@ -45,7 +53,7 @@ function FunkoFilters({ categories, series, collections, tags, filters, onChange
         idField={FunkoApiSearchFields.SERIES_ID}
         hasField={FunkoApiSearchFields.HAS_SERIES}
         filters={filters}
-        options={named(series)}
+        options={toFilterOptions(series)}
         onChange={onChange}
       />
       <SelectFilter
@@ -72,7 +80,7 @@ function FunkoFilters({ categories, series, collections, tags, filters, onChange
         idField={FunkoApiSearchFields.COLLECTION_ID}
         hasField={FunkoApiSearchFields.HAS_COLLECTIONS}
         filters={filters}
-        options={named(collections)}
+        options={toFilterOptions(collections)}
         onChange={onChange}
       />
       <OptionalFilter
@@ -83,7 +91,7 @@ function FunkoFilters({ categories, series, collections, tags, filters, onChange
         idField={FunkoApiSearchFields.TAG_ID}
         hasField={FunkoApiSearchFields.HAS_TAGS}
         filters={filters}
-        options={named(tags)}
+        options={toFilterOptions(tags)}
         onChange={onChange}
       />
       <SelectFilter

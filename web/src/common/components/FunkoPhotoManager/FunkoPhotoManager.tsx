@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useFetcher } from 'react-router';
-import type { FunkoDetailApiModel } from '@app-types/models';
+import type { FunkoDetailApiModel, FunkoImageId } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import Lightbox from '@components/Lightbox';
@@ -20,7 +20,7 @@ function FunkoPhotoManager({ funko }: Props) {
   const { images } = funko;
   const imagesPath = FUNKO_ROUTES_PATHS.images(String(funko.id));
 
-  const submitOrder = (imageIds: number[]) =>
+  const submitOrder = (imageIds: FunkoImageId[]) =>
     void orderFetcher.submit(createFormData({ imageIds }), { method: HttpVerbsUtil.PATCH, action: imagesPath });
 
   const move = (index: number, direction: -1 | 1) => {

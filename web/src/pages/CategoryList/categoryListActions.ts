@@ -2,7 +2,7 @@ import type { ActionFunctionArgs } from 'react-router';
 import { ValidationError } from 'yup';
 import type { CategoryApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
-import type { ManageEntityFormData } from '@components/ManageList/manageListUtils';
+import type { ManageEntityFormData } from '@components/ManageForm';
 import categoryService from '@services/categoryService/categoryService';
 import { CreateCategorySchema, UpdateCategorySchema } from '@services/categoryService/categoryService.type';
 import { parseFormData } from '@utils/formDataUtils';

@@ -3,12 +3,12 @@ import { useFetcher, useNavigate } from 'react-router';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import CancelButton from '@components/CancelButton';
 import FormPanel from '@components/FormPanel';
-import ManageForm from '@components/ManageList/components/ManageForm';
-import {
+import type { NamedApiModel } from '@app-types/models';
+import ManageForm, {
   EMPTY_MANAGE_VALUES,
   type ManageEntityFormData,
   type ManageFormValues,
-} from '@components/ManageList/manageListUtils';
+} from '@components/ManageForm';
 import SubmitButton from '@components/SubmitButton';
 import { useActionToast } from '@hooks/useActionToast';
 import { createFormData } from '@utils/formDataUtils';
@@ -22,14 +22,12 @@ type Props = {
   addPath: string;
 };
 
-type Created = { id: number; name: string };
-
 const BACK = -1;
 
 // "New tag" / "New category": a dialog on desktop, a page on phones. Posts to the list's own action, then goes back
 // to the list with a toast.
 function ManageAddPanel({ noun, description, hasNotes, addPath }: Props) {
-  const fetcher = useFetcher<JSONResponseUtil<Created>>();
+  const fetcher = useFetcher<JSONResponseUtil<NamedApiModel>>();
   const navigate = useNavigate();
   const formId = `add-${noun}`;
   const isSubmitting = fetcher.state !== 'idle';
@@ -43,10 +41,11 @@ function ManageAddPanel({ noun, description, hasNotes, addPath }: Props) {
     void fetcher.submit(createFormData(payload), { method: HttpVerbsUtil.POST, action: addPath });
   };
 
-  useActionToast(fetcher, { successMessage: (data) => `Added ${(data as Created).name}` });
+  useActionToast(fetcher, { successMessage: (data) => `Added ${(data as NamedApiModel).name}` });
 
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data?.success) close();
+    // Runs once per settled answer: `close` is a new function each render and only navigates back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data]);
 

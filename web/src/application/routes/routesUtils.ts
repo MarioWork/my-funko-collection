@@ -40,8 +40,6 @@ export const COLLECTION_ROUTES_PATHS = {
     collectionId ? `/collections/${collectionId}/delete` : '/collections/:collectionId/delete',
   setDefault: (collectionId?: string) =>
     collectionId ? `/collections/${collectionId}/default` : '/collections/:collectionId/default',
-  items: (collectionId?: string) =>
-    collectionId ? `/collections/${collectionId}/items` : '/collections/:collectionId/items',
   // Action only: the Undo of a removed item.
   restoreItem: (collectionId?: string) =>
     collectionId ? `/collections/${collectionId}/items/restore` : '/collections/:collectionId/items/restore',

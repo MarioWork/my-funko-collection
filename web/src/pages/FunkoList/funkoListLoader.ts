@@ -7,24 +7,11 @@ import funkoService, {
   FunkoApiSortingFields,
   type GetFunkosFields,
 } from '@services/funkoService/funkoService';
+import { readSearchFields, readSortDirection, readSortField } from '@utils/listParamsUtils';
 import { FUNKO_PAGE_SIZE } from './funkoListUtils';
 
-const SORT_FIELDS = new Set<string>(Object.values(FunkoApiSortingFields));
-const DIRECTIONS = new Set<string>(Object.values(SortingDirectionUtil));
-
-type SearchFields = Partial<Record<FunkoApiSearchFields, string>>;
-
-function readSearchFields(searchParams: URLSearchParams): SearchFields {
-  const fields: SearchFields = {};
-
-  for (const field of Object.values(FunkoApiSearchFields)) {
-    const value = searchParams.get(field);
-
-    if (value) fields[field] = value;
-  }
-
-  return fields;
-}
+const SORT_FIELDS = Object.values(FunkoApiSortingFields);
+const SEARCH_FIELDS = Object.values(FunkoApiSearchFields);
 
 type FunkoSort = { field: FunkoApiSortingFields; direction: SortingDirectionUtil };
 
@@ -38,19 +25,17 @@ const BROWSE_DEFAULT_SORT: FunkoSort = {
 function resolveSort(sortParam: string, directionParam: string, hasQuery: boolean): FunkoSort {
   const defaultSort = hasQuery ? SEARCH_DEFAULT_SORT : BROWSE_DEFAULT_SORT;
 
-  if (!SORT_FIELDS.has(sortParam)) return defaultSort;
+  const field = readSortField(sortParam, SORT_FIELDS);
 
-  const direction = DIRECTIONS.has(directionParam)
-    ? (directionParam as SortingDirectionUtil)
-    : SortingDirectionUtil.ASC;
+  if (!field) return defaultSort;
 
-  return { field: sortParam as FunkoApiSortingFields, direction };
+  return { field, direction: readSortDirection(directionParam) ?? SortingDirectionUtil.ASC };
 }
 
 // Reads the list state from the URL and loads the page plus the options the filter panel offers.
 export async function loader({ request }: LoaderFunctionArgs) {
   const searchParams = new URL(request.url).searchParams;
-  const searchFields = readSearchFields(searchParams);
+  const searchFields = readSearchFields(searchParams, SEARCH_FIELDS);
   const sort = resolveSort(
     searchParams.get(ApiUrlParamsUtil.sorting_fields) ?? '',
     searchParams.get(ApiUrlParamsUtil.sortingDirection) ?? '',

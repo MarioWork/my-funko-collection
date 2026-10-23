@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { createMockImageUrls } from '@mocks/mockImageUtils';
+import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from '@mocks/mockImageUtils';
 import { badRequest, notFound } from '@mocks/mockResponses';
 import { mockStore, nextId, nowIso, type MockImageRow } from '@mocks/mockStore';
 import { IMAGE_FILE_FIELD } from '@services/funkoImageService/funkoImageService';
@@ -14,7 +14,7 @@ export function storeImage(funkoId: number, label: string): MockImageRow {
     id,
     funkoId,
     position: siblings.length,
-    sizeBytes: 350_000,
+    sizeBytes: MOCK_IMAGE_SIZE_BYTES,
     createdAt: nowIso(),
     ...createMockImageUrls(label, id),
   };

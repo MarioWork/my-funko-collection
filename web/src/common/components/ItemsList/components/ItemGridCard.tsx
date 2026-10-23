@@ -1,4 +1,4 @@
-import type { CollectionApiModel, CollectionItemApiModel } from '@app-types/models';
+import type { CollectionApiModel, CollectionId, CollectionItemApiModel } from '@app-types/models';
 import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoCard from '@components/FunkoCard';
 import type { FunkoGridDensity } from '@utils/layoutUtils';
@@ -12,7 +12,7 @@ type Props = {
   collections: CollectionApiModel[];
   density: FunkoGridDensity;
   isBusy: boolean;
-  onMove: (item: CollectionItemApiModel, toCollectionId: number) => void;
+  onMove: (item: CollectionItemApiModel, toCollectionId: CollectionId) => void;
   onRemove: (item: CollectionItemApiModel) => void;
 };
 

@@ -1,13 +1,15 @@
 import { ApiUrlParamsUtil, SortingDirectionUtil } from '@app-types/utility';
 import { anyOf, paginateMockList } from './mockListUtils';
 
+type Tag = { label: string };
+
 type Row = {
   name: string;
   country: string;
   size: number;
   isBlocked: boolean;
   issuedAt: string;
-  tags: { label: string }[];
+  tags: Tag[];
 };
 
 const row = (overrides: Partial<Row> = {}): Row => ({
@@ -268,6 +270,6 @@ describe('anyOf', () => {
   });
 
   it('reads an empty list as an empty string', () => {
-    expect(anyOf([], (tag: { label: string }) => tag.label)).toBe('');
+    expect(anyOf([], (tag: Tag) => tag.label)).toBe('');
   });
 });

@@ -26,7 +26,11 @@ function SearchPalette({ isOpen, onOpenChange }: Props) {
   );
 }
 
-function PaletteBody({ onPick }: { onPick: () => void }) {
+type PaletteBodyProps = {
+  onPick: () => void;
+};
+
+function PaletteBody({ onPick }: PaletteBodyProps) {
   const [query, setQuery] = useState('');
   const { suggestions, isLoading, query: debouncedQuery } = useSuggestions(query);
 

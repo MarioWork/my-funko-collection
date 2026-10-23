@@ -52,7 +52,7 @@ export type QuickFilter = {
   value: string;
 };
 
-const TRUE_VALUE = 'true';
+export const TRUE_VALUE = 'true';
 const FALSE_VALUE = 'false';
 
 // One chip per collection ("Owned", "Wishlist"), then chase and the funkos still missing a photo.

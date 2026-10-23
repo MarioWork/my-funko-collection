@@ -1,4 +1,3 @@
-export const EAN_13_LENGTH = 13;
 export const UPC_A_LENGTH = 12;
 export const FUNKO_GS1_PREFIX = '889698';
 const DIGITS_ONLY = /^\d+$/;

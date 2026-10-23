@@ -22,6 +22,7 @@ export class FunkoListPage {
   }
 
   async openFunko(name: string) {
-    await this.tiles.filter({ hasText: name }).first().click();
+    // Strict on purpose: search first so one tile matches (Thanos and its chase share a name).
+    await this.tiles.filter({ hasText: name }).click();
   }
 }

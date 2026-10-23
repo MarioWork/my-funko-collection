@@ -45,7 +45,7 @@ function BarcodeScanner({ isActive, onDetected, className }: Props) {
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
-      <div className="relative aspect-3/4 w-full overflow-hidden rounded-2xl bg-black @md:aspect-video">
+      <div className="relative aspect-3/4 w-full overflow-hidden rounded-2xl bg-media @md:aspect-video">
         <video
           ref={videoRef}
           autoPlay
@@ -56,12 +56,12 @@ function BarcodeScanner({ isActive, onDetected, className }: Props) {
         />
         {isScanning ? (
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-            <div className="absolute inset-x-[10%] top-[35%] h-[30%] rounded-lg border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />
+            <div className="absolute inset-x-[10%] top-[35%] h-[30%] rounded-lg border-2 border-media-foreground/90 shadow-viewfinder" />
             <div className="absolute inset-x-[12%] top-1/2 h-0.5 bg-primary/90 motion-safe:animate-pulse" />
           </div>
         ) : null}
         {state === ScannerStateUtil.STARTING ? (
-          <div className="absolute inset-0 flex items-center justify-center text-white">
+          <div className="absolute inset-0 flex items-center justify-center text-media-foreground">
             <Spinner className="size-8" />
           </div>
         ) : null}

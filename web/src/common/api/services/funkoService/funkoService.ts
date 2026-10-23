@@ -13,7 +13,7 @@ import type { CreateFunko, DeleteFunkoOptions, UpdateFunko } from './funkoServic
 
 const BASE_FUNKOS_URL = '/funkos';
 const BY_BARCODE_SEGMENT = 'by-barcode';
-const FORCE_PARAM = 'force';
+export const FORCE_PARAM = 'force';
 
 export default {
   // The one search: `q` over every field, the named fields narrow one each. All ANDed by the API.

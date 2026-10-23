@@ -6,6 +6,9 @@ import { badRequest, notFound } from '@mocks/mockResponses';
 import { mockStore, nextId } from '@mocks/mockStore';
 import type { ReorderImages, RotateImage } from '@services/funkoImageService/funkoImageService.type';
 
+// Turns that swap the picture's width and height.
+const QUARTER_TURN_DEGREES: number[] = [90, 270];
+
 export default (baseUrl: string) => [
   http.patch(`${baseUrl}/funkos/:funkoId/images/order`, async ({ params, request }) => {
     await delay(MOCK_DELAY);
@@ -19,7 +22,7 @@ export default (baseUrl: string) => [
     for (const image of images) image.position = imageIds.indexOf(image.id);
 
     return HttpResponse.json(
-      images.sort((a, b) => a.position - b.position).map(({ funkoId: _funkoId, ...image }) => image),
+      images.sort((first, second) => first.position - second.position).map(({ funkoId: _funkoId, ...image }) => image),
     );
   }),
   http.post(`${baseUrl}/funkos/:funkoId/images/:imageId/rotate`, async ({ params, request }) => {
@@ -32,7 +35,7 @@ export default (baseUrl: string) => [
     if (!image) return notFound('Image', String(params.imageId));
 
     const { degrees } = (await request.json()) as RotateImage;
-    const isQuarterTurn = degrees === 90 || degrees === 270;
+    const isQuarterTurn = QUARTER_TURN_DEGREES.includes(degrees);
     const rotatedSize = isQuarterTurn ? { width: image.height, height: image.width } : {};
 
     // New URLs, as the API does: variant files are immutable, so a changed picture needs a new key.

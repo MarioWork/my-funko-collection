@@ -1,4 +1,4 @@
-import type { CategoryApiModel, CollectionApiModel, TagApiModel } from '@app-types/models';
+import type { CategoryApiModel, CollectionApiModel, NamedApiModel, TagApiModel } from '@app-types/models';
 import { ApiUrlParamsUtil, ITEM_CONDITION_LABELS, type ItemConditionUtil } from '@app-types/utility';
 import type { FilterChip } from '@components/FilterChips';
 import type { SortOption } from '@components/SortSelect';
@@ -27,8 +27,7 @@ export type ItemFilterField = (typeof ITEM_FILTER_FIELDS)[number];
 // The items list's URL state: search text, filters (with chip labels), sort.
 export function useItemListParams({ categories, tags, collections, hasCollectionFilter }: Options) {
   const { getParam, setParams, clearParams } = useListParams();
-  const nameOf = (rows: { id: number; name: string }[], id: string) =>
-    rows.find((row) => String(row.id) === id)?.name ?? id;
+  const nameOf = (rows: NamedApiModel[], id: string) => rows.find((row) => String(row.id) === id)?.name ?? id;
   const activeFields = ITEM_FILTER_FIELDS.filter(
     (field) => hasCollectionFilter || field !== ItemApiSearchFields.COLLECTION_ID,
   );

@@ -6,20 +6,11 @@ import { MOCK_DELAY } from '@mocks/handlers';
 import { paginateMockList } from '@mocks/mockListUtils';
 import { toFunkoModel } from '@mocks/mockResponses';
 import { FunkoApiSearchFields, FunkoApiSortingFields } from '@services/funkoService/funkoService';
-import { filterFunkos, matchedFields, splitWords } from './funkoSearchUtils';
+import { filterFunkos, matchedFields, relevance, splitWords } from './funkoSearchUtils';
 
 const NO_SERIES_SORT_KEY = '\uffff';
-
-// Exact name first, then a name that starts with the query, then the rest (the API's relevance order).
-function relevance(name: string, query: string): number {
-  const lowered = name.toLowerCase();
-  const wanted = query.toLowerCase();
-
-  if (lowered === wanted) return 0;
-  if (lowered.startsWith(wanted)) return 1;
-
-  return 2;
-}
+// Zero-padded, so number 78 sorts before 1203 when compared as text.
+const NUMBER_SORT_WIDTH = 6;
 
 export default (baseUrl: string) => [
   http.get(
@@ -52,10 +43,11 @@ export default (baseUrl: string) => [
         paginateMockList(new Request(sortedUrl), rows, {
           sorts: {
             [FunkoApiSortingFields.RELEVANCE]: (funko) => relevance(funko.name, query),
-            [FunkoApiSortingFields.NAME]: (funko) => `${funko.name} ${funko.number.padStart(6, '0')}`,
+            [FunkoApiSortingFields.NAME]: (funko) => `${funko.name} ${funko.number.padStart(NUMBER_SORT_WIDTH, '0')}`,
             [FunkoApiSortingFields.NUMBER]: (funko) => Number.parseInt(funko.number, 10) || 0,
             [FunkoApiSortingFields.CREATION_DATE]: (funko) => funko.createdAt,
-            [FunkoApiSortingFields.CATEGORY]: (funko) => `${funko.category.name} ${funko.number.padStart(6, '0')}`,
+            [FunkoApiSortingFields.CATEGORY]: (funko) =>
+              `${funko.category.name} ${funko.number.padStart(NUMBER_SORT_WIDTH, '0')}`,
             // No series sorts after every name ascending (the API keeps it last both ways; close enough here).
             [FunkoApiSortingFields.SERIES]: (funko) => funko.series?.name ?? NO_SERIES_SORT_KEY,
           },

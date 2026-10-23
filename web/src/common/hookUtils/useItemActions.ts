@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useFetcher } from 'react-router';
-import type { CollectionItemApiModel } from '@app-types/models';
+import type { CollectionId, CollectionItemApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { useActionToast } from '@hooks/useActionToast';
@@ -46,7 +46,7 @@ export function useItemActions() {
     });
   };
 
-  const move = (item: CollectionItemApiModel, toCollectionId: number) => {
+  const move = (item: CollectionItemApiModel, toCollectionId: CollectionId) => {
     setPending({ kind: 'move', item });
     void fetcher.submit(createFormData({ toCollectionId }), {
       method: HttpVerbsUtil.POST,

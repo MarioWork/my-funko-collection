@@ -1,6 +1,6 @@
 import { MoreHorizontal } from 'lucide-react';
 import { useFetcher } from 'react-router';
-import type { FunkoImageApiModel } from '@app-types/models';
+import type { FunkoId, FunkoImageApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import IconButton from '@components/IconButton';
@@ -14,7 +14,7 @@ type Props = {
   image: FunkoImageApiModel;
   index: number;
   count: number;
-  funkoId: number;
+  funkoId: FunkoId;
   isPrimary: boolean;
   onOpen: () => void;
   onMove: (direction: -1 | 1) => void;

@@ -3,12 +3,11 @@ import { delay } from 'msw/utils/delay';
 import type { ImageGroupApiModel, ImageListEntryApiModel } from '@app-types/models';
 import { ApiUrlParamsUtil, SortingDirectionUtil, type ResponseWithPaginationUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
+import { pageMockList } from '@mocks/mockListUtils';
 import { ImageApiSearchFields, ImageApiSortingFields } from '@services/imageService/imageService';
 import { allImageEntries } from './imageMockUtils';
 
 const LOOSE_GROUP_KEY = 'loose';
-const DEFAULT_PAGE = 1;
-const DEFAULT_PAGE_SIZE = 10;
 
 type GroupComparator = (first: ImageGroupApiModel, second: ImageGroupApiModel) => number;
 
@@ -61,14 +60,8 @@ export default (baseUrl: string) => [
         .filter((group) => group.funko)
         .sort((first, second) => compare(first, second) * factor);
       const ordered = [...funkoGroups, ...groups.filter((group) => !group.funko)];
-      const page = Number(params.get(ApiUrlParamsUtil.page) ?? DEFAULT_PAGE);
-      const size = Number(params.get(ApiUrlParamsUtil.pageSize) ?? DEFAULT_PAGE_SIZE);
 
-      return HttpResponse.json({
-        data: ordered.slice((page - 1) * size, page * size),
-        totalResultNumber: ordered.length,
-        currentPage: page,
-      });
+      return HttpResponse.json(pageMockList(params, ordered));
     },
   ),
 ];

@@ -26,6 +26,7 @@ function IconButton({
   size = 'md',
   className,
   hasTooltip = true,
+  disabled,
   disabledReason,
   'aria-label': label,
   ...props
@@ -34,12 +35,13 @@ function IconButton({
     <Button
       size={SIZE_MAP[size]}
       aria-label={label}
+      disabled={disabled}
       className={cn('pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-2', className)}
       {...props}
     />
   );
 
-  if (props.disabled && disabledReason) return <DisabledReason reason={disabledReason}>{button}</DisabledReason>;
+  if (disabled && disabledReason) return <DisabledReason reason={disabledReason}>{button}</DisabledReason>;
 
   if (!hasTooltip) return button;
 

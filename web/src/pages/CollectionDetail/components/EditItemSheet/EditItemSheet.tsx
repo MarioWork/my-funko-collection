@@ -1,17 +1,17 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useEffect } from 'react';
 import { useFetcher, useLoaderData, useNavigate } from 'react-router';
 import type { CollectionItemApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil, type LoaderDataUtil } from '@app-types/utility';
 import InlineAlert from '@components/InlineAlert';
-import ItemFormFields from '@components/ItemFormFields';
-import {
+import ItemFormFields, {
   itemFormSchema,
   itemToFormValues,
   toItemPayload,
   type ItemFormValues,
-} from '@components/ItemFormFields/itemFormUtils';
+} from '@components/ItemFormFields';
+import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
 import { useFormCompat } from '@hooks/useFormCompat';
+import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import type { loader } from './editItemSheetLoader';
 import SubmitButton from '@components/SubmitButton';
@@ -36,10 +36,7 @@ function EditItemSheet() {
 
   const close = () => void navigate(BACK);
 
-  useEffect(() => {
-    if (fetcher.state === 'idle' && fetcher.data?.success) close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher.state, fetcher.data]);
+  useCloseOnSuccess(fetcher, close);
 
   const onSubmit = handleSubmit((values) => {
     const payload = toItemPayload(values);
@@ -73,7 +70,7 @@ function EditItemSheet() {
         <ItemFormFields control={control} tags={tags} idPrefix={FORM_ID} />
         {failure ? (
           <InlineAlert tone="error" className="mt-4">
-            {failure.message ?? 'Something went wrong. Please try again.'}
+            {failure.message ?? GENERIC_WRITE_ERROR}
           </InlineAlert>
         ) : null}
       </form>

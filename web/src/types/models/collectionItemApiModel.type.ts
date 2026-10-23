@@ -1,5 +1,6 @@
 import type { ItemConditionUtil } from '@app-types/utility';
-import type { FunkoSummaryApiModel, NamedApiModel } from './funkoApiModel.type';
+import type { FunkoSummaryApiModel } from './funkoSummaryApiModel.type';
+import type { NamedApiModel } from './namedApiModel.type';
 
 export interface CollectionItemApiModel {
   id: number;

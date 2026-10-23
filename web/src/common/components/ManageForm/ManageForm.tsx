@@ -10,7 +10,8 @@ import { Spinner } from '@components/ui/spinner';
 import { useFormCompat } from '@hooks/useFormCompat';
 import { cn } from '@utils/classNameUtils';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
-import { manageFormSchema, type ManageFormValues } from '../manageListUtils';
+import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
+import { manageFormSchema, type ManageFormValues } from './manageFormUtils';
 
 type Props = {
   idPrefix: string;
@@ -42,6 +43,8 @@ function ManageForm({
   className,
 }: Props) {
   const hasInlineButtons = formId === undefined;
+  const nameId = `${idPrefix}-name`;
+  const notesId = `${idPrefix}-notes`;
   const { control, handleSubmit } = useFormCompat<ManageFormValues>({
     defaultValues,
     resolver: yupResolver(manageFormSchema),
@@ -61,9 +64,14 @@ function ManageForm({
           name="name"
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid || undefined} className="flex-1">
-              <FieldLabel htmlFor={`${idPrefix}-name`}>Name</FieldLabel>
-              <Input {...field} id={`${idPrefix}-name`} aria-invalid={fieldState.invalid || undefined} />
-              <FieldError errors={fieldState.error ? [fieldState.error] : undefined} />
+              <FieldLabel htmlFor={nameId}>Name</FieldLabel>
+              <Input
+                {...field}
+                id={nameId}
+                aria-invalid={fieldState.invalid || undefined}
+                aria-describedby={fieldState.error ? `${nameId}-error` : undefined}
+              />
+              <FieldError id={`${nameId}-error`} errors={fieldState.error ? [fieldState.error] : undefined} />
             </Field>
           )}
         />
@@ -73,14 +81,15 @@ function ManageForm({
             name="notes"
             render={({ field: { value, ...field }, fieldState }) => (
               <Field data-invalid={fieldState.invalid || undefined} className="flex-1">
-                <FieldLabel htmlFor={`${idPrefix}-notes`}>Notes (optional)</FieldLabel>
+                <FieldLabel htmlFor={notesId}>Notes (optional)</FieldLabel>
                 <Input
                   {...field}
                   value={value ?? ''}
-                  id={`${idPrefix}-notes`}
+                  id={notesId}
                   aria-invalid={fieldState.invalid || undefined}
+                  aria-describedby={fieldState.error ? `${notesId}-error` : undefined}
                 />
-                <FieldError errors={fieldState.error ? [fieldState.error] : undefined} />
+                <FieldError id={`${notesId}-error`} errors={fieldState.error ? [fieldState.error] : undefined} />
               </Field>
             )}
           />
@@ -109,9 +118,7 @@ function ManageForm({
           </div>
         ) : null}
       </div>
-      {failure ? (
-        <InlineAlert tone="error">{failure.message ?? 'Something went wrong. Please try again.'}</InlineAlert>
-      ) : null}
+      {failure ? <InlineAlert tone="error">{failure.message ?? GENERIC_WRITE_ERROR}</InlineAlert> : null}
     </form>
   );
 }

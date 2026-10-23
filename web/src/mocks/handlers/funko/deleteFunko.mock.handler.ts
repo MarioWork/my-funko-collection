@@ -3,6 +3,7 @@ import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { conflict, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
+import { FORCE_PARAM } from '@services/funkoService/funkoService';
 
 export default (baseUrl: string) => [
   http.delete(`${baseUrl}/funkos/:funkoId`, async ({ params, request }) => {
@@ -13,12 +14,16 @@ export default (baseUrl: string) => [
 
     if (!row) return notFound('Funko', String(params.funkoId));
 
-    const isForced = new URL(request.url).searchParams.get('force') === 'true';
+    const isForced = new URL(request.url).searchParams.get(FORCE_PARAM) === 'true';
     const memberships = mockStore.items.filter((item) => item.funkoId === row.id);
 
     if (memberships.length > 0 && !isForced) {
       const names = [
-        ...new Set(memberships.map((item) => mockStore.collections.find((c) => c.id === item.collectionId)?.name)),
+        ...new Set(
+          memberships.map(
+            (item) => mockStore.collections.find((collection) => collection.id === item.collectionId)?.name,
+          ),
+        ),
       ]
         .map((name) => `"${name}"`)
         .join(', ');

@@ -9,7 +9,9 @@ import { Input } from '@components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@components/ui/popover';
 import { Spinner } from '@components/ui/spinner';
 import { useCreateNamed } from '@hooks/useCreateNamed';
+import { CATEGORY_NAME_MAX_LENGTH } from '@utils/categoryUtils';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
+import { SERIES_NAME_MAX_LENGTH } from '@utils/seriesUtils';
 
 type Props = {
   // "category", "series": in the button's name and the field label.
@@ -20,7 +22,8 @@ type Props = {
   onCreated: (created: NamedApiModel) => void;
 };
 
-const NAME_MAX_LENGTH = 100;
+// It creates categories and series: the stricter of their two name rules.
+const NAME_MAX_LENGTH = Math.min(CATEGORY_NAME_MAX_LENGTH, SERIES_NAME_MAX_LENGTH);
 const TYPE_NAME_REASON = 'Type a name first.';
 
 // A "+" beside a dropdown: name a new one, Create, and it is saved and picked without leaving the form. Not a

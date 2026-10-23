@@ -1,5 +1,5 @@
 import { Check, Moon, Sun, SunMoon } from 'lucide-react';
-import { ThemeUtil } from '@application/theme/themeUtils';
+import { THEME_OPTIONS, ThemeUtil } from '@application/theme/themeUtils';
 import { Button } from '@components/ui/button';
 import {
   DropdownMenu,
@@ -9,14 +9,6 @@ import {
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
 import { useTheme } from '@hooks/useTheme';
-
-type ThemeOption = { value: ThemeUtil; label: string };
-
-const THEME_OPTIONS: ThemeOption[] = [
-  { value: ThemeUtil.LIGHT, label: 'Light' },
-  { value: ThemeUtil.DARK, label: 'Dark' },
-  { value: ThemeUtil.SYSTEM, label: 'System' },
-];
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();

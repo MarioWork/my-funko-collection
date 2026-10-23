@@ -1,17 +1,5 @@
-export interface CollectionStatsApiModel {
-  id: number;
-  name: string;
-  isDefault: boolean;
-  itemCount: number;
-  totalQuantity: number;
-  totalSpentCents: number;
-}
-
-export interface CategoryStatsApiModel {
-  id: number;
-  name: string;
-  funkoCount: number;
-}
+import type { CategoryStatsApiModel } from './categoryStatsApiModel.type';
+import type { CollectionStatsApiModel } from './collectionStatsApiModel.type';
 
 export interface StatsApiModel {
   funkoCount: number;

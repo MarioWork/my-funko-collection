@@ -1,5 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 
+type ConfirmDeleteOptions = { alsoRemoveFromCollections: boolean };
+
 export class FunkoDetailPage {
   readonly title: Locator;
 
@@ -18,10 +20,10 @@ export class FunkoDetailPage {
     await this.page.getByRole('menuitem', { name: 'Delete' }).click();
   }
 
-  async confirmDelete({ alsoRemoveFromCollections }: { alsoRemoveFromCollections: boolean }) {
+  async confirmDelete({ alsoRemoveFromCollections }: ConfirmDeleteOptions) {
     const dialog = this.page.getByRole('alertdialog');
 
-    if (alsoRemoveFromCollections) await dialog.getByRole('checkbox').check();
+    if (alsoRemoveFromCollections) await dialog.getByRole('checkbox', { name: /^Also remove it from / }).check();
 
     await dialog.getByRole('button', { name: 'Delete' }).click();
   }
