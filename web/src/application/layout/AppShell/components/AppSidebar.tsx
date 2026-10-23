@@ -8,6 +8,7 @@ import {
 } from '@application/layout/navigationUtils';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AppLogo from '@components/AppLogo';
+import SidebarEdgeToggle from './SidebarEdgeToggle';
 import ThemeToggle from '@components/ThemeToggle';
 import {
   Sidebar,
@@ -81,6 +82,7 @@ function AppSidebar() {
         </SidebarMenu>
         <ThemeToggle />
       </SidebarFooter>
+      <SidebarEdgeToggle />
     </Sidebar>
   );
 }

@@ -2,23 +2,11 @@ import { Link } from 'react-router';
 import { APP_NAME } from '@application/layout/navigationUtils';
 import AppLogo from '@components/AppLogo';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { SidebarTrigger } from '@components/ui/sidebar';
 import MobileMenu from './MobileMenu';
 
-type Props = {
-  isDesktop: boolean;
-};
-
-// Phone: the ☰ menu and the logo, nothing else (scan is the round Add button). Desktop: the sidebar trigger.
-function TopBar({ isDesktop }: Props) {
-  if (isDesktop) {
-    return (
-      <div className="flex h-12 items-center gap-2 border-b px-3">
-        <SidebarTrigger />
-      </div>
-    );
-  }
-
+// Phones only: the ☰ menu and the logo, nothing else (scan is the round Add button). On desktop the sidebar's own
+// edge collapses it (SidebarEdgeToggle), so there is no top bar.
+function TopBar() {
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/95 px-2 backdrop-blur-sm supports-backdrop-filter:bg-card/80">
       <MobileMenu />
