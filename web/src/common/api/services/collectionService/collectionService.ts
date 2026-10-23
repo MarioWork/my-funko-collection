@@ -73,4 +73,3 @@ export type GetCollectionsFields = {
 } & SearchFields;
 
 export const DEFAULT_COLLECTION_SORT_FIELD = CollectionApiSortingFields.NAME;
-export const DEFAULT_COLLECTION_SORT_DIRECTION = SortingDirectionUtil.ASC;

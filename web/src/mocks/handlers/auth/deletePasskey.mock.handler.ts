@@ -1,10 +1,10 @@
 import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { errorResponse, notFound } from '@mocks/mockResponses';
+import { CONFLICT_STATUS, errorResponse, noContent, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import { AuthApiErrorCodes } from '@services/authService/authService';
-import { noContent, reauthRequiredResponse } from './authMockUtils';
+import { reauthRequiredResponse } from './authMockUtils';
 
 export default (baseUrl: string) => [
   http.delete(`${baseUrl}/auth/passkeys/:passkeyId`, async ({ params }) => {
@@ -16,7 +16,7 @@ export default (baseUrl: string) => [
     if (index === -1) return notFound('Passkey', String(params.passkeyId));
 
     if (passkeys.length === 1) {
-      return errorResponse(409, AuthApiErrorCodes.LAST_PASSKEY, 'You need at least one passkey.');
+      return errorResponse(CONFLICT_STATUS, AuthApiErrorCodes.LAST_PASSKEY, 'You need at least one passkey.');
     }
 
     const reauthRequired = reauthRequiredResponse();

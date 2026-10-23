@@ -1,7 +1,7 @@
-import { http, HttpResponse } from 'msw/http';
+import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { conflict, toSeriesModel } from '@mocks/mockResponses';
+import { conflict, created, DUPLICATE_CONFLICT_MESSAGE, toSeriesModel } from '@mocks/mockResponses';
 import { mockStore, nextId, nowIso } from '@mocks/mockStore';
 import type { CreateSeries } from '@services/seriesService/seriesService.type';
 
@@ -12,12 +12,12 @@ export default (baseUrl: string) => [
     const body = (await request.json()) as CreateSeries;
     const existing = mockStore.series.find((series) => series.name === body.name);
 
-    if (existing) return conflict('A record with these values already exists');
+    if (existing) return conflict(DUPLICATE_CONFLICT_MESSAGE);
 
     const row = { id: nextId(mockStore.series), name: body.name, createdAt: nowIso(), updatedAt: nowIso() };
 
     mockStore.series.push(row);
 
-    return HttpResponse.json(toSeriesModel(row), { status: 201 });
+    return created(toSeriesModel(row));
   }),
 ];

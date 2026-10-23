@@ -63,4 +63,3 @@ export type GetCategoriesFields = {
 } & SearchFields;
 
 export const DEFAULT_CATEGORY_SORT_FIELD = CategoryApiSortingFields.NAME;
-export const DEFAULT_CATEGORY_SORT_DIRECTION = SortingDirectionUtil.ASC;

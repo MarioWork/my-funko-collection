@@ -1,16 +1,16 @@
 import type { CategoryApiModel, CollectionApiModel } from '@app-types/models';
-import BarcodeScanner from '@components/BarcodeScanner';
+import BarcodeScanner from './BarcodeScanner';
 import FunkoForm from '@components/FunkoForm';
 import { Button } from '@components/ui/button';
 import type { useAddDestination } from '@hooks/useAddDestination';
 import { cn } from '@utils/classNameUtils';
 import { ENTER_UP_CLASS } from '@utils/motionUtils';
-import { AddStepUtil } from '../addUtils';
+import { AddStepUtil, ScanResultKindUtil } from '../addUtils';
 import type { useAddFlow } from '../hooks/useAddFlow';
 import SavedCard from './SavedCard';
 import ScanFoundCard from './ScanFoundCard';
 
-type Props = {
+type CurrentStepProps = {
   flow: ReturnType<typeof useAddFlow>;
   destinationState: ReturnType<typeof useAddDestination>;
   categories: CategoryApiModel[];
@@ -19,8 +19,10 @@ type Props = {
   isInDialog: boolean;
 };
 
+type Props = CurrentStepProps;
+
 // What the Add flow shows at each step: the scanner, the found card (+1), the form, then the saved card.
-function CurrentStep({ flow, destinationState, categories, collections, isInDialog }: Props) {
+function CurrentStep({ flow, destinationState, categories, collections, isInDialog }: CurrentStepProps) {
   const { step, lookup } = flow;
 
   if (step === AddStepUtil.SCAN) {
@@ -34,7 +36,7 @@ function CurrentStep({ flow, destinationState, categories, collections, isInDial
     );
   }
 
-  if (step === AddStepUtil.FOUND && lookup.result?.kind === 'found') {
+  if (step === AddStepUtil.FOUND && lookup.result?.kind === ScanResultKindUtil.FOUND) {
     const { funko } = lookup.result;
 
     return (

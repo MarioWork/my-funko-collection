@@ -20,6 +20,32 @@ type Props = {
   onRemove: (item: CollectionItemApiModel) => void;
 };
 
+type MembershipActionsContentProps = {
+  item: CollectionItemApiModel;
+  editPath: string;
+  onRemove: (item: CollectionItemApiModel) => void;
+};
+
+function MembershipActionsContent({ item, editPath, onRemove }: MembershipActionsContentProps) {
+  return (
+    <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuGroup>
+        <DropdownMenuItem render={<Link to={editPath} />}>
+          <Pencil aria-hidden="true" />
+          Edit
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <DropdownMenuItem variant="destructive" onClick={() => onRemove(item)}>
+          <Trash2 aria-hidden="true" />
+          Remove from {item.collection.name}
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+    </DropdownMenuContent>
+  );
+}
+
 // The row's ⋯: Edit (the item sheet over this page) and Remove from the collection (undoable from the toast). The
 // button spins while a removal runs.
 function MembershipActions({ item, isBusy, onRemove }: Props) {
@@ -41,21 +67,7 @@ function MembershipActions({ item, isBusy, onRemove }: Props) {
       >
         {isBusy ? <Spinner /> : <MoreHorizontal aria-hidden="true" />}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link to={editPath} />}>
-            <Pencil aria-hidden="true" />
-            Edit
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem variant="destructive" onClick={() => onRemove(item)}>
-            <Trash2 aria-hidden="true" />
-            Remove from {item.collection.name}
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
+      <MembershipActionsContent item={item} editPath={editPath} onRemove={onRemove} />
     </DropdownMenu>
   );
 }

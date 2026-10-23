@@ -1,5 +1,6 @@
 import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE, SortingDirectionUtil } from '@app-types/utility';
 import type { SortField, SortOption } from '@components/SortSelect';
+import { readSearchFields, readSortDirection, readSortField } from '@utils/listParamsUtils';
 import { DATE_LABELS, ALPHABETICAL_LABELS, NUMERIC_LABELS } from '@utils/sortUtils';
 import {
   DEFAULT_ITEM_SORT_DIRECTION,
@@ -9,10 +10,10 @@ import {
   type GetItemsFields,
 } from '@services/collectionItemService/collectionItemService';
 
-export const ITEM_PAGE_SIZE = '60';
+const ITEM_PAGE_SIZE = '60';
 
-const SORT_FIELDS = new Set<string>(Object.values(ItemApiSortingFields));
-const DIRECTIONS = new Set<string>(Object.values(SortingDirectionUtil));
+const SORT_FIELDS = Object.values(ItemApiSortingFields);
+const SEARCH_FIELDS = Object.values(ItemApiSearchFields);
 
 export const ITEM_SORT_FIELDS: SortField[] = [
   {
@@ -58,18 +59,10 @@ export type ItemListState = {
 export function readItemListState(searchParams: URLSearchParams): ItemListState {
   const sortParam = searchParams.get(ApiUrlParamsUtil.sorting_fields) ?? '';
   const directionParam = searchParams.get(ApiUrlParamsUtil.sortingDirection) ?? '';
-  const sortingField = SORT_FIELDS.has(sortParam) ? (sortParam as ItemApiSortingFields) : DEFAULT_ITEM_SORT_FIELD;
-  const direction = DIRECTIONS.has(directionParam)
-    ? (directionParam as SortingDirectionUtil)
-    : DEFAULT_ITEM_SORT_DIRECTION;
+  const sortingField = readSortField(sortParam, SORT_FIELDS) ?? DEFAULT_ITEM_SORT_FIELD;
+  const direction = readSortDirection(directionParam) ?? DEFAULT_ITEM_SORT_DIRECTION;
   const page = searchParams.get(ApiUrlParamsUtil.page) ?? DEFAULT_FIRST_PAGE;
-  const searchFields: Partial<Record<ItemApiSearchFields, string>> = {};
-
-  for (const field of Object.values(ItemApiSearchFields)) {
-    const value = searchParams.get(field);
-
-    if (value) searchFields[field] = value;
-  }
+  const searchFields = readSearchFields(searchParams, SEARCH_FIELDS);
 
   return {
     fields: { pagination: { page, size: ITEM_PAGE_SIZE }, sortingField, direction, ...searchFields },

@@ -54,7 +54,9 @@ export default (baseUrl: string) => [
       }
 
       const groups = [...byGroup.entries()].map(([key, images]) => toGroup(key, images));
-      const compare = GROUP_COMPARATORS[params.get(ApiUrlParamsUtil.sorting_fields) ?? ''] ?? GROUP_COMPARATORS.SIZE;
+      const compare =
+        GROUP_COMPARATORS[params.get(ApiUrlParamsUtil.sorting_fields) ?? ''] ??
+        GROUP_COMPARATORS[ImageApiSortingFields.SIZE];
       const factor = params.get(ApiUrlParamsUtil.sortingDirection) === SortingDirectionUtil.ASC ? 1 : -1;
       const funkoGroups = groups
         .filter((group) => group.funko)

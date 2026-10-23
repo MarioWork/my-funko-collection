@@ -4,7 +4,7 @@ import type { ExportFormatUtil, ExportFunkosScopeUtil, ExportListKindUtil } from
 const BASE_EXPORT_URL = '/export';
 const ITEMS_CSV_SEGMENT = 'items.csv';
 const FUNKOS_FILE_NAME = 'funkos';
-const INCLUDE_FUNKOS_PARAM = 'includeFunkos';
+export const INCLUDE_FUNKOS_PARAM = 'includeFunkos';
 const IMAGES_FILE_NAME = 'images';
 
 function exportUrl(segment: string): string {

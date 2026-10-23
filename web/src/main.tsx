@@ -12,11 +12,11 @@ const projectPath = env.VITE_PROJECT_PATH || '/';
 async function setUpApp() {
   axios.defaults.baseURL = env.VITE_BASE_API_URL;
 
-  const useMocks = env.VITE_USE_MOCKS === 'true';
+  const isUsingMocks = env.VITE_USE_MOCKS === 'true';
   // Under Playwright the test brings its own mock network, and two mock layers would race on one request.
   const isPlaywright = env.VITE_PLAYWRIGHT === 'true';
 
-  if (useMocks && !isPlaywright) {
+  if (isUsingMocks && !isPlaywright) {
     const { startMockNetwork } = await import('./mocks/browser.ts');
 
     await startMockNetwork(env.VITE_BASE_API_URL);

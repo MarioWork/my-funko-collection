@@ -6,6 +6,7 @@ import {
 } from '@mocks/handlers/auth/models/passkeyResponseMockModel.mock';
 import { MOCK_SETUP_CODE, mockStore, setMockAuthState } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
+import { UNAUTHORIZED_ERROR_CODE } from '@api/axiosActions';
 import authService, { AuthApiErrorCodes } from './authService';
 
 describe('getStatus', () => {
@@ -63,6 +64,22 @@ describe('finishSetup', () => {
     expect(result).toEqual({ success: true, data: { user: { name: 'Ana' } } });
     expect(await authService.getStatus()).toEqual({ state: AuthStateUtil.SIGNED_IN, user: { name: 'Ana' } });
   });
+
+  it('returns the 401 envelope for a wrong code', async () => {
+    setMockAuthState(AuthStateUtil.SETUP);
+
+    const result = await authService.finishSetup({
+      code: 'nope',
+      name: 'Ana',
+      response: createRegistrationResponseMockModel(),
+      passkeyName: 'Pixel',
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { statusCode: 401, code: AuthApiErrorCodes.INVALID_SETUP_CODE },
+    });
+  });
 });
 
 describe('startLogin', () => {
@@ -91,6 +108,17 @@ describe('finishLogin', () => {
     expect(result).toEqual({ success: true, data: { user: { name: 'Mario' } } });
     expect(mockStore.auth.state).toBe(AuthStateUtil.SIGNED_IN);
   });
+
+  it('returns the 401 envelope when the passkey is not accepted', async () => {
+    setMockAuthState(AuthStateUtil.SETUP);
+
+    const result = await authService.finishLogin({ response: createAuthenticationResponseMockModel() });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { statusCode: 401, code: AuthApiErrorCodes.SIGN_IN_FAILED },
+    });
+  });
 });
 
 describe('logout', () => {
@@ -105,8 +133,14 @@ describe('logout', () => {
 
     expect(await authService.deletePasskey('cGFzc2tleS1pcGhvbmU')).toMatchObject({
       success: false,
-      error: { statusCode: 401, code: 'UNAUTHORIZED' },
+      error: { statusCode: 401, code: UNAUTHORIZED_ERROR_CODE },
     });
+  });
+
+  it('returns the failure envelope when the server fails', async () => {
+    server.use(http.post(`${TEST_BASE_API_URL}/auth/logout`, () => new HttpResponse(null, { status: 500 })));
+
+    expect(await authService.logout()).toMatchObject({ success: false, error: { statusCode: 500 } });
   });
 });
 
@@ -144,6 +178,17 @@ describe('addPasskey', () => {
     const result = await authService.addPasskey({ response: createRegistrationResponseMockModel(), name: 'Laptop' });
 
     expect(result).toMatchObject({ success: true, data: { id: 'bmV3LXBhc3NrZXk', name: 'Laptop', lastUsedAt: null } });
+  });
+
+  it('returns 403 REAUTH_REQUIRED when the sign-in is not recent', async () => {
+    mockStore.auth.isSignInRecent = false;
+
+    const result = await authService.addPasskey({ response: createRegistrationResponseMockModel(), name: 'Laptop' });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { statusCode: 403, code: AuthApiErrorCodes.REAUTH_REQUIRED },
+    });
   });
 });
 
@@ -185,5 +230,14 @@ describe('logoutEverywhere', () => {
 
     expect((await authService.logoutEverywhere()).success).toBe(true);
     expect(wasCalled).toBe(true);
+  });
+
+  it('returns 401 UNAUTHORIZED without a session', async () => {
+    setMockAuthState(AuthStateUtil.SIGNED_OUT);
+
+    expect(await authService.logoutEverywhere()).toMatchObject({
+      success: false,
+      error: { statusCode: 401, code: UNAUTHORIZED_ERROR_CODE },
+    });
   });
 });

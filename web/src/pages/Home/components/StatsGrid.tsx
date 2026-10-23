@@ -1,7 +1,7 @@
 import { Boxes, Coins, Images, Package } from 'lucide-react';
 import type { StatsApiModel } from '@app-types/models';
 import { COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS, IMAGE_ROUTES_PATHS } from '@application/routes/routesUtils';
-import StatTile from '@components/StatTile';
+import StatTile from './StatTile';
 import { formatCents } from '@utils/moneyUtils';
 import { formatBytes } from '@utils/byteUtils';
 

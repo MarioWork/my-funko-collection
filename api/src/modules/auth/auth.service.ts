@@ -8,11 +8,10 @@ import {
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { env } from '../../config/env.ts';
-import type { AuthChallengePurpose } from '../../db/schema/index.ts';
 import { ForbiddenError, HttpError, NotFoundError, UnauthorizedError } from '../../lib/httpErrors.ts';
 import { logger } from '../../lib/logger.ts';
 import { createSecureToken, hashSecureToken } from '../../lib/secureToken.ts';
-import { authRepository, type PasskeyRow, type SessionRow } from './auth.repository.ts';
+import { authRepository, type AuthChallengePurpose, type PasskeyRow, type SessionRow } from './auth.repository.ts';
 import type {
   AddPasskeyVerify,
   AuthStatusResponse,

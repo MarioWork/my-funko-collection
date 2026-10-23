@@ -12,6 +12,88 @@ const FALLBACK_FILE_NAME_SLUG = 'export';
 const NON_FILE_NAME_CHARACTERS = /[^a-z0-9]+/g;
 const EDGE_DASHES = /^-+|-+$/g;
 
+const SCOPE_READERS: Record<ScopeFilter, ScopeReader> = {
+  categoryId: {
+    entity: 'Category',
+    fileKind: 'category',
+    names: (lookups) => lookups.categoryNames,
+    funkoFilter: (id) => (funko) => funko.categoryId === id,
+  },
+  seriesId: {
+    entity: 'Series',
+    fileKind: 'series',
+    names: (lookups) => lookups.seriesNames,
+    funkoFilter: (id) => (funko) => funko.seriesId === id,
+  },
+  collectionId: {
+    entity: 'Collection',
+    fileKind: 'collection',
+    names: (lookups) => lookups.collectionNames,
+    itemFilter: (id) => (item) => item.collectionId === id,
+  },
+  funkoId: {
+    entity: 'Funko',
+    fileKind: 'funko',
+    names: (lookups) => lookups.funkoNames,
+    funkoFilter: (id) => (funko) => funko.id === id,
+  },
+  tagId: {
+    entity: 'Tag',
+    fileKind: 'tag',
+    names: (lookups) => lookups.tagNames,
+    itemFilter: (id, lookups) => (item) => itemTagIds(item, lookups).includes(id),
+  },
+};
+
+const EVERY_FUNKO_SCOPE: FunkosCsvScope = { fileBase: ALL_FUNKOS_FILE_BASE, label: null, isFunkoIncluded: () => true };
+
+const LIST_READERS: Record<ExportListKind, ListReader> = {
+  categories: {
+    scopeFilter: 'categoryId',
+    entries: (data) => {
+      const funkoCounts = countBy(data.funkos, (funko) => funko.categoryId);
+
+      return data.categories
+        .map(({ id, name }) => ({ id, name, summary: { id, name, funkoCount: funkoCounts.get(id) ?? 0 } }))
+        .sort(byName);
+    },
+  },
+  series: {
+    scopeFilter: 'seriesId',
+    entries: (data) => {
+      const funkoCounts = countBy(data.funkos, (funko) => funko.seriesId);
+
+      return data.series
+        .map(({ id, name }) => ({ id, name, summary: { id, name, funkoCount: funkoCounts.get(id) ?? 0 } }))
+        .sort(byName);
+    },
+  },
+  collections: {
+    scopeFilter: 'collectionId',
+    entries: (data) => {
+      const itemsByCollection = groupBy(data.items, (item) => item.collectionId);
+
+      return data.collections
+        .map(({ id, name, notes, isDefault }) => ({
+          id,
+          name,
+          summary: { id, name, notes, isDefault, ...collectionTotals(itemsByCollection.get(id) ?? []) },
+        }))
+        .sort(byName);
+    },
+  },
+  tags: {
+    scopeFilter: 'tagId',
+    entries: (data) => {
+      const itemCounts = countBy(data.itemTags, (itemTag) => itemTag.tagId);
+
+      return data.tags
+        .map(({ id, name, notes }) => ({ id, name, summary: { id, name, notes, itemCount: itemCounts.get(id) ?? 0 } }))
+        .sort(byName);
+    },
+  },
+};
+
 export function groupBy<Row, Key>(rows: Row[], keyOf: (row: Row) => Key): Map<Key, Row[]> {
   const grouped = new Map<Key, Row[]>();
 
@@ -134,41 +216,6 @@ type ScopeReader = {
   itemFilter?: (id: number, lookups: Lookups) => (item: ItemRow) => boolean;
 };
 
-const SCOPE_READERS: Record<ScopeFilter, ScopeReader> = {
-  categoryId: {
-    entity: 'Category',
-    fileKind: 'category',
-    names: (lookups) => lookups.categoryNames,
-    funkoFilter: (id) => (funko) => funko.categoryId === id,
-  },
-  seriesId: {
-    entity: 'Series',
-    fileKind: 'series',
-    names: (lookups) => lookups.seriesNames,
-    funkoFilter: (id) => (funko) => funko.seriesId === id,
-  },
-  collectionId: {
-    entity: 'Collection',
-    fileKind: 'collection',
-    names: (lookups) => lookups.collectionNames,
-    itemFilter: (id) => (item) => item.collectionId === id,
-  },
-  funkoId: {
-    entity: 'Funko',
-    fileKind: 'funko',
-    names: (lookups) => lookups.funkoNames,
-    funkoFilter: (id) => (funko) => funko.id === id,
-  },
-  tagId: {
-    entity: 'Tag',
-    fileKind: 'tag',
-    names: (lookups) => lookups.tagNames,
-    itemFilter: (id, lookups) => (item) => itemTagIds(item, lookups).includes(id),
-  },
-};
-
-const EVERY_FUNKO_SCOPE: FunkosCsvScope = { fileBase: ALL_FUNKOS_FILE_BASE, label: null, isFunkoIncluded: () => true };
-
 // The one filter the query sets, with its id; undefined when it sets none (the schema allows one at most).
 function readScopeFilter(query: ExportFunkosQuery): [ScopeFilter, number] | undefined {
   const filters = Object.keys(SCOPE_READERS) as ScopeFilter[];
@@ -248,53 +295,6 @@ function collectionTotals(items: ItemRow[]) {
 
   return { itemCount: items.length, totalQuantity, totalSpent: totalSpentCents / CENTS_PER_UNIT };
 }
-
-const LIST_READERS: Record<ExportListKind, ListReader> = {
-  categories: {
-    scopeFilter: 'categoryId',
-    entries: (data) => {
-      const funkoCounts = countBy(data.funkos, (funko) => funko.categoryId);
-
-      return data.categories
-        .map(({ id, name }) => ({ id, name, summary: { id, name, funkoCount: funkoCounts.get(id) ?? 0 } }))
-        .sort(byName);
-    },
-  },
-  series: {
-    scopeFilter: 'seriesId',
-    entries: (data) => {
-      const funkoCounts = countBy(data.funkos, (funko) => funko.seriesId);
-
-      return data.series
-        .map(({ id, name }) => ({ id, name, summary: { id, name, funkoCount: funkoCounts.get(id) ?? 0 } }))
-        .sort(byName);
-    },
-  },
-  collections: {
-    scopeFilter: 'collectionId',
-    entries: (data) => {
-      const itemsByCollection = groupBy(data.items, (item) => item.collectionId);
-
-      return data.collections
-        .map(({ id, name, notes, isDefault }) => ({
-          id,
-          name,
-          summary: { id, name, notes, isDefault, ...collectionTotals(itemsByCollection.get(id) ?? []) },
-        }))
-        .sort(byName);
-    },
-  },
-  tags: {
-    scopeFilter: 'tagId',
-    entries: (data) => {
-      const itemCounts = countBy(data.itemTags, (itemTag) => itemTag.tagId);
-
-      return data.tags
-        .map(({ id, name, notes }) => ({ id, name, summary: { id, name, notes, itemCount: itemCounts.get(id) ?? 0 } }))
-        .sort(byName);
-    },
-  },
-};
 
 export function toListEntries(kind: ExportListKind, data: EverythingData, lookups: Lookups): ListEntry[] {
   return LIST_READERS[kind].entries(data, lookups);

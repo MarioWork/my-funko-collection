@@ -104,6 +104,3 @@ export type GetFunkosFields = {
   direction?: SortingDirectionUtil;
   sortingField?: FunkoApiSortingFields;
 } & SearchFields;
-
-export const DEFAULT_FUNKO_SORT_FIELD = FunkoApiSortingFields.NAME;
-export const DEFAULT_FUNKO_SORT_DIRECTION = SortingDirectionUtil.ASC;

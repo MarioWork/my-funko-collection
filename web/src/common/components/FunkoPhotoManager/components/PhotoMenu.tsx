@@ -1,22 +1,25 @@
 import { ArrowDown, ArrowUp, RotateCw, Star, Trash2 } from 'lucide-react';
-import DisabledReason from '@components/DisabledReason';
 import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@components/ui/dropdown-menu';
-import { reasonWhen } from '@utils/disabledReasonUtils';
+import type { MoveDirection } from '../types';
+import DisabledMenuItem from './DisabledMenuItem';
 
 type Props = {
   index: number;
   count: number;
   isPrimary: boolean;
-  onMove: (direction: -1 | 1) => void;
+  onMove: (direction: MoveDirection) => void;
   onMakePrimary: () => void;
   onRotate: () => void;
   onDelete: () => void;
 };
+
+const MOVE_EARLIER: MoveDirection = -1;
+const MOVE_LATER: MoveDirection = 1;
 
 // The edit-only menu of one photo: main photo, order (buttons, never drag-only), rotate, delete.
 function PhotoMenu({ index, count, isPrimary, onMove, onMakePrimary, onRotate, onDelete }: Props) {
@@ -26,36 +29,27 @@ function PhotoMenu({ index, count, isPrimary, onMove, onMakePrimary, onRotate, o
   return (
     <DropdownMenuContent align="end">
       <DropdownMenuGroup>
-        <DisabledReason
-          reason={reasonWhen(isPrimary, 'This is already the main image.')}
-          mode="wrapper"
-          wrapperClassName="block"
-        >
-          <DropdownMenuItem disabled={isPrimary} onClick={onMakePrimary}>
-            <Star aria-hidden="true" />
-            Make primary
-          </DropdownMenuItem>
-        </DisabledReason>
-        <DisabledReason
-          reason={reasonWhen(isFirst, 'This image is already first.')}
-          mode="wrapper"
-          wrapperClassName="block"
-        >
-          <DropdownMenuItem disabled={isFirst} onClick={() => onMove(-1)}>
-            <ArrowUp aria-hidden="true" />
-            Move earlier
-          </DropdownMenuItem>
-        </DisabledReason>
-        <DisabledReason
-          reason={reasonWhen(isLast, 'This image is already last.')}
-          mode="wrapper"
-          wrapperClassName="block"
-        >
-          <DropdownMenuItem disabled={isLast} onClick={() => onMove(1)}>
-            <ArrowDown aria-hidden="true" />
-            Move later
-          </DropdownMenuItem>
-        </DisabledReason>
+        <DisabledMenuItem
+          label="Make primary"
+          icon={Star}
+          isDisabled={isPrimary}
+          disabledReason="This is already the main image."
+          onClick={onMakePrimary}
+        />
+        <DisabledMenuItem
+          label="Move earlier"
+          icon={ArrowUp}
+          isDisabled={isFirst}
+          disabledReason="This image is already first."
+          onClick={() => onMove(MOVE_EARLIER)}
+        />
+        <DisabledMenuItem
+          label="Move later"
+          icon={ArrowDown}
+          isDisabled={isLast}
+          disabledReason="This image is already last."
+          onClick={() => onMove(MOVE_LATER)}
+        />
         <DropdownMenuItem onClick={onRotate}>
           <RotateCw aria-hidden="true" />
           Rotate 90°

@@ -29,6 +29,7 @@ import {
   type AddPasskeyFormValues,
 } from '../../../settingsUtils';
 import PasskeyNameField from './PasskeyNameField';
+import ReauthNotice from './ReauthNotice';
 
 type Props = {
   onClose: () => void;
@@ -74,12 +75,7 @@ function AddPasskeyDialog({ onClose }: Props) {
         </DialogHeader>
         <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-4">
           <PasskeyNameField control={control} idPrefix={FORM_ID} />
-          {needsReauth ? (
-            <InlineAlert tone="info">
-              <strong className="font-semibold">{CONFIRM_IDENTITY_COPY.TITLE}.</strong>{' '}
-              {CONFIRM_IDENTITY_COPY.DESCRIPTION} Then your browser asks where to save the new one.
-            </InlineAlert>
-          ) : null}
+          {needsReauth ? <ReauthNotice /> : null}
           {shownFailure ? (
             <InlineAlert tone="error">{authFailureMessage(shownFailure, PASSKEY_FAILURE_MESSAGES)}</InlineAlert>
           ) : null}

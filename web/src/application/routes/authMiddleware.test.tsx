@@ -1,5 +1,5 @@
-import { createMemoryRouter, RouterProvider } from 'react-router';
-import { act, render, screen, waitFor } from '@test-utils';
+import type { createMemoryRouter } from 'react-router';
+import { act, renderRoutes, screen, waitFor } from '@test-utils';
 import { AuthStateUtil } from '@app-types/utility';
 import { setMockAuthState } from '@mocks/mockStore';
 import routes from '.';
@@ -7,14 +7,14 @@ import { AUTH_ROUTES_PATHS, BASE_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from './rout
 
 // The whole route table, so the root middleware, the app shell's gate and the auth pages all take part.
 function renderApp(initialEntry: string) {
-  const router = createMemoryRouter(routes, { initialEntries: [initialEntry] });
-
-  render(<RouterProvider router={router} />);
+  const { router } = renderRoutes(routes, { initialEntries: [initialEntry] });
 
   return router;
 }
 
-function currentPathOf(router: ReturnType<typeof createMemoryRouter>): string {
+type MemoryRouter = ReturnType<typeof createMemoryRouter>;
+
+function currentPathOf(router: MemoryRouter): string {
   const { pathname, search } = router.state.location;
 
   return `${pathname}${search}`;

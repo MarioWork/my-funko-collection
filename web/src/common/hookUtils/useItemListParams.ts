@@ -13,7 +13,7 @@ type Options = {
   hasCollectionFilter: boolean;
 };
 
-export const ITEM_FILTER_FIELDS = [
+const ITEM_FILTER_FIELDS = [
   ItemApiSearchFields.COLLECTION_ID,
   ItemApiSearchFields.TAG_ID,
   ItemApiSearchFields.CATEGORY_ID,

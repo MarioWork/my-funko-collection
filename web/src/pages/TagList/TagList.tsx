@@ -1,8 +1,7 @@
 import { Tag } from 'lucide-react';
-import { PAGE_ICONS } from '@application/layout/navigationUtils';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import { Outlet, useLoaderData } from 'react-router';
 import type { TagApiModel } from '@app-types/models';
-import type { LoaderDataUtil } from '@app-types/utility';
 import { TAG_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AddFab from '@components/AddFab';
 import LinkButton from '@components/LinkButton';
@@ -10,24 +9,28 @@ import ManageList from '@components/ManageList';
 import type { ManageRow } from '@components/ManageList';
 import ListExportMenu from '@components/ListExportMenu';
 import PageHeader from '@components/PageHeader';
-import { ExportFunkosScopeUtil, ExportListKindUtil } from '@app-types/utility';
+import { ExportFunkosScopeUtil, ExportListKindUtil, type LoaderDataUtil } from '@app-types/utility';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import { reasonWhen } from '@utils/disabledReasonUtils';
 import type { loader } from './tagListLoader';
 
+// The row's meta line for one that nothing uses yet.
+const NOT_USED_META = 'Not used yet';
+
 function toRow(tag: TagApiModel): ManageRow {
+  const isInUse = tag.itemCount > 0;
+
   return {
     id: tag.id,
     name: tag.name,
     notes: tag.notes,
-    meta: tag.itemCount > 0 ? `${tag.itemCount} items` : 'Not used yet',
+    meta: isInUse ? `${tag.itemCount} items` : NOT_USED_META,
     isDeletable: true,
     exportScope: ExportFunkosScopeUtil.TAG,
-    exportDisabledReason: tag.itemCount > 0 ? undefined : `No item carries ${tag.name} yet.`,
-    deleteDescription:
-      tag.itemCount > 0
-        ? `The label comes off ${tag.itemCount} items. The items stay in their collections.`
-        : 'Nothing uses this label yet.',
+    exportDisabledReason: isInUse ? undefined : `No item carries ${tag.name} yet.`,
+    deleteDescription: isInUse
+      ? `The label comes off ${tag.itemCount} items. The items stay in their collections.`
+      : 'Nothing uses this label yet.',
   };
 }
 

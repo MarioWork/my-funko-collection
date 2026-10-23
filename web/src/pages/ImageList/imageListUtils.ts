@@ -39,9 +39,12 @@ export const IMAGE_SORT_FIELDS: SortField[] = [
   },
 ];
 
+const TRUE_VALUE = 'true';
+const FALSE_VALUE = 'false';
+
 export const HAS_FUNKO_OPTIONS: FilterOption[] = [
-  { value: 'true', label: 'Being used' },
-  { value: 'false', label: 'Not being used' },
+  { value: TRUE_VALUE, label: 'Being used' },
+  { value: FALSE_VALUE, label: 'Not being used' },
 ];
 
 const UNKNOWN = '—';

@@ -3,6 +3,12 @@ import { ItemConditionUtil, SortingDirectionUtil } from '@app-types/utility';
 import { TEST_BASE_API_URL, server } from '@mocks/server';
 import collectionItemService, { ItemApiSearchFields, ItemApiSortingFields } from './collectionItemService';
 
+const OWNED_COLLECTION_ID = 1;
+const WISHLIST_COLLECTION_ID = 2;
+// Seed items: the first (Spider-Man) sits in Owned, the sixteenth (Vecna) in Wishlist.
+const SPIDER_MAN_ITEM_ID = 1;
+const VECNA_ITEM_ID = 16;
+
 describe('getCollectionItems', () => {
   it('sends paging, sort and the item filters under their wire names', async () => {
     let receivedQuery = new URLSearchParams();
@@ -89,11 +95,58 @@ describe('addCollectionItem', () => {
   });
 });
 
+describe('updateCollectionItem', () => {
+  it('returns the item with the changed fields', async () => {
+    const result = await collectionItemService.updateCollectionItem(OWNED_COLLECTION_ID, SPIDER_MAN_ITEM_ID, {
+      quantity: 3,
+      notes: 'Signed',
+    });
+
+    expect(result).toMatchObject({ success: true, data: { id: SPIDER_MAN_ITEM_ID, quantity: 3, notes: 'Signed' } });
+  });
+
+  it('returns the 404 envelope for an item outside the collection', async () => {
+    const result = await collectionItemService.updateCollectionItem(WISHLIST_COLLECTION_ID, SPIDER_MAN_ITEM_ID, {
+      quantity: 3,
+    });
+
+    expect(result).toMatchObject({ success: false, error: { statusCode: 404 } });
+  });
+});
+
 describe('moveCollectionItem', () => {
   it('moves the item and keeps its tags', async () => {
-    const result = await collectionItemService.moveCollectionItem(2, 16, { toCollectionId: 1 });
+    const result = await collectionItemService.moveCollectionItem(WISHLIST_COLLECTION_ID, VECNA_ITEM_ID, {
+      toCollectionId: OWNED_COLLECTION_ID,
+    });
 
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({ collection: { id: 1, name: 'Owned' }, funko: { name: 'Vecna' } });
+  });
+
+  it('returns the 400 envelope when the item is already in that collection', async () => {
+    const result = await collectionItemService.moveCollectionItem(WISHLIST_COLLECTION_ID, VECNA_ITEM_ID, {
+      toCollectionId: WISHLIST_COLLECTION_ID,
+    });
+
+    expect(result).toMatchObject({ success: false, error: { statusCode: 400 } });
+  });
+});
+
+describe('deleteCollectionItem', () => {
+  it('deletes the item from its collection', async () => {
+    const result = await collectionItemService.deleteCollectionItem(OWNED_COLLECTION_ID, SPIDER_MAN_ITEM_ID);
+    const remaining = await collectionItemService.getCollectionItems(OWNED_COLLECTION_ID, {
+      pagination: { page: '1', size: '50' },
+    });
+
+    expect(result.success).toBe(true);
+    expect(remaining.data.map((item) => item.id)).not.toContain(SPIDER_MAN_ITEM_ID);
+  });
+
+  it('returns the 404 envelope for an item outside the collection', async () => {
+    const result = await collectionItemService.deleteCollectionItem(WISHLIST_COLLECTION_ID, SPIDER_MAN_ITEM_ID);
+
+    expect(result).toMatchObject({ success: false, error: { statusCode: 404 } });
   });
 });

@@ -9,6 +9,7 @@ import {
   type FunkoTypeUtil as FunkoType,
   type ItemConditionUtil as ItemCondition,
 } from '@app-types/utility';
+import { DEFAULT_CURRENCY } from '@utils/moneyUtils';
 import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from './mockImageUtils';
 
 export type MockRowWithId = { id: number };
@@ -81,12 +82,10 @@ const mockEnv: Partial<ImportMetaEnv> = viteEnv ?? {};
 
 const FIRST_DATE = Date.UTC(2026, 0, 5, 9, 30);
 const DAY_MS = 24 * 60 * 60 * 1000;
-export const DEFAULT_CURRENCY = 'EUR';
-export const MOCK_FUNKO_COUNT = 30;
 const OWNED_COLLECTION_ID = 1;
 const WISHLIST_COLLECTION_ID = 2;
 
-export function mockDate(index: number): string {
+function mockDate(index: number): string {
   return new Date(FIRST_DATE + index * DAY_MS).toISOString();
 }
 
@@ -154,7 +153,7 @@ type SeedItem = {
 const SEED_ITEMS: SeedItem[] = [
   {
     funkoId: 1,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1499,
     purchasedAt: '2024-03-02',
@@ -162,7 +161,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 2,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1299,
     purchasedAt: '2024-03-02',
@@ -170,7 +169,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 4,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     quantity: 2,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1599,
@@ -179,7 +178,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 5,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.OUT_OF_BOX,
     priceCents: 999,
     purchasedAt: '2023-11-11',
@@ -188,7 +187,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 9,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1499,
     purchasedAt: '2024-07-20',
@@ -196,7 +195,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 10,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1799,
     purchasedAt: '2024-07-20',
@@ -204,7 +203,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 14,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.BOX_DAMAGED,
     priceCents: 899,
     purchasedAt: '2022-12-24',
@@ -213,7 +212,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 16,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1499,
     purchasedAt: '2023-06-01',
@@ -221,7 +220,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 17,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1499,
     purchasedAt: '2023-06-01',
@@ -229,7 +228,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 20,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1399,
     purchasedAt: '2024-01-15',
@@ -237,7 +236,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 22,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1399,
     purchasedAt: '2024-01-15',
@@ -245,7 +244,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 26,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1599,
     purchasedAt: '2024-09-09',
@@ -253,7 +252,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 28,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 1299,
     purchasedAt: '2024-09-09',
@@ -261,7 +260,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 30,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 2499,
     purchasedAt: '2025-02-14',
@@ -269,17 +268,17 @@ const SEED_ITEMS: SeedItem[] = [
   },
   {
     funkoId: 25,
-    collectionId: 1,
+    collectionId: OWNED_COLLECTION_ID,
     condition: ItemConditionUtil.MINT_IN_BOX,
     priceCents: 2999,
     purchasedAt: '2025-02-14',
     tagIds: [2],
   },
-  { funkoId: 12, collectionId: 2 },
-  { funkoId: 18, collectionId: 2 },
-  { funkoId: 23, collectionId: 2 },
-  { funkoId: 29, collectionId: 2 },
-  { funkoId: 7, collectionId: 2, notes: 'Wait for a sale' },
+  { funkoId: 12, collectionId: WISHLIST_COLLECTION_ID },
+  { funkoId: 18, collectionId: WISHLIST_COLLECTION_ID },
+  { funkoId: 23, collectionId: WISHLIST_COLLECTION_ID },
+  { funkoId: 29, collectionId: WISHLIST_COLLECTION_ID },
+  { funkoId: 7, collectionId: WISHLIST_COLLECTION_ID, notes: 'Wait for a sale' },
 ];
 
 const IMAGES_PER_FUNKO = 2;
@@ -389,7 +388,7 @@ function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
 
 // The first-run code the mocks accept, as the server would print it in /setup?code=...
 export const MOCK_SETUP_CODE = 'funko-first-run';
-export const MOCK_USER_NAME = 'Mario';
+const MOCK_USER_NAME = 'Mario';
 
 const SEED_PASSKEYS: MockPasskeyRow[] = [
   {
@@ -420,7 +419,7 @@ const initialAuthState = isAuthState(mockEnv.VITE_MOCK_AUTH_STATE)
   ? mockEnv.VITE_MOCK_AUTH_STATE
   : AuthStateUtil.SIGNED_IN;
 
-export function createMockAuth(state: AuthState): MockAuth {
+function createMockAuth(state: AuthState): MockAuth {
   const hasUser = state !== AuthStateUtil.SETUP;
 
   return {
@@ -431,7 +430,7 @@ export function createMockAuth(state: AuthState): MockAuth {
   };
 }
 
-export function createMockStore(): MockStore {
+function createMockStore(): MockStore {
   const categories = CATEGORY_NAMES.map((name, index) => ({
     id: index + 1,
     name,
@@ -453,14 +452,21 @@ export function createMockStore(): MockStore {
   }));
   const collections: MockCollectionRow[] = [
     {
-      id: 1,
+      id: OWNED_COLLECTION_ID,
       name: 'Owned',
       notes: 'Everything on the shelves and in the boxes',
       isDefault: true,
       createdAt: mockDate(0),
       updatedAt: mockDate(0),
     },
-    { id: 2, name: 'Wishlist', notes: 'Next buys', isDefault: false, createdAt: mockDate(1), updatedAt: mockDate(1) },
+    {
+      id: WISHLIST_COLLECTION_ID,
+      name: 'Wishlist',
+      notes: 'Next buys',
+      isDefault: false,
+      createdAt: mockDate(1),
+      updatedAt: mockDate(1),
+    },
   ];
   const funkos: MockFunkoRow[] = SEED_FUNKOS.map((seed, index) => ({
     id: index + 1,

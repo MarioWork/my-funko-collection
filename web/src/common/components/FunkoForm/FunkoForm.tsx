@@ -14,7 +14,7 @@ import { FieldSeparator } from '@components/ui/field';
 import { useFormCompat } from '@hooks/useFormCompat';
 import FunkoDestinationFields from './components/FunkoDestinationFields';
 import FunkoPhotoFields from './components/FunkoPhotoFields';
-import type { FunkoFormSubmission } from './funkoFormSubmission.type';
+import type { FunkoFormSubmission } from './types';
 import { usePendingPhotos } from './hooks/usePendingPhotos';
 
 type Props = {

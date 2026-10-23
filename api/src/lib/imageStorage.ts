@@ -37,6 +37,16 @@ const VARIANT_SPECS: Record<ImageVariant, VariantSpec> = {
   small: { suffix: '.sm.webp', maxPx: env.IMAGE_SMALL_PX, quality: SMALL_QUALITY },
 };
 
+const SUFFIX_VARIANTS = IMAGE_VARIANTS.map((variant) => ({ variant, suffix: VARIANT_SPECS[variant].suffix }))
+  // Longest suffix first, so ".md.webp" is not taken for ".webp".
+  .sort((first, second) => second.suffix.length - first.suffix.length);
+
+const EXPORT_JPEG_QUALITY = 85;
+
+const DEFAULT_GENERATED_BACKGROUND = '#4466aa';
+const RGB_CHANNELS = 3;
+const BYTE_VALUES = 256;
+
 export type StoredImage = {
   fileKey: string;
   width: number;
@@ -181,8 +191,6 @@ export async function readLargeVariant(funkoId: number, fileKey: string): Promis
 
 export type JpegImage = { content: Buffer; width: number; height: number };
 
-const EXPORT_JPEG_QUALITY = 85;
-
 // A stored variant as JPEG, for files that cannot hold WebP (spreadsheets). Undefined when the file is missing.
 export async function readVariantAsJpeg(
   funkoId: number,
@@ -197,7 +205,7 @@ export async function readVariantAsJpeg(
 
     return { content: data, width: info.width, height: info.height };
   } catch (error: unknown) {
-    logger.warn({ err: error, funkoId }, 'image for export not readable');
+    log.warn({ err: error, funkoId }, 'image for export not readable');
 
     return undefined;
   }
@@ -248,10 +256,6 @@ export type ImageDimensions = {
   width: number;
   height: number;
 };
-
-const SUFFIX_VARIANTS = IMAGE_VARIANTS.map((variant) => ({ variant, suffix: VARIANT_SPECS[variant].suffix }))
-  // Longest suffix first, so ".md.webp" is not taken for ".webp".
-  .sort((first, second) => second.suffix.length - first.suffix.length);
 
 function parseVariantFile(fileName: string): { fileKey: string; variant: ImageVariant } | null {
   const match = SUFFIX_VARIANTS.find(({ suffix }) => fileName.endsWith(suffix));
@@ -434,10 +438,6 @@ export type GeneratedImageOptions = {
   // An EXIF orientation tag to write, as a phone camera does.
   orientation?: number;
 };
-
-const DEFAULT_GENERATED_BACKGROUND = '#4466aa';
-const RGB_CHANNELS = 3;
-const BYTE_VALUES = 256;
 
 function noisePixels(width: number, height: number): Buffer {
   const length = width * height * RGB_CHANNELS;

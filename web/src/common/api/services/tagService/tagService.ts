@@ -63,4 +63,3 @@ export type GetTagsFields = {
 } & SearchFields;
 
 export const DEFAULT_TAG_SORT_FIELD = TagApiSortingFields.NAME;
-export const DEFAULT_TAG_SORT_DIRECTION = SortingDirectionUtil.ASC;

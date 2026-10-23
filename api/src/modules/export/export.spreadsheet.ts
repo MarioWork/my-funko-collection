@@ -2,7 +2,14 @@
 // long text wrapped instead of spilling, one short "Open" link per image, a list's funkos folded under each entry,
 // and a funko's images on a sheet of their own.
 import writeExcelFile, { type Cell, type Row } from 'write-excel-file/node';
-import { COLUMNS, IMAGE_COLUMNS, LIST_COLUMNS, type CellValue, type SheetColumn } from './export.formats.ts';
+import {
+  COLUMNS,
+  IMAGE_COLUMNS,
+  LIST_COLUMNS,
+  PRICE_DECIMALS,
+  type CellValue,
+  type SheetColumn,
+} from './export.formats.ts';
 import type { ListEntry } from './export.lines.ts';
 import type { ExportListKind, FunkoExportLine, ImageExport } from './export.schema.ts';
 import { organizeSheets, type SheetOrganization } from './export.sheetFeatures.ts';
@@ -39,12 +46,58 @@ const CHASE_STYLE = { backgroundColor: '#FEF3C7', textColor: '#92400E' } as cons
 // file whose formulas start with one; write-excel-file passes the text through as given).
 const STRIPE_FORMULA = 'MOD(ROW(),2)=0';
 
+// Column letters for formulas: A is char code 65, and the letters repeat every 26 columns.
+const ALPHABET_LENGTH = 26;
+const CHAR_CODE_A = 65;
+
 const LIST_SHEET_NAMES: Record<ExportListKind, string> = {
   categories: 'Categories',
   series: 'Series',
   collections: 'Collections',
   tags: 'Tags',
 };
+
+const TEXT_COLUMNS = COLUMNS.filter((column) => column.csvHeader !== IMAGES_COLUMN_HEADER);
+
+const CHASE_COLUMN = TEXT_COLUMNS.findIndex((column) => column.csvHeader === CHASE_COLUMN_HEADER) + 1;
+
+const NAME_SPAN = 3;
+
+// What an entry's own row says beside its name, read off its summary.
+const ENTRY_SUMMARIES: Record<ExportListKind, (summary: ListEntry['summary']) => string> = {
+  categories: (summary) => countLabel(summary.funkoCount, 'funko', 'funkos'),
+  series: (summary) => countLabel(summary.funkoCount, 'funko', 'funkos'),
+  tags: (summary) => countLabel(summary.itemCount, 'item', 'items'),
+  collections: (summary) => {
+    const totalSpent = typeof summary.totalSpent === 'number' ? summary.totalSpent : 0;
+    const spent = totalSpent.toFixed(PRICE_DECIMALS);
+
+    return [
+      countLabel(summary.itemCount, 'funko', 'funkos'),
+      countLabel(summary.totalQuantity, 'piece', 'pieces'),
+      `${spent} spent`,
+    ].join(' · ');
+  },
+};
+
+const FUNKO_IMAGES_SHEET_NAME = 'Images';
+const JPEG_CONTENT_TYPE = 'image/jpeg';
+// Each photo is shown this wide, its height kept in proportion, in a row exactly that tall (Excel, Numbers and
+// LibreOffice disagree on the default row height, so counting default rows would make photos overlap).
+const PHOTO_DISPLAY_WIDTH = 320;
+const POINTS_PER_PIXEL = 0.75;
+const PHOTO_ROW_PADDING_PX = 12;
+const LABEL_COLUMN_WIDTH = 10;
+const PHOTO_COLUMN_WIDTH = 50;
+const PHOTO_COLUMN = 2;
+const SCREEN_DPI = 96;
+
+const IMAGE_LINK_HEADERS = new Set(['url', 'medium_url', 'small_url']);
+
+// The image columns as the spreadsheet sizes them (a link column only holds "Open").
+const SHEET_IMAGE_COLUMNS: SheetColumn[] = IMAGE_COLUMNS.map((column) =>
+  IMAGE_LINK_HEADERS.has(column.csvHeader) ? { ...column, width: IMAGE_LINK_COLUMN_WIDTH } : column,
+);
 
 // A sheet ready for writeExcelFile, and what the filter / group feature does to it.
 type BuiltSheet = { sheet: Sheet; organization: SheetOrganization };
@@ -93,8 +146,6 @@ function sheetFunkoColumns(lines: FunkoExportLine[]): SheetColumn[] {
 
   return [...textColumns, ...imageColumns];
 }
-
-const TEXT_COLUMNS = COLUMNS.filter((column) => column.csvHeader !== IMAGES_COLUMN_HEADER);
 
 // A funko line as sheet cells: everything at the top of its row, long text wrapped (the row grown to fit), then an
 // "Open" link per image, up to `imageColumnCount` (blank where this funko has fewer).
@@ -174,15 +225,13 @@ function columnLetter(column: number): string {
   let remaining = column;
 
   while (remaining > 0) {
-    const index = (remaining - 1) % 26;
-    letters = String.fromCharCode(65 + index) + letters;
-    remaining = Math.floor((remaining - 1) / 26);
+    const index = (remaining - 1) % ALPHABET_LENGTH;
+    letters = String.fromCharCode(CHAR_CODE_A + index) + letters;
+    remaining = Math.floor((remaining - 1) / ALPHABET_LENGTH);
   }
 
   return letters;
 }
-
-const CHASE_COLUMN = TEXT_COLUMNS.findIndex((column) => column.csvHeader === CHASE_COLUMN_HEADER) + 1;
 
 function toFunkosSheet(lines: FunkoExportLine[]): BuiltSheet {
   const columns = sheetFunkoColumns(lines);
@@ -199,29 +248,11 @@ function toFunkosSheet(lines: FunkoExportLine[]): BuiltSheet {
 // One entry of a list with its funkos: the entry's own row, then its lines.
 export type FunkoGroup = { entry: ListEntry; lines: FunkoExportLine[] };
 
-const NAME_SPAN = 3;
-
 function countLabel(count: unknown, singular: string, plural: string): string {
   const total = typeof count === 'number' ? count : 0;
 
   return `${total} ${total === 1 ? singular : plural}`;
 }
-
-// What an entry's own row says beside its name, read off its summary.
-const ENTRY_SUMMARIES: Record<ExportListKind, (summary: ListEntry['summary']) => string> = {
-  categories: (summary) => countLabel(summary.funkoCount, 'funko', 'funkos'),
-  series: (summary) => countLabel(summary.funkoCount, 'funko', 'funkos'),
-  tags: (summary) => countLabel(summary.itemCount, 'item', 'items'),
-  collections: (summary) => {
-    const spent = typeof summary.totalSpent === 'number' ? summary.totalSpent.toFixed(2) : '0.00';
-
-    return [
-      countLabel(summary.itemCount, 'funko', 'funkos'),
-      countLabel(summary.totalQuantity, 'piece', 'pieces'),
-      `${spent} spent`,
-    ].join(' · ');
-  },
-};
 
 // The entry's row: its name (bold) across the first columns, its totals across the rest.
 function toEntryRow(kind: ExportListKind, entry: ListEntry, columnCount: number): Row {
@@ -276,18 +307,6 @@ async function writeWorkbook(builtSheets: BuiltSheet[], extraSheets: Sheet[] = [
 // An image to place on the Images sheet, already JPEG (Excel cannot show WebP).
 export type SheetImage = { content: Buffer; width: number; height: number };
 
-const FUNKO_IMAGES_SHEET_NAME = 'Images';
-const JPEG_CONTENT_TYPE = 'image/jpeg';
-// Each photo is shown this wide, its height kept in proportion, in a row exactly that tall (Excel, Numbers and
-// LibreOffice disagree on the default row height, so counting default rows would make photos overlap).
-const PHOTO_DISPLAY_WIDTH = 320;
-const POINTS_PER_PIXEL = 0.75;
-const PHOTO_ROW_PADDING_PX = 12;
-const LABEL_COLUMN_WIDTH = 10;
-const PHOTO_COLUMN_WIDTH = 50;
-const PHOTO_COLUMN = 2;
-const SCREEN_DPI = 96;
-
 // One image per row, its number beside it at the top.
 function toFunkoImagesSheet(photos: SheetImage[]): Sheet {
   const heights = photos.map((photo) => Math.round((photo.height / photo.width) * PHOTO_DISPLAY_WIDTH));
@@ -339,13 +358,6 @@ export async function toListSpreadsheet(
 
   return writeWorkbook([toTableSheet({ name: LIST_SHEET_NAMES[kind], columns, rows, isStriped: true })]);
 }
-
-const IMAGE_LINK_HEADERS = new Set(['url', 'medium_url', 'small_url']);
-
-// The image columns as the spreadsheet sizes them (a link column only holds "Open").
-const SHEET_IMAGE_COLUMNS: SheetColumn[] = IMAGE_COLUMNS.map((column) =>
-  IMAGE_LINK_HEADERS.has(column.csvHeader) ? { ...column, width: IMAGE_LINK_COLUMN_WIDTH } : column,
-);
 
 // Every image, its three sizes as short "Open" links.
 export async function toImagesSpreadsheet(images: ImageExport[]): Promise<Buffer> {

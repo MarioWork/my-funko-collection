@@ -11,7 +11,7 @@ import { useActionToast } from '@hooks/useActionToast';
 import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import ManageForm, { type ManageEntityFormData, type ManageFormValues } from '@components/ManageForm';
 import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
-import type { ManageRow } from '../manageListUtils';
+import type { ManageRow } from '../types';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 import { cn } from '@utils/classNameUtils';
 import { FADE_IN_CLASS } from '@utils/motionUtils';

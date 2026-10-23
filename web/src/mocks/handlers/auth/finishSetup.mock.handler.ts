@@ -3,7 +3,7 @@ import { delay } from 'msw/utils/delay';
 import type { AuthSessionApiModel } from '@app-types/models';
 import { AuthStateUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { errorResponse } from '@mocks/mockResponses';
+import { CONFLICT_STATUS, errorResponse, UNAUTHORIZED_STATUS } from '@mocks/mockResponses';
 import { MOCK_SETUP_CODE, mockStore, nowIso } from '@mocks/mockStore';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import type { FinishSetup } from '@services/authService/authService.type';
@@ -18,15 +18,19 @@ export default (baseUrl: string) => [
     const { code, name, response, passkeyName } = (await request.json()) as FinishSetup;
 
     if (mockStore.auth.state !== AuthStateUtil.SETUP) {
-      return errorResponse(409, AuthApiErrorCodes.ALREADY_SET_UP, 'This app is already set up.');
+      return errorResponse(CONFLICT_STATUS, AuthApiErrorCodes.ALREADY_SET_UP, 'This app is already set up.');
     }
 
     if (code !== MOCK_SETUP_CODE) {
-      return errorResponse(401, AuthApiErrorCodes.INVALID_SETUP_CODE, 'That setup code is not valid.');
+      return errorResponse(UNAUTHORIZED_STATUS, AuthApiErrorCodes.INVALID_SETUP_CODE, 'That setup code is not valid.');
     }
 
     if (!isCeremonyResponse(response)) {
-      return errorResponse(401, AuthApiErrorCodes.PASSKEY_FAILED, 'That passkey could not be verified.');
+      return errorResponse(
+        UNAUTHORIZED_STATUS,
+        AuthApiErrorCodes.PASSKEY_FAILED,
+        'That passkey could not be verified.',
+      );
     }
 
     const createdAt = nowIso();

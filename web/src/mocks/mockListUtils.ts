@@ -2,6 +2,8 @@ import { ApiUrlParamsUtil, SortingDirectionUtil, type ResponseWithPaginationUtil
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
+const ID_SEPARATOR = ',';
+const TRUE_PARAM_VALUE = 'true';
 
 type FieldReader<T> = (item: T) => string | number | boolean | Date | null | undefined;
 
@@ -24,6 +26,16 @@ const compare = (value: ReturnType<FieldReader<unknown>>, other: ReturnType<Fiel
 
   return String(value ?? '').localeCompare(String(other ?? ''));
 };
+
+// A comma-separated id param (`tagId=1,4`); undefined when the request does not send it.
+export function idList(value: string | null): number[] | undefined {
+  return value ? value.split(ID_SEPARATOR).map(Number) : undefined;
+}
+
+// A boolean query param, read the way the API reads it: only `true` is true.
+export function isTrueParam(value: string | null): boolean {
+  return value === TRUE_PARAM_VALUE;
+}
 
 // Joined into one string, so the row matches when any one of its values does.
 export const anyOf = <T, V>(values: T[], read: (value: T) => V) => values.map(read).join(' ');

@@ -11,6 +11,8 @@ type Options = {
   onCreated: (created: NamedApiModel) => void;
 };
 
+const CREATE_FAILED_MESSAGE = 'Could not create it.';
+
 // Creates a category, tag or series by name from inside another form, through that list's own route action (so
 // every loader on the page reloads and the new option shows up). The caller selects it in onCreated.
 export function useCreateNamed({ actionPath, onCreated }: Options) {
@@ -33,6 +35,6 @@ export function useCreateNamed({ actionPath, onCreated }: Options) {
   return {
     create,
     isCreating: fetcher.state !== 'idle',
-    errorMessage: fetcher.data?.success === false ? (fetcher.data.error?.message ?? 'Could not create it.') : undefined,
+    errorMessage: fetcher.data?.success === false ? (fetcher.data.error?.message ?? CREATE_FAILED_MESSAGE) : undefined,
   };
 }

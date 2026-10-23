@@ -1,4 +1,4 @@
-import { APP_NAME } from '@application/layout/navigationUtils';
+import { APP_NAME } from '@utils/navigationUtils';
 import SettingsSection from './SettingsSection';
 
 const isSecure = typeof window !== 'undefined' && window.isSecureContext;

@@ -3,7 +3,7 @@ import type { FunkoApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil, type LoaderDataUtil } from '@app-types/utility';
 import FormPanel from '@components/FormPanel';
 import FunkoForm from '@components/FunkoForm';
-import type { FunkoFormSubmission } from '@components/FunkoForm/funkoFormSubmission.type';
+import type { FunkoFormSubmission } from '@components/FunkoForm/types';
 import { funkoToFormValues, toFunkoPayload } from '@components/FunkoFormFields';
 import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
 import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';

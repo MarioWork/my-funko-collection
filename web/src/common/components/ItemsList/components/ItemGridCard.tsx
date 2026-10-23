@@ -1,7 +1,7 @@
-import type { CollectionApiModel, CollectionId, CollectionItemApiModel } from '@app-types/models';
-import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
+import type { CollectionItemApiModel } from '@app-types/models';
 import FunkoCard from '@components/FunkoCard';
-import type { FunkoGridDensity } from '@utils/layoutUtils';
+import { FunkoGridDensityUtil } from '@app-types/utility';
+import { useItemsListContext } from '../hooks/useItemsListContext';
 import ItemGridFacts from './ItemGridFacts';
 import ItemRowMenu from './ItemRowMenu';
 import { cn } from '@utils/classNameUtils';
@@ -9,33 +9,23 @@ import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils'
 
 type Props = {
   item: CollectionItemApiModel;
-  collections: CollectionApiModel[];
-  density: FunkoGridDensity;
-  isBusy: boolean;
-  onMove: (item: CollectionItemApiModel, toCollectionId: CollectionId) => void;
-  onRemove: (item: CollectionItemApiModel) => void;
+  density: FunkoGridDensityUtil;
 };
 
 // An item in the grid layouts: the funko's card (with how many copies), the item's ⋯ menu over the photo and, in
 // the large grid, the copy's condition, price and tags.
-function ItemGridCard({ item, collections, density, isBusy, onMove, onRemove }: Props) {
+function ItemGridCard({ item, density }: Props) {
+  const { busyItemId } = useItemsListContext();
+  const isBusy = busyItemId === item.id;
   // The small grid stays photo and name for scanning a shelf; the large one also shows the copy's facts.
-  const isLargeGrid = density === 'comfortable';
+  const isLargeGrid = density === FunkoGridDensityUtil.COMFORTABLE;
 
   return (
     <li className={cn('relative', FADE_IN_CLASS, DIMMABLE_CLASS, isBusy && DIMMED_CLASS)}>
       <FunkoCard funko={item.funko} quantity={item.quantity} density={density} />
       {isLargeGrid ? <ItemGridFacts item={item} /> : null}
       <div className="absolute top-2 right-2">
-        <ItemRowMenu
-          item={item}
-          collections={collections}
-          editPath={COLLECTION_ROUTES_PATHS.editItem(String(item.collection.id), String(item.id))}
-          isBusy={isBusy}
-          onMove={(toCollectionId) => onMove(item, toCollectionId)}
-          onRemove={() => onRemove(item)}
-          isOnPhoto
-        />
+        <ItemRowMenu item={item} isOnPhoto />
       </div>
     </li>
   );

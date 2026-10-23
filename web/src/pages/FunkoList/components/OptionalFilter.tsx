@@ -1,4 +1,5 @@
 import SelectFilter, { type FilterOption } from '@components/SelectFilter';
+import { FALSE_VALUE } from '../funkoListUtils';
 import type { FunkoFilterField, FunkoFilterUpdates } from '../hooks/useFunkoListParams';
 
 type Props = {
@@ -15,7 +16,6 @@ type Props = {
 };
 
 const NONE = 'none';
-const FALSE_VALUE = 'false';
 
 // A field a funko may leave empty (series, collections, tags): one select with Any, None, then each value. The id
 // and the has… flag are two URL params; picking one clears the other so they never disagree.

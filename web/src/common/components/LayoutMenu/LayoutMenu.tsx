@@ -1,6 +1,6 @@
 import { Grid3x3, LayoutGrid, List } from 'lucide-react';
 import ViewMenu, { type ViewOption } from '@components/ViewMenu';
-import { FunkoLayoutUtil } from '@utils/layoutUtils';
+import { FunkoLayoutUtil } from '@app-types/utility';
 
 type Props = {
   value: FunkoLayoutUtil;

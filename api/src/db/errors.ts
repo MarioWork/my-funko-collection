@@ -26,3 +26,12 @@ export function getSqliteError(error: unknown): SqliteError | undefined {
     message: typeof candidate.message === 'string' ? candidate.message : '',
   };
 }
+
+type ErrorLogFields = { err: unknown; sql?: string };
+
+// A query error's message carries the SQL *and its parameters*; log the cause and the SQL template only.
+export function getErrorLogFields(error: unknown): ErrorLogFields {
+  if (error instanceof DrizzleQueryError) return { err: error.cause, sql: error.query };
+
+  return { err: error };
+}

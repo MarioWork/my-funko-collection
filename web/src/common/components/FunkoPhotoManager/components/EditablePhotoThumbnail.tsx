@@ -9,6 +9,7 @@ import { cn } from '@utils/classNameUtils';
 import { createFormData } from '@utils/formDataUtils';
 import PhotoMenu from './PhotoMenu';
 import PhotoThumbnail from '@components/PhotoThumbnail';
+import type { MoveDirection } from '../types';
 
 type Props = {
   image: FunkoImageApiModel;
@@ -17,7 +18,7 @@ type Props = {
   funkoId: FunkoId;
   isPrimary: boolean;
   onOpen: () => void;
-  onMove: (direction: -1 | 1) => void;
+  onMove: (direction: MoveDirection) => void;
   onMakePrimary: () => void;
 };
 

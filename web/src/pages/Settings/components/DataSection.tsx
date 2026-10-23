@@ -1,5 +1,5 @@
 import { Download } from 'lucide-react';
-import DownloadLink from '@components/DownloadLink';
+import DownloadLink from './DownloadLink';
 import exportService from '@services/exportService/exportService';
 import SettingsSection from './SettingsSection';
 

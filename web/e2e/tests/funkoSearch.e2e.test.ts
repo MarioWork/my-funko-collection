@@ -9,8 +9,7 @@ test('searching narrows the grid and opens the funko', async ({ page }) => {
   await list.goto();
   await list.search('pikachu');
 
-  await expect(list.tiles).toHaveCount(1);
-  await expect(list.tiles.first()).toContainText('Pikachu');
+  await expect(list.tiles).toHaveText([/Pikachu/]);
 
   await list.openFunko('Pikachu');
 

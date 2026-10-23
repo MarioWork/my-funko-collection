@@ -1,24 +1,22 @@
 import { useState } from 'react';
-import { PAGE_ICONS } from '@application/layout/navigationUtils';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import type { ImageGroupApiModel, ImageListEntryApiModel } from '@app-types/models';
-import type { LoaderDataUtil, ResponseWithPaginationUtil } from '@app-types/utility';
-import EmptyState from '@components/EmptyState';
+import { type LoaderDataUtil, type ResponseWithPaginationUtil, ImageViewUtil } from '@app-types/utility';
 import InfiniteListFooter from '@components/InfiniteListFooter';
 import ExportMenu from '@components/ExportMenu';
 import PageHeader from '@components/PageHeader';
 import exportService from '@services/exportService/exportService';
-import { Button } from '@components/ui/button';
 import { useInfiniteList } from '@hooks/useInfiniteList';
 import { useIsRefreshing } from '@hooks/useIsRefreshing';
 import { cn } from '@utils/classNameUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS } from '@utils/motionUtils';
 import ImageGroupTable from './components/ImageGroupTable';
+import ImageListEmpty from './components/ImageListEmpty';
 import ImageListToolbar from './components/ImageListToolbar';
 import ImagePreviewDialog from './components/ImagePreviewDialog';
 import ImageTable from './components/ImageTable';
 import { useImageListParams } from './hooks/useImageListParams';
 import type { loader } from './imageListLoader';
-import { ImageViewUtil } from '@utils/layoutUtils';
 
 type ImageLoaderData = LoaderDataUtil<typeof loader> | undefined;
 
@@ -90,19 +88,7 @@ function ImageList() {
         {groupsResponse && hasImages ? (
           <ImageGroupTable groups={groups.items} onOpen={setOpenImage} isLoadingMore={groups.isLoading} />
         ) : null}
-        {hasImages ? null : (
-          <EmptyState
-            pose={isFiltered ? 'notFound' : 'waiting'}
-            title={isFiltered ? 'No images match' : 'No images yet'}
-            description={isFiltered ? 'Try another word or clear the filter.' : 'Images you add to funkos show here.'}
-          >
-            {isFiltered ? (
-              <Button variant="outline" onClick={clearAll}>
-                Clear search and filter
-              </Button>
-            ) : null}
-          </EmptyState>
-        )}
+        {hasImages ? null : <ImageListEmpty isFiltered={isFiltered} onClearAll={clearAll} />}
         <InfiniteListFooter
           shownCount={shown.items.length}
           total={shown.total}

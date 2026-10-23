@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import { ThemeUtil } from '../themeUtils';
+import { ThemeUtil } from '@app-types/utility';
 
 export type ThemeContextValue = {
   theme: ThemeUtil;

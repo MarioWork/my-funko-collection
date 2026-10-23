@@ -1,6 +1,6 @@
-import { MANAGE_ITEMS } from '@application/layout/navigationUtils';
+import { MANAGE_ITEMS } from '@utils/navigationUtils';
 import LinkButton from '@components/LinkButton';
-import { useIsDesktop } from '@hooks/useMediaQuery';
+import { useIsDesktop } from '@hooks/useIsDesktop';
 import SettingsSection from './SettingsSection';
 
 // The manage pages (categories, tags). On desktop they sit in the sidebar, so this card only shows on phones.

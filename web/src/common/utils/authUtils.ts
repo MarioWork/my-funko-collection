@@ -1,8 +1,8 @@
 import { string } from 'yup';
 
 // The API's limits (auth contract): a name and a passkey name are both 1..60 characters once trimmed.
-export const USER_NAME_MAX_LENGTH = 60;
-export const PASSKEY_NAME_MAX_LENGTH = 60;
+const USER_NAME_MAX_LENGTH = 60;
+const PASSKEY_NAME_MAX_LENGTH = 60;
 
 export const userNameSchema = string()
   .trim()

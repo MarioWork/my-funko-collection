@@ -1,8 +1,5 @@
 import { useSyncExternalStore } from 'react';
 
-// Tailwind's `lg`: the shell switches from bottom nav to sidebar here.
-export const DESKTOP_QUERY = '(min-width: 1024px)';
-
 function subscribe(query: string, onChange: () => void): () => void {
   const list = window.matchMedia(query);
 
@@ -17,8 +14,4 @@ export function useMediaQuery(query: string): boolean {
     () => window.matchMedia(query).matches,
     () => false,
   );
-}
-
-export function useIsDesktop(): boolean {
-  return useMediaQuery(DESKTOP_QUERY);
 }

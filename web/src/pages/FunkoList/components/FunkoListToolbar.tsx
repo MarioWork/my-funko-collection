@@ -3,7 +3,7 @@ import FilterPanel from '@components/FilterPanel';
 import SearchInput from '@components/SearchInput';
 import LayoutMenu from '@components/LayoutMenu';
 import SortSelect from '@components/SortSelect';
-import type { FunkoLayoutUtil } from '@utils/layoutUtils';
+import type { FunkoLayoutUtil } from '@app-types/utility';
 import { FunkoApiSortingFields } from '@services/funkoService/funkoService';
 import { buildQuickFilters, FUNKO_SORT_FIELDS } from '../funkoListUtils';
 import { useFunkoListParams } from '../hooks/useFunkoListParams';

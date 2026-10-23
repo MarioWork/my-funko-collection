@@ -1,8 +1,9 @@
 import { Link } from 'react-router';
-import type { CollectionApiModel, CollectionId, CollectionItemApiModel } from '@app-types/models';
-import { COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
+import type { CollectionItemApiModel } from '@app-types/models';
+import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoImage from '@components/FunkoImage';
 import { Badge } from '@components/ui/badge';
+import { useItemsListContext } from '../hooks/useItemsListContext';
 import { getItemFacts } from '../itemsListUtils';
 import ItemRowMenu from './ItemRowMenu';
 import { funkosInCategoryPath } from '@utils/funkoLinkUtils';
@@ -12,17 +13,15 @@ import { LINK_FOCUS_CLASS } from '@utils/focusUtils';
 
 type Props = {
   item: CollectionItemApiModel;
-  collections: CollectionApiModel[];
-  hasCollectionColumn: boolean;
-  isBusy: boolean;
-  onMove: (item: CollectionItemApiModel, toCollectionId: CollectionId) => void;
-  onRemove: (item: CollectionItemApiModel) => void;
 };
 
 const THUMB_SIZES = '72px';
 
 // The phone layout of a row: thumbnail, name, number, the facts in one line, tags, the menu.
-function ItemCard({ item, collections, hasCollectionColumn, isBusy, onMove, onRemove }: Props) {
+function ItemCard({ item }: Props) {
+  const { hasCollectionFilter, busyItemId } = useItemsListContext();
+  const isBusy = busyItemId === item.id;
+
   return (
     <li
       className={cn(
@@ -54,7 +53,7 @@ function ItemCard({ item, collections, hasCollectionColumn, isBusy, onMove, onRe
           >
             {item.funko.category.name}
           </Link>
-          {hasCollectionColumn ? ` · ${item.collection.name}` : ''}
+          {hasCollectionFilter ? ` · ${item.collection.name}` : ''}
         </p>
         <p className="text-xs text-muted-foreground">{getItemFacts(item).join(' · ')}</p>
         {item.tags.length > 0 ? (
@@ -67,14 +66,7 @@ function ItemCard({ item, collections, hasCollectionColumn, isBusy, onMove, onRe
           </ul>
         ) : null}
       </div>
-      <ItemRowMenu
-        item={item}
-        collections={collections}
-        editPath={COLLECTION_ROUTES_PATHS.editItem(String(item.collection.id), String(item.id))}
-        isBusy={isBusy}
-        onMove={(toCollectionId) => onMove(item, toCollectionId)}
-        onRemove={() => onRemove(item)}
-      />
+      <ItemRowMenu item={item} />
     </li>
   );
 }

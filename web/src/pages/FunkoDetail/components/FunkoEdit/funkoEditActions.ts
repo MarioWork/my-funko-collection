@@ -7,10 +7,10 @@ import funkoService from '@services/funkoService/funkoService';
 import { UpdateFunkoSchema, type UpdateFunko } from '@services/funkoService/funkoService.type';
 import { parseFormData } from '@utils/formDataUtils';
 import { newItemPayload } from '@utils/newItemUtils';
+import { FUNKO_ITEMS_PAGE_SIZE } from '../../funkoDetailUtils';
 
 type EditFunkoFormData = { funko: UpdateFunko; collectionIds: number[] };
 
-const ITEMS_PAGE_SIZE = '100';
 const COLLECTIONS_FAILED_MESSAGE = 'The details are saved, but a collection could not be changed. Please try again.';
 
 const collectionIdsSchema = array().of(number().integer().positive().required()).required();
@@ -19,7 +19,7 @@ const collectionIdsSchema = array().of(number().integer().positive().required())
 // change went through.
 async function syncCollections(funkoId: number, collectionIds: number[]): Promise<boolean> {
   const current = await collectionItemService.getItems({
-    pagination: { page: DEFAULT_FIRST_PAGE, size: ITEMS_PAGE_SIZE },
+    pagination: { page: DEFAULT_FIRST_PAGE, size: FUNKO_ITEMS_PAGE_SIZE },
     [ItemApiSearchFields.FUNKO_ID]: String(funkoId),
   });
   const currentIds = current.data.map((item) => item.collection.id);

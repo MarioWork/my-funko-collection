@@ -1,5 +1,8 @@
+import { LOCALE } from '@utils/localeUtils';
+
 const CENTS_PER_UNIT = 100;
-const LOCALE = 'pt-PT';
+// A price field shows whole cents: "12.50".
+const PRICE_DECIMALS = 2;
 export const DEFAULT_CURRENCY = 'EUR';
 
 export function formatCents(cents: number, currency = DEFAULT_CURRENCY): string {
@@ -7,7 +10,7 @@ export function formatCents(cents: number, currency = DEFAULT_CURRENCY): string 
 }
 
 export function centsToUnits(cents: number | null | undefined): string {
-  return cents === null || cents === undefined ? '' : (cents / CENTS_PER_UNIT).toFixed(2);
+  return cents === null || cents === undefined ? '' : (cents / CENTS_PER_UNIT).toFixed(PRICE_DECIMALS);
 }
 
 export function unitsToCents(units: string | number): number {

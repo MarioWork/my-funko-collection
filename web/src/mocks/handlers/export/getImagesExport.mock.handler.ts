@@ -3,10 +3,17 @@ import { delay } from 'msw/utils/delay';
 import writeExcelFile from 'write-excel-file/browser';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { mockStore, type MockImageRow } from '@mocks/mockStore';
-import { attachment, CSV_CONTENT_TYPE, toCsvLine, XLSX_CONTENT_TYPE, type Cell } from './funkosExportMockUtils';
+import { MAIN_POSITION } from '@mocks/handlers/image/imageMockUtils';
+import {
+  attachment,
+  CSV_CONTENT_TYPE,
+  CSV_LINE_BREAK,
+  toCsvLine,
+  XLSX_CONTENT_TYPE,
+  type Cell,
+} from './funkosExportMockUtils';
 
 const FILE_BASE = 'my-funko-collection-images';
-const CSV_LINE_BREAK = '\r\n';
 const CSV_HEADER = [
   'funko_id',
   'funko_name',
@@ -32,7 +39,7 @@ function toImageExport(image: MockImageRow) {
     funkoName: funko?.name ?? null,
     funkoNumber: funko?.number ?? null,
     fileName: LAST_SEGMENT.exec(image.url)?.[0] ?? image.url,
-    isMain: image.position === 0,
+    isMain: image.position === MAIN_POSITION,
     width: image.width,
     height: image.height,
     sizeBytes: image.sizeBytes,

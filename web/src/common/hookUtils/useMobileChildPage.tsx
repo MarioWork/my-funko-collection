@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useOutlet } from 'react-router';
-import { useIsDesktop } from '@hooks/useMediaQuery';
+import { useIsDesktop } from '@hooks/useIsDesktop';
 import { ENTER_FROM_RIGHT_CLASS } from '@utils/motionUtils';
 
 // A page whose child route is a form (FormPanel): on phones the form is its own page, so the parent renders only

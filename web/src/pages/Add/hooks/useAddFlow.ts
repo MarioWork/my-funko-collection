@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useFetcher } from 'react-router';
 import { HttpVerbsUtil } from '@app-types/utility';
-import type { FunkoFormSubmission } from '@components/FunkoForm/funkoFormSubmission.type';
+import type { FunkoFormSubmission } from '@components/FunkoForm/types';
 import funkoService from '@services/funkoService/funkoService';
 import { type AddDestination } from '@utils/addDestinationUtils';
 import { createFormData } from '@utils/formDataUtils';
 import { prepareUpload } from '@utils/pendingPhotoUtils';
 import type { AddActionData } from '../addActions';
-import { AddIntentUtil, AddStepUtil, type ScanResult } from '../addUtils';
+import { AddIntentUtil, AddStepUtil, ScanResultKindUtil, type ScanResult } from '../addUtils';
 
 type Options = {
   isManual: boolean;
@@ -61,14 +61,14 @@ export function useAddFlow({ isManual, destination, rememberDestination, remembe
     try {
       const funko = await funkoService.getFunkoByBarcode(barcode);
 
-      setLookup({ isLookingUp: false, result: { kind: 'found', barcode, funko } });
+      setLookup({ isLookingUp: false, result: { kind: ScanResultKindUtil.FOUND, barcode, funko } });
       setStep(AddStepUtil.FOUND);
     } catch (error: unknown) {
       const status = (error as { response?: { status?: number } }).response?.status;
 
       if (status !== NOT_FOUND_STATUS) throw error;
 
-      setLookup({ isLookingUp: false, result: { kind: 'not-found', barcode } });
+      setLookup({ isLookingUp: false, result: { kind: ScanResultKindUtil.NOT_FOUND, barcode } });
       openForm(barcode);
     }
   };

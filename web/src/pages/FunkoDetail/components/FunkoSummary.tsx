@@ -19,6 +19,10 @@ type RowProps = {
   children: React.ReactNode;
 };
 
+type VariantBadgesProps = {
+  funko: FunkoDetailApiModel;
+};
+
 const TITLE_ID = 'funko-title';
 
 function SpecRow({ label, children }: RowProps) {
@@ -27,6 +31,23 @@ function SpecRow({ label, children }: RowProps) {
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="text-sm">{children}</dd>
     </div>
+  );
+}
+
+// Chase and the exclusive as badges, or "Regular" when it is neither.
+function VariantBadges({ funko }: VariantBadgesProps) {
+  const isRegular = !funko.isChase && !funko.exclusive;
+
+  return (
+    <span className="flex flex-wrap gap-1">
+      {funko.isChase ? (
+        <Badge className="bg-accent-soft text-accent-soft-foreground" variant="secondary">
+          Chase
+        </Badge>
+      ) : null}
+      {funko.exclusive ? <Badge variant="secondary">{funko.exclusive}</Badge> : null}
+      {isRegular ? 'Regular' : null}
+    </span>
   );
 }
 
@@ -75,15 +96,7 @@ function FunkoSummary({ funko, actions }: Props) {
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
         <SpecRow label="Type">{FUNKO_TYPE_LABELS[funko.type]}</SpecRow>
         <SpecRow label="Variant">
-          <span className="flex flex-wrap gap-1">
-            {funko.isChase ? (
-              <Badge className="bg-accent-soft text-accent-soft-foreground" variant="secondary">
-                Chase
-              </Badge>
-            ) : null}
-            {funko.exclusive ? <Badge variant="secondary">{funko.exclusive}</Badge> : null}
-            {!funko.isChase && !funko.exclusive ? 'Regular' : null}
-          </span>
+          <VariantBadges funko={funko} />
         </SpecRow>
         <SpecRow label="Barcode">
           {funko.barcode ? <span className="tabular-nums">{funko.barcode}</span> : 'None yet'}

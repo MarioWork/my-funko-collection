@@ -4,11 +4,10 @@ import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import InlineAlert from '@components/InlineAlert';
 import { Field, FieldDescription, FieldLabel } from '@components/ui/field';
-import { NativeSelect, NativeSelectOption } from '@components/ui/native-select';
 import { useActionToast } from '@hooks/useActionToast';
+import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
+import DefaultCollectionSelect from './DefaultCollectionSelect';
 import SettingsSection from './SettingsSection';
-import DisabledReason from '@components/DisabledReason';
-import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 
 type Props = {
   collections: CollectionApiModel[];
@@ -32,27 +31,16 @@ function DefaultCollectionSection({ collections }: Props) {
     <SettingsSection title="Default collection" description="The list a funko is 'owned' in. Home counts this one.">
       <Field>
         <FieldLabel htmlFor={SELECT_ID}>Collection</FieldLabel>
-        <DisabledReason
-          reason={reasonWhen(isBusy, DISABLED_REASONS.WORKING)}
-          mode="wrapper"
-          wrapperClassName="flex w-full"
-        >
-          <NativeSelect
-            id={SELECT_ID}
-            value={String(current?.id ?? '')}
-            onChange={(event) => makeDefault(event.target.value)}
-            disabled={isBusy}
-          >
-            {collections.map((collection) => (
-              <NativeSelectOption key={collection.id} value={String(collection.id)}>
-                {collection.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </DisabledReason>
+        <DefaultCollectionSelect
+          id={SELECT_ID}
+          collections={collections}
+          currentId={current?.id}
+          isBusy={isBusy}
+          onChange={makeDefault}
+        />
         <FieldDescription>Saved on the server, so every device agrees.</FieldDescription>
       </Field>
-      {failure ? <InlineAlert tone="error">{failure.message ?? 'Could not change the default.'}</InlineAlert> : null}
+      {failure ? <InlineAlert tone="error">{failure.message ?? GENERIC_WRITE_ERROR}</InlineAlert> : null}
     </SettingsSection>
   );
 }

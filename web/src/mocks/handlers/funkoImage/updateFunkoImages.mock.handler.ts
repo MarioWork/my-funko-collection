@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls } from '@mocks/mockImageUtils';
-import { badRequest, notFound } from '@mocks/mockResponses';
+import { badRequest, noContent, notFound } from '@mocks/mockResponses';
 import { mockStore, nextId } from '@mocks/mockStore';
 import type { ReorderImages, RotateImage } from '@services/funkoImageService/funkoImageService.type';
 
@@ -56,6 +56,6 @@ export default (baseUrl: string) => [
 
     mockStore.images.splice(index, 1);
 
-    return new HttpResponse(null, { status: 204 });
+    return noContent();
   }),
 ];

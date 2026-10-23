@@ -3,14 +3,12 @@ import type { SegmentedOption } from '@components/SegmentedToggle';
 import SegmentedToggle from '@components/SegmentedToggle';
 import { useLayoutPreference } from '@hooks/useLayoutPreference';
 import { useLocalStorage } from '@hooks/useLocalStorage';
+import { CollectionLayoutUtil, FunkoLayoutUtil, ImageViewUtil } from '@app-types/utility';
 import {
   COLLECTION_LAYOUT_STORAGE_KEY,
-  CollectionLayoutUtil,
   DEFAULT_IMAGE_VIEW,
   FUNKO_LAYOUT_STORAGE_KEY,
-  FunkoLayoutUtil,
   IMAGE_VIEW_STORAGE_KEY,
-  ImageViewUtil,
 } from '@utils/layoutUtils';
 import SettingsSection from './SettingsSection';
 

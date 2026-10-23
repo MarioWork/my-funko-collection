@@ -10,7 +10,7 @@ const ROTATE_SEGMENT = 'rotate';
 // The multipart field name the API reads every file from.
 export const IMAGE_FILE_FIELD = 'file';
 const CONTENT_TYPE_HEADER = 'Content-Type';
-const MULTIPART_CONTENT_TYPE = 'multipart/form-data';
+export const MULTIPART_CONTENT_TYPE = 'multipart/form-data';
 
 function imagesUrl(funkoId: FunkoId): string {
   return `${BASE_FUNKOS_URL}/${funkoId}/${IMAGES_SEGMENT}`;

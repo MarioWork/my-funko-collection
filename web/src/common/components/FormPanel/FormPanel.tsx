@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@components/ui/dialog';
-import { useIsDesktop } from '@hooks/useMediaQuery';
+import { useIsDesktop } from '@hooks/useIsDesktop';
 import { cn } from '@utils/classNameUtils';
 
 type Props = {

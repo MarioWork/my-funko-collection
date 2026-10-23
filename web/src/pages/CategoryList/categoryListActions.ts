@@ -4,24 +4,8 @@ import type { CategoryApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import type { ManageEntityFormData } from '@components/ManageForm';
 import categoryService from '@services/categoryService/categoryService';
-import { CreateCategorySchema, UpdateCategorySchema } from '@services/categoryService/categoryService.type';
+import { UpdateCategorySchema } from '@services/categoryService/categoryService.type';
 import { parseFormData } from '@utils/formDataUtils';
-
-export const createCategoryAction = async ({
-  request,
-}: ActionFunctionArgs): Promise<JSONResponseUtil<CategoryApiModel>> => {
-  const { entity } = parseFormData<ManageEntityFormData>(await request.formData());
-
-  try {
-    const valid = await CreateCategorySchema.validate({ name: entity.name });
-
-    return await categoryService.addCategory(valid);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
-};
 
 const updateCategoryAction = async ({
   request,
@@ -43,7 +27,9 @@ const updateCategoryAction = async ({
 const deleteCategoryAction = async ({ params }: ActionFunctionArgs): Promise<JSONResponseUtil> =>
   categoryService.deleteCategory(Number(params.categoryId));
 
-const CATEGORY_ACTION_MAP: Record<string, (args: ActionFunctionArgs) => Promise<JSONResponseUtil>> = {
+type VerbAction = (args: ActionFunctionArgs) => Promise<JSONResponseUtil>;
+
+const CATEGORY_ACTION_MAP: Record<string, VerbAction> = {
   [HttpVerbsUtil.PATCH]: updateCategoryAction,
   [HttpVerbsUtil.DELETE]: deleteCategoryAction,
 };

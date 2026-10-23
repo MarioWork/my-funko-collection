@@ -1,6 +1,10 @@
 import { NavLink } from 'react-router';
-import { NAVIGATION_ITEMS } from '@application/layout/navigationUtils';
+import { NAVIGATION_ITEMS } from '@utils/navigationUtils';
 import { cn } from '@utils/classNameUtils';
+
+// The active tab's icon is drawn a little bolder, besides its colour.
+const ACTIVE_STROKE_WIDTH = 2.5;
+const STROKE_WIDTH = 2;
 
 // Four tabs, labels always on, never hidden on scroll. Height is --bottom-nav-height plus the iOS safe area.
 function BottomNav() {
@@ -24,7 +28,11 @@ function BottomNav() {
             >
               {({ isActive }) => (
                 <>
-                  <Icon className="size-6" aria-hidden="true" strokeWidth={isActive ? 2.5 : 2} />
+                  <Icon
+                    className="size-6"
+                    aria-hidden="true"
+                    strokeWidth={isActive ? ACTIVE_STROKE_WIDTH : STROKE_WIDTH}
+                  />
                   {label}
                 </>
               )}

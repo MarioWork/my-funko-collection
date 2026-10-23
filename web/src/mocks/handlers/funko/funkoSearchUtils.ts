@@ -1,16 +1,17 @@
 // The all-fields search of GET /funkos, on the mock store. Mirrors api/src/modules/funkos/funkos.repository.ts.
 import { FunkoMatchFieldUtil } from '@app-types/utility';
 import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
+import { idList, isTrueParam } from '@mocks/mockListUtils';
 import { mockStore, type MockFunkoRow } from '@mocks/mockStore';
 
 const LEADING_HASH = /^#/;
+const WHITESPACE = /\s+/;
+const EXACT_NAME_RANK = 0;
+const NAME_PREFIX_RANK = 1;
+const OTHER_RANK = 2;
 
 function contains(haystack: string | null, needle: string): boolean {
   return haystack !== null && haystack.toLowerCase().includes(needle.toLowerCase());
-}
-
-function idList(value: string | null): number[] | undefined {
-  return value ? value.split(',').map(Number) : undefined;
 }
 
 function itemsOf(funkoId: number) {
@@ -64,14 +65,14 @@ export function relevance(name: string, query: string): number {
   const lowered = name.toLowerCase();
   const wanted = query.toLowerCase();
 
-  if (lowered === wanted) return 0;
-  if (lowered.startsWith(wanted)) return 1;
+  if (lowered === wanted) return EXACT_NAME_RANK;
+  if (lowered.startsWith(wanted)) return NAME_PREFIX_RANK;
 
-  return 2;
+  return OTHER_RANK;
 }
 
 export function splitWords(query: string | null): string[] {
-  return (query ?? '').split(/\s+/).filter(Boolean);
+  return (query ?? '').split(WHITESPACE).filter(Boolean);
 }
 
 // Every word must hit somewhere; every named param narrows one field. All ANDed.
@@ -110,7 +111,7 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
       !barcode || row.barcode === barcode,
       !exclusive || contains(row.exclusive, exclusive),
       !type || row.type === type,
-      isChase === null || row.isChase === (isChase === 'true'),
+      isChase === null || row.isChase === isTrueParam(isChase),
       !categoryIds || categoryIds.includes(row.categoryId),
       !category || contains(categoryName(row), category),
       !seriesIds || (row.seriesId !== null && seriesIds.includes(row.seriesId)),
@@ -120,10 +121,10 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
       !collectionIds || collectionIds.some((collectionId) => rowCollectionIds.has(collectionId)),
       !collection || collectionNames(row).some((collectionName) => contains(collectionName, collection)),
       !notInCollectionIds || !notInCollectionIds.some((collectionId) => rowCollectionIds.has(collectionId)),
-      hasCollections === null || rowCollectionIds.size > 0 === (hasCollections === 'true'),
-      hasSeries === null || (row.seriesId !== null) === (hasSeries === 'true'),
-      hasTags === null || rowTagIds.size > 0 === (hasTags === 'true'),
-      hasImages === null || imageCount > 0 === (hasImages === 'true'),
+      hasCollections === null || rowCollectionIds.size > 0 === isTrueParam(hasCollections),
+      hasSeries === null || (row.seriesId !== null) === isTrueParam(hasSeries),
+      hasTags === null || rowTagIds.size > 0 === isTrueParam(hasTags),
+      hasImages === null || imageCount > 0 === isTrueParam(hasImages),
     ];
 
     return checks.every(Boolean);

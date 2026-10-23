@@ -1,7 +1,7 @@
-import { http, HttpResponse } from 'msw/http';
+import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { conflict, notFound } from '@mocks/mockResponses';
+import { conflict, noContent, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 
 export default (baseUrl: string) => [
@@ -18,6 +18,6 @@ export default (baseUrl: string) => [
 
     mockStore.categories.splice(index, 1);
 
-    return new HttpResponse(null, { status: 204 });
+    return noContent();
   }),
 ];
