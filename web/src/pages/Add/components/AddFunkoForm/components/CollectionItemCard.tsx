@@ -22,6 +22,8 @@ type Props = {
   onRemove: (collectionId: CollectionId) => void;
 };
 
+const ID_PREFIX = 'add-item';
+
 // One collection the new funko goes into, with the details of that copy: how many, condition, price, date, tags,
 // notes. The same fields as editing an item later. Holds its own form; Save reads it through `onRegister`.
 // Folds like an accordion (the name is the toggle); folded fields stay mounted, so nothing typed is lost.
@@ -40,7 +42,7 @@ function CollectionItemCard({
   });
   const values = useWatch({ control });
   const [isOpen, setIsOpen] = useState(isInitiallyOpen);
-  const idPrefix = `add-item-${collection.id}`;
+  const idPrefix = `${ID_PREFIX}-${collection.id}`;
   const headingId = `${idPrefix}-heading`;
   const panelId = `${idPrefix}-panel`;
 
