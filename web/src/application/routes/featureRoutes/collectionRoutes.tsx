@@ -7,13 +7,16 @@ export const collectionRoutes: RouteObject[] = [
   {
     path: COLLECTION_ROUTES_PATHS.BASE,
     lazy: () => import('@pages/CollectionList/CollectionList.route'),
-    children: [{ path: COLLECTION_ROUTES_PATHS.ADD, lazy: collectionDialog }],
+    children: [
+      { path: COLLECTION_ROUTES_PATHS.ADD, lazy: collectionDialog },
+      { path: COLLECTION_ROUTES_PATHS.editInList(), lazy: collectionDialog },
+    ],
   },
   {
     path: COLLECTION_ROUTES_PATHS.detail(),
     lazy: () => import('@pages/CollectionDetail/CollectionDetail.route'),
     children: [
-      // The edit dialog is reachable from the list and from the collection's own page.
+      // The edit dialog over the collection's own page (the list has its own, editInList).
       { path: COLLECTION_ROUTES_PATHS.edit(), lazy: collectionDialog },
       {
         path: COLLECTION_ROUTES_PATHS.editItem(),

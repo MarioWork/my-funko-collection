@@ -34,8 +34,13 @@ export const COLLECTION_ROUTES_PATHS = {
   BASE: '/collections',
   ADD: 'add',
   detail: (collectionId?: string) => (collectionId ? `/collections/${collectionId}` : '/collections/:collectionId'),
+  // From the collection's own page: the dialog opens over it.
   edit: (collectionId?: string) =>
     collectionId ? `/collections/${collectionId}/edit` : '/collections/:collectionId/edit',
+  // From the list: the dialog opens over the list. The static "edit" segment outranks the detail page's
+  // `:collectionId`, so this never lands on a collection's page.
+  editInList: (collectionId?: string) =>
+    collectionId ? `/collections/edit/${collectionId}` : '/collections/edit/:collectionId',
   delete: (collectionId?: string) =>
     collectionId ? `/collections/${collectionId}/delete` : '/collections/:collectionId/delete',
   setDefault: (collectionId?: string) =>
