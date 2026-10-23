@@ -1,14 +1,9 @@
-import { Pencil, Trash2 } from 'lucide-react';
-import { Link } from 'react-router';
 import type { CollectionItemApiModel } from '@app-types/models';
 import { ITEM_CONDITION_LABELS } from '@app-types/utility';
-import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import IconButton from '@components/IconButton';
 import { Badge } from '@components/ui/badge';
-import { Spinner } from '@components/ui/spinner';
 import { useItemActions } from '@hooks/useItemActions';
+import MembershipActions from './MembershipActions';
 import { formatIsoDate } from '@utils/dateUtils';
-import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 import { formatCents } from '@utils/moneyUtils';
 import { cn } from '@utils/classNameUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS, FADE_IN_CLASS } from '@utils/motionUtils';
@@ -27,8 +22,6 @@ type TagsProps = {
   tags: CollectionItemApiModel['tags'];
 };
 
-const ROUND_CLASS = 'rounded-full';
-
 // "1 copy · Out of box · Paid 9,99 € · Bought 11/11/2023": only the facts that are set.
 function factsLine(item: CollectionItemApiModel): string {
   const copies = item.quantity === 1 ? '1 copy' : `${item.quantity} copies`;
@@ -45,47 +38,16 @@ function ItemTags({ tags }: TagsProps) {
     <ul className="flex flex-wrap gap-1 pt-0.5" aria-label="Tags">
       {tags.map((tag) => (
         <li key={tag.id}>
-          <Badge variant="outline">{tag.name}</Badge>
+          {/* Filled, not outlined: an outline chip all but vanishes on the dark card. */}
+          <Badge variant="secondary">{tag.name}</Badge>
         </li>
       ))}
     </ul>
   );
 }
 
-// Remove (undoable from the toast) and Edit, as icons with their names in tooltips.
-function MembershipActions({ item, isBusy, onRemove }: RowProps) {
-  return (
-    <div className="flex shrink-0 items-center gap-1">
-      <IconButton
-        aria-label={`Remove from ${item.collection.name}`}
-        variant="ghost"
-        size="sm"
-        className={ROUND_CLASS}
-        disabled={isBusy}
-        disabledReason={DISABLED_REASONS.WORKING}
-        onClick={() => onRemove(item)}
-      >
-        {isBusy ? <Spinner /> : <Trash2 aria-hidden="true" />}
-      </IconButton>
-      <IconButton
-        aria-label={`Edit in ${item.collection.name}`}
-        variant="ghost"
-        size="sm"
-        className={ROUND_CLASS}
-        render={
-          <Link to={FUNKO_ROUTES_PATHS.editItem(String(item.funko.id), String(item.collection.id), String(item.id))} />
-        }
-        nativeButton={false}
-        // Base UI would announce it as a button; it navigates, so it is a link (as LinkButton does).
-        role="link"
-      >
-        <Pencil aria-hidden="true" />
-      </IconButton>
-    </div>
-  );
-}
-
-// One collection the funko is in: its name and actions, then one line of facts, then tags and notes when set.
+// One collection the funko is in: its name and ⋯, then one line of facts, then its tags when set. Notes stay in the
+// item's Edit sheet, so the box stays a quick overview.
 function MembershipRow({ item, isBusy, onRemove }: RowProps) {
   return (
     <li
@@ -102,7 +64,6 @@ function MembershipRow({ item, isBusy, onRemove }: RowProps) {
       </div>
       <p className="text-sm text-muted-foreground tabular-nums">{factsLine(item)}</p>
       {item.tags.length > 0 ? <ItemTags tags={item.tags} /> : null}
-      {item.notes ? <p className="text-sm">{item.notes}</p> : null}
     </li>
   );
 }
