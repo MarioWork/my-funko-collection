@@ -1,6 +1,5 @@
-// Turns export lines (one funko, and one of its items or none) into the downloadable files: CSV, an .xlsx
-// spreadsheet, or JSON grouped by funko. The service decides which lines; this file only decides how they look.
-import writeExcelFile, { type Row, type Sheet, type SheetData } from 'write-excel-file/node';
+// The columns of every export, and the CSV and JSON files. The service decides which lines; this file decides how
+// they read. The .xlsx files are export.spreadsheet.ts, built from the same columns.
 import type { ListEntry } from './export.lines.ts';
 import type { ExportListKind, FunkoExport, FunkoExportLine, ImageExport } from './export.schema.ts';
 
@@ -16,15 +15,13 @@ const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/;
 // The usual guard (OWASP's CSV injection advice): a leading apostrophe makes it text, which Excel and Sheets hide.
 const FORMULA_ESCAPE = "'";
 const PRICE_DECIMALS = 2;
-const PRICE_FORMAT = '0.00';
-const FUNKOS_SHEET_NAME = 'Funkos';
-const HEADER_ROWS = 1;
-const JPEG_CONTENT_TYPE = 'image/jpeg';
+// Thousands separator and cents; the currency is its own column (items can be in different ones).
+export const PRICE_FORMAT = '#,##0.00';
 
-type CellValue = string | number | boolean | null;
+export type CellValue = string | number | boolean | null;
 
 // One column of every export: its CSV header, its spreadsheet title and width, and how to read it off a line.
-type ExportColumn = {
+export type ExportColumn = {
   csvHeader: string;
   title: string;
   width: number;
@@ -33,7 +30,7 @@ type ExportColumn = {
   format?: string;
 };
 
-const COLUMNS: ExportColumn[] = [
+export const COLUMNS: ExportColumn[] = [
   { csvHeader: 'collection', title: 'Collection', width: 18, valueOf: (line) => line.item?.collection ?? null },
   { csvHeader: 'funko_id', title: 'Funko id', width: 9, valueOf: (line) => line.funko.id },
   { csvHeader: 'name', title: 'Name', width: 28, valueOf: (line) => line.funko.name },
@@ -96,87 +93,8 @@ export function toCsv(lines: FunkoExportLine[]): string {
   return [header, ...rows].join(CSV_LINE_BREAK) + CSV_LINE_BREAK;
 }
 
-// Typed cells: numbers stay numbers (sums work), yes/no stay booleans, and text is always text, never a formula.
-function toSheetRow(line: FunkoExportLine): Row {
-  return COLUMNS.map((column) => {
-    const value = column.valueOf(line);
-
-    if (value === null) return null;
-
-    return column.format ? { value, format: column.format } : value;
-  });
-}
-
-type SheetColumn = { title: string; width: number; format?: string };
-type SheetSpec = { data: SheetData; sheet: string; columns: { width: number }[]; stickyRowsCount: number };
-
-// A sheet with a bold, frozen header row and sized columns.
-function toSheet(name: string, columns: SheetColumn[], rows: Row[]): SheetSpec {
-  const header: Row = columns.map((column) => ({ value: column.title, fontWeight: 'bold' }));
-
-  return {
-    data: [header, ...rows],
-    sheet: name,
-    columns: columns.map((column) => ({ width: column.width })),
-    stickyRowsCount: HEADER_ROWS,
-  };
-}
-
-function toFunkosSheet(lines: FunkoExportLine[]): SheetSpec {
-  return toSheet(FUNKOS_SHEET_NAME, COLUMNS, lines.map(toSheetRow));
-}
-
-// A photo to place on the spreadsheet's Photos sheet, already JPEG (Excel cannot show WebP).
-export type SheetPhoto = { content: Buffer; width: number; height: number };
-
-const PHOTOS_SHEET_NAME = 'Photos';
-// Each photo is shown this wide, its height kept in proportion, in a row exactly that tall (Excel, Numbers and
-// LibreOffice disagree on the default row height, so counting default rows would make photos overlap).
-const PHOTO_DISPLAY_WIDTH = 320;
-const POINTS_PER_PIXEL = 0.75;
-const PHOTO_ROW_PADDING_PX = 12;
-const LABEL_COLUMN_WIDTH = 10;
-const PHOTO_COLUMN_WIDTH = 50;
-const SCREEN_DPI = 96;
-
-// One photo per row, its number beside it at the top.
-function toPhotosSheet(photos: SheetPhoto[]): Sheet<Buffer> {
-  const sizes = photos.map((photo) => ({
-    width: PHOTO_DISPLAY_WIDTH,
-    height: Math.round((photo.height / photo.width) * PHOTO_DISPLAY_WIDTH),
-  }));
-  const data: SheetData = sizes.map((size, index) => [
-    {
-      value: `Photo ${index + 1}`,
-      alignVertical: 'top',
-      height: Math.ceil((size.height + PHOTO_ROW_PADDING_PX) * POINTS_PER_PIXEL),
-    },
-  ]);
-  const images = photos.map((photo, index) => ({
-    content: photo.content,
-    contentType: JPEG_CONTENT_TYPE,
-    width: PHOTO_DISPLAY_WIDTH,
-    height: sizes[index]?.height ?? PHOTO_DISPLAY_WIDTH,
-    dpi: SCREEN_DPI,
-    anchor: { row: index + 1, column: 2 },
-  }));
-
-  return {
-    sheet: PHOTOS_SHEET_NAME,
-    data,
-    columns: [{ width: LABEL_COLUMN_WIDTH }, { width: PHOTO_COLUMN_WIDTH }],
-    images,
-  };
-}
-
-// An .xlsx that opens as-is in Excel, Numbers and Google Sheets; with `photos`, a second sheet shows them.
-export async function toSpreadsheet(lines: FunkoExportLine[], photos: SheetPhoto[] = []): Promise<Buffer> {
-  const sheets: Sheet<Buffer>[] = [toFunkosSheet(lines)];
-
-  if (photos.length > 0) sheets.push(toPhotosSheet(photos));
-
-  return writeExcelFile(sheets).toBuffer();
-}
+// A spreadsheet column: its title and width, and a number format for money.
+export type SheetColumn = { title: string; width: number; format?: string };
 
 // --- Whole lists -------------------------------------------------------------------------------------------------
 
@@ -188,7 +106,7 @@ const ID_COLUMN: ListColumn = { key: 'id', csvHeader: 'id', title: 'Id', width: 
 const NOTES_COLUMN: ListColumn = { key: 'notes', csvHeader: 'notes', title: 'Notes', width: 30 };
 const FUNKO_COUNT_COLUMN: ListColumn = { key: 'funkoCount', csvHeader: 'funko_count', title: 'Funkos', width: 9 };
 
-const LIST_COLUMNS: Record<ExportListKind, ListColumn[]> = {
+export const LIST_COLUMNS: Record<ExportListKind, ListColumn[]> = {
   categories: [ID_COLUMN, NAME_COLUMN, FUNKO_COUNT_COLUMN],
   series: [ID_COLUMN, NAME_COLUMN, FUNKO_COUNT_COLUMN],
   collections: [
@@ -203,13 +121,6 @@ const LIST_COLUMNS: Record<ExportListKind, ListColumn[]> = {
   tags: [ID_COLUMN, NAME_COLUMN, { key: 'itemCount', csvHeader: 'item_count', title: 'Items', width: 9 }, NOTES_COLUMN],
 };
 
-const LIST_SHEET_NAMES: Record<ExportListKind, string> = {
-  categories: 'Categories',
-  series: 'Series',
-  collections: 'Collections',
-  tags: 'Tags',
-};
-
 function listValue(entry: ListEntry, column: ListColumn): CellValue {
   return entry.summary[column.key] ?? null;
 }
@@ -222,26 +133,6 @@ export function toListCsv(kind: ExportListKind, entries: ListEntry[]): string {
   );
 
   return [header, ...rows].join(CSV_LINE_BREAK) + CSV_LINE_BREAK;
-}
-
-// The list on the first sheet; with `lines`, the funkos on a second.
-export async function toListSpreadsheet(
-  kind: ExportListKind,
-  entries: ListEntry[],
-  lines: FunkoExportLine[] | null,
-): Promise<Buffer> {
-  const columns = LIST_COLUMNS[kind];
-  const rows = entries.map((entry) =>
-    columns.map((column) => {
-      const value = listValue(entry, column);
-
-      return value !== null && column.format ? { value, format: column.format } : value;
-    }),
-  );
-  const listSheet = toSheet(LIST_SHEET_NAMES[kind], columns, rows);
-  const sheets = lines ? [listSheet, toFunkosSheet(lines)] : [listSheet];
-
-  return writeExcelFile(sheets).toBuffer();
 }
 
 // JSON keeps one entry per funko with its items inside, instead of repeating the funko on every line.
@@ -262,7 +153,7 @@ export function toFunkoTree(lines: FunkoExportLine[]): FunkoExport[] {
 
 type ImageColumn = SheetColumn & { csvHeader: string; valueOf: (image: ImageExport) => CellValue };
 
-const IMAGE_COLUMNS: ImageColumn[] = [
+export const IMAGE_COLUMNS: ImageColumn[] = [
   { csvHeader: 'funko_id', title: 'Funko id', width: 9, valueOf: (image) => image.funkoId },
   { csvHeader: 'funko_name', title: 'Funko', width: 28, valueOf: (image) => image.funkoName },
   { csvHeader: 'funko_number', title: 'Number', width: 9, valueOf: (image) => image.funkoNumber },
@@ -277,8 +168,6 @@ const IMAGE_COLUMNS: ImageColumn[] = [
   { csvHeader: 'small_url', title: 'Link (small)', width: 50, valueOf: (image) => image.smallUrl },
 ];
 
-const IMAGES_SHEET_NAME = 'Images';
-
 export function toImagesCsv(images: ImageExport[]): string {
   const header = IMAGE_COLUMNS.map((column) => column.csvHeader).join(CSV_SEPARATOR);
   const rows = images.map((image) =>
@@ -286,10 +175,4 @@ export function toImagesCsv(images: ImageExport[]): string {
   );
 
   return [header, ...rows].join(CSV_LINE_BREAK) + CSV_LINE_BREAK;
-}
-
-export async function toImagesSpreadsheet(images: ImageExport[]): Promise<Buffer> {
-  const rows = images.map((image) => IMAGE_COLUMNS.map((column) => column.valueOf(image)));
-
-  return writeExcelFile([toSheet(IMAGES_SHEET_NAME, IMAGE_COLUMNS, rows)]).toBuffer();
 }

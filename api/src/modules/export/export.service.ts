@@ -2,16 +2,7 @@ import { env } from '../../config/env.ts';
 import { readVariantAsJpeg } from '../../lib/imageStorage.ts';
 import { getAllImages } from '../images/images.service.ts';
 import type { ImageListEntry } from '../images/images.type.ts';
-import {
-  toCsv,
-  toFunkoTree,
-  toImagesCsv,
-  toImagesSpreadsheet,
-  toListCsv,
-  toListSpreadsheet,
-  toSpreadsheet,
-  type SheetPhoto,
-} from './export.formats.ts';
+import { toCsv, toFunkoTree, toImagesCsv, toListCsv } from './export.formats.ts';
 import {
   buildLookups,
   collectEntryLines,
@@ -36,6 +27,7 @@ import type {
   ImagesExportResponse,
   ListExportResponse,
 } from './export.schema.ts';
+import { toImagesSpreadsheet, toListSpreadsheet, toSpreadsheet, type SheetPhoto } from './export.spreadsheet.ts';
 
 const LIST_FILE_PREFIX = 'my-funko-collection';
 const WITH_FUNKOS_SUFFIX = '-with-funkos';
@@ -168,17 +160,18 @@ export async function getListCsv(
   return { fileName: `${listFileBase(kind, includeFunkos)}.csv`, content };
 }
 
-// A spreadsheet holds both: the list on its first sheet and, with funkos, the funkos on a second.
+// A spreadsheet: the list as a table or, with funkos, one sheet where each entry folds open onto its funkos (an
+// item with two tags sits under both).
 export async function getListSpreadsheet(
   kind: ExportListKind,
   { includeFunkos }: ExportListQuery,
 ): Promise<ExportFile<Buffer>> {
   const { entries, linesOf } = await getListData(kind);
-  const lines = includeFunkos ? uniqueLines(entries.map(linesOf)) : null;
+  const groups = includeFunkos ? entries.map((entry) => ({ entry, lines: linesOf(entry) })) : null;
 
   return {
     fileName: `${listFileBase(kind, includeFunkos)}.xlsx`,
-    content: await toListSpreadsheet(kind, entries, lines),
+    content: await toListSpreadsheet(kind, entries, groups),
   };
 }
 
