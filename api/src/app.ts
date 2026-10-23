@@ -10,7 +10,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from '@fastify/type-provider-zod';
-import Fastify from 'fastify';
+import Fastify, { LogController } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { env } from './config/env.ts';
 import { errorHandler, notFoundHandler } from './lib/errorHandler.ts';
@@ -44,6 +44,8 @@ export async function buildApp() {
     requestIdHeader: 'x-request-id',
     genReqId: () => randomUUID(),
     bodyLimit: BODY_LIMIT_BYTES,
+    // Fastify's own two lines per request (incoming + completed) are replaced by one, in the onResponse hook below.
+    logController: new LogController({ disableRequestLogging: true }),
     // Trust the nearest TRUST_PROXY_HOPS proxies. A function, because Fastify's types omit the hop-count form.
     trustProxy: (_address: string, hop: number) => hop < env.TRUST_PROXY_HOPS,
   }).withTypeProvider<ZodTypeProvider>();
@@ -52,6 +54,16 @@ export async function buildApp() {
   app.setSerializerCompiler(serializerCompiler);
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);
+
+  // One line per request: "GET /funkos → 200 (4 ms)". The URL only: never headers or bodies.
+  app.addHook('onResponse', async (request, reply) => {
+    const durationMs = Math.round(reply.elapsedTime);
+
+    request.log.info(
+      { statusCode: reply.statusCode, durationMs },
+      `${request.method} ${request.url} → ${reply.statusCode} (${durationMs} ms)`,
+    );
+  });
 
   // Infrastructure in a fixed order: sensible → cors → helmet → rate-limit → swagger → db → auth → uploads → routes.
   // Auth comes before uploads and every route module, so its sign-in check covers the image files too.
