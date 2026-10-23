@@ -28,7 +28,7 @@ const STEP_DESCRIPTIONS: Record<AddStepUtil, string> = {
 // Always a page of its own: /add opens on the scanner, /add/manual on the form. The collections and tags picked
 // are remembered for the next funko.
 function Add() {
-  const { categories, collections, tags } = useLoaderData<LoaderDataUtil<typeof loader>>();
+  const { collections, tags } = useLoaderData<LoaderDataUtil<typeof loader>>();
   const { pathname } = useLocation();
   const goBack = useGoBack();
   const isScanFirst = pathname === ADD_ROUTES_PATHS.BASE;
@@ -48,13 +48,7 @@ function Add() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={STEP_TITLES[flow.step]} description={STEP_DESCRIPTIONS[flow.step]} onBack={goBack} />
-      <AddSteps
-        flow={flow}
-        destinationState={destinationState}
-        categories={categories}
-        collections={collections}
-        tags={tags}
-      />
+      <AddSteps flow={flow} destinationState={destinationState} collections={collections} />
     </div>
   );
 }

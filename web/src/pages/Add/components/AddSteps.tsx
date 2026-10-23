@@ -1,4 +1,4 @@
-import type { CategoryApiModel, CollectionApiModel, NamedApiModel } from '@app-types/models';
+import type { CollectionApiModel } from '@app-types/models';
 import BarcodeScanner from './BarcodeScanner';
 import { Button } from '@components/ui/button';
 import type { useAddDestination } from '@hooks/useAddDestination';
@@ -13,15 +13,13 @@ import ScanFoundCard from './ScanFoundCard';
 type CurrentStepProps = {
   flow: ReturnType<typeof useAddFlow>;
   destinationState: ReturnType<typeof useAddDestination>;
-  categories: CategoryApiModel[];
   collections: CollectionApiModel[];
-  tags: NamedApiModel[];
 };
 
 type Props = CurrentStepProps;
 
 // What the Add flow shows at each step: the scanner, the found card (+1), the form, then the saved card.
-function CurrentStep({ flow, destinationState, categories, collections, tags }: CurrentStepProps) {
+function CurrentStep({ flow, destinationState, collections }: CurrentStepProps) {
   const { step, lookup } = flow;
 
   if (step === AddStepUtil.SCAN) {
@@ -56,9 +54,6 @@ function CurrentStep({ flow, destinationState, categories, collections, tags }: 
     return (
       <AddFunkoForm
         key={flow.formKey}
-        categories={categories}
-        collections={collections}
-        tags={tags}
         initialValues={{ categoryId: destinationState.lastCategoryId, barcode: flow.formBarcode }}
         initialCollectionIds={destinationState.destination.collectionIds}
         initialTagIds={destinationState.destination.tagIds}

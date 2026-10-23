@@ -1,6 +1,8 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useState, type FormEvent } from 'react';
-import type { CategoryApiModel, CollectionApiModel, CollectionId, NamedApiModel } from '@app-types/models';
+import { useLoaderData } from 'react-router';
+import type { CollectionId } from '@app-types/models';
+import type { LoaderDataUtil } from '@app-types/utility';
 import FunkoFormFields, {
   funkoFormSchema,
   getInitialFunkoValues,
@@ -8,6 +10,7 @@ import FunkoFormFields, {
   type FunkoFormValues,
 } from '@components/FunkoFormFields';
 import { useFormCompat } from '@hooks/useFormCompat';
+import type { loader } from '../../addLoader';
 import AddCollectionsSection from './components/AddCollectionsSection';
 import AddPhotosSection from './components/AddPhotosSection';
 import AddSaveBar from './components/AddSaveBar';
@@ -17,9 +20,6 @@ import { usePendingPhotos } from './hooks/usePendingPhotos';
 import type { AddFunkoSubmission } from './types';
 
 type Props = {
-  categories: CategoryApiModel[];
-  collections: CollectionApiModel[];
-  tags: NamedApiModel[];
   initialValues: Partial<FunkoFormValues>;
   initialCollectionIds: CollectionId[];
   initialTagIds: number[];
@@ -31,13 +31,11 @@ type Props = {
 };
 
 const FORM_ID = 'add-funko';
+const DETAILS_SECTION_ID = 'add-details';
 
 // A new funko on one page: its images, its details, and the collections it goes in with the details of each copy.
 // One Save does it all. Two columns on a computer (the form, and a sticky summary with Save), one on a phone.
 function AddFunkoForm({
-  categories,
-  collections,
-  tags,
   initialValues,
   initialCollectionIds,
   initialTagIds,
@@ -46,6 +44,8 @@ function AddFunkoForm({
   existingFunkoId,
   onSubmit,
 }: Props) {
+  // The pickers' options come straight from the Add page's loader.
+  const { categories, collections, tags } = useLoaderData<LoaderDataUtil<typeof loader>>();
   const { control, handleSubmit } = useFormCompat<FunkoFormValues>({
     defaultValues: getInitialFunkoValues(initialValues),
     resolver: yupResolver(funkoFormSchema),
@@ -85,7 +85,7 @@ function AddFunkoForm({
     >
       <div className="flex flex-col gap-4">
         <AddPhotosSection pendingPhotos={pendingPhotos} isSubmitting={isSubmitting} isMissingPhotos={isMissingPhotos} />
-        <FormSection id="add-details" title="Details" description="As printed on the box.">
+        <FormSection id={DETAILS_SECTION_ID} title="Details" description="As printed on the box.">
           <FunkoFormFields control={control} categories={categories} idPrefix={FORM_ID} />
         </FormSection>
         <AddCollectionsSection
