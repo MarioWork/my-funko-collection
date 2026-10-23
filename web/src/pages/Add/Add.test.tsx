@@ -36,6 +36,31 @@ it('offers to create a tag no one has yet, and picks it once created', async () 
   await waitFor(() => expect(screen.getByText('Shelf 9', { selector: '[data-slot=combobox-chip]' })).toBeVisible());
 });
 
+it('gives the default collection its own card with the copy details, and drops it when removed', async () => {
+  renderAddForm();
+
+  const ownedCard = await screen.findByRole('article', { name: 'Owned' });
+
+  expect(within(ownedCard).getByRole('spinbutton', { name: 'Quantity' })).toHaveValue(1);
+  expect(within(ownedCard).getByRole('textbox', { name: 'Paid (EUR)' })).toBeVisible();
+
+  await userEvent.click(within(ownedCard).getByRole('button', { name: "Don't add to Owned" }));
+
+  expect(screen.queryByRole('article', { name: 'Owned' })).not.toBeInTheDocument();
+  expect(screen.getByText(/saved to the catalog only/)).toBeVisible();
+});
+
+it('shows a bad price inside its own collection card when Save is pressed', async () => {
+  renderAddForm();
+
+  const ownedCard = await screen.findByRole('article', { name: 'Owned' });
+
+  await userEvent.type(within(ownedCard).getByRole('textbox', { name: 'Paid (EUR)' }), 'lots');
+  await userEvent.click(screen.getByRole('button', { name: 'Save funko' }));
+
+  expect(await within(ownedCard).findByText('Use a number like 14.99')).toBeVisible();
+});
+
 describe('saving without a photo', () => {
   // jsdom has no object URLs; the picker makes one for each photo's preview.
   beforeEach(() => {

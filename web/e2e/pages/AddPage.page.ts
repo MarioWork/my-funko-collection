@@ -47,19 +47,23 @@ export class AddPage {
     return this.page.getByRole('list', { name: 'Images to upload' }).getByRole('listitem');
   }
 
-  // Base UI's combobox chips have no role; data-slot is the shadcn wrapper's hook for them.
+  // One card per picked collection, named by its heading.
   pickedCollections() {
-    return this.main.locator('[data-slot=combobox-chip]');
+    return this.main.getByRole('article').getByRole('heading', { level: 3 });
+  }
+
+  async fillPrice(collectionName: string, price: string) {
+    await this.main.getByRole('article', { name: collectionName }).getByLabel('Paid (EUR)').fill(price);
   }
 
   async pickCollection(name: string) {
-    await this.main.getByRole('combobox', { name: 'Save to collections' }).fill(name);
+    await this.main.getByRole('combobox', { name: 'Add to collections' }).fill(name);
     await this.page.getByRole('option', { name }).click();
   }
 
   // Backspace in the empty input drops the last chip.
   async dropLastCollection() {
-    const input = this.main.getByRole('combobox', { name: 'Save to collections' });
+    const input = this.main.getByRole('combobox', { name: 'Add to collections' });
 
     await input.fill('');
     await input.press('Backspace');

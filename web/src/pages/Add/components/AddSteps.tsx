@@ -1,12 +1,12 @@
-import type { CategoryApiModel, CollectionApiModel } from '@app-types/models';
+import type { CategoryApiModel, CollectionApiModel, NamedApiModel } from '@app-types/models';
 import BarcodeScanner from './BarcodeScanner';
-import FunkoForm from '@components/FunkoForm';
 import { Button } from '@components/ui/button';
 import type { useAddDestination } from '@hooks/useAddDestination';
 import { cn } from '@utils/classNameUtils';
 import { ENTER_UP_CLASS } from '@utils/motionUtils';
 import { AddStepUtil, ScanResultKindUtil } from '../addUtils';
 import type { useAddFlow } from '../hooks/useAddFlow';
+import AddFunkoForm from './AddFunkoForm';
 import SavedCard from './SavedCard';
 import ScanFoundCard from './ScanFoundCard';
 
@@ -15,14 +15,13 @@ type CurrentStepProps = {
   destinationState: ReturnType<typeof useAddDestination>;
   categories: CategoryApiModel[];
   collections: CollectionApiModel[];
-  // In a dialog the form needs no card of its own.
-  isInDialog: boolean;
+  tags: NamedApiModel[];
 };
 
 type Props = CurrentStepProps;
 
 // What the Add flow shows at each step: the scanner, the found card (+1), the form, then the saved card.
-function CurrentStep({ flow, destinationState, categories, collections, isInDialog }: CurrentStepProps) {
+function CurrentStep({ flow, destinationState, categories, collections, tags }: CurrentStepProps) {
   const { step, lookup } = flow;
 
   if (step === AddStepUtil.SCAN) {
@@ -55,19 +54,19 @@ function CurrentStep({ flow, destinationState, categories, collections, isInDial
 
   if (step === AddStepUtil.FORM) {
     return (
-      <div className={cn(!isInDialog && 'max-w-xl rounded-xl border bg-card p-4')}>
-        <FunkoForm
-          key={flow.formKey}
-          categories={categories}
-          initialValues={{ categoryId: destinationState.lastCategoryId, barcode: flow.formBarcode }}
-          initialCollectionIds={destinationState.destination.collectionIds}
-          initialTags={destinationState.selectedTags}
-          isSubmitting={flow.isSubmitting}
-          errorMessage={flow.failure?.message}
-          existingFunkoId={flow.failure?.existingId}
-          onSubmit={(submission) => void flow.submitCreate(submission)}
-        />
-      </div>
+      <AddFunkoForm
+        key={flow.formKey}
+        categories={categories}
+        collections={collections}
+        tags={tags}
+        initialValues={{ categoryId: destinationState.lastCategoryId, barcode: flow.formBarcode }}
+        initialCollectionIds={destinationState.destination.collectionIds}
+        initialTagIds={destinationState.destination.tagIds}
+        isSubmitting={flow.isSubmitting}
+        errorMessage={flow.failure?.message}
+        existingFunkoId={flow.failure?.existingId}
+        onSubmit={(submission) => void flow.submitCreate(submission)}
+      />
     );
   }
 

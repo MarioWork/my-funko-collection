@@ -1,5 +1,6 @@
 import { array, number, object } from 'yup';
-import type { FunkoApiModel } from '@app-types/models';
+import type { CollectionId, FunkoApiModel } from '@app-types/models';
+import type { CreateCollectionItem } from '@services/collectionItemService/collectionItemService.type';
 
 export const AddStepUtil = {
   SCAN: 'scan',
@@ -32,10 +33,10 @@ export type AddResult = {
 
 const idListSchema = array().of(number().integer().positive().required()).required();
 
-export const destinationSchema = object({
-  collectionIds: idListSchema,
-  tagIds: idListSchema,
-});
+// One copy going into one collection on Save: which collection, and what you know about that copy.
+export type AddItem = Omit<CreateCollectionItem, 'funkoId'> & { collectionId: CollectionId };
+
+export const collectionIdSchema = number().integer().positive().required();
 
 export const incrementSchema = object({
   funkoId: number().integer().positive().required(),

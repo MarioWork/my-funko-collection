@@ -8,7 +8,7 @@ import ItemFormFields, {
   itemToFormValues,
   toItemPayload,
   type ItemFormValues,
-} from './components/ItemFormFields';
+} from '@components/ItemFormFields';
 import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
 import { useFormCompat } from '@hooks/useFormCompat';
 import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';

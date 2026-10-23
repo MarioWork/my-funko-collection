@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData } from 'react-router';
+import { useLoaderData } from 'react-router';
 import { PAGE_ICONS } from '@utils/navigationUtils';
 import type { LoaderDataUtil } from '@app-types/utility';
 import PageHeader from '@components/PageHeader';
@@ -31,7 +31,6 @@ function Home() {
         <CollectionsOverview collections={stats.collections} />
         <CategoryBars categories={stats.byCategory} />
       </div>
-      <Outlet />
     </div>
   );
 }

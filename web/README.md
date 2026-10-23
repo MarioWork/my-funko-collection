@@ -106,7 +106,7 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 | ----------------------------------- | ------------------------------------------------------------------------ |
 | `/home`                             | Stats, recent funkos, collections, funkos by category, quick actions     |
 | `/funkos`, `/funkos/:id`            | The catalog: grid or table, search + filters + sort, detail with gallery |
-| `/add`, `/add/manual`               | Scan-first add flow (camera, or typed barcode), full form                |
+| `/add`, `/add/manual`               | Scan-first add page: images, details, a card per collection (own copy)   |
 | `/collections`, `/collections/:id`  | Your lists and their items (table on desktop, cards on phones)           |
 | `/items`                            | Every item across collections (filter by tag to find a box)              |
 | `/search`                           | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere            |
