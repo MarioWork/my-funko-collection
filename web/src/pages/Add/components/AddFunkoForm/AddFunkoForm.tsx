@@ -92,6 +92,7 @@ function AddFunkoForm({
           collections={collections}
           tags={tags}
           collectionIds={collectionIds}
+          initialCollectionIds={initialCollectionIds}
           initialTagIds={initialTagIds}
           isSubmitting={isSubmitting}
           onCollectionsChange={setCollectionIds}

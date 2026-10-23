@@ -8,6 +8,8 @@ type Props = {
   collections: CollectionApiModel[];
   tags: NamedApiModel[];
   collectionIds: CollectionId[];
+  // Picked when the page opened: these start folded, except the first.
+  initialCollectionIds: CollectionId[];
   // The tags a new card starts with: the ones used last time.
   initialTagIds: number[];
   isSubmitting: boolean;
@@ -18,18 +20,20 @@ type Props = {
 const SECTION_ID = 'add-collections';
 const CATALOG_ONLY_MESSAGE = 'In no collection: it is saved to the catalog only.';
 
-// Where the funko goes, and for each collection the details of that copy. A card per collection, in the
+// Where the funko goes, and for each collection the details of that copy. One card per collection, stacked, in the
 // collections' own order; removing a card is the same as unpicking the collection.
 function AddCollectionsSection({
   collections,
   tags,
   collectionIds,
+  initialCollectionIds,
   initialTagIds,
   isSubmitting,
   onCollectionsChange,
   onRegister,
 }: Props) {
   const chosen = collections.filter((collection) => collectionIds.includes(collection.id));
+  const initiallyFoldedIds = initialCollectionIds.slice(1);
 
   const remove = (collectionId: CollectionId) =>
     onCollectionsChange(collectionIds.filter((candidate) => candidate !== collectionId));
@@ -48,7 +52,7 @@ function AddCollectionsSection({
         onChange={onCollectionsChange}
       />
       {chosen.length === 0 ? <p className="text-sm text-muted-foreground">{CATALOG_ONLY_MESSAGE}</p> : null}
-      <div className="grid gap-3 xl:grid-cols-2">
+      <div className="flex flex-col gap-3">
         {chosen.map((collection) => (
           <CollectionItemCard
             key={collection.id}
@@ -56,6 +60,7 @@ function AddCollectionsSection({
             tags={tags}
             initialTagIds={initialTagIds}
             isSubmitting={isSubmitting}
+            isInitiallyOpen={!initiallyFoldedIds.includes(collection.id)}
             onRegister={onRegister}
             onRemove={remove}
           />

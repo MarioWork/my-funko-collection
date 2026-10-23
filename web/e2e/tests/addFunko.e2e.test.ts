@@ -6,7 +6,9 @@ import { FunkoDetailPage } from '../pages/FunkoDetailPage.page';
 const PHOTOS = ['front.png', 'back.png'].map((file) => path.join(import.meta.dirname, '../fixtures/photos', file));
 const SEED_SPIDER_MAN_BARCODE = '889698624008';
 
-test('adds a funko by hand with two photos into two collections, each with its own details, in one save', async ({ page }) => {
+test('adds a funko by hand with two photos into two collections, each with its own details, in one save', async ({
+  page,
+}) => {
   const add = new AddPage(page);
   const detail = new FunkoDetailPage(page);
 

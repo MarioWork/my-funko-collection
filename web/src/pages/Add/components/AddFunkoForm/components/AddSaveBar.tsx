@@ -1,5 +1,6 @@
 import { Save } from 'lucide-react';
 import FunkoFormError from '@components/FunkoFormError';
+import FunkoImage from '@components/FunkoImage';
 import SubmitButton from '@components/SubmitButton';
 import type { PendingPhoto } from '@utils/pendingPhotoUtils';
 
@@ -12,12 +13,15 @@ type Props = {
   existingFunkoId?: number;
 };
 
-const CATALOG_ONLY = 'The catalog only';
+// Every funko goes in the catalog; the collections come on top of it.
+const CATALOG_NAME = 'Catalog';
+const NO_PHOTO_ALT = 'New funko';
+const THUMB_SIZES = '64px';
 
 // What Save will do, and Save itself. A column beside the form on a computer, so it stays in view however long
 // the form gets; on a phone the button sticks above the bottom bar and the summary is left out.
 function AddSaveBar({ formId, mainPhoto, collectionNames, isSubmitting, errorMessage, existingFunkoId }: Props) {
-  const destination = collectionNames.length > 0 ? collectionNames.join(', ') : CATALOG_ONLY;
+  const destination = [CATALOG_NAME, ...collectionNames].join(', ');
 
   return (
     // `contents` on a phone: the button's sticky box then spans the whole form, not just this column.
@@ -26,7 +30,12 @@ function AddSaveBar({ formId, mainPhoto, collectionNames, isSubmitting, errorMes
         {mainPhoto ? (
           <img src={mainPhoto.previewUrl} alt="" className="aspect-3/4 w-16 shrink-0 rounded-md object-cover" />
         ) : (
-          <div aria-hidden="true" className="aspect-3/4 w-16 shrink-0 rounded-md border border-dashed" />
+          <FunkoImage
+            image={null}
+            alt={NO_PHOTO_ALT}
+            sizes={THUMB_SIZES}
+            className="aspect-3/4 w-16 shrink-0 rounded-md"
+          />
         )}
         <dl className="flex min-w-0 flex-col gap-0.5 text-sm">
           <dt className="text-muted-foreground">Saving to</dt>
