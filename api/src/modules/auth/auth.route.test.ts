@@ -27,6 +27,13 @@ const PUBLIC_ROUTES = new Set([
   'POST /auth/login/password',
   'POST /auth/logout',
 ]);
+// The routes a session signed in with a temporary password may call besides the public ones: replacing it, and
+// signing out. Every other route answers 403 PASSWORD_CHANGE_REQUIRED to it.
+const ALLOWED_WITH_TEMPORARY_PASSWORD = new Set([
+  'PUT /auth/password',
+  'POST /auth/logout',
+  'POST /auth/logout-everywhere',
+]);
 // The paths under which every write changes the catalogue, so every write there must be admin-only.
 const CATALOGUE_PATH_PREFIXES = ['/funkos', '/categories', '/series'];
 // Routes only an admin may call: catalogue writes, the images lists and the users. A member gets 403 ADMIN_ONLY on
@@ -518,6 +525,32 @@ describe('ANY /<every admin-only route>', () => {
 
     expect(catalogueWrites.length).toBeGreaterThan(0);
     expect(missingWrites).toEqual([]);
+  });
+});
+
+describe('ANY /<every route> with a temporary password', () => {
+  it('returns 403 PASSWORD_CHANGE_REQUIRED on every route but changing it, signing out and the public ones', async () => {
+    const member = await signIn(app, { role: 'MEMBER', hasTemporaryPassword: true });
+    const document = app.swagger() as { paths: Record<string, Record<string, unknown>> };
+    const refused: string[] = [];
+
+    for (const [path, operations] of Object.entries(document.paths)) {
+      for (const method of Object.keys(operations)) {
+        const route = `${method.toUpperCase()} ${path}`;
+        const isAllowed = ALLOWED_WITH_TEMPORARY_PASSWORD.has(route) || PUBLIC_ROUTES.has(route);
+
+        if (isAllowed) continue;
+
+        const url = path.replace(/\{[^}]+\}/g, '1');
+        const response = await member.inject({ method: method.toUpperCase(), url });
+        const code = response.statusCode === 403 ? response.json<{ code: string }>().code : undefined;
+
+        expect({ route, code }).toEqual({ route, code: 'PASSWORD_CHANGE_REQUIRED' });
+        refused.push(route);
+      }
+    }
+
+    expect(refused.length).toBeGreaterThan(MIN_LOCKED_ROUTES);
   });
 });
 

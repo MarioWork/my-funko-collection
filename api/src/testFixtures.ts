@@ -150,6 +150,9 @@ export function toFormData(files: { buffer: Buffer; name?: string; field?: strin
 const TEST_USER_NAME = 'Tester';
 const MEMBER_TEST_USER_NAME = 'Member';
 const RANDOM_ID_BYTES = 32;
+// Stands in for a temporary password's hash: a session row needs the columns set, never a real sign-in with it.
+const TEMPORARY_PASSWORD_HASH = 'made-up temporary password hash';
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 type SignInOptions = {
   signedInAt?: Date;
@@ -157,6 +160,7 @@ type SignInOptions = {
   signInMethod?: SignInMethod;
   role?: UserRole;
   userId?: number;
+  hasTemporaryPassword?: boolean;
 };
 
 export type SignedInClient = {
@@ -236,9 +240,18 @@ export async function createPasskeyRow(
 // `signInMethod` PASSWORD opens it without a passkey; PASSKEY (the default) makes a passkey row to open it.
 // `role` MEMBER signs in as the test member instead of the test admin (the default).
 // `userId` signs in as another user (from createUser()) instead; it wins over `role`.
+// `hasTemporaryPassword` gives that user a temporary password an admin made, not replaced yet.
 export async function signIn(app: App, options: SignInOptions = {}): Promise<SignedInClient> {
   const user =
     options.userId === undefined ? await findOrCreateTestUser(options.role ?? 'ADMIN') : { id: options.userId };
+
+  if (options.hasTemporaryPassword) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: TEMPORARY_PASSWORD_HASH, temporaryPasswordExpiresAt: new Date(Date.now() + DAY_MS) },
+    });
+  }
+
   const signInMethod = options.signInMethod ?? 'PASSKEY';
   const passkey = signInMethod === 'PASSKEY' ? await createPasskeyRow(user.id) : undefined;
   const token = createSecureToken();
