@@ -26,22 +26,22 @@ then a copy of it per test file, so files run in parallel without seeing each ot
 
 ## Scripts
 
-| Script                                       | Does                                                                                            |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `yarn dev`                                   | Runs `src/server.ts` with `--watch` and `.env`                                                  |
-| `yarn build`                                 | Compiles to `dist/` (`tsconfig.build.json`)                                                     |
-| `yarn start`                                 | Runs `dist/server.js`                                                                           |
-| `yarn typecheck`                             | `tsc --noEmit`                                                                                  |
-| `yarn lint`                                  | ESLint + Prettier check                                                                         |
-| `yarn test`                                  | Vitest: its own Postgres database and temp uploads folder per test file                         |
-| `yarn db:migrate`                            | Applies pending migrations; after a schema edit, `--name=<change>` makes one (commit `prisma/`) |
-| `yarn db:deploy`                             | Applies pending migrations, never makes one (what the container runs)                           |
-| `yarn db:generate`                           | Regenerates the Prisma client (`yarn install` already does)                                     |
-| `yarn postgres:start` / `yarn postgres:stop` | Turns the local Postgres (Homebrew) on or off; it never starts at login                         |
-| `yarn db:seed`                               | Example categories, series, funkos, collections, items, tags, images                            |
-| `yarn db:studio`                             | Prisma Studio                                                                                   |
-| `yarn images:prune`                          | Deletes image files no row references                                                           |
-| `yarn auth:reset`                            | Locked out: removes every passkey and sign-in, prints a new setup link                          |
+| Script                                       | Does                                                                                                                                                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yarn dev`                                   | Runs `src/server.ts` with `--watch` and `.env`                                                                                                                                                          |
+| `yarn build`                                 | Compiles to `dist/` (`tsconfig.build.json`)                                                                                                                                                             |
+| `yarn start`                                 | Runs `dist/server.js`                                                                                                                                                                                   |
+| `yarn typecheck`                             | `tsc --noEmit`                                                                                                                                                                                          |
+| `yarn lint`                                  | ESLint + Prettier check                                                                                                                                                                                 |
+| `yarn test`                                  | Vitest: its own Postgres database and temp uploads folder per test file                                                                                                                                 |
+| `yarn db:migrate`                            | Applies pending migrations; after a schema edit, `--name=<change>` makes one (commit `prisma/`)                                                                                                         |
+| `yarn db:deploy`                             | Applies pending migrations, never makes one (what the container runs)                                                                                                                                   |
+| `yarn db:generate`                           | Regenerates the Prisma client (`yarn install` already does)                                                                                                                                             |
+| `yarn postgres:start` / `yarn postgres:stop` | Turns the local Postgres (Homebrew) on or off; it never starts at login                                                                                                                                 |
+| `yarn db:seed`                               | Example categories, series, funkos, tags, images, and items in the first user's "Owned" and "Wishlist" (with nobody set up, a user with no sign-in is made for them; the first setup becomes that user) |
+| `yarn db:studio`                             | Prisma Studio                                                                                                                                                                                           |
+| `yarn images:prune`                          | Deletes image files no row references                                                                                                                                                                   |
+| `yarn auth:reset`                            | Locked out: removes every passkey, password and sign-in (users and their collections stay), prints a new setup link                                                                                     |
 
 ## Environment
 
@@ -65,21 +65,21 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 
 ## Data model
 
-| Table                  | What                                                                                            |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"                             |
-| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"                             |
-| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode                   |
-| `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder                    |
-| `collections`          | One of the user's own lists: "Owned" (exactly one is the default), "Wishlist"                   |
-| `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                  |
-| `collection_item_tags` | Item ↔ tag                                                                                      |
-| `tags`                 | A free label on an item, mainly the storage box ("Box 3")                                       |
-| `users`                | The person who signs in: name, WebAuthn user handle, lower-case username and argon2id hash      |
-| `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device)              |
-| `sessions`             | A signed-in browser: SHA-256 of the cookie token, how it signed in, sign-in and last-seen times |
-| `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                             |
-| `setup_codes`          | SHA-256 of the first-run code, only until someone sets the app up                               |
+| Table                  | What                                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"                                  |
+| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"                                  |
+| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode                        |
+| `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder                         |
+| `collections`          | One user's own list (`user_id`, name unique per user): "Owned" (each user's one default), "Wishlist" |
+| `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                       |
+| `collection_item_tags` | Item ↔ tag                                                                                           |
+| `tags`                 | A free label on an item, mainly the storage box ("Box 3")                                            |
+| `users`                | The person who signs in: name, WebAuthn user handle, lower-case username and argon2id hash           |
+| `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device)                   |
+| `sessions`             | A signed-in browser: SHA-256 of the cookie token, how it signed in, sign-in and last-seen times      |
+| `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                                  |
+| `setup_codes`          | SHA-256 of the first-run code, only until someone sets the app up                                    |
 
 Value sets: funko `type` is one of `POP`, `POP_DELUXE`, `POP_RIDES`, `POP_MOMENT`, `POP_TOWN`, `POP_ALBUM`,
 `POP_JUMBO`, `POP_KEYCHAIN`, `SODA`, `BITTY_POP`, `MYSTERY_MINI`, `OTHER`; item `condition` is `MINT_IN_BOX`,
@@ -115,8 +115,9 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   is not `APP_ORIGIN`, answers 403 `CROSS_SITE_REQUEST`.
 - **Limits.** The ceremony routes allow 10 requests a minute per address (5 attempts); password sign-in allows 5.
   There is no lockout: anyone could trigger one against the owner.
-- **Locked out.** `docker compose exec api node dist/cli/resetAuth.js` removes every passkey and session and prints a new setup
-  link (`yarn auth:reset` in dev). The collection is not touched.
+- **Locked out.** `docker compose exec api node dist/cli/resetAuth.js` removes every passkey, password and session and prints a new setup
+  link (`yarn auth:reset` in dev). The users stay, with their collections and items (deleting a user
+  would delete those), and the next setup gives the first user a new passkey instead of making a second user.
 
 API answers carry `Cache-Control: no-store`; image files `private, max-age=31536000, immutable`.
 
@@ -127,6 +128,12 @@ Interactive docs with every schema: `GET /docs` (dev only). Auth: `GET /auth/sta
 (`/options`, `/verify`), `DELETE /auth/passkeys/:passkeyId`. Every list endpoint takes `page` (1-based), `size`
 (max 100), `sorting_fields` and `direction` (`ASC` | `DESC`) and answers `{ data, totalResultNumber, currentPage }`.
 Text filters are case-insensitive "contains"; id filters take a comma-separated list.
+
+The catalogue (categories, series, funkos, images) is shared; collections and items belong to one user
+(`docs/adr/0001-shared-catalogue-own-collections.md`). Every collection and item route, the funko filters and search
+that look at collections or tags, the `collections` on a funko, suggestions, stats and exports see only the signed-in
+user's own; another user's collection or item id answers 404. A database trigger gives every new user their own
+"Owned" (the default) and "Wishlist", whatever code makes the user.
 
 | Method and path                                                    | What                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -146,7 +153,7 @@ Text filters are case-insensitive "contains"; id filters take a comma-separated 
 | `GET /funkos/:id`                                                  | With all its images                                                                                                                                                                                                                                                                                                                                                                                               |
 | `POST /funkos`                                                     | 409 with `existingId` when the same funko or barcode already exists                                                                                                                                                                                                                                                                                                                                               |
 | `PATCH /funkos/:id`                                                |                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `DELETE /funkos/:id`                                               | 409 while it sits in a collection; `?force=true` removes it from all                                                                                                                                                                                                                                                                                                                                              |
+| `DELETE /funkos/:id`                                               | 409 while it sits in anyone's collection (naming only your own, others as "other users' collections"); `?force=true` removes it from all                                                                                                                                                                                                                                                                          |
 | `POST /funkos/:id/images`                                          | Multipart, field `file` (several allowed); makes the three sizes                                                                                                                                                                                                                                                                                                                                                  |
 | `POST /funkos/:id/images/from-url`                                 | `{ url }`: downloads a public image and stores it                                                                                                                                                                                                                                                                                                                                                                 |
 | `PATCH /funkos/:id/images/order`                                   | `{ imageIds }`: the first one is the primary                                                                                                                                                                                                                                                                                                                                                                      |
@@ -167,11 +174,11 @@ Text filters are case-insensitive "contains"; id filters take a comma-separated 
 | `GET /tags`                                                        | List with item counts; `name`; sort `NAME` \| `CREATION_DATE`                                                                                                                                                                                                                                                                                                                                                     |
 | `GET /tags/:id`, `POST`, `PATCH`, `DELETE`                         | Delete only removes the label from items                                                                                                                                                                                                                                                                                                                                                                          |
 | `GET /suggest?q=`                                                  | Search-bar suggestions: funkos, categories, series, collections, tags at once                                                                                                                                                                                                                                                                                                                                     |
-| `GET /stats`                                                       | Totals for the home page: counts, per collection, per category, image bytes                                                                                                                                                                                                                                                                                                                                       |
+| `GET /stats`                                                       | Totals for the home page, for the signed-in user only: the funkos in their collections (count, categories, images and bytes, per category), and each of their collections                                                                                                                                                                                                                                         |
 | `GET /images`                                                      | Every stored image (rows with their funko, plus loose files no row uses); `q`, `hasFunko`, sort `SIZE` (default, biggest first) / `CREATION_DATE` / `NAME`                                                                                                                                                                                                                                                        |
 | `GET /images/groups`                                               | The same, one group per funko with its count and total size (loose files last); same params                                                                                                                                                                                                                                                                                                                       |
-| `GET /export`                                                      | Everything as one JSON download (top-level `series`, `seriesId` on each funko)                                                                                                                                                                                                                                                                                                                                    |
-| `GET /export/items.csv`                                            | One CSV line per collection item (`series` column after `category`)                                                                                                                                                                                                                                                                                                                                               |
+| `GET /export`                                                      | Everything as one JSON download: the whole catalogue and the signed-in user's own collections, items and item tags (top-level `series`, `seriesId` on each funko)                                                                                                                                                                                                                                                 |
+| `GET /export/items.csv`                                            | One CSV line per item in the signed-in user's collections (`series` column after `category`)                                                                                                                                                                                                                                                                                                                      |
 | `GET /export/funkos.{csv,json,xlsx}`                               | The funkos of one `categoryId`, `seriesId`, `collectionId`, `tagId` or `funkoId` (all funkos without one): CSV and spreadsheet one line per funko and item, JSON one entry per funko with its items; every format links each photo (`image_urls` / `imageUrls`), and a single funko's spreadsheet embeds its photos on a Photos sheet; named after the filter (`category-pop-marvel.xlsx`), 404 for an unknown id |
 | `GET /export/{categories,series,collections,tags}.{csv,json,xlsx}` | A whole list (names, counts, notes, totals); `?includeFunkos=true` adds their funkos: a second sheet, the CSV's lines (each once), or nested per entry in the JSON                                                                                                                                                                                                                                                |
 | `GET /export/images.{csv,json,xlsx}`                               | Every stored image: its funko, file, size, upload date and absolute links to the three sizes (never the files)                                                                                                                                                                                                                                                                                                    |

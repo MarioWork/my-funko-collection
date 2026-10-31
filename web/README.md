@@ -102,18 +102,18 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 
 ## Pages
 
-| Path                                | What                                                                     |
-| ----------------------------------- | ------------------------------------------------------------------------ |
-| `/home`                             | Stats, recent funkos, collections, funkos by category, quick actions     |
-| `/funkos`, `/funkos/:id`            | The catalog: grid or table, search + filters + sort, detail with gallery |
-| `/add`, `/add/manual`               | Scan-first add page: images, details, a card per collection (own copy)   |
-| `/collections`, `/collections/:id`  | Your lists and their items (table on desktop, cards on phones)           |
-| `/items`                            | Every item across collections (filter by tag to find a box)              |
-| `/search`                           | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere            |
-| `/categories`, `/tags`, `/settings` | Manage pages, theme, default collection, "Adding to" defaults, exports   |
-| `/settings` → Security              | Passkeys (add, remove), sign out, sign out everywhere                    |
-| `/login`                            | Sign in with a passkey (outside the app shell); `?redirectTo=` returns   |
-| `/setup?code=...`                   | First run: your name and the first passkey, from the link in the log     |
+| Path                                | What                                                                                                     |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `/home`                             | Your stats (the funkos in your collections), recent funkos, your collections, by category, quick actions |
+| `/funkos`, `/funkos/:id`            | The catalog: grid or table, search + filters + sort, detail with gallery                                 |
+| `/add`, `/add/manual`               | Scan-first add page: images, details, a card per collection (own copy)                                   |
+| `/collections`, `/collections/:id`  | Your lists and their items (table on desktop, cards on phones)                                           |
+| `/items`                            | Every item across collections (filter by tag to find a box)                                              |
+| `/search`                           | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                            |
+| `/categories`, `/tags`, `/settings` | Manage pages, theme, default collection, "Adding to" defaults, exports                                   |
+| `/settings` → Security              | Passkeys (add, remove), sign out, sign out everywhere                                                    |
+| `/login`                            | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                   |
+| `/setup?code=...`                   | First run: your name and the first passkey, from the link in the log                                     |
 
 ## How data flows
 
