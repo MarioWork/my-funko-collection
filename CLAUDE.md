@@ -61,13 +61,23 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   a member or deleted (409 `LAST_ADMIN`, checked under a `users` table lock); the web disables those two controls
   with the reason (`isLastAdmin`). Deleting a user cascades their sessions, passkeys, collections, items and tags in
   the database; funkos stay and their images keep a null uploader.
-- Roles: a user is an `ADMIN` or a `MEMBER` (`docs/GLOSSARY.md`); whoever sets the app up is an admin. Catalogue
-  writes (funkos, categories, series, funko images), the images lists and the users set
-  `config: { isAdminOnly: true }` and answer 403 `ADMIN_ONLY` to a member; add every new one to `ADMIN_ONLY_ROUTES` in `auth.route.test.ts` (the test
-  calls every route as a member). The role check sits next to the sign-in check in `auth.plugin.ts`'s `onRequest`
-  hook, a route-level gate rather than a service check (node-ts-api §9), like the sign-in exception below. The web
-  hides those controls with `useIsAdmin()` (admin-only pages call `assertAdmin()` in their loader), and the mocks
-  refuse them in `requireAdmin.mock.handler.ts`; keep the three in step.
+- Roles: a user is an `ADMIN` or a `MEMBER` (`docs/GLOSSARY.md`); whoever sets the app up is an admin. Changing or
+  deleting a category or series, the images lists and the users set `config: { isAdminOnly: true }` and answer 403
+  `ADMIN_ONLY` to a member; add every new one to `ADMIN_ONLY_ROUTES` in `auth.route.test.ts` (the test calls every
+  route as a member). The role check sits next to the sign-in check in `auth.plugin.ts`'s `onRequest` hook, a
+  route-level gate rather than a service check (node-ts-api §9), like the sign-in exception below. The web hides
+  those controls with `useIsAdmin()` (admin-only pages call `assertAdmin()` in their loader), and the mocks refuse
+  them in `requireAdmin.mock.handler.ts`; keep the three in step.
+- Submissions (issue #9, `docs/adr/0001-shared-catalogue-own-collections.md`): a member's new funko, category or
+  series is `WAITING` with `submitted_by_id`, seen only by its sender in lists, search, suggestions, the barcode
+  lookup, counts and exports (`lib/catalogueVisibility.ts`; the raw funko list inlines the same rule); an admin's is
+  `APPROVED`. Creating them, and the funko and funko-image writes, are open to members: the services decide
+  (`funkos/funkos.access.ts`: an admin changes any funko, a member only their own waiting one, else 404 / 403
+  `ADMIN_ONLY`). Those routes are `SUBMISSION_ROUTES` in `auth.route.test.ts`, which fails on a catalogue write in
+  neither list. Barcode, identity and name uniqueness hold in the approved catalogue and within one member's waiting
+  ones (partial unique indexes in the `submissions` migration). A `BEFORE DELETE` trigger on `users` deletes a
+  user's never-approved submissions (and their items of them). The web mirrors the rule in `useCanEditFunko()` /
+  `assertCanEditFunko()` and the mocks in `mockCatalogueUtils.ts`. Approve / reject / merge is issue #10.
 - Deliberate exceptions to the Node skills for auth (decided 2026-10-23): the check is a global `onRequest` hook in
   `auth.plugin.ts` with server-side cookie sessions, not `@fastify/jwt` + `preHandler: [app.authenticate]`
   (node-ts-api §9); random 256-bit tokens (session, setup code) are stored as plain SHA-256, not argon2 (they can't
