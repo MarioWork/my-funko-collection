@@ -19,7 +19,7 @@ type HashSettings = Pick<Argon2Parameters, 'memory' | 'passes' | 'parallelism'>;
 const deriveKey = promisify(argon2);
 
 // Passwords are compared as Unicode NFKC, so the same password typed on two keyboards is the same password.
-function normalisePassword(password: string): string {
+export function normalisePassword(password: string): string {
   return password.normalize('NFKC');
 }
 

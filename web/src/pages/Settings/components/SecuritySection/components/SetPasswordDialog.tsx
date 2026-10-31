@@ -1,20 +1,10 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { Fingerprint } from 'lucide-react';
 import { useFetcher } from 'react-router';
+import type { AuthSessionApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS } from '@application/routes/routesUtils';
-import CancelButton from '@components/CancelButton';
 import InlineAlert from '@components/InlineAlert';
-import PasskeyButton from '@components/PasskeyButton';
-import SubmitButton from '@components/SubmitButton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
 import { useActionToast } from '@hooks/useActionToast';
 import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
 import { useFormCompat } from '@hooks/useFormCompat';
@@ -22,13 +12,9 @@ import { AuthApiErrorCodes } from '@services/authService/authService';
 import { authFailureMessage } from '@utils/authMessageUtils';
 import { createFormData } from '@utils/formDataUtils';
 import { useConfirmIdentityStep } from '../../../hooks/useConfirmIdentityStep';
-import {
-  CONFIRM_IDENTITY_COPY,
-  PASSWORD_FAILURE_MESSAGES,
-  setPasswordFormSchema,
-  type SetPasswordFormValues,
-} from '../../../settingsUtils';
+import { PASSWORD_FAILURE_MESSAGES, setPasswordFormSchema, type SetPasswordFormValues } from '../../../settingsUtils';
 import ReauthNotice from './ReauthNotice';
+import SetPasswordFooter from './SetPasswordFooter';
 import SetPasswordFields from './SetPasswordFields';
 
 type Props = {
@@ -44,7 +30,7 @@ const NOT_ALERTED_CODES = new Set<string>([AuthApiErrorCodes.REAUTH_REQUIRED, Au
 // Mounted while open, so every opening starts fresh. The username is filled in from the last one; the password
 // field is "new-password", so a password manager offers to make one and saves it after.
 function SetPasswordDialog({ username, onClose }: Props) {
-  const fetcher = useFetcher<JSONResponseUtil>();
+  const fetcher = useFetcher<JSONResponseUtil<AuthSessionApiModel>>();
   const { control, handleSubmit } = useFormCompat<SetPasswordFormValues>({
     defaultValues: { username: username ?? '', password: '' },
     resolver: yupResolver(setPasswordFormSchema),
@@ -84,24 +70,7 @@ function SetPasswordDialog({ username, onClose }: Props) {
             <InlineAlert tone="error">{authFailureMessage(alertedFailure, PASSWORD_FAILURE_MESSAGES)}</InlineAlert>
           ) : null}
         </form>
-        <DialogFooter>
-          <CancelButton isSubmitting={isSaving} onCancel={onClose} />
-          {needsReauth ? (
-            <PasskeyButton
-              type="submit"
-              form={FORM_ID}
-              isWaiting={isSaving}
-              isSupported
-              icon={<Fingerprint data-icon="inline-start" aria-hidden="true" />}
-            >
-              {CONFIRM_IDENTITY_COPY.BUTTON}
-            </PasskeyButton>
-          ) : (
-            <SubmitButton isSubmitting={isSaving} form={FORM_ID}>
-              Save password
-            </SubmitButton>
-          )}
-        </DialogFooter>
+        <SetPasswordFooter formId={FORM_ID} isSaving={isSaving} needsReauth={needsReauth} onCancel={onClose} />
       </DialogContent>
     </Dialog>
   );

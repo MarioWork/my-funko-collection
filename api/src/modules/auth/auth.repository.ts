@@ -151,18 +151,20 @@ export const authRepository = {
     (await prisma.user.findUnique({ where: { username }, select: PASSWORD_USER_SELECT })) ?? undefined,
 
   // A new password ends every other session a password opened (one may have used the old password), all or
-  // nothing. Passkey sessions stay: a leaked password could not have opened them. A taken username throws the
-  // unique-violation error, which the caller maps.
-  setPassword: (password: NewPassword): Promise<void> =>
+  // nothing. Passkey sessions stay: a leaked password could not have opened them. The service checks the username
+  // first; one taken in between fails the unique index, which the error handler answers as a 409.
+  setPassword: (password: NewPassword): Promise<UserRow> =>
     prisma.$transaction(async (tx) => {
-      await tx.user.update({
+      const user = await tx.user.update({
         where: { id: password.userId },
         data: { username: password.username, passwordHash: password.passwordHash },
-        select: ID_SELECT,
+        select: USER_SELECT,
       });
       await tx.session.deleteMany({
         where: { userId: password.userId, signInMethod: 'PASSWORD', tokenHash: { not: password.keepTokenHash } },
       });
+
+      return user;
     }),
 
   listPasskeys: (userId: number) =>

@@ -51,7 +51,7 @@ async function ownerWithPassword(): Promise<SignedInClient> {
   const api = await signIn(app);
   const response = await setPassword(api, { username: USERNAME, password: PASSWORD });
 
-  expect(response.statusCode).toBe(204);
+  expect(response.statusCode).toBe(200);
 
   return api;
 }
@@ -74,7 +74,8 @@ describe('PUT /auth/password', () => {
 
     const response = await setPassword(api, { username: ' Mario ', password: PASSWORD });
 
-    expect(response.statusCode).toBe(204);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ user: { name: 'Tester', username: USERNAME } });
     const user = await prisma.user.findFirstOrThrow({ select: { username: true, passwordHash: true } });
     expect(user.username).toBe(USERNAME);
     expect(user.passwordHash).toMatch(/^\$argon2id\$/);
@@ -137,7 +138,7 @@ describe('PUT /auth/password', () => {
 
     const response = await setPassword(api, { username: USERNAME, password: `${PASSWORD} and more` });
 
-    expect(response.statusCode).toBe(204);
+    expect(response.statusCode).toBe(200);
     expect((await getTags(passwordSession)).statusCode).toBe(401);
     expect((await getTags(passkeySession.token)).statusCode).toBe(200);
     expect((await getTags(api.token)).statusCode).toBe(200);
