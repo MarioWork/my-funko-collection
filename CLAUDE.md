@@ -70,7 +70,10 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - `main` is protected by GitHub rulesets: no direct push, no force push, every change lands through a pull request.
 - New branches must be `feature/<id>-<slug>` or `issue/<id>-<slug>` (other names are refused on push), where `<id>`
   is the GitHub issue it adds or fixes. Open the issue first (`gh issue create`) when there is none.
-- The PR body says `Closes #<id>`; merge with `gh pr merge --squash`. The branch is deleted on merge.
+- The PR body says `Closes #<id>`. Merge with "Rebase and merge" (`gh pr merge --rebase`) when possible, for a
+  linear history; `--squash` only when a rebase is refused. So keep PR branches linear: when one conflicts with
+  `main`, `git rebase github/main` and force-push the branch (only `main` blocks force push), never merge `main` in.
+  The branch is deleted on merge.
 - The remote is named `github`, not `origin`.
 
 ## Commands
