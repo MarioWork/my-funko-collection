@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ApiError } from '@app-types/models';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 
-// The shared "confirm it's you" step of adding and removing a passkey. True from the first REAUTH_REQUIRED answer
+// The shared "confirm it's you" step of a change that needs a recent sign-in (a passkey, the password, a new user). True from the first REAUTH_REQUIRED answer
 // on: the dialog then says why and submits with `isReauth`, so the action signs in afresh before the write.
 export function useConfirmIdentityStep(failure: ApiError | undefined): boolean {
   const [needsReauth, setNeedsReauth] = useState(false);
