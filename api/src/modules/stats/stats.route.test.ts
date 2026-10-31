@@ -31,7 +31,7 @@ beforeEach(async () => {
 });
 
 describe('GET /stats', () => {
-  it('totals the funkos, categories and images in the user’s collections and every collection of theirs', async () => {
+  it('totals the funkos, categories and images in every collection of the user’s when they have items', async () => {
     const marvel = await createCategory('Pop! Marvel');
     const owned = await createCollection({ name: 'Owned', isDefault: true });
     const wishlist = await createCollection({ name: 'Wishlist' });
@@ -57,7 +57,7 @@ describe('GET /stats', () => {
     });
   });
 
-  it('leaves another user’s collections, and the funkos only they have, out of the totals', async () => {
+  it('leaves out another user’s collections and funkos when a second user has items', async () => {
     const other = await createUser();
     const marvel = await createCategory('Pop! Marvel');
     const starWars = await createCategory('Pop! Star Wars');

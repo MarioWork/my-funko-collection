@@ -8,7 +8,7 @@ import type {
 import { FUNKO_TYPE_LABELS, FunkoTypeUtil } from '@app-types/utility';
 import SelectFilter from '@components/SelectFilter';
 import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
-import { FALSE_VALUE, TRUE_VALUE } from '../funkoListUtils';
+import { FALSE_VALUE, TRUE_VALUE } from '@utils/listParamsUtils';
 import type { FunkoFilterField, FunkoFilterUpdates } from '../hooks/useFunkoListParams';
 import OptionalFilter from './OptionalFilter';
 

@@ -33,10 +33,12 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   shared. Every collection/item read and write takes the signed-in user's id (`signedInUserId(request)` from
   `auth.plugin.ts`, passed route → service → repository) and another user's id answers 404. So do the funko filters
   and search that look at collections or items, a funko's `collections`, suggestions, stats and exports.
-- Every user has their own "Owned" (the default) and "Wishlist" from the moment the user row exists: a trigger in
-  `api/prisma/migrations/*_collections_per_user/`, not the seed or app code. Names are unique per user; one default
-  per user (a partial index). `yarn auth:reset` keeps the users (deleting one deletes their collections); the next
-  setup gives the first user a new passkey.
+- Every user has their own "Owned" (the default) and "Wishlist" from the moment the user row exists: reference data
+  from the custom migration `api/prisma/migrations/*_default_collections/` (claimed by the first user) plus a trigger
+  in `*_collections_per_user/` for every new user, not the seed or app code. Each insert skips one that is already
+  there (`ON CONFLICT DO NOTHING`). Names are unique per user; one default per user (a partial index).
+  `yarn auth:reset` keeps the users (deleting one deletes their collections); the next setup gives the first user a
+  new passkey.
 - Sign-in is a passkey or a username + password (`docs/adr/0002-passwords-next-to-passkeys.md`, `api/README.md`
   "Sign-in"). Passwords: 15+ characters, the built-in list `api/assets/common-passwords.txt` refused, argon2id via
   Node's `crypto.argon2` (`api/src/lib/passwordHash.ts`), rate limited, never a lockout. Every API
