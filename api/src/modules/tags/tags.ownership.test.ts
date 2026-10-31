@@ -107,7 +107,7 @@ describe('POST|PATCH /collections/:collectionId/items', () => {
     const item = await me.inject({ method: 'GET', url: `/collections/${myOwnedId}/items/${myItem.id}` });
     expect(item.json<{ tags: Named[] }>().tags).toEqual([myTag]);
     const myItems = await me.inject({ method: 'GET', url: '/items' });
-    expect(myItems.json<Page<Named>>().totalResultNumber).toBe(1);
+    expect(myItems.json<Page<{ id: number }>>().totalResultNumber).toBe(1);
   });
 
   it('returns 404 when the user puts their own tag on another user’s item', async () => {
@@ -125,7 +125,7 @@ describe('POST|PATCH /collections/:collectionId/items', () => {
 });
 
 describe('GET /items and GET /funkos', () => {
-  it('finds nothing when filtering by another user’s tag, by a name only their tags have, or by having tags', async () => {
+  it('finds nothing when filtering or searching by another user’s tag, its name, or by having tags', async () => {
     const funko = await createFunko({ name: 'Grogu' });
     await createItem(await defaultCollectionId(them.userId), funko.id, { tagIds: [theirTag.id] });
     await createTag('Signed', them.userId);
@@ -134,23 +134,23 @@ describe('GET /items and GET /funkos', () => {
     const funkosByTheirTag = await me.inject({ method: 'GET', url: `/funkos?tagId=${theirTag.id}` });
     const funkosByTagName = await me.inject({ method: 'GET', url: '/funkos?tag=Box' });
     const funkosWithTags = await me.inject({ method: 'GET', url: '/funkos?hasTags=true' });
+    const funkosSearchedByTagName = await me.inject({ method: 'GET', url: '/funkos?q=Box' });
 
     expect(itemsByTheirTag.json()).toMatchObject({ data: [], totalResultNumber: 0 });
     expect(funkosByTheirTag.json()).toMatchObject({ data: [], totalResultNumber: 0 });
     expect(funkosByTagName.json()).toMatchObject({ data: [], totalResultNumber: 0 });
     expect(funkosWithTags.json()).toMatchObject({ data: [], totalResultNumber: 0 });
+    expect(funkosSearchedByTagName.json()).toMatchObject({ data: [], totalResultNumber: 0 });
   });
 });
 
 describe('GET /suggest', () => {
   it('suggests only the signed-in user’s tags when another user has a matching one', async () => {
-    await createTag('Signed', them.userId);
+    await createTag('Box 2', them.userId);
 
-    const response = await me.inject({ method: 'GET', url: '/suggest?q=s' });
+    const response = await me.inject({ method: 'GET', url: '/suggest?q=box' });
 
-    const tagIds = response.json<{ tags: Named[] }>().tags.map(({ id }) => id);
-    expect(tagIds).not.toContain(theirTag.id);
-    expect(response.json<{ tags: Named[] }>().tags.map(({ name }) => name)).not.toContain('Signed');
+    expect(response.json<{ tags: Named[] }>().tags).toEqual([myTag]);
   });
 });
 
