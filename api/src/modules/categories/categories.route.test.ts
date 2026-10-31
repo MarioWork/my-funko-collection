@@ -69,7 +69,8 @@ describe('GET /categories/:categoryId', () => {
     expect(response.json()).toMatchObject({ id: created.id, name: 'Pop! Star Wars', funkoCount: 0 });
   });
 
-  it('returns the category to a member too, since the catalogue is shared', async () => {
+  it('returns the category when a member asks for it', async () => {
+    // The catalogue is shared: members read it, only admins change it.
     const created = await createCategory('Pop! Star Wars');
     const member = await signIn(app, { role: 'MEMBER' });
 

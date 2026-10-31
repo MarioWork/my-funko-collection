@@ -29,6 +29,7 @@ const PUBLIC_ROUTES = new Set([
 ]);
 // Routes only an admin may call: catalogue writes and the images lists. A member gets 403 ADMIN_ONLY on these and
 // never on any other route.
+const CATALOGUE_PATH_PREFIXES = ['/funkos', '/categories', '/series'];
 const ADMIN_ONLY_ROUTES = new Set([
   'POST /categories',
   'PATCH /categories/{categoryId}',
@@ -440,7 +441,7 @@ describe('ANY /<every admin-only route>', () => {
     expect(adminOnlySeen.sort()).toEqual([...ADMIN_ONLY_ROUTES].sort());
   });
 
-  it('lets an admin through every admin-only route', async () => {
+  it('lets the request through on every admin-only route when an admin calls it', async () => {
     for (const route of ADMIN_ONLY_ROUTES) {
       const [method = 'GET', path = '/'] = route.split(' ');
       const admin = await signIn(app);
@@ -450,6 +451,32 @@ describe('ANY /<every admin-only route>', () => {
 
       expect({ route, status: response.statusCode }).not.toEqual({ route, status: 403 });
     }
+  });
+
+  // The admin gate is opt-in (`isAdminOnly` on the route), so a new catalogue write that forgets the flag would let
+  // members change the catalogue. Every write under the catalogue paths must be on the list above.
+  it('puts every catalogue write behind the admin gate when the app registers its routes', async () => {
+    await app.ready();
+
+    const document = app.swagger() as { paths: Record<string, Record<string, unknown>> };
+    const catalogueWrites: string[] = [];
+
+    for (const [path, operations] of Object.entries(document.paths)) {
+      const isCataloguePath = CATALOGUE_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
+
+      if (!isCataloguePath) continue;
+
+      for (const method of Object.keys(operations)) {
+        const isWrite = method.toUpperCase() !== 'GET';
+
+        if (isWrite) catalogueWrites.push(`${method.toUpperCase()} ${path}`);
+      }
+    }
+
+    const missingWrites = catalogueWrites.filter((route) => !ADMIN_ONLY_ROUTES.has(route));
+
+    expect(catalogueWrites.length).toBeGreaterThan(0);
+    expect(missingWrites).toEqual([]);
   });
 });
 

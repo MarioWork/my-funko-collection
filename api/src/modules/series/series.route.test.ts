@@ -70,7 +70,8 @@ describe('GET /series/:seriesId', () => {
     expect(response.json()).toMatchObject({ id: created.id, name: 'The Mandalorian', funkoCount: 0 });
   });
 
-  it('returns the series to a member too, since the catalogue is shared', async () => {
+  it('returns the series when a member asks for it', async () => {
+    // The catalogue is shared: members read it, only admins change it.
     const created = await createSeries('The Mandalorian');
     const member = await signIn(app, { role: 'MEMBER' });
 

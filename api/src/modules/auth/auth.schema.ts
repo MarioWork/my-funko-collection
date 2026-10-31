@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const AUTH_STATES = ['setup', 'signedOut', 'signedIn'] as const;
-// Matches the `UserRole` enum in prisma/schema.prisma; the repository fails to compile if the two drift apart.
+// Matches the `UserRole` enum in prisma/schema.prisma; auth.repository.ts fails to compile if either side gains a
+// role the other lacks.
 export const USER_ROLES = ['ADMIN', 'MEMBER'] as const;
 
 const NAME_MAX_LENGTH = 60;

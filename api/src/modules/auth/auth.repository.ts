@@ -1,5 +1,12 @@
-import type { AuthChallengePurpose, Prisma } from '../../generated/prisma/client.ts';
+import type { AuthChallengePurpose, Prisma, UserRole as DbUserRole } from '../../generated/prisma/client.ts';
 import { deletedIdOrUndefined, ID_SELECT, prisma, type DbExecutor } from '../../lib/prisma.ts';
+import type { UserRole } from './auth.schema.ts';
+
+// USER_ROLES (auth.schema.ts) and the Prisma `UserRole` enum must hold the same values: this fails to compile when
+// either side has a role the other lacks. The tuples stop TypeScript from checking each role on its own.
+type RolesMatch = [DbUserRole] extends [UserRole] ? ([UserRole] extends [DbUserRole] ? true : false) : false;
+const ROLES_MATCH: RolesMatch = true;
+void ROLES_MATCH;
 
 const USER_SELECT = {
   id: true,
