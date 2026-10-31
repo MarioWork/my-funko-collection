@@ -19,7 +19,7 @@ vi.mock('@simplewebauthn/browser', () => ({
 const routes = [
   {
     id: APP_SHELL_ROUTE_ID,
-    loader: () => ({ user: { name: 'Mario' } }),
+    loader: () => ({ user: { name: 'Mario', username: mockStore.auth.username } }),
     children: [{ path: BASE_ROUTES_PATHS.SETTINGS, lazy: () => import('../../Settings.route') }, ...securityRoutes],
   },
   { path: AUTH_ROUTES_PATHS.LOGIN, element: <h1>Login page</h1> },
@@ -122,6 +122,85 @@ it('confirms it is them before adding a passkey when the sign-in is old', async 
   await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add a passkey' })).not.toBeInTheDocument());
   expect(await within(await passkeyList()).findByText('Laptop')).toBeVisible();
   expect(startAuthentication).toHaveBeenCalledTimes(1);
+});
+
+describe('password', () => {
+  const PASSWORD = 'shelves full of tiny heads';
+
+  async function openPasswordDialog(buttonName: string) {
+    await userEvent.click(await screen.findByRole('button', { name: buttonName }));
+
+    return screen.findByRole('dialog');
+  }
+
+  it('sets a username and password when there is none yet', async () => {
+    renderSettings();
+
+    expect(await screen.findByText(/No password yet/)).toBeVisible();
+    const dialog = await openPasswordDialog('Set a password');
+    await userEvent.type(within(dialog).getByLabelText('Username'), 'Mario');
+    await userEvent.type(within(dialog).getByLabelText('New password'), PASSWORD);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save password' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(mockStore.auth).toMatchObject({ username: 'mario', password: PASSWORD });
+    expect(await screen.findByRole('button', { name: 'Change password' })).toBeVisible();
+  });
+
+  it('marks the new password field for password managers', async () => {
+    renderSettings();
+
+    const dialog = await openPasswordDialog('Set a password');
+
+    expect(within(dialog).getByLabelText('New password')).toHaveAttribute('autocomplete', 'new-password');
+    expect(within(dialog).getByLabelText('Username')).toHaveAttribute('autocomplete', 'username');
+  });
+
+  it('refuses a password under 15 characters on its field, without sending it', async () => {
+    renderSettings();
+
+    const dialog = await openPasswordDialog('Set a password');
+    await userEvent.type(within(dialog).getByLabelText('Username'), 'mario');
+    await userEvent.type(within(dialog).getByLabelText('New password'), 'too short');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save password' }));
+
+    const field = within(dialog).getByLabelText('New password');
+    await waitFor(() => expect(field).toHaveAttribute('aria-invalid', 'true'));
+    expect(field).toHaveAccessibleDescription(expect.stringContaining('Use at least 15 characters'));
+    expect(mockStore.auth.password).toBeNull();
+  });
+
+  it('shows the refusal of a common password on its field', async () => {
+    renderSettings();
+
+    const dialog = await openPasswordDialog('Set a password');
+    await userEvent.type(within(dialog).getByLabelText('Username'), 'mario');
+    await userEvent.type(within(dialog).getByLabelText('New password'), 'Password12345678');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save password' }));
+
+    const field = within(dialog).getByLabelText('New password');
+    await waitFor(() => expect(field).toHaveAttribute('aria-invalid', 'true'));
+    expect(field).toHaveAccessibleDescription(expect.stringContaining('That password is too common'));
+    // Only the field's own error: no second copy in the dialog's alert.
+    expect(within(dialog).getAllByText(/That password is too common/)).toHaveLength(1);
+  });
+
+  it('confirms it is them with a passkey first when the sign-in is old, then saves the password', async () => {
+    mockStore.auth.isSignInRecent = false;
+    Object.assign(mockStore.auth, { username: 'mario', password: 'the old password here' });
+    vi.mocked(startAuthentication).mockResolvedValue(createAuthenticationResponseMockModel());
+    renderSettings();
+
+    const dialog = await openPasswordDialog('Change password');
+    expect(within(dialog).getByLabelText('Username')).toHaveValue('mario');
+    await userEvent.type(within(dialog).getByLabelText('New password'), PASSWORD);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save password' }));
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Confirm with passkey' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(mockStore.auth.password).toBe(PASSWORD);
+    expect(startAuthentication).toHaveBeenCalledTimes(1);
+  });
 });
 
 it('signs out to the login page', async () => {

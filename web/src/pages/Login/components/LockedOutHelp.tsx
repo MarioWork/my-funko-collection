@@ -14,12 +14,13 @@ function LockedOutHelp() {
         />
       </summary>
       <div className="flex flex-col gap-2 px-3 pb-3 text-muted-foreground">
-        <p>Lost every passkey? On the server, run:</p>
+        <p>Lost every passkey and can&apos;t sign in with a password? On the server, run:</p>
         <code className="block rounded-lg bg-background px-3 py-2 font-mono text-xs text-foreground">
           {RESET_COMMAND}
         </code>
         <p>
-          It removes every passkey and sign-in, then prints a new setup link. Your funkos stay exactly where they are.
+          It removes every passkey, password and sign-in, then prints a new setup link. Your funkos stay exactly where
+          they are.
         </p>
       </div>
     </details>

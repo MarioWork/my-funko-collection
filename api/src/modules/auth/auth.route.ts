@@ -11,7 +11,9 @@ import {
   PasskeyListResponseSchema,
   PasskeyParamsSchema,
   PasskeyResponseSchema,
+  PasswordSignInSchema,
   RegistrationOptionsResponseSchema,
+  SetPasswordSchema,
   SetupOptionsSchema,
   SetupVerifySchema,
   SignInVerifySchema,
@@ -29,6 +31,8 @@ import {
   getSetupOptions,
   getSignInOptions,
   addSession,
+  addPasswordSession,
+  setPassword,
   type AuthSession,
 } from './auth.service.ts';
 
@@ -37,6 +41,8 @@ const TAGS = ['auth'];
 // Each passkey attempt is two requests (options, then verify): ten a minute is five attempts per device.
 const CEREMONY_RATE_LIMIT = { max: 10, timeWindow: '1 minute' };
 const PUBLIC_CEREMONY_CONFIG = { isPublic: true, rateLimit: CEREMONY_RATE_LIMIT };
+// Password tries per address: enough for a few typos, far too few to guess a 15-character password. No lockout.
+const PASSWORD_RATE_LIMIT = { max: 5, timeWindow: '1 minute' };
 
 // Signing out also drops what this browser cached from the app (the images are cached privately). Not "cookies":
 // that would clear every cookie of the whole registrable domain (other home apps), not just this host's.
@@ -162,6 +168,31 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   );
 
+  app.post(
+    '/login/password',
+    {
+      config: { isPublic: true, rateLimit: PASSWORD_RATE_LIMIT },
+      schema: {
+        tags: TAGS,
+        summary: 'Sign in with a username and password: a new session replaces any old one in this browser',
+        body: PasswordSignInSchema,
+        response: {
+          403: ErrorResponseSchema,
+          200: SignedInResponseSchema,
+          400: ErrorResponseSchema,
+          401: ErrorResponseSchema,
+          429: ErrorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { token, result } = await addPasswordSession(request.body, request.session);
+      setSessionCookie(reply, token);
+
+      return result;
+    },
+  );
+
   // Public on purpose: an expired or unknown cookie still gets cleared, with the cached images.
   app.post(
     '/logout',
@@ -193,6 +224,29 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       await deleteAllSessions(requireSession(request.session));
       clearSessionCookie(reply);
+
+      return reply.code(204).send();
+    },
+  );
+
+  app.put(
+    '/password',
+    {
+      schema: {
+        tags: TAGS,
+        summary: 'Set or change the username and password (needs a recent sign-in; ends other password sessions)',
+        body: SetPasswordSchema,
+        response: {
+          204: z.undefined(),
+          400: ErrorResponseSchema,
+          401: ErrorResponseSchema,
+          403: ErrorResponseSchema,
+          409: ErrorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      await setPassword(requireSession(request.session), request.body);
 
       return reply.code(204).send();
     },

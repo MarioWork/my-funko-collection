@@ -12,7 +12,10 @@ import authService, { AuthApiErrorCodes } from './authService';
 
 describe('getStatus', () => {
   it('returns the signed-in user', async () => {
-    expect(await authService.getStatus()).toEqual({ state: AuthStateUtil.SIGNED_IN, user: { name: 'Mario' } });
+    expect(await authService.getStatus()).toEqual({
+      state: AuthStateUtil.SIGNED_IN,
+      user: { name: 'Mario', username: null },
+    });
   });
 
   it('returns only the state when nobody is signed in', async () => {
@@ -62,8 +65,11 @@ describe('finishSetup', () => {
       passkeyName: 'Pixel',
     });
 
-    expect(result).toEqual({ success: true, data: { user: { name: 'Ana' } } });
-    expect(await authService.getStatus()).toEqual({ state: AuthStateUtil.SIGNED_IN, user: { name: 'Ana' } });
+    expect(result).toEqual({ success: true, data: { user: { name: 'Ana', username: null } } });
+    expect(await authService.getStatus()).toEqual({
+      state: AuthStateUtil.SIGNED_IN,
+      user: { name: 'Ana', username: null },
+    });
   });
 
   it('returns the 401 envelope for a wrong code', async () => {
@@ -106,7 +112,7 @@ describe('finishLogin', () => {
 
     const result = await authService.finishLogin({ response: createAuthenticationResponseMockModel() });
 
-    expect(result).toEqual({ success: true, data: { user: { name: 'Mario' } } });
+    expect(result).toEqual({ success: true, data: { user: { name: 'Mario', username: null } } });
     expect(mockStore.auth.state).toBe(AuthStateUtil.SIGNED_IN);
   });
 
@@ -118,6 +124,61 @@ describe('finishLogin', () => {
     expect(result).toMatchObject({
       success: false,
       error: { statusCode: 401, code: AuthApiErrorCodes.SIGN_IN_FAILED },
+    });
+  });
+});
+
+describe('signInWithPassword', () => {
+  it('posts the username and password and signs in', async () => {
+    setMockAuthState(AuthStateUtil.SIGNED_OUT);
+    Object.assign(mockStore.auth, { username: 'mario', password: 'shelves full of tiny heads' });
+    let receivedBody: unknown;
+    server.use(
+      http.post(`${TEST_BASE_API_URL}/auth/login/password`, async ({ request }) => {
+        receivedBody = await request.clone().json();
+      }),
+    );
+
+    const result = await authService.signInWithPassword({ username: 'Mario', password: 'shelves full of tiny heads' });
+
+    expect(receivedBody).toEqual({ username: 'Mario', password: 'shelves full of tiny heads' });
+    expect(result).toEqual({ success: true, data: { user: { name: 'Mario', username: 'mario' } } });
+  });
+
+  it('returns the 401 envelope when the password is wrong', async () => {
+    setMockAuthState(AuthStateUtil.SIGNED_OUT);
+    Object.assign(mockStore.auth, { username: 'mario', password: 'shelves full of tiny heads' });
+
+    const result = await authService.signInWithPassword({ username: 'mario', password: 'not the password at all' });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { statusCode: 401, code: AuthApiErrorCodes.SIGN_IN_FAILED },
+    });
+  });
+});
+
+describe('setPassword', () => {
+  it('puts the username and password', async () => {
+    let receivedBody: unknown;
+    server.use(
+      http.put(`${TEST_BASE_API_URL}/auth/password`, async ({ request }) => {
+        receivedBody = await request.clone().json();
+      }),
+    );
+
+    const result = await authService.setPassword({ username: 'mario', password: 'shelves full of tiny heads' });
+
+    expect(receivedBody).toEqual({ username: 'mario', password: 'shelves full of tiny heads' });
+    expect(result.success).toBe(true);
+  });
+
+  it('returns the 400 envelope when the password is too common', async () => {
+    const result = await authService.setPassword({ username: 'mario', password: 'Password12345678' });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { statusCode: 400, code: AuthApiErrorCodes.COMMON_PASSWORD },
     });
   });
 });

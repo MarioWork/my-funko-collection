@@ -75,7 +75,7 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 | `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                  |
 | `collection_item_tags` | Item ↔ tag                                                                                      |
 | `tags`                 | A free label on an item, mainly the storage box ("Box 3")                                       |
-| `users`                | The one person who signs in: name and WebAuthn user handle                                      |
+| `users`                | The person who signs in: name, WebAuthn user handle, lower-case username and argon2id hash      |
 | `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device)              |
 | `sessions`             | A signed-in browser: SHA-256 of the cookie token, how it signed in, sign-in and last-seen times |
 | `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                             |
@@ -90,8 +90,9 @@ Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A get
 
 ## Sign-in
 
-Passkeys only, for one person. Every route needs a
-session except `/health`, `/ready`, `GET /auth/status` and the four setup / login ceremony routes, which say so with
+A passkey or a username and password, for one person (`docs/adr/0002-passwords-next-to-passkeys.md`). Every route
+needs a session except `/health`, `/ready`, `GET /auth/status`, the four setup / login ceremony routes and
+`POST /auth/login/password`, which say so with
 `config: { isPublic: true }`; the image files under `/uploads` need one too. `src/plugins/auth.plugin.ts` holds the
 check, locked by default, and `auth.route.test.ts` calls every route in the OpenAPI document without a cookie.
 
@@ -100,14 +101,20 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
 - **Session.** A random 256-bit token in an `HttpOnly`, `SameSite=Strict`, `Path=/` cookie (`__Host-session` over
   https, `session` on the plain-http dev server); the database keeps its SHA-256. It lasts 30 days from the sign-in,
   ends after 7 days unused, and a new one replaces the browser's old one at every sign-in. It records how it was
-  opened (`PASSKEY` today, `PASSWORD` later); only a passkey session points at its passkey.
+  opened (`PASSKEY` or `PASSWORD`); only a passkey session points at its passkey.
 - **Passkeys.** `@simplewebauthn/server`: discoverable, user verification required, no attestation (any passkey
   manager works, Bitwarden included). Adding or removing one needs a sign-in from the last 10 minutes; the last one can't go, and
   removing one ends every session it opened.
+- **Password.** Set or changed in Settings (`PUT /auth/password`, with the username), which needs a sign-in from the
+  last 10 minutes and ends every other session a password opened. At least 15 characters, no character-mix rules,
+  refused when it is on the built-in common list (`assets/common-passwords.txt`, case ignored, no outside service).
+  Stored only as an argon2id hash (`src/lib/passwordHash.ts`, Node's own `crypto.argon2`, 19 MiB, 2 passes).
+  Usernames are 3–32 letters, digits, `.`, `-` or `_`, compared lower-case. A wrong username, a wrong password and
+  a user with no password all get the same 401 `SIGN_IN_FAILED`, after the same hashing time.
 - **Cross-site writes.** Any non-GET request whose `Sec-Fetch-Site` is not `same-origin`/`none`, or whose `Origin`
   is not `APP_ORIGIN`, answers 403 `CROSS_SITE_REQUEST`.
-- **Limits.** The ceremony routes allow 10 requests a minute per address (5 attempts). There is no lockout someone
-  else could trigger: a passkey can't be guessed.
+- **Limits.** The ceremony routes allow 10 requests a minute per address (5 attempts); password sign-in allows 5.
+  There is no lockout: anyone could trigger one against the owner.
 - **Locked out.** `docker compose exec api node dist/cli/resetAuth.js` removes every passkey and session and prints a new setup
   link (`yarn auth:reset` in dev). The collection is not touched.
 
@@ -116,7 +123,7 @@ API answers carry `Cache-Control: no-store`; image files `private, max-age=31536
 ## Endpoints
 
 Interactive docs with every schema: `GET /docs` (dev only). Auth: `GET /auth/status`, `POST /auth/setup/{options,verify}`,
-`POST /auth/login/{options,verify}`, `POST /auth/logout`, `POST /auth/logout-everywhere`, `GET|POST /auth/passkeys`
+`POST /auth/login/{options,verify,password}`, `PUT /auth/password`, `POST /auth/logout`, `POST /auth/logout-everywhere`, `GET|POST /auth/passkeys`
 (`/options`, `/verify`), `DELETE /auth/passkeys/:passkeyId`. Every list endpoint takes `page` (1-based), `size`
 (max 100), `sorting_fields` and `direction` (`ASC` | `DESC`) and answers `{ data, totalResultNumber, currentPage }`.
 Text filters are case-insensitive "contains"; id filters take a comma-separated list.
@@ -184,17 +191,18 @@ Item list filters: `name`, `funkoId`, `tagId`, `categoryId`, `seriesId`, `condit
 
 One envelope: `{ code, message, issues?, existingId? }`.
 
-| Status | `code`                                                   | When                                                                |
-| ------ | -------------------------------------------------------- | ------------------------------------------------------------------- |
-| 400    | `VALIDATION_ERROR`                                       | Bad body or query; `issues` lists `{ path, message }`               |
-| 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                    |
-| 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A passkey ceremony or setup code failed                             |
-| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; removing a passkey needs a fresh sign-in |
-| 404    | `NOT_FOUND`                                              |                                                                     |
-| 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin      |
-| 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                      |
-| 413    | `PAYLOAD_TOO_LARGE`                                      | Image over `MAX_IMAGE_BYTES`                                        |
-| 429    |                                                          | Rate limit (600 requests a minute per client)                       |
+| Status | `code`                                                   | When                                                                          |
+| ------ | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 400    | `VALIDATION_ERROR`                                       | Bad body or query; `issues` lists `{ path, message }`                         |
+| 400    | `COMMON_PASSWORD`                                        | The new password is on the common-password list                               |
+| 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                              |
+| 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                              |
+| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey or password change needs a fresh sign-in |
+| 404    | `NOT_FOUND`                                              |                                                                               |
+| 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin                |
+| 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                                |
+| 413    | `PAYLOAD_TOO_LARGE`                                      | Image over `MAX_IMAGE_BYTES`                                                  |
+| 429    |                                                          | Rate limit (600 requests a minute per client)                                 |
 
 ## Images
 
@@ -213,9 +221,11 @@ src/
   cli/                    one-off scripts (images:prune, auth:reset)
   generated/prisma/       the Prisma client (generated, git-ignored)
   lib/                    Prisma client, database errors, LIKE patterns and SQL fragments, error handler,
-                          pagination, ids, query params, image storage, remote fetch, barcode
+                          pagination, ids, query params, image storage, remote fetch, barcode, password hashing
   modules/<resource>/     <resource>.route.ts, .schema.ts, .service.ts, .repository.ts, .route.test.ts
   plugins/                prisma, auth (the sign-in check) and uploads (multipart in, static files out)
+assets/
+  common-passwords.txt    common passwords of 15+ characters, refused as a new password (from SecLists)
 prisma/
   schema.prisma           the models
   migrations/             SQL migrations (committed; the first one adds the rules Prisma cannot declare)

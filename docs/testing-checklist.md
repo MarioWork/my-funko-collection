@@ -33,7 +33,7 @@ covers what only a person notices: how it looks, feels, reads and recovers.
 - [ ] The first load shows the logo and a spinner (only if it is slow), never a blank page.
 - [ ] Opening the bare address goes straight to Home.
 
-### Signing in (passkeys)
+### Signing in
 
 - [ ] On an empty database the app asks for the setup link the server printed; without it, no one can set up.
 - [ ] The setup link creates the first passkey (Face ID, Touch ID, Windows Hello, a phone, or a password manager
@@ -42,9 +42,15 @@ covers what only a person notices: how it looks, feels, reads and recovers.
 - [ ] Signed out, every page goes to the sign-in page, and after signing in you land on the page you asked for.
 - [ ] _Settings → Security_ lists the passkeys; another one can be added (after confirming with an existing one),
       and one can be removed (never the last).
+- [ ] _Settings → Security → Set a password_ saves a username and password (after confirming it's you if the sign-in
+      is old). Under 15 characters, or a common one like `Password12345678`, is refused on the field.
+- [ ] The login page signs in with that username (any case) and password; a password manager fills the form and
+      offers to save the new password. A wrong username or password gets the same message; five wrong tries in a
+      minute are slowed down, never locked.
+- [ ] Changing the password signs out the other browsers that used the old one; passkey sign-ins stay.
 - [ ] _Sign out_ ends this browser's session; _Sign out everywhere_ ends all of them.
-- [ ] Locked out: `yarn auth:reset` (or the README's container command) removes every passkey and prints a new
-      setup link; the collection itself is untouched.
+- [ ] Locked out: `yarn auth:reset` (or the README's container command) removes every passkey and password
+      and prints a new setup link; the collection itself is untouched.
 
 ## 2. Navigation
 

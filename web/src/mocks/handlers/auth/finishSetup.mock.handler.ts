@@ -40,12 +40,14 @@ export default (baseUrl: string) => [
     mockStore.auth = {
       state: AuthStateUtil.SIGNED_IN,
       userName: name,
+      username: null,
+      password: null,
       isSignInRecent: true,
       passkeys: [
         { id: response.id, name: passkeyName ?? FIRST_PASSKEY_NAME, isSynced: true, createdAt, lastUsedAt: createdAt },
       ],
     };
 
-    return HttpResponse.json<AuthSessionApiModel>({ user: { name } });
+    return HttpResponse.json<AuthSessionApiModel>({ user: { name, username: null } });
   }),
 ];

@@ -1,7 +1,7 @@
 import type { AuthChallengePurpose, Prisma } from '../../generated/prisma/client.ts';
 import { deletedIdOrUndefined, ID_SELECT, prisma, type DbExecutor } from '../../lib/prisma.ts';
 
-const USER_SELECT = { id: true, name: true, webauthnUserId: true } as const satisfies Prisma.UserSelect;
+const USER_SELECT = { id: true, name: true, username: true, webauthnUserId: true } as const satisfies Prisma.UserSelect;
 
 const PASSKEY_SELECT = {
   id: true,
@@ -21,8 +21,10 @@ const SESSION_SELECT = {
   userId: true,
   signedInAt: true,
   lastSeenAt: true,
-  user: { select: { name: true } },
+  user: { select: { name: true, username: true } },
 } as const satisfies Prisma.SessionSelect;
+
+const PASSWORD_USER_SELECT = { ...USER_SELECT, passwordHash: true } as const satisfies Prisma.UserSelect;
 
 const CHALLENGE_SELECT = { challenge: true, webauthnUserId: true } as const satisfies Prisma.AuthChallengeSelect;
 
@@ -50,6 +52,13 @@ type CompletedSetup = {
   session: NewSessionTimes;
 };
 
+type CompletedPasswordSignIn = {
+  previousTokenHash: string | undefined;
+  session: NewSession;
+};
+
+type NewPassword = { userId: number; username: string; passwordHash: string; keepTokenHash: string };
+
 type CompletedSignIn = {
   passkeyId: number;
   passkeyUse: PasskeyUse;
@@ -76,7 +85,7 @@ async function findSession(tokenHash: string) {
 
   const { user, ...times } = session;
 
-  return { ...times, userName: user.name };
+  return { ...times, userName: user.name, username: user.username };
 }
 
 async function findPasskey(credentialId: string) {
@@ -137,6 +146,25 @@ export const authRepository = {
 
   findPasskey,
 
+  // Usernames are stored lower-case, so the caller lower-cases what was typed.
+  findUserByUsername: async (username: string) =>
+    (await prisma.user.findUnique({ where: { username }, select: PASSWORD_USER_SELECT })) ?? undefined,
+
+  // A new password ends every other session a password opened (one may have used the old password), all or
+  // nothing. Passkey sessions stay: a leaked password could not have opened them. A taken username throws the
+  // unique-violation error, which the caller maps.
+  setPassword: (password: NewPassword): Promise<void> =>
+    prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: password.userId },
+        data: { username: password.username, passwordHash: password.passwordHash },
+        select: ID_SELECT,
+      });
+      await tx.session.deleteMany({
+        where: { userId: password.userId, signInMethod: 'PASSWORD', tokenHash: { not: password.keepTokenHash } },
+      });
+    }),
+
   listPasskeys: (userId: number) =>
     prisma.passkey.findMany({
       where: { userId },
@@ -196,6 +224,14 @@ export const authRepository = {
       await tx.setupCode.deleteMany();
 
       return user;
+    }),
+
+  // A password sign-in: the old session of this browser (if any) out, the new one in.
+  completePasswordSignIn: (signIn: CompletedPasswordSignIn): Promise<void> =>
+    prisma.$transaction(async (tx) => {
+      if (signIn.previousTokenHash) await deleteSession(signIn.previousTokenHash, tx);
+
+      await tx.session.create({ data: signIn.session, select: ID_SELECT });
     }),
 
   // A sign-in: the passkey's new counter, the old session of this browser (if any) out, the new one in.

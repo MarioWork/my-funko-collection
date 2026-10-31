@@ -7,6 +7,7 @@ export const DISABLED_REASONS = {
   UPLOADING: 'Uploading the images, one moment.',
   PASSKEY_UNSUPPORTED: "This browser can't use passkeys.",
   PASSKEY_WAITING: 'Waiting for your passkey, one moment.',
+  SIGNING_IN: 'Signing in, one moment.',
 } as const;
 
 // The reason while `isBusy`, nothing otherwise: `disabledReason={reasonWhen(isSubmitting, DISABLED_REASONS.SAVING)}`.

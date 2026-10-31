@@ -93,6 +93,7 @@ export const AUTH_ROUTES_PATHS = {
   SIGN_OUT: '/sign-out',
   SIGN_OUT_EVERYWHERE: '/sign-out-everywhere',
   PASSKEYS: '/settings/passkeys',
+  PASSWORD: '/settings/password',
   passkey: (passkeyId?: string) => (passkeyId ? `/settings/passkeys/${passkeyId}` : '/settings/passkeys/:passkeyId'),
 };
 
