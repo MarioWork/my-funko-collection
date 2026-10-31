@@ -12,6 +12,7 @@ import { imageRoutes } from './featureRoutes/imageRoutes';
 import { itemRoutes } from './featureRoutes/itemRoutes';
 import { seriesRoutes } from './featureRoutes/seriesRoutes';
 import { tagRoutes } from './featureRoutes/tagRoutes';
+import { userRoutes } from './featureRoutes/userRoutes';
 import { APP_SHELL_ROUTE_ID, BASE_ROUTES_PATHS, defaultRedirectRoute } from './routesUtils';
 
 const routes: RouteObject[] = [
@@ -55,6 +56,7 @@ const routes: RouteObject[] = [
           ...seriesRoutes,
           ...tagRoutes,
           ...imageRoutes,
+          ...userRoutes,
           ...securityRoutes,
         ],
       },

@@ -14,7 +14,7 @@ describe('getStatus', () => {
   it('returns the signed-in user', async () => {
     expect(await authService.getStatus()).toEqual({
       state: AuthStateUtil.SIGNED_IN,
-      user: { name: 'Mario', username: null, role: UserRoleUtil.ADMIN },
+      user: { name: 'Mario', username: null, role: UserRoleUtil.ADMIN, mustChangePassword: false },
     });
   });
 
@@ -67,11 +67,11 @@ describe('finishSetup', () => {
 
     expect(result).toEqual({
       success: true,
-      data: { user: { name: 'Ana', username: null, role: UserRoleUtil.ADMIN } },
+      data: { user: { name: 'Ana', username: null, role: UserRoleUtil.ADMIN, mustChangePassword: false } },
     });
     expect(await authService.getStatus()).toEqual({
       state: AuthStateUtil.SIGNED_IN,
-      user: { name: 'Ana', username: null, role: UserRoleUtil.ADMIN },
+      user: { name: 'Ana', username: null, role: UserRoleUtil.ADMIN, mustChangePassword: false },
     });
   });
 
@@ -117,7 +117,7 @@ describe('finishLogin', () => {
 
     expect(result).toEqual({
       success: true,
-      data: { user: { name: 'Mario', username: null, role: UserRoleUtil.ADMIN } },
+      data: { user: { name: 'Mario', username: null, role: UserRoleUtil.ADMIN, mustChangePassword: false } },
     });
     expect(mockStore.auth.state).toBe(AuthStateUtil.SIGNED_IN);
   });
@@ -150,7 +150,7 @@ describe('signInWithPassword', () => {
     expect(receivedBody).toEqual({ username: 'Mario', password: 'shelves full of tiny heads' });
     expect(result).toEqual({
       success: true,
-      data: { user: { name: 'Mario', username: 'mario', role: UserRoleUtil.ADMIN } },
+      data: { user: { name: 'Mario', username: 'mario', role: UserRoleUtil.ADMIN, mustChangePassword: false } },
     });
   });
 

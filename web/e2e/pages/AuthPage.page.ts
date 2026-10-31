@@ -1,10 +1,11 @@
 import type { Locator, Page } from '@playwright/test';
 import { AUTH_ROUTES_PATHS, AUTH_SEARCH_PARAMS } from '../../src/application/routes/routesUtils';
 
-// The two pages outside the app shell: the first run (/setup) and the login page.
+// The pages outside the app shell: the first run (/setup), the login page and "choose your password".
 export class AuthPage {
   readonly setupHeading: Locator;
   readonly loginHeading: Locator;
+  readonly setPasswordHeading: Locator;
 
   private readonly page: Page;
 
@@ -12,6 +13,7 @@ export class AuthPage {
     this.page = page;
     this.setupHeading = page.getByRole('heading', { level: 1, name: "Let's get you set up!" });
     this.loginHeading = page.getByRole('heading', { level: 1, name: 'Welcome back!' });
+    this.setPasswordHeading = page.getByRole('heading', { level: 1, name: 'Choose your password' });
   }
 
   async gotoSetup(code: string) {
@@ -31,6 +33,13 @@ export class AuthPage {
     await form.getByLabel('Username').fill(username);
     await form.getByLabel('Password').fill(password);
     await form.getByRole('button', { name: 'Sign in with password' }).click();
+  }
+
+  // The page a temporary-password sign-in lands on.
+  async chooseOwnPassword(password: string) {
+    const form = this.page.getByRole('form', { name: 'Choose your password' });
+    await form.getByLabel('New password').fill(password);
+    await form.getByRole('button', { name: 'Save and open my collection' }).click();
   }
 
   async signInWithPasskey() {

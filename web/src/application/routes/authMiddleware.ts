@@ -1,6 +1,7 @@
 import { redirect, type DataStrategyResult, type MiddlewareFunction } from 'react-router';
-import { isAdminOnlyFailure, isUnauthorizedFailure } from '@api/axiosActions';
+import { isAdminOnlyFailure, isPasswordChangeFailure, isUnauthorizedFailure } from '@api/axiosActions';
 import { loginPathFor, returnPathOf } from '@utils/authRedirectUtils';
+import { AUTH_ROUTES_PATHS } from './routesUtils';
 import { forgetSignedInUser } from './signedInUserMiddleware';
 
 type RouteResults = Record<string, DataStrategyResult>;
@@ -9,12 +10,22 @@ function isRouteResults(value: unknown): value is RouteResults {
   return typeof value === 'object' && value !== null;
 }
 
-function hasUnauthorizedResult(results: RouteResults): boolean {
-  return Object.values(results).some((routeResult) => isUnauthorizedFailure(routeResult?.result));
+type FailureCheck = (value: unknown) => boolean;
+
+function hasResult(results: RouteResults, isFailure: FailureCheck): boolean {
+  return Object.values(results).some((routeResult) => isFailure(routeResult?.result));
 }
 
-function hasAdminOnlyResult(results: RouteResults): boolean {
-  return Object.values(results).some((routeResult) => isAdminOnlyFailure(routeResult?.result));
+// Every route whose result is that failure gets a redirect to `path` instead; the others keep their result.
+function redirectEach(results: RouteResults, isFailure: FailureCheck, path: string): RouteResults {
+  const entries = Object.entries(results).map(([routeId, routeResult]) => {
+    if (!isFailure(routeResult?.result)) return [routeId, routeResult];
+
+    // One Response per route: the router rewrites a redirect's Location header in place.
+    return [routeId, { type: 'data', result: redirect(path) }];
+  });
+
+  return Object.fromEntries(entries) as RouteResults;
 }
 
 // Root middleware: the one place a lost session is noticed. It lets every loader and action run, then turns each
@@ -27,20 +38,19 @@ export const authMiddleware: MiddlewareFunction = async ({ request }, next) => {
   if (!isRouteResults(results)) return results;
 
   // The API refused an admin-only call: the user is no longer an admin, so the next request asks who they are again.
-  if (hasAdminOnlyResult(results)) forgetSignedInUser();
+  if (hasResult(results, isAdminOnlyFailure)) forgetSignedInUser();
 
-  if (!hasUnauthorizedResult(results)) return results;
+  // The API wants the temporary password replaced first: there, and nowhere else.
+  if (hasResult(results, isPasswordChangeFailure)) {
+    forgetSignedInUser();
+
+    return redirectEach(results, isPasswordChangeFailure, AUTH_ROUTES_PATHS.SET_PASSWORD);
+  }
+
+  if (!hasResult(results, isUnauthorizedFailure)) return results;
 
   // The session is gone: whoever signs in next is asked for again.
   forgetSignedInUser();
 
-  const loginPath = loginPathFor(returnPathOf(request));
-  const entries = Object.entries(results).map(([routeId, routeResult]) => {
-    if (!isUnauthorizedFailure(routeResult?.result)) return [routeId, routeResult];
-
-    // One Response per route: the router rewrites a redirect's Location header in place.
-    return [routeId, { type: 'data', result: redirect(loginPath) }];
-  });
-
-  return Object.fromEntries(entries) as RouteResults;
+  return redirectEach(results, isUnauthorizedFailure, loginPathFor(returnPathOf(request)));
 };
