@@ -75,13 +75,13 @@ describe('PUT /auth/password', () => {
     const response = await setPassword(api, { username: ' Mario ', password: PASSWORD });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ user: { name: 'Tester', username: USERNAME } });
+    expect(response.json()).toEqual({ user: { name: 'Tester', username: USERNAME, role: 'ADMIN' } });
     const user = await prisma.user.findFirstOrThrow({ select: { username: true, passwordHash: true } });
     expect(user.username).toBe(USERNAME);
     expect(user.passwordHash).toMatch(/^\$argon2id\$/);
     expect(user.passwordHash).not.toContain(PASSWORD);
     const status = await api.inject({ method: 'GET', url: `${URL}/status` });
-    expect(status.json()).toEqual({ state: 'signedIn', user: { name: 'Tester', username: USERNAME } });
+    expect(status.json()).toEqual({ state: 'signedIn', user: { name: 'Tester', username: USERNAME, role: 'ADMIN' } });
   });
 
   it('returns 400 when the password is shorter than 15 characters', async () => {
@@ -162,7 +162,7 @@ describe('POST /auth/login/password', () => {
     const response = await signInWithPassword({ username: 'MARIO', password: PASSWORD }, { token: api.token });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ user: { name: 'Tester', username: USERNAME } });
+    expect(response.json()).toEqual({ user: { name: 'Tester', username: USERNAME, role: 'ADMIN' } });
     const newToken = tokenOf(response.headers['set-cookie']);
     expect((await getTags(newToken)).statusCode).toBe(200);
     expect((await getTags(api.token)).statusCode).toBe(401);

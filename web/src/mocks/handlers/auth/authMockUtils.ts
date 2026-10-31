@@ -1,5 +1,6 @@
 import { UNAUTHORIZED_ERROR_CODE } from '@api/axiosActions';
-import { errorResponse, FORBIDDEN_STATUS, UNAUTHORIZED_STATUS } from '@mocks/mockResponses';
+import { errorResponse } from '@mocks/mockResponses';
+import { FORBIDDEN_STATUS, UNAUTHORIZED_STATUS } from '@utils/httpStatusUtils';
 import { mockStore } from '@mocks/mockStore';
 import type { AuthUserApiModel } from '@app-types/models';
 import type { MockAuth } from '@mocks/mockStore.type';
@@ -36,8 +37,8 @@ export function rpIdOf(request: Request): string {
 }
 
 // The user as the API describes them in a sign-in or status answer.
-export function mockUserOf({ userName, username }: MockAuth): AuthUserApiModel {
-  return { name: userName, username };
+export function mockUserOf({ userName, username, role }: MockAuth): AuthUserApiModel {
+  return { name: userName, username, role };
 }
 
 export const unauthorized = (): Response =>

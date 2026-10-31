@@ -1,6 +1,8 @@
 import { renderRoutes, screen, userEvent, waitFor, within } from '@test-utils';
 import { categoryRoutes } from '@application/routes/featureRoutes/categoryRoutes';
 import { CATEGORY_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { UserRoleUtil } from '@app-types/utility';
+import { setMockUserRole } from '@mocks/mockStore';
 
 const renderPage = () => renderRoutes(categoryRoutes, { initialEntries: [CATEGORY_ROUTES_PATHS.BASE] });
 
@@ -98,4 +100,15 @@ it('exports every category from the header, with their funkos once the switch is
     'href',
     expect.stringMatching(/\/export\/categories\.json\?includeFunkos=true$/),
   );
+});
+
+it('shows the categories read-only, with no New, rename or delete, to a member', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  renderPage();
+
+  expect(await screen.findByText('Pop! Marvel')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Export Pop! Marvel' })).toBeVisible();
+  expect(screen.queryByRole('link', { name: 'New category' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Rename/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Delete/ })).not.toBeInTheDocument();
 });

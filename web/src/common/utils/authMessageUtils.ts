@@ -2,8 +2,7 @@ import type { ApiError } from '@app-types/models';
 import { PasskeyCeremonyFailureUtil, type AuthFailureMessagesUtil } from '@app-types/utility';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
-
-const TOO_MANY_REQUESTS_STATUS = 429;
+import { TOO_MANY_REQUESTS_STATUS } from '@utils/httpStatusUtils';
 
 // What every passkey step can run into, whichever page it is on. Pages add or override their own.
 const COMMON_AUTH_FAILURE_MESSAGES: AuthFailureMessagesUtil = {

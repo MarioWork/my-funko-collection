@@ -5,10 +5,13 @@ import { CATEGORY_ROUTES_PATHS } from '@application/routes/routesUtils';
 import type { ManageRow } from '@components/ManageList';
 import ManageListPage from '@components/ManageListPage';
 import { PAGE_ICONS } from '@utils/navigationUtils';
+import { useIsAdmin } from '@hooks/useIsAdmin';
 import type { loader } from './categoryListLoader';
 
 // The row's meta line for one that nothing uses yet.
 const NOT_USED_META = 'Not used yet';
+const ADMIN_EMPTY_DESCRIPTION = 'Add the first line; new funkos pick from this list.';
+const MEMBER_EMPTY_DESCRIPTION = 'An admin adds the lines; they show up here.';
 
 function toRow(category: CategoryApiModel): ManageRow {
   const isInUse = category.funkoCount > 0;
@@ -27,6 +30,7 @@ function toRow(category: CategoryApiModel): ManageRow {
 
 function CategoryList() {
   const { categories } = useLoaderData<LoaderDataUtil<typeof loader>>();
+  const isAdmin = useIsAdmin();
 
   return (
     <ManageListPage
@@ -41,7 +45,8 @@ function CategoryList() {
       rowPath={CATEGORY_ROUTES_PATHS.update}
       addPath={CATEGORY_ROUTES_PATHS.ADD}
       emptyTitle="No categories yet"
-      emptyDescription="Add the first line; new funkos pick from this list."
+      emptyDescription={isAdmin ? ADMIN_EMPTY_DESCRIPTION : MEMBER_EMPTY_DESCRIPTION}
+      canEdit={isAdmin}
     />
   );
 }

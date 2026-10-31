@@ -2,6 +2,7 @@ import { Navigate, type RouteObject } from 'react-router';
 import AppLoading from '@application/layout/AppLoading';
 import RouteError from '@pages/Error/RouteError';
 import { authMiddleware } from './authMiddleware';
+import { signedInUserMiddleware } from './signedInUserMiddleware';
 import { addRoutes } from './featureRoutes/addRoutes';
 import { authRoutes, securityRoutes } from './featureRoutes/authRoutes';
 import { categoryRoutes } from './featureRoutes/categoryRoutes';
@@ -24,9 +25,10 @@ const routes: RouteObject[] = [
     children: [
       ...authRoutes,
       {
-        // Every app page needs a signed-in user: the shell's loader checks once, then sends the user to the first
-        // run or the login page if needed.
+        // Every app page needs a signed-in user: the middleware checks once, sends anyone else to the first run or
+        // the login page, and puts the user in the router context for every loader and action below.
         id: APP_SHELL_ROUTE_ID,
+        middleware: [signedInUserMiddleware],
         lazy: () => import('@application/layout/AppShell/AppShell.route'),
         children: [
           {

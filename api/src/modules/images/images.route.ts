@@ -10,6 +10,7 @@ export const imagesRoutes: FastifyPluginAsyncZod = async (app) => {
     '/',
     {
       prefixTrailingSlash: 'no-slash',
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'List every stored image, including files no funko uses',
@@ -23,6 +24,7 @@ export const imagesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/groups',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: "The same images grouped by funko, with each group's count and total size (loose files last)",

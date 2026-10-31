@@ -4,6 +4,7 @@ import type {
   AuthStateUtil as AuthState,
   FunkoTypeUtil as FunkoType,
   ItemConditionUtil as ItemCondition,
+  UserRoleUtil as UserRole,
 } from '@app-types/utility';
 
 export type MockRowWithId = { id: number };
@@ -51,11 +52,13 @@ export type MockItemRow = {
 export type MockPasskeyRow = PasskeyApiModel;
 // The one user and this browser's session. `isSignInRecent`: signed in within the last 10 minutes, which changing a
 // passkey or the password needs (the API answers 403 REAUTH_REQUIRED otherwise). `username` and `password` stay null
-// until a password is set; the mocks keep the password as typed (the API keeps only an argon2id hash).
+// until a password is set; the mocks keep the password as typed (the API keeps only an argon2id hash). `role`:
+// an admin by default, a member through setMockUserRole() (the admin-only routes then answer 403 ADMIN_ONLY).
 export type MockAuth = {
   state: AuthState;
   userName: string;
   username: string | null;
+  role: UserRole;
   password: string | null;
   isSignInRecent: boolean;
   passkeys: MockPasskeyRow[];

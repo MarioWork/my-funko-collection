@@ -6,6 +6,7 @@ import Lightbox from '@components/Lightbox';
 import PhotoThumbnail from '@components/PhotoThumbnail';
 import { reasonWhen } from '@utils/disabledReasonUtils';
 import ImageDownloadButton from '@components/ImageDownloadButton';
+import { useIsAdmin } from '@hooks/useIsAdmin';
 
 type Props = {
   funko: FunkoDetailApiModel;
@@ -21,12 +22,17 @@ type FrameProps = {
 
 const HERO_SIZES = '(min-width: 1024px) 480px, 100vw';
 const NO_PHOTO_REASON = 'No image yet. Use Edit to add one.';
+// A member has no Edit: only an admin adds images to the catalogue.
+const MEMBER_NO_PHOTO_REASON = 'No image yet. An admin can add one.';
 const MAIN_PHOTO_INDEX = 0;
 // The big frame: the shown image, a button that opens it full size, and its download button in the corner.
 function GalleryFrame({ funkoName, hero, heroIndex, imageCount, onOpen }: FrameProps) {
+  const isAdmin = useIsAdmin();
+  const noPhotoReason = isAdmin ? NO_PHOTO_REASON : MEMBER_NO_PHOTO_REASON;
+
   return (
     <div className="relative">
-      <DisabledReason reason={reasonWhen(!hero, NO_PHOTO_REASON)} mode="wrapper" wrapperClassName="flex w-full">
+      <DisabledReason reason={reasonWhen(!hero, noPhotoReason)} mode="wrapper" wrapperClassName="flex w-full">
         <button
           type="button"
           onClick={onOpen}

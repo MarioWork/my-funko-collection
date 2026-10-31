@@ -1,7 +1,20 @@
-import type { AuthChallengePurpose, Prisma } from '../../generated/prisma/client.ts';
+import type { AuthChallengePurpose, Prisma, UserRole as DbUserRole } from '../../generated/prisma/client.ts';
 import { deletedIdOrUndefined, ID_SELECT, prisma, type DbExecutor } from '../../lib/prisma.ts';
+import type { UserRole } from './auth.schema.ts';
 
-const USER_SELECT = { id: true, name: true, username: true, webauthnUserId: true } as const satisfies Prisma.UserSelect;
+// USER_ROLES (auth.schema.ts) and the Prisma `UserRole` enum must hold the same values: this fails to compile when
+// either side has a role the other lacks. The tuples stop TypeScript from checking each role on its own.
+type RolesMatch = [DbUserRole] extends [UserRole] ? ([UserRole] extends [DbUserRole] ? true : false) : false;
+const ROLES_MATCH: RolesMatch = true;
+void ROLES_MATCH;
+
+const USER_SELECT = {
+  id: true,
+  name: true,
+  username: true,
+  role: true,
+  webauthnUserId: true,
+} as const satisfies Prisma.UserSelect;
 
 const PASSKEY_SELECT = {
   id: true,
@@ -21,14 +34,14 @@ const SESSION_SELECT = {
   userId: true,
   signedInAt: true,
   lastSeenAt: true,
-  user: { select: { name: true, username: true } },
+  user: { select: { name: true, username: true, role: true } },
 } as const satisfies Prisma.SessionSelect;
 
 const PASSWORD_USER_SELECT = { ...USER_SELECT, passwordHash: true } as const satisfies Prisma.UserSelect;
 
 const CHALLENGE_SELECT = { challenge: true, webauthnUserId: true } as const satisfies Prisma.AuthChallengeSelect;
 
-type NewUser = Pick<Prisma.UserUncheckedCreateInput, 'name' | 'webauthnUserId'>;
+type NewUser = Pick<Prisma.UserUncheckedCreateInput, 'name' | 'role' | 'webauthnUserId'>;
 
 type NewPasskey = Omit<Prisma.PasskeyUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt' | 'sessions'>;
 
@@ -87,7 +100,7 @@ async function findSession(tokenHash: string) {
 
   const { user, ...times } = session;
 
-  return { ...times, userName: user.name, username: user.username };
+  return { ...times, userName: user.name, username: user.username, userRole: user.role };
 }
 
 async function findPasskey(credentialId: string) {
@@ -95,9 +108,8 @@ async function findPasskey(credentialId: string) {
 }
 
 export const authRepository = {
-  // There is one user at most; the app is single-person by design.
-  findUser: async (): Promise<UserRow | undefined> =>
-    (await prisma.user.findFirst({ select: USER_SELECT })) ?? undefined,
+  findUserById: async (id: number): Promise<UserRow | undefined> =>
+    (await prisma.user.findUnique({ where: { id }, select: USER_SELECT })) ?? undefined,
 
   countUsersWhoCanSignIn,
 

@@ -12,6 +12,7 @@ import {
   SERIES_ROUTES_PATHS,
   TAG_ROUTES_PATHS,
 } from '@application/routes/routesUtils';
+import { HttpVerbsUtil } from '@app-types/utility';
 
 // The router's basename without its trailing slash: '' when the app is served from the root.
 const BASE_PATH = (import.meta.env.VITE_PROJECT_PATH || BASE_ROUTES_PATHS.ROOT).replace(/\/$/, '');
@@ -30,6 +31,10 @@ const APP_PAGE_PATHS = [
   IMAGE_ROUTES_PATHS.BASE,
   TAG_ROUTES_PATHS.BASE,
 ];
+
+// HttpVerbsUtil has no HEAD: it is a read, like GET.
+const HEAD_METHOD = 'HEAD';
+const SAFE_METHODS: string[] = [HttpVerbsUtil.GET, HEAD_METHOD];
 
 function isAppPage(pathname: string): boolean {
   return APP_PAGE_PATHS.some((pagePath) => pathname === pagePath || pathname.startsWith(`${pagePath}/`));
@@ -55,6 +60,16 @@ export function safeRedirectPath(value: string | null | undefined): string {
   if (!isRootRelative || !isAppPage(pathname)) return defaultRedirectRoute;
 
   return value;
+}
+
+// Where to come back to after signing in. A page load or navigation asks for its own address. A write (a fetcher
+// submitting to an action route such as /tags/3) was made from the page on screen, so that page is the one to
+// return to.
+export function returnPathOf(request: Request): string {
+  const isNavigation = SAFE_METHODS.includes(request.method);
+  const pageUrl = isNavigation ? new URL(request.url) : new URL(window.location.href);
+
+  return appPathOf(pageUrl);
 }
 
 // The login page, remembering where to come back to (left out when that is just the start page).

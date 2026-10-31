@@ -6,6 +6,7 @@ import PageHeader from '@components/PageHeader';
 import { PAGE_ICONS } from '@utils/navigationUtils';
 import { useAddDestination } from '@hooks/useAddDestination';
 import { useGoBack } from '@hooks/useGoBack';
+import { useIsAdmin } from '@hooks/useIsAdmin';
 import { AddStepUtil } from './addUtils';
 import AddSteps from './components/AddSteps';
 import type { loader } from './addLoader';
@@ -25,6 +26,10 @@ const STEP_DESCRIPTIONS: Record<AddStepUtil, string> = {
   [AddStepUtil.SAVED]: 'On to the next one.',
 };
 
+// A member never gets the form (only an admin adds funkos): its step shows a notice instead.
+const MEMBER_FORM_TITLE = 'Not in the catalogue';
+const MEMBER_FORM_DESCRIPTION = 'Only an admin adds new funkos.';
+
 // Scan-first: viewfinder → found card (+1) or the form with the barcode filled in → saved card → next one.
 // Always a page of its own: /add opens on the scanner, /add/manual on the form. The collections and tags picked
 // are remembered for the next funko.
@@ -32,6 +37,7 @@ function Add() {
   const { collections, tags } = useLoaderData<LoaderDataUtil<typeof loader>>();
   const { pathname } = useLocation();
   const goBack = useGoBack();
+  const isAdmin = useIsAdmin();
   const isScanFirst = pathname === ADD_ROUTES_PATHS.BASE;
   const destinationState = useAddDestination({ collections, tags });
   const flow = useAddFlow({
@@ -46,14 +52,13 @@ function Add() {
     window.scrollTo({ top: 0 });
   }, [flow.step]);
 
+  const isMemberForm = !isAdmin && flow.step === AddStepUtil.FORM;
+  const title = isMemberForm ? MEMBER_FORM_TITLE : STEP_TITLES[flow.step];
+  const description = isMemberForm ? MEMBER_FORM_DESCRIPTION : STEP_DESCRIPTIONS[flow.step];
+
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        icon={PAGE_ICONS.FUNKOS}
-        title={STEP_TITLES[flow.step]}
-        description={STEP_DESCRIPTIONS[flow.step]}
-        onBack={goBack}
-      />
+      <PageHeader icon={PAGE_ICONS.FUNKOS} title={title} description={description} onBack={goBack} />
       <AddSteps flow={flow} destinationState={destinationState} collections={collections} />
     </div>
   );

@@ -45,6 +45,7 @@ export const seriesRoutes: FastifyPluginAsyncZod = async (app) => {
     '/',
     {
       prefixTrailingSlash: 'no-slash',
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Create a series',
@@ -62,6 +63,7 @@ export const seriesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.patch(
     '/:seriesId',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Update a series',
@@ -81,6 +83,7 @@ export const seriesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.delete(
     '/:seriesId',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Delete a series (its funkos keep existing, without a series)',

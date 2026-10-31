@@ -1,5 +1,7 @@
 import { renderRoutes, screen, within } from '@test-utils';
 import { BASE_ROUTES_PATHS, IMAGE_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { UserRoleUtil } from '@app-types/utility';
+import { setMockUserRole } from '@mocks/mockStore';
 import { funkosInOwnCollectionsPath } from '@utils/funkoLinkUtils';
 
 // The mock seed has 30 funkos in the catalogue, 20 of them in a collection, with two images each.
@@ -27,4 +29,14 @@ it('links the Funkos tile to the funkos in the user’s collections and the Imag
 
   expect(within(overview).getByRole('link', { name: 'Funkos' })).toHaveAttribute('href', funkosInOwnCollectionsPath());
   expect(within(overview).getByRole('link', { name: 'Images' })).toHaveAttribute('href', IMAGE_ROUTES_PATHS.BASE);
+});
+
+it('shows the Images tile without a link to a member, since the Images page is admin-only', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  renderRoutes(routes, { initialEntries: [BASE_ROUTES_PATHS.HOME] });
+
+  const overview = await screen.findByRole('region', { name: 'Overview' });
+
+  expect(overview).toHaveTextContent(`Images${OWN_IMAGE_COUNT}`);
+  expect(within(overview).queryByRole('link', { name: 'Images' })).not.toBeInTheDocument();
 });

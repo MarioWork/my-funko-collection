@@ -6,7 +6,9 @@ import { cn } from '@utils/classNameUtils';
 import { ENTER_UP_CLASS } from '@utils/motionUtils';
 import { AddStepUtil, ScanResultKindUtil } from '../addUtils';
 import type { useAddFlow } from '../hooks/useAddFlow';
+import { useIsAdmin } from '@hooks/useIsAdmin';
 import AddFunkoForm from './AddFunkoForm';
+import AdminOnlyNotice from './AdminOnlyNotice';
 import SavedCard from './SavedCard';
 import ScanFoundCard from './ScanFoundCard';
 
@@ -18,17 +20,21 @@ type CurrentStepProps = {
 
 type Props = CurrentStepProps;
 
-// What the Add flow shows at each step: the scanner, the found card (+1), the form, then the saved card.
+// What the Add flow shows at each step: the scanner, the found card (+1), the form, then the saved card. Only an
+// admin adds new funkos: a member gets the scanner and the found card, and a notice where the form would be.
 function CurrentStep({ flow, destinationState, collections }: CurrentStepProps) {
   const { step, lookup } = flow;
+  const isAdmin = useIsAdmin();
 
   if (step === AddStepUtil.SCAN) {
     return (
       <>
         <BarcodeScanner isActive={!lookup.isLookingUp} onDetected={(code) => void flow.handleDetected(code)} />
-        <Button variant="link" className="self-start" onClick={flow.addAnother}>
-          Add without a barcode
-        </Button>
+        {isAdmin ? (
+          <Button variant="link" className="self-start" onClick={flow.addAnother}>
+            Add without a barcode
+          </Button>
+        ) : null}
       </>
     );
   }
@@ -48,6 +54,12 @@ function CurrentStep({ flow, destinationState, collections }: CurrentStepProps) 
         onScanAnother={flow.scanAnother}
       />
     );
+  }
+
+  const isMemberForm = step === AddStepUtil.FORM && !isAdmin;
+
+  if (isMemberForm) {
+    return <AdminOnlyNotice barcode={flow.formBarcode} onScanAnother={flow.scanAnother} />;
   }
 
   if (step === AddStepUtil.FORM) {

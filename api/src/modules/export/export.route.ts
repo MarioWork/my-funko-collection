@@ -192,6 +192,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/images.csv',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Every stored image as CSV: its funko, file, size and links',
@@ -209,6 +210,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/images.json',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Every stored image as JSON: its funko, file, size and links',
@@ -225,6 +227,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/images.xlsx',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Every stored image as a spreadsheet: its funko, file, size and links',

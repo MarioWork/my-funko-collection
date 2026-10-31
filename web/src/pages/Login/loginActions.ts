@@ -2,6 +2,7 @@ import { redirect, type ActionFunctionArgs } from 'react-router';
 import { signInWithPasskey } from '@api/passkeyFlows';
 import type { AuthSessionApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
+import { forgetSignedInUser } from '@application/routes/signedInUserMiddleware';
 import authService from '@services/authService/authService';
 import { PasswordSignInSchema } from '@services/authService/authService.type';
 import { redirectTargetOf } from '@utils/authRedirectUtils';
@@ -35,6 +36,9 @@ export const signInAction = async ({
     const result = await signIn(formData);
 
     if (!result.success) return result;
+
+    // A new session, maybe for someone else: the shell asks who is signed in again.
+    forgetSignedInUser();
 
     return redirect(redirectTargetOf(new URL(request.url)));
   });
