@@ -48,6 +48,14 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A gets a leading zero on both sides
   (`api/src/lib/barcode.ts`, `web/src/common/utils/barcodeUtils.ts`). Keep them in step.
 
+## Git workflow
+
+- `main` is protected by GitHub rulesets: no direct push, no force push, every change lands through a pull request.
+- New branches must be `feature/<id>-<slug>` or `issue/<id>-<slug>` (other names are refused on push), where `<id>`
+  is the GitHub issue it adds or fixes. Open the issue first (`gh issue create`) when there is none.
+- The PR body says `Closes #<id>`; merge with `gh pr merge --squash`. The branch is deleted on merge.
+- The remote is named `github`, not `origin`.
+
 ## Commands
 
 Inside `api/`:
