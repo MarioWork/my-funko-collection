@@ -60,6 +60,9 @@ const ADMIN_ONLY_ROUTES = new Set([
   'GET /export/images.xlsx',
   'GET /users',
   'POST /users',
+  'PATCH /users/{userId}',
+  'POST /users/{userId}/temporary-password',
+  'DELETE /users/{userId}',
 ]);
 // The rate limit counts per address: each test speaks from its own, so no test eats another's allowance.
 let addressCounter = 0;
