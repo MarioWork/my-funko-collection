@@ -114,7 +114,7 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
 - **Roles.** A user is an `ADMIN` or a `MEMBER`. Whoever sets the app up is an admin (the migration made the user
   already there one). Routes with `config: { isAdminOnly: true }` answer 403 `ADMIN_ONLY` to a member: every
   catalogue write (funkos, categories, series, funko images), the images lists (`GET /images`, `/images/groups`,
-  `/export/images.*`) and the users (`GET|POST /users`). Members read the catalogue and keep their own collections,
+  `/export/images.*`) and the users (`/users` and everything under it). Members read the catalogue and keep their own collections,
   items and tags.
 - **New users.** Only an admin creates a user (`POST /users` with a username and a role), and it needs the admin's
   sign-in from the last 10 minutes. The user is named after the username and gets an app-made temporary password:
@@ -128,6 +128,15 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   temporary one: 400 `PASSWORD_REUSED`) makes it the user's own and opens the app. The database trigger gives the
   new user their own "Owned" and "Wishlist".
   `auth.route.test.ts` lists every admin-only route in `ADMIN_ONLY_ROUTES` and calls every route as a member.
+- **Managing users.** An admin changes a user's role (`PATCH /users/:userId`), gives one who forgot their password a
+  new temporary password (`POST /users/:userId/temporary-password`, same rules as on create: shown once, 7 days, must
+  be replaced; the old password stops working, passkeys stay; a user with no username gets one in the body, else 400
+  `USERNAME_REQUIRED`) or deletes one (`DELETE /users/:userId`). Each needs the admin's sign-in from the last 10
+  minutes and ends every session of that user at once, the admin's own included when they change themselves. There
+  is always at least one admin: making the last one a member or deleting them answers 409 `LAST_ADMIN` (checked
+  under a table lock, so two admins demoting each other can't both win), and `GET /users` marks that user
+  `isLastAdmin`. Deleting a user deletes their sessions, passkeys, collections, items and tags (database cascades);
+  catalogue funkos stay, and images they uploaded keep showing with a removed user as uploader.
 - **Cross-site writes.** Any non-GET request whose `Sec-Fetch-Site` is not `same-origin`/`none`, or whose `Origin`
   is not `APP_ORIGIN`, answers 403 `CROSS_SITE_REQUEST`.
 - **Limits.** The ceremony routes allow 10 requests a minute per address (5 attempts); password sign-in allows 5.
@@ -142,7 +151,7 @@ API answers carry `Cache-Control: no-store`; image files `private, max-age=31536
 
 Interactive docs with every schema: `GET /docs` (dev only). Auth: `GET /auth/status`, `POST /auth/setup/{options,verify}`,
 `POST /auth/login/{options,verify,password}`, `PUT /auth/password`, `POST /auth/logout`, `POST /auth/logout-everywhere`, `GET|POST /auth/passkeys`
-(`/options`, `/verify`), `DELETE /auth/passkeys/:passkeyId`. Users (admins only): `GET /users`, `POST /users`. Every list endpoint takes `page` (1-based), `size`
+(`/options`, `/verify`), `DELETE /auth/passkeys/:passkeyId`. Users (admins only): `GET|POST /users`, `PATCH|DELETE /users/:userId`, `POST /users/:userId/temporary-password`. Every list endpoint takes `page` (1-based), `size`
 (max 100), `sorting_fields` and `direction` (`ASC` | `DESC`) and answers `{ data, totalResultNumber, currentPage }`.
 Text filters are case-insensitive "contains"; id filters take a comma-separated list.
 
@@ -201,8 +210,11 @@ tags already there to the first user; another user whose items carried one got t
 | `GET /export/funkos.{csv,json,xlsx}`                               | The funkos of one `categoryId`, `seriesId`, `collectionId`, `tagId` or `funkoId` (all funkos without one): CSV and spreadsheet one line per funko and item, JSON one entry per funko with its items; every format links each photo (`image_urls` / `imageUrls`), and a single funko's spreadsheet embeds its photos on a Photos sheet; named after the filter (`category-pop-marvel.xlsx`), 404 for an unknown id |
 | `GET /export/{categories,series,collections,tags}.{csv,json,xlsx}` | A whole list (names, counts, notes, totals); `?includeFunkos=true` adds their funkos: a second sheet, the CSV's lines (each once), or nested per entry in the JSON                                                                                                                                                                                                                                                |
 | `GET /export/images.{csv,json,xlsx}`                               | Every stored image: its funko, file, size, upload date and absolute links to the three sizes (never the files)                                                                                                                                                                                                                                                                                                    |
-| `GET /users`                                                       | Admins only: every user with `role` and `state` (`ACTIVE`, `TEMPORARY_PASSWORD`, `TEMPORARY_PASSWORD_EXPIRED`, `NO_SIGN_IN`) and `temporaryPasswordExpiresAt`; sort `USERNAME` (default, users with none last) / `NAME` / `CREATION_DATE`                                                                                                                                                                         |
+| `GET /users`                                                       | Admins only: every user with `role` and `state` (`ACTIVE`, `TEMPORARY_PASSWORD`, `TEMPORARY_PASSWORD_EXPIRED`, `NO_SIGN_IN`) `temporaryPasswordExpiresAt` and `isLastAdmin`; sort `USERNAME` (default, users with none last) / `NAME` / `CREATION_DATE`                                                                                                                                                           |
 | `POST /users`                                                      | Admins only, recent sign-in: `{ username, role }`; 201 `{ user, temporaryPassword }` (the only time the password is sent); 409 when the username is taken                                                                                                                                                                                                                                                         |
+| `PATCH /users/:userId`                                             | Admins only, recent sign-in: `{ role }`; ends the user's sessions when the role changes; 409 `LAST_ADMIN` for the last admin                                                                                                                                                                                                                                                                                      |
+| `POST /users/:userId/temporary-password`                           | Admins only, recent sign-in: `{ username? }` (needed when the user has none); 200 `{ user, temporaryPassword }`; ends the user's sessions                                                                                                                                                                                                                                                                         |
+| `DELETE /users/:userId`                                            | Admins only, recent sign-in: the user with their sessions, passkeys, collections, items and tags; 409 `LAST_ADMIN` for the last admin                                                                                                                                                                                                                                                                             |
 | `GET /uploads/...`                                                 | The image files (immutable, cached for a year)                                                                                                                                                                                                                                                                                                                                                                    |
 
 `GET /funkos` filters: `q`, `name`, `number`, `barcode`, `exclusive`, `type`, `isChase`, `categoryId`, `category`,
@@ -224,6 +236,7 @@ One envelope: `{ code, message, issues?, existingId? }`.
 | 400    | `VALIDATION_ERROR`                                       | Bad body or query; `issues` lists `{ path, message }`                               |
 | 400    | `COMMON_PASSWORD`                                        | The new password is on the common-password list                                     |
 | 400    | `PASSWORD_REUSED`                                        | The new password is the temporary one it should replace                             |
+| 400    | `USERNAME_REQUIRED`                                      | A new temporary password for a user with no username, and none given                |
 | 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                                    |
 | 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                                    |
 | 401    | `TEMPORARY_PASSWORD_EXPIRED`                             | The right temporary password, after its 7 days                                      |
@@ -233,6 +246,7 @@ One envelope: `{ code, message, issues?, existingId? }`.
 | 404    | `NOT_FOUND`                                              |                                                                                     |
 | 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin                      |
 | 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                                      |
+| 409    | `LAST_ADMIN`                                             | The last admin can't be made a member or deleted                                    |
 | 413    | `PAYLOAD_TOO_LARGE`                                      | Image over `MAX_IMAGE_BYTES`                                                        |
 | 429    |                                                          | Rate limit (600 requests a minute per client)                                       |
 
