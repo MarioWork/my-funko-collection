@@ -1,7 +1,8 @@
 import { renderRoutes, screen, userEvent } from '@test-utils';
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { mockStore, nextId } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import { nextId } from '@mocks/mockStoreUtils';
 import { FUNKO_PAGE_SIZE } from './funkoListUtils';
 
 const EXTRA_FUNKO_NAME = 'Hulk';

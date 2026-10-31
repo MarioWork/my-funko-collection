@@ -15,7 +15,7 @@ export const IMAGE_VIEW_PARAM = 'view';
 export const IMAGE_SKELETON_COLUMNS = ['', 'hidden @3xl:table-cell', '', 'hidden @3xl:table-cell'];
 
 // All three stored sizes (2000 / 1200 / 480 px) on disk: fewer means some went missing.
-export const COMPLETE_VARIANT_COUNT = 3;
+export const COMPLETE_SIZE_COUNT = 3;
 
 // Biggest files first by default: the page is mostly for finding what takes up space.
 export const IMAGE_SORT_FIELDS: SortField[] = [

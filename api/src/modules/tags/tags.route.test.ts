@@ -1,5 +1,5 @@
 import { buildApp, type App } from '../../app.ts';
-import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
+import { resetTestDb } from '../../testDb.ts';
 import {
   createCollection,
   createFunko,
@@ -12,13 +12,14 @@ import {
 const URL = '/tags';
 const MISSING_ID = 999;
 const INVALID_ID = 'abc';
+// One past the largest Postgres integer: the id schema refuses it before it reaches the database.
+const ID_PAST_INTEGER_RANGE = '2147483648';
 
 let app: App;
 let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {
@@ -48,6 +49,29 @@ describe('GET /tags', () => {
     ]);
   });
 
+  it('matches % and _ in the name filter literally when the filter contains them', async () => {
+    await createTag('100% Box');
+    await createTag('1000 Box');
+    await createTag('Box_A');
+    await createTag('BoxBA');
+
+    const percent = await api.inject({ method: 'GET', url: URL, query: { name: '%' } });
+    const underscore = await api.inject({ method: 'GET', url: URL, query: { name: 'x_' } });
+
+    const names = (response: typeof percent) =>
+      response.json<{ data: { name: string }[] }>().data.map((tag) => tag.name);
+    expect(names(percent)).toEqual(['100% Box']);
+    expect(names(underscore)).toEqual(['Box_A']);
+  });
+
+  it('matches the name filter ignoring case when the case differs', async () => {
+    await createTag('Display Shelf');
+
+    const response = await api.inject({ method: 'GET', url: URL, query: { name: 'display shelf' } });
+
+    expect(response.json<{ data: { name: string }[] }>().data.map((tag) => tag.name)).toEqual(['Display Shelf']);
+  });
+
   it('returns 400 with VALIDATION_ERROR when the direction is unknown', async () => {
     const response = await api.inject({ method: 'GET', url: URL, query: { direction: 'UP' } });
 
@@ -68,6 +92,13 @@ describe('GET /tags/:tagId', () => {
 
   it('returns 400 when the id is not a positive integer', async () => {
     const response = await api.inject({ method: 'GET', url: `${URL}/${INVALID_ID}` });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('returns 400 when the id is past the integer range', async () => {
+    const response = await api.inject({ method: 'GET', url: `${URL}/${ID_PAST_INTEGER_RANGE}` });
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });

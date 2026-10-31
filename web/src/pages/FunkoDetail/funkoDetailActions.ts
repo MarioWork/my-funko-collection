@@ -1,5 +1,5 @@
 import { redirect, type ActionFunctionArgs } from 'react-router';
-import { number, ValidationError } from 'yup';
+import { number } from 'yup';
 import { DEFAULT_FIRST_PAGE, HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { PHOTO_FIELD } from '@utils/pendingPhotoUtils';
@@ -10,6 +10,7 @@ import { ReorderImagesSchema, RotateImageSchema } from '@services/funkoImageServ
 import funkoService from '@services/funkoService/funkoService';
 import { parseFormData } from '@utils/formDataUtils';
 import { newItemPayload } from '@utils/newItemUtils';
+import { failWhenInvalid } from '@utils/actionUtils';
 
 type DeleteFunkoFormData = { force?: boolean };
 type MembershipFormData = { collectionId: number };
@@ -51,21 +52,17 @@ export const membershipAction = async ({ request, params }: ActionFunctionArgs):
   const funkoId = Number(params.funkoId);
   const { collectionId } = parseFormData<MembershipFormData>(await request.formData());
 
-  try {
+  return failWhenInvalid(async () => {
     const validCollectionId = await collectionIdSchema.validate(collectionId);
 
     if (request.method === HttpVerbsUtil.POST) {
       const validItem = await CreateCollectionItemSchema.validate(newItemPayload(funkoId));
 
-      return await collectionItemService.addCollectionItem(validCollectionId, validItem);
+      return collectionItemService.addCollectionItem(validCollectionId, validItem);
     }
 
-    return await removeFromCollection(funkoId, validCollectionId);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return removeFromCollection(funkoId, validCollectionId);
+  });
 };
 
 // POST uploads photos (multipart, field "file"); PATCH reorders them.
@@ -81,15 +78,11 @@ export const funkoImagesAction = async ({ request, params }: ActionFunctionArgs)
 
   const { imageIds } = parseFormData<ReorderFormData>(formData);
 
-  try {
+  return failWhenInvalid(async () => {
     const valid = await ReorderImagesSchema.validate({ imageIds });
 
-    return await funkoImageService.reorderFunkoImages(funkoId, valid);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return funkoImageService.reorderFunkoImages(funkoId, valid);
+  });
 };
 
 // POST rotates one image; DELETE removes it.
@@ -101,13 +94,9 @@ export const funkoImageAction = async ({ request, params }: ActionFunctionArgs):
 
   const { degrees } = parseFormData<RotateFormData>(await request.formData());
 
-  try {
+  return failWhenInvalid(async () => {
     const valid = await RotateImageSchema.validate({ degrees });
 
-    return await funkoImageService.rotateFunkoImage(funkoId, imageId, valid);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return funkoImageService.rotateFunkoImage(funkoId, imageId, valid);
+  });
 };

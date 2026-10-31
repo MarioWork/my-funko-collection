@@ -14,9 +14,7 @@ test('deleting a funko that sits in a collection asks to remove it there too', a
 
   await detail.openDeleteDialog('Pikachu');
 
-  const dialog = page.getByRole('alertdialog');
-
-  await expect(dialog.getByRole('checkbox', { name: /Also remove it from Owned/ })).toBeVisible();
+  await expect(detail.removeFromCollectionCheckbox('Owned')).toBeVisible();
 
   await detail.confirmDelete({ alsoRemoveFromCollections: true });
 

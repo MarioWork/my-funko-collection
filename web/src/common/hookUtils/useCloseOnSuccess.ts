@@ -1,7 +1,8 @@
 import { useEffect, useEffectEvent } from 'react';
+import type { Fetcher } from 'react-router';
 
 type SettledFetcher = {
-  state: 'idle' | 'loading' | 'submitting';
+  state: Fetcher['state'];
   data?: { success: boolean };
 };
 

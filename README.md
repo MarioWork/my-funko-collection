@@ -11,7 +11,7 @@
   <img alt="React 19" src="https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript&logoColor=white" />
   <img alt="Fastify" src="https://img.shields.io/badge/Fastify-5-000000?logo=fastify&logoColor=white" />
-  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local-0f80cc?logo=sqlite&logoColor=white" />
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-18-4169e1?logo=postgresql&logoColor=white" />
   <img alt="Docker Compose" src="https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white" />
 </p>
 
@@ -32,7 +32,10 @@
   - [Where your data lives](#where-your-data-lives)
   - [Using it away from home](#using-it-away-from-home)
 - [Try it without a server](#try-it-without-a-server)
+- [Run it locally (development)](#run-it-locally-development)
 - [How it's built](#how-its-built)
+  - [How it works](#how-it-works)
+  - [Why no automatic Funko lookup?](#why-no-automatic-funko-lookup)
 
 ## Why this exists
 
@@ -101,6 +104,9 @@ cd my-funko-collection
 # Set the address you'll open it at: x-app-address at the top of compose.yaml.
 # It must be a name, not an IP address (passkeys refuse IPs), and you pick it once: passkeys are tied to it.
 
+# A password for the database, kept in .env (never committed):
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
+
 docker compose up --build -d
 ```
 
@@ -151,14 +157,14 @@ It removes every passkey and sign-in (never your collection) and prints a new se
 Everything is in `./data`. That one folder is your whole collection:
 
 ```
-data/app.db            the SQLite database
+data/postgres/         the PostgreSQL database files
 data/uploads/funkos/   your photos, three WebP sizes each
 ```
 
 **Back it up** while it runs:
 
 ```bash
-sqlite3 data/app.db ".backup data/backup-$(date +%F).db"
+docker compose exec db pg_dump -U funko -Fc funko > backup-$(date +%F).dump
 rsync -a data/uploads/ /path/to/backup/uploads/
 ```
 
@@ -183,17 +189,113 @@ yarn dev:big        # http://localhost:5173 with 330 sample funkos
 
 Changes live in that browser tab only, so play as much as you like.
 
+## Run it locally (development)
+
+The real thing on your own computer: the API, its database and the web app. It runs on macOS, Linux and Windows.
+You need **Node 26** for the api (`web/` is still on 24; fnm switches per folder) and **PostgreSQL 18**, listening on `localhost:5432` with a `funko` user that may create
+databases (the tests make their own).
+
+**1. Get Postgres** (once). The easiest way, on any system with Docker:
+
+```bash
+docker run -d --name funko-postgres -p 5432:5432 \
+  -e POSTGRES_USER=funko -e POSTGRES_PASSWORD=funko -e POSTGRES_DB=funko_dev postgres:18
+```
+
+Or install it on the machine itself:
+
+- **macOS:** `brew install postgresql@18 && brew services run postgresql@18`
+- **Linux:** your distro's `postgresql` package, or the [official packages](https://www.postgresql.org/download/linux/)
+  for version 18
+- **Windows:** the installer from [postgresql.org](https://www.postgresql.org/download/windows/)
+
+Then make the app's user and database (on Linux, put `sudo -u postgres` in front of both):
+
+```bash
+psql -d postgres -c "create role funko login password 'funko' createdb"
+createdb -O funko funko_dev
+```
+
+**2. Set up the API and the web app** (once):
+
+```bash
+cd api
+corepack enable && yarn install
+cp .env.example .env     # already points at postgresql://funko:funko@localhost:5432/funko_dev
+yarn db:migrate          # creates the tables, with Owned and Wishlist
+yarn db:seed             # optional: 32 example funkos with photos
+
+cd ../web && yarn install
+```
+
+**3. Work on it**, with Postgres started, in two terminals:
+
+```bash
+cd api && yarn dev   # the API on http://localhost:3000 (OpenAPI docs at /docs)
+cd web && yarn dev   # the app on http://localhost:5173
+```
+
+Open http://localhost:5173. The first start prints a setup link in the API terminal, as on the server.
+
+Postgres keeps running until you stop it: `docker stop funko-postgres` / `docker start funko-postgres` with Docker,
+`yarn postgres:stop` / `yarn postgres:start` in `api/` with Homebrew (those two scripts are Homebrew only), or your
+system's service manager.
+
+Before calling a change done, check that everything is green:
+
+```bash
+cd api && yarn typecheck && yarn lint && yarn test        # needs Postgres on
+cd web && yarn tsc -b && yarn lint && yarn test && yarn test-e2e
+```
+
+The API tests make their own throwaway databases, so they never touch `funko_dev`.
+
 ## How it's built
 
 ```
-api/          Fastify 5 + zod + Drizzle on SQLite, sharp for images (Node 24, TypeScript)
+api/          Fastify 5 + zod + Prisma on PostgreSQL, sharp for images (Node 26, TypeScript)
 web/          React 19 + Vite 8 + Tailwind 4 + shadcn/ui (Base UI), React Router data mode
-compose.yaml  the home-server deploy: Caddy (HTTPS, serves the app) in front of the API
+compose.yaml  the home-server deploy: Caddy (HTTPS, serves the app) in front of the API and Postgres
 docs/         the testing checklist and the screenshots above
 assets/       logo and illustrations
 ```
 
 Developing? Each half has its own guide: [`api/README.md`](api/README.md) and [`web/README.md`](web/README.md).
+
+### How it works
+
+```
+your phone or laptop
+        │  HTTPS
+        ▼
+      Caddy ─────────── serves the web app (the screens)
+        │
+        │  /api and /uploads
+        ▼
+       API ──────────── Postgres       your funkos, collections, items, tags
+        └────────────── data/uploads/  your photos, three sizes each
+```
+
+- **Caddy** is the front door: the only part your devices talk to. It adds HTTPS, which the camera scanner and
+  passkeys need.
+- **The web app** is what you see. It stores nothing itself: every screen asks the API.
+- **The API** checks that you're signed in and that a request makes sense, then reads or saves.
+- **Postgres** keeps the list. **`data/uploads/`** keeps the photos.
+
+Searching for "Groot": your phone asks Caddy, Caddy passes it to the API, the API checks your sign-in and asks
+Postgres which funkos match, and the web app shows the cards. The photos load straight from `/uploads`.
+
+Inside the API, every request goes down the same three steps:
+
+```
+route  ─▶  service  ─▶  repository  ─▶  Postgres
+checks the   applies the     the only part that
+request      rules           talks to the database (Prisma)
+```
+
+On the home server, `docker compose up` starts it in order: Postgres, then `migrate` (sets up or updates the
+tables, then stops), then the API, then Caddy. On your computer the Vite dev server plays Caddy's part: it sends
+`/api` and `/uploads` to the API on port 3000.
 
 ### Why no automatic Funko lookup?
 

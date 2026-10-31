@@ -1,7 +1,8 @@
 node_modules/
 dist/
 coverage/
-drizzle/
+src/generated/
+prisma/migrations/
 data/
 .yarn/
 .yarnrc.yml

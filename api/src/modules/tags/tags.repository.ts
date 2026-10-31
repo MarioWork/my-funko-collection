@@ -1,73 +1,74 @@
-import { and, asc, count, desc, eq, type SQL } from 'drizzle-orm';
-import { db, type DbExecutor } from '../../db/client.ts';
-import { likeContains } from '../../db/like.ts';
-import { collectionItemTags } from '../../db/schema/collectionItemTags.ts';
-import { tags, type TagSortField } from '../../db/schema/tags.ts';
-import { toLimitOffset } from '../../lib/pagination.ts';
-import type { CreateTag, ListTagsQuery, UpdateTag } from './tags.schema.ts';
+import { containsText } from '../../lib/likePatterns.ts';
+import type { Prisma } from '../../generated/prisma/client.ts';
+import { toOrderDirection, toSkipTake } from '../../lib/pagination.ts';
+import { deletedIdOrUndefined, prisma, reloadIfUpdated } from '../../lib/prisma.ts';
+import type { TagSortField, CreateTag, ListTagsQuery, UpdateTag } from './tags.schema.ts';
 
-const TAG_COLUMNS = {
-  id: tags.id,
-  name: tags.name,
-  notes: tags.notes,
-  createdAt: tags.createdAt,
-  updatedAt: tags.updatedAt,
-} as const;
+// itemCount = how many collection items carry the tag; an unused tag still lists with 0.
+const TAG_SELECT = {
+  id: true,
+  name: true,
+  notes: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { itemTags: true } },
+} as const satisfies Prisma.TagSelect;
 
-const SORT_FIELD_MAP: Record<TagSortField, typeof tags.name | typeof tags.createdAt> = {
-  NAME: tags.name,
-  CREATION_DATE: tags.createdAt,
+const SORT_FIELD_MAP: Record<TagSortField, keyof Prisma.TagOrderByWithRelationInput> = {
+  NAME: 'name',
+  CREATION_DATE: 'createdAt',
 };
 
-function buildListFilter({ name }: ListTagsQuery): SQL | undefined {
-  const nameFilter = name ? likeContains(tags.name, name) : undefined;
+type SelectedTag = Prisma.TagGetPayload<{ select: typeof TAG_SELECT }>;
 
-  return and(nameFilter);
+export type TagRow = Omit<SelectedTag, '_count'> & { itemCount: number };
+
+function toRow({ _count, ...tag }: SelectedTag): TagRow {
+  return { ...tag, itemCount: _count.itemTags };
 }
 
-// itemCount = how many collection items carry the tag; a left join keeps unused tags in the list with 0.
-function selectWithCount(executor: DbExecutor) {
-  return executor
-    .select({ ...TAG_COLUMNS, itemCount: count(collectionItemTags.collectionItemId) })
-    .from(tags)
-    .leftJoin(collectionItemTags, eq(collectionItemTags.tagId, tags.id))
-    .groupBy(tags.id);
+function buildListFilter({ name }: ListTagsQuery): Prisma.TagWhereInput {
+  return name ? { name: containsText(name) } : {};
+}
+
+async function findById(id: number): Promise<TagRow | undefined> {
+  const tag = await prisma.tag.findUnique({ where: { id }, select: TAG_SELECT });
+
+  return tag ? toRow(tag) : undefined;
 }
 
 export const tagsRepository = {
-  findById: (id: number, executor: DbExecutor = db): Promise<TagRow | undefined> =>
-    selectWithCount(executor).where(eq(tags.id, id)).get(),
+  findById,
 
   list: async (query: ListTagsQuery) => {
-    const filter = buildListFilter(query);
-    const direction = query.direction === 'DESC' ? desc : asc;
-    const sortColumn = SORT_FIELD_MAP[query.sorting_fields];
-    const { limit, offset } = toLimitOffset(query);
+    const where = buildListFilter(query);
+    const direction = toOrderDirection(query.direction);
+    const sortField = SORT_FIELD_MAP[query.sorting_fields];
 
-    const [data, totalResultNumber] = await Promise.all([
-      selectWithCount(db).where(filter).orderBy(direction(sortColumn), asc(tags.id)).limit(limit).offset(offset),
-      db.$count(tags, filter),
+    const [rows, totalResultNumber] = await prisma.$transaction([
+      prisma.tag.findMany({
+        where,
+        select: TAG_SELECT,
+        orderBy: [{ [sortField]: direction }, { id: 'asc' }],
+        ...toSkipTake(query),
+      }),
+      prisma.tag.count({ where }),
     ]);
 
-    return { data, totalResultNumber };
+    return { data: rows.map(toRow), totalResultNumber };
   },
 
-  create: async (data: CreateTag, executor: DbExecutor = db): Promise<TagRow> => {
-    const inserted = await executor.insert(tags).values(data).returning(TAG_COLUMNS).get();
+  create: async (data: CreateTag): Promise<TagRow> => toRow(await prisma.tag.create({ data, select: TAG_SELECT })),
 
-    return { ...inserted, itemCount: 0 };
+  update: async (id: number, data: UpdateTag): Promise<TagRow | undefined> => {
+    const write = await prisma.tag.updateMany({ where: { id }, data });
+
+    return reloadIfUpdated(write, () => findById(id));
   },
 
-  update: async (id: number, data: UpdateTag, executor: DbExecutor = db): Promise<TagRow | undefined> => {
-    const updated = await executor.update(tags).set(data).where(eq(tags.id, id)).returning({ id: tags.id }).get();
+  delete: async (id: number): Promise<{ id: number } | undefined> => {
+    const write = await prisma.tag.deleteMany({ where: { id } });
 
-    if (!updated) return undefined;
-
-    return selectWithCount(executor).where(eq(tags.id, id)).get();
+    return deletedIdOrUndefined(id, write);
   },
-
-  delete: (id: number, executor: DbExecutor = db): Promise<{ id: number } | undefined> =>
-    executor.delete(tags).where(eq(tags.id, id)).returning({ id: tags.id }).get(),
 };
-
-export type TagRow = Awaited<ReturnType<typeof selectWithCount>>[number];

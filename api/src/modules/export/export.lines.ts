@@ -2,7 +2,7 @@
 // and one of its items) for a scope (one category, series, collection or tag, or everything).
 import { env } from '../../config/env.ts';
 import { NotFoundError } from '../../lib/httpErrors.ts';
-import { variantUrl } from '../../lib/imageStorage.ts';
+import { sizeUrl } from '../../lib/imageStorage.ts';
 import { exportRepository } from './export.repository.ts';
 import type { ExportFunkosQuery, ExportListKind, ExportScopeKind, FunkoExportLine } from './export.schema.ts';
 
@@ -145,7 +145,7 @@ export function buildLookups(data: EverythingData) {
 function imageUrlsOf(funkoId: number, lookups: Lookups): string[] {
   const images = lookups.imagesByFunko.get(funkoId) ?? [];
 
-  return images.map((image) => new URL(variantUrl(funkoId, image.fileKey, 'large'), env.APP_ORIGIN).toString());
+  return images.map((image) => new URL(sizeUrl(funkoId, image.fileKey, 'large'), env.APP_ORIGIN).toString());
 }
 
 export type Lookups = ReturnType<typeof buildLookups>;

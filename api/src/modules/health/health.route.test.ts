@@ -1,5 +1,4 @@
 import { buildApp, type App } from '../../app.ts';
-import { prepareTestDb } from '../../db/testDb.ts';
 import { signIn } from '../../testFixtures.ts';
 import { healthRepository } from './health.repository.ts';
 
@@ -7,7 +6,6 @@ let app: App;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {

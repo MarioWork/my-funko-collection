@@ -4,7 +4,8 @@ import type { AuthSessionApiModel } from '@app-types/models';
 import { AuthStateUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { errorResponse, UNAUTHORIZED_STATUS } from '@mocks/mockResponses';
-import { mockStore, nowIso } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import { nowIso } from '@mocks/mockStoreUtils';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { readCeremonyResponse } from './authMockUtils';
 

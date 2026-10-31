@@ -36,11 +36,11 @@ it('adds a category through the New category form and shows it in the list', asy
 it('renames a category inline', async () => {
   renderPage();
 
-  await userEvent.click(await screen.findByRole('button', { name: 'Rename Star Wars' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Rename Pop! Star Wars' }));
 
   const nameField = screen.getByRole('textbox', { name: 'Name' });
 
-  expect(nameField).toHaveValue('Star Wars');
+  expect(nameField).toHaveValue('Pop! Star Wars');
 
   await userEvent.clear(nameField);
   await userEvent.type(nameField, 'Pop! Star Wars');

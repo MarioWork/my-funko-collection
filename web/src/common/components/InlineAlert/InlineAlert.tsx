@@ -3,19 +3,21 @@ import type { ReactNode } from 'react';
 import { cn } from '@utils/classNameUtils';
 import { FADE_IN_CLASS } from '@utils/motionUtils';
 
+type AlertTone = 'error' | 'success' | 'info';
+
 type Props = {
-  tone: 'error' | 'success' | 'info';
+  tone: AlertTone;
   children: ReactNode;
   className?: string;
 };
 
-const TONE_CLASS_MAP: Record<Props['tone'], string> = {
+const TONE_CLASS_MAP: Record<AlertTone, string> = {
   error: 'border-destructive/30 bg-destructive/10 text-destructive',
   success: 'border-success/30 bg-success/10 text-success',
   info: 'border-border bg-muted text-foreground',
 };
 
-const TONE_ICON_MAP: Record<Props['tone'], typeof Info> = {
+const TONE_ICON_MAP: Record<AlertTone, typeof Info> = {
   error: CircleAlert,
   success: CircleCheck,
   info: Info,

@@ -6,21 +6,20 @@ The global React/Node conventions apply; this file holds only what is specific t
 
 ## Layout
 
-- `api/` — Fastify 5 + zod 4 + Drizzle on SQLite, built from `node-fastify-template`. Follow the `node-ts-core`,
-  `node-ts-api` and `node-ts-drizzle` skills. Endpoints and env are documented in `api/README.md`.
+- `api/` — Fastify 5 + zod 4 + Prisma 7 on PostgreSQL 18, built from `node-fastify-template`. Follow the
+  `node-ts-core` and `node-ts-api` skills (§6 is Prisma). Endpoints and env are documented in `api/README.md`.
 - `web/` — React 19 + Vite 8 + Tailwind 4 + shadcn/ui (Base UI) app from `react-project-template`. Follow the
   always-on React core and the `react-ts-*`, `ts-api-services` and `shadcn` skills. Pages, flows and scripts are in
   `web/README.md`.
 - `compose.yaml` — the deployment: Caddy (`web/`) on 80/443 with a local CA, proxying `/api` and `/uploads` to the
-  api container, which is not published. All runtime data lives in `./data` (SQLite file + uploaded images).
+  api container; neither the api nor the `db` (postgres:18) container is published. All runtime data lives in
+  `./data` (`postgres/` + `uploads/`); the db password is `POSTGRES_PASSWORD` in a git-ignored root `.env`.
 - UI decisions to keep: image-first grid, scan-first add, filters as a drawer, toast + Undo for undoable writes.
 
-## Vocabulary (easy to get wrong)
+## Vocabulary
 
-- **category** = Funko's own line printed on the box: "Pop! Marvel", "Star Wars". One per funko.
-- **collection** = Mario's own list: "Owned" (the default), "Wishlist", ... Many allowed. A funko can be in several.
-- **item** = one funko inside one collection: quantity, condition, price, date, notes, tags.
-- **tag** = a label on an item, mainly the storage box ("Box 3"). Many per item.
+The domain words (funko, category, series, variant, collection, item, tag...) are defined in `docs/GLOSSARY.md`.
+Use them as written there, in code and in chat. "Variant" means a funko version (chase, glow), never a photo size.
 
 ## Product rules
 
@@ -31,7 +30,7 @@ The global React/Node conventions apply; this file holds only what is specific t
 - `DELETE /funkos/:id` answers 409 while the funko is in a collection; `?force=true` removes it from all of them.
 - Deleting a tag only removes the label from items. Deleting a collection removes its items, never the funkos.
 - "Owned" (the default) and "Wishlist" always exist from the first start: reference data in the custom migration
-  `api/drizzle/0001_default_collections.sql`, not the seed. Each insert skips one that is already there.
+  `api/prisma/migrations/*_default_collections/`, not the seed. Each insert skips one that is already there.
 - Sign-in is passkeys only, for one user (`api/README.md` "Sign-in"). Every API
   route and `/uploads` file needs a session unless it sets `config: { isPublic: true }`; keep that list tiny, and
   add new public routes to `PUBLIC_ROUTES` in `auth.route.test.ts`. Sessions are server-side rows (SHA-256 of an
@@ -55,9 +54,9 @@ Inside `api/`:
 
 ```
 yarn dev            # http://localhost:3000, OpenAPI at /docs
-yarn test           # Vitest, in-memory SQLite + temp uploads folder per test file
+yarn test           # Vitest: a copy of a migrated template db + temp uploads folder per test file
 yarn typecheck && yarn lint && yarn test   # the definition of green
-yarn db:migrate     # apply migrations; yarn db:generate --name=<change> after a schema edit (commit drizzle/)
+yarn db:migrate     # prisma migrate dev: apply, or --name=<change> after a schema edit (commit prisma/)
 yarn db:seed        # example data with placeholder images
 yarn images:prune   # delete image files no row references
 yarn auth:reset      # locked out: remove every passkey and session, print a new setup link
@@ -74,8 +73,21 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
 ## Gotchas
 
 - Yarn 4.18 has a package age gate: the newest point releases are refused ("quarantined"). Pick an older range.
-- No `.then()` chains, no `process.env` outside `config/env.ts` (the one exception is commented in
-  `src/setupTests.ts`), no cross-module `.repository.ts` imports: go through the other module's service.
+- No `.then()` chains, no `process.env` outside `config/env.ts` (the test exceptions are commented in
+  `src/setupTests.ts` and `src/testGlobalSetup.ts`), no cross-module `.repository.ts` imports: go through the
+  other module's service.
+- `yarn test` in `api/` needs Postgres on `localhost:5432` with a `funko` role that may create databases
+  (`api/README.md`, "Run"). It does not start at login (Mario's choice, 2026-10-31): `yarn postgres:start` /
+  `yarn postgres:stop`. Each test file gets its own copy of a migrated template database.
+- Prisma (decided 2026-10-31): the generated client (`src/generated/prisma`, git-ignored) is imported by
+  repositories, `lib/prisma.ts`, `lib/databaseErrors.ts`, the `Prisma.sql` helpers in `lib/likePatterns.ts` and
+  `lib/sqlFragments.ts`, and test/seed code. Three queries are `$queryRaw` because Prisma can't express them: the funko list, the item
+  list (numeric `number` sort, relevance) and collection totals (price × quantity). DB errors map by Postgres
+  SQLSTATE (`lib/databaseErrors.ts`), not Prisma code. Ids are capped at 2^31 − 1 (`lib/ids.ts`). Prisma's
+  `contains` does not escape `%`/`_`: always use `containsText()`. Check constraints and the one-default-collection
+  partial index live by hand in the first migration (Prisma ignores them, so `migrate dev` never drops them).
+  Migrations run in their own one-shot `migrate` container before the api (`compose.yaml`), never at app start.
+  Prisma refuses `migrate reset` from an AI agent: ask Mario, or have him run it.
 - `src/lib/imageStorage.ts` is the only file that imports `sharp` or touches the uploads folder.
 - Run the `node-ts-audit` skill on `api/` and `react-ts-audit` on `web/` before calling a change done.
 

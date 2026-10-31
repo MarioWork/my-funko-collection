@@ -2,7 +2,8 @@ import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { conflict, created, DUPLICATE_CONFLICT_MESSAGE, toSeriesModel } from '@mocks/mockResponses';
-import { mockStore, nextId, nowIso } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import { nextId, nowIso } from '@mocks/mockStoreUtils';
 import type { CreateSeries } from '@services/seriesService/seriesService.type';
 
 export default (baseUrl: string) => [

@@ -1,22 +1,23 @@
-import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { COLLECTION_SORT_FIELDS, collections } from '../../db/schema/collections.ts';
+import { IdParamSchema } from '../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { ContainsQuerySchema } from '../../lib/queryParams.ts';
 
 export const COLLECTION_NAME_MAX_LENGTH = 100;
 export const COLLECTION_NOTES_MAX_LENGTH = 2000;
 
+export const COLLECTION_SORT_FIELDS = ['NAME', 'CREATION_DATE'] as const;
+export type CollectionSortField = (typeof COLLECTION_SORT_FIELDS)[number];
+
 export const CollectionParamsSchema = z.object({
-  collectionId: z.coerce.number().int().positive(),
+  collectionId: IdParamSchema,
 });
 
-const CollectionInsertSchema = createInsertSchema(collections, {
-  name: (schema) => schema.trim().min(1).max(COLLECTION_NAME_MAX_LENGTH),
-  notes: (schema) => schema.trim().max(COLLECTION_NOTES_MAX_LENGTH),
-}).omit({ id: true, createdAt: true, updatedAt: true });
-
-export const CreateCollectionSchema = z.strictObject(CollectionInsertSchema.shape);
+export const CreateCollectionSchema = z.strictObject({
+  name: z.string().trim().min(1).max(COLLECTION_NAME_MAX_LENGTH),
+  notes: z.string().trim().max(COLLECTION_NOTES_MAX_LENGTH).nullable().optional(),
+  isDefault: z.boolean().optional(),
+});
 
 export const UpdateCollectionSchema = CreateCollectionSchema.partial();
 

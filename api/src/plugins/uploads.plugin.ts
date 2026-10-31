@@ -4,7 +4,7 @@ import fp from 'fastify-plugin';
 import { env } from '../config/env.ts';
 import { UPLOADS_ROOT, UPLOADS_URL_PREFIX, initImageStorage } from '../lib/imageStorage.ts';
 
-// Variant files are named by uuid and never rewritten, so a browser may keep them for a year; `private` keeps them
+// Image files are named by uuid and never rewritten, so a browser may keep them for a year; `private` keeps them
 // out of shared caches, since they are only served to a signed-in browser.
 const STATIC_CACHE_CONTROL = 'private, max-age=31536000, immutable';
 

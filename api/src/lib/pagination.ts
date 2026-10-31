@@ -15,6 +15,13 @@ export const PaginationQuerySchema = z.object({
   direction: z.enum(SORT_DIRECTIONS).default('ASC'),
 });
 
+// The wire's ASC/DESC as Prisma's `orderBy` spells it.
+const ORDER_DIRECTION_MAP = { ASC: 'asc', DESC: 'desc' } as const satisfies Record<SortDirection, string>;
+
+export function toOrderDirection(direction: SortDirection): (typeof ORDER_DIRECTION_MAP)[SortDirection] {
+  return ORDER_DIRECTION_MAP[direction];
+}
+
 export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
 
 export function paginatedResponseSchema<Item extends z.ZodType>(itemSchema: Item) {
@@ -25,6 +32,6 @@ export function paginatedResponseSchema<Item extends z.ZodType>(itemSchema: Item
   });
 }
 
-export function toLimitOffset({ page, size }: Pick<PaginationQuery, 'page' | 'size'>) {
-  return { limit: size, offset: (page - 1) * size };
+export function toSkipTake({ page, size }: Pick<PaginationQuery, 'page' | 'size'>) {
+  return { skip: (page - 1) * size, take: size };
 }

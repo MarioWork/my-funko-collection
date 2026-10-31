@@ -1,5 +1,5 @@
 import { AuthStateUtil } from '@app-types/utility';
-import { MOCK_SETUP_CODE } from '@mocks/mockStore';
+import { MOCK_SETUP_CODE } from '@mocks/mockAuth';
 import { expect, test } from '../fixtures/app.fixture';
 import { AuthPage } from '../pages/AuthPage.page';
 import { FunkoListPage } from '../pages/FunkoListPage.page';

@@ -1,5 +1,5 @@
 import { buildApp, type App } from '../../app.ts';
-import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
+import { resetTestDb } from '../../testDb.ts';
 import { createCategory, createFunko, type SignedInClient, signIn } from '../../testFixtures.ts';
 
 const URL = '/categories';
@@ -11,7 +11,6 @@ let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {
@@ -43,7 +42,7 @@ describe('GET /categories', () => {
 
   it('keeps the matching categories when name is a fragment in another case', async () => {
     await createCategory('Pop! Marvel');
-    await createCategory('Star Wars');
+    await createCategory('Pop! Star Wars');
 
     const response = await api.inject({ method: 'GET', url: URL, query: { name: 'marvel' } });
 
@@ -62,12 +61,12 @@ describe('GET /categories', () => {
 
 describe('GET /categories/:categoryId', () => {
   it('returns the category when it exists', async () => {
-    const created = await createCategory('Star Wars');
+    const created = await createCategory('Pop! Star Wars');
 
     const response = await api.inject({ method: 'GET', url: `${URL}/${created.id}` });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({ id: created.id, name: 'Star Wars', funkoCount: 0 });
+    expect(response.json()).toMatchObject({ id: created.id, name: 'Pop! Star Wars', funkoCount: 0 });
   });
 
   it('returns 400 when the id is not a positive integer', async () => {

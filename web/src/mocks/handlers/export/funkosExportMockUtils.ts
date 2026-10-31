@@ -1,6 +1,7 @@
 // The rules of the API's GET /export/funkos.{csv,json,xlsx} over the mock store: which funkos one filter keeps,
 // the file name, and the lines every format is built from.
-import { mockStore, type MockFunkoRow, type MockItemRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockFunkoRow, MockItemRow } from '@mocks/mockStore.type';
 import { ExportFunkosScopeUtil } from '@app-types/utility';
 
 export const CSV_CONTENT_TYPE = 'text/csv; charset=utf-8';

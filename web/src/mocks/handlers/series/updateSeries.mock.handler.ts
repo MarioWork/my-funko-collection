@@ -2,7 +2,8 @@ import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { notFound, toSeriesModel } from '@mocks/mockResponses';
-import { mockStore, nowIso } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import { nowIso } from '@mocks/mockStoreUtils';
 import type { UpdateSeries } from '@services/seriesService/seriesService.type';
 
 export default (baseUrl: string) => [

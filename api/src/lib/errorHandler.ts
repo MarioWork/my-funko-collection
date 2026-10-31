@@ -1,15 +1,17 @@
 import { hasZodFastifySchemaValidationErrors } from '@fastify/type-provider-zod';
-import { DrizzleQueryError } from 'drizzle-orm';
 import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
-  SQLITE_CONSTRAINT_CHECK,
-  SQLITE_CONSTRAINT_FOREIGN_KEY,
-  SQLITE_CONSTRAINT_NOT_NULL,
-  SQLITE_CONSTRAINT_TRIGGER,
-  SQLITE_CONSTRAINT_UNIQUE,
-  getSqliteError,
-} from '../db/errors.ts';
+  PG_CHECK_VIOLATION,
+  PG_FOREIGN_KEY_VIOLATION,
+  PG_NOT_NULL_VIOLATION,
+  PG_RESTRICT_VIOLATION,
+  PG_UNIQUE_VIOLATION,
+  PRISMA_RECORD_NOT_FOUND,
+  getErrorLogFields,
+  getPrismaErrorCode,
+  getSqlState,
+} from './databaseErrors.ts';
 import { ConflictError, HttpError } from './httpErrors.ts';
 
 // The one error envelope every route lists for its 4xx/5xx responses.
@@ -27,29 +29,42 @@ export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
 type MappedError = { statusCode: number; code: string; message: string };
 
-const SQLITE_ERROR_MAP: Record<number, MappedError> = {
-  [SQLITE_CONSTRAINT_UNIQUE]: {
+const SQL_STATE_ERROR_MAP: Record<string, MappedError> = {
+  [PG_UNIQUE_VIOLATION]: {
     statusCode: 409,
     code: 'CONFLICT',
     message: 'A record with these values already exists',
   },
-  [SQLITE_CONSTRAINT_FOREIGN_KEY]: {
+  [PG_FOREIGN_KEY_VIOLATION]: {
     statusCode: 409,
     code: 'CONFLICT',
     message: 'A related record is missing or still referenced',
   },
-  [SQLITE_CONSTRAINT_TRIGGER]: {
+  [PG_RESTRICT_VIOLATION]: {
     statusCode: 409,
     code: 'CONFLICT',
     message: 'The record is still referenced by another one',
   },
-  [SQLITE_CONSTRAINT_NOT_NULL]: { statusCode: 400, code: 'VALIDATION_ERROR', message: 'A required value is missing' },
-  [SQLITE_CONSTRAINT_CHECK]: {
+  [PG_NOT_NULL_VIOLATION]: { statusCode: 400, code: 'VALIDATION_ERROR', message: 'A required value is missing' },
+  [PG_CHECK_VIOLATION]: {
     statusCode: 400,
     code: 'VALIDATION_ERROR',
     message: 'A value is outside its allowed range',
   },
 };
+
+const PRISMA_ERROR_MAP: Record<string, MappedError> = {
+  [PRISMA_RECORD_NOT_FOUND]: { statusCode: 404, code: 'NOT_FOUND', message: 'Record not found' },
+};
+
+function toDatabaseMappedError(error: unknown): MappedError | undefined {
+  const sqlState = getSqlState(error);
+  const prismaCode = getPrismaErrorCode(error);
+
+  if (sqlState && SQL_STATE_ERROR_MAP[sqlState]) return SQL_STATE_ERROR_MAP[sqlState];
+
+  return prismaCode ? PRISMA_ERROR_MAP[prismaCode] : undefined;
+}
 
 // @fastify/multipart's own limit errors keep a stable code of ours instead of the plugin's FST_* names.
 const MULTIPART_ERROR_MAP: Record<string, MappedError> = {
@@ -97,8 +112,7 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
       .send({ code: multipartMapped.code, message: multipartMapped.message });
   }
 
-  const sqliteError = getSqliteError(error);
-  const mapped = sqliteError?.rawCode === undefined ? undefined : SQLITE_ERROR_MAP[sqliteError.rawCode];
+  const mapped = toDatabaseMappedError(error);
 
   if (mapped) {
     return reply.code(mapped.statusCode).send({ code: mapped.code, message: mapped.message });
@@ -109,12 +123,7 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
     return reply.code(error.statusCode ?? 400).send({ code: error.code ?? 'REQUEST_ERROR', message: error.message });
   }
 
-  // A query error's message carries the SQL *and its parameters*; log the cause and the SQL template only.
-  if (error instanceof DrizzleQueryError) {
-    request.log.error({ err: error.cause, sql: error.query }, 'query failed');
-  } else {
-    request.log.error({ err: error }, 'unhandled error');
-  }
+  request.log.error(getErrorLogFields(error), 'unhandled error');
 
   return reply.code(500).send(INTERNAL_ERROR);
 }

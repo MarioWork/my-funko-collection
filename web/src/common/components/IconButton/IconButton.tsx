@@ -5,17 +5,19 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip'
 import { cn } from '@utils/classNameUtils';
 import { TOUCH_TARGET_CLASS } from './touchTargetUtils';
 
+type IconButtonSize = 'sm' | 'md' | 'lg';
+
 type Props = Omit<ComponentProps<typeof Button>, 'size' | 'aria-label'> & {
   // Required: an icon-only control has no visible text to name it. It is also the tooltip.
   'aria-label': string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: IconButtonSize;
   // Off for a button whose meaning is obvious from where it sits, or that already carries another popup.
   hasTooltip?: boolean;
   // Why it is disabled; shown in the tooltip instead of the label while `disabled` is on.
   disabledReason?: string;
 };
 
-const SIZE_MAP: Record<NonNullable<Props['size']>, ComponentProps<typeof Button>['size']> = {
+const SIZE_MAP: Record<IconButtonSize, ComponentProps<typeof Button>['size']> = {
   sm: 'icon-sm',
   md: 'icon',
   lg: 'icon-lg',

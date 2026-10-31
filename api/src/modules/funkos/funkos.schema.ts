@@ -1,9 +1,8 @@
-import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { FUNKO_SORT_FIELDS, FUNKO_TYPES, funkos } from '../../db/schema/funkos.ts';
+import { IdParamSchema, IdSchema } from '../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { BooleanQuerySchema, ContainsQuerySchema, IdListQuerySchema } from '../../lib/queryParams.ts';
-import { FunkoSummarySchema } from './funkos.type.ts';
+import { FUNKO_TYPES, FunkoSummarySchema } from './funkos.type.ts';
 import { FunkoImageResponseSchema } from './images/funkoImages.type.ts';
 
 export const FUNKO_NAME_MAX_LENGTH = 150;
@@ -12,6 +11,9 @@ export const FUNKO_EXCLUSIVE_MAX_LENGTH = 100;
 export const BARCODE_MIN_LENGTH = 8;
 export const BARCODE_MAX_LENGTH = 14;
 export const SEARCH_QUERY_MAX_LENGTH = 200;
+
+export const FUNKO_SORT_FIELDS = ['RELEVANCE', 'NAME', 'NUMBER', 'CREATION_DATE', 'CATEGORY', 'SERIES'] as const;
+export type FunkoSortField = (typeof FUNKO_SORT_FIELDS)[number];
 
 export const FUNKO_MATCH_FIELDS = [
   'ID',
@@ -29,7 +31,7 @@ export type FunkoMatchField = (typeof FUNKO_MATCH_FIELDS)[number];
 const BARCODE_PATTERN = /^\d+$/;
 
 export const FunkoParamsSchema = z.object({
-  funkoId: z.coerce.number().int().positive(),
+  funkoId: IdParamSchema,
 });
 
 // `force=true` removes the funko from every collection first; without it a funko in a collection answers 409.
@@ -41,17 +43,24 @@ export const BarcodeParamsSchema = z.object({
   barcode: z.string().trim().min(BARCODE_MIN_LENGTH).max(BARCODE_MAX_LENGTH).regex(BARCODE_PATTERN),
 });
 
-const FunkoInsertSchema = createInsertSchema(funkos, {
-  name: (schema) => schema.trim().min(1).max(FUNKO_NAME_MAX_LENGTH),
-  number: (schema) => schema.trim().min(1).max(FUNKO_NUMBER_MAX_LENGTH),
-  exclusive: (schema) => schema.trim().max(FUNKO_EXCLUSIVE_MAX_LENGTH),
-  barcode: (schema) => schema.trim().min(BARCODE_MIN_LENGTH).max(BARCODE_MAX_LENGTH).regex(BARCODE_PATTERN),
-  categoryId: (schema) => schema.int().positive(),
+export const CreateFunkoSchema = z.strictObject({
+  name: z.string().trim().min(1).max(FUNKO_NAME_MAX_LENGTH),
+  number: z.string().trim().min(1).max(FUNKO_NUMBER_MAX_LENGTH),
+  type: z.enum(FUNKO_TYPES).optional(),
+  categoryId: IdSchema,
   // Optional: null (or left out) means no series; on a patch, null clears it.
-  seriesId: (schema) => schema.int().positive(),
-}).omit({ id: true, createdAt: true, updatedAt: true });
-
-export const CreateFunkoSchema = z.strictObject(FunkoInsertSchema.shape);
+  seriesId: IdSchema.nullable().optional(),
+  isChase: z.boolean().optional(),
+  exclusive: z.string().trim().max(FUNKO_EXCLUSIVE_MAX_LENGTH).optional(),
+  barcode: z
+    .string()
+    .trim()
+    .min(BARCODE_MIN_LENGTH)
+    .max(BARCODE_MAX_LENGTH)
+    .regex(BARCODE_PATTERN)
+    .nullable()
+    .optional(),
+});
 
 export const UpdateFunkoSchema = CreateFunkoSchema.partial();
 

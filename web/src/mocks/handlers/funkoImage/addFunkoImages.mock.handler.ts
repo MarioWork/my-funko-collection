@@ -3,7 +3,9 @@ import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from '@mocks/mockImageUtils';
 import { badRequest, created, notFound } from '@mocks/mockResponses';
-import { mockStore, nextId, nowIso, type MockImageRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockImageRow } from '@mocks/mockStore.type';
+import { nextId, nowIso } from '@mocks/mockStoreUtils';
 import { IMAGE_FILE_FIELD } from '@services/funkoImageService/funkoImageService';
 
 const FILE_EXTENSION = /\.[^.]+$/;

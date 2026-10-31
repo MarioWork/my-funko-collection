@@ -3,7 +3,8 @@ import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls } from '@mocks/mockImageUtils';
 import { badRequest, noContent, notFound } from '@mocks/mockResponses';
-import { mockStore, nextId } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import { nextId } from '@mocks/mockStoreUtils';
 import type { ReorderImages, RotateImage } from '@services/funkoImageService/funkoImageService.type';
 
 // Turns that swap the picture's width and height.
@@ -38,7 +39,7 @@ export default (baseUrl: string) => [
     const isQuarterTurn = QUARTER_TURN_DEGREES.includes(degrees);
     const rotatedSize = isQuarterTurn ? { width: image.height, height: image.width } : {};
 
-    // New URLs, as the API does: variant files are immutable, so a changed picture needs a new key.
+    // New URLs, as the API does: image files are immutable, so a changed picture needs a new key.
     Object.assign(image, createMockImageUrls(`r${degrees}`, nextId(mockStore.images) + image.id), rotatedSize);
 
     const { funkoId: _funkoId, ...response } = image;

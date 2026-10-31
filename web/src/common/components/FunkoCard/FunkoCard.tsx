@@ -17,7 +17,7 @@ type Props = {
 // A hit on the name or the id is obvious from the card itself, so the caption leaves those out.
 const SELF_EVIDENT_MATCHES: FunkoMatchFieldUtil[] = [FunkoMatchFieldUtil.NAME, FunkoMatchFieldUtil.ID];
 
-// Tile widths per grid column count; the browser picks the variant from this.
+// Tile widths per grid column count; the browser picks the size from this.
 const CARD_SIZES = '(min-width: 1536px) 15vw, (min-width: 1024px) 22vw, (min-width: 640px) 30vw, 45vw';
 
 // Image first, two badges at most, the whole card is the link. Matched-by caption only when a search hit it. Hover

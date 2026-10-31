@@ -1,40 +1,44 @@
-import { and, count, desc, eq, gt, lt, or } from 'drizzle-orm';
-import { db, type DbExecutor } from '../../db/client.ts';
-import {
-  authChallenges,
-  passkeys,
-  sessions,
-  setupCodes,
-  users,
-  type AuthChallengePurpose,
-  type NewAuthChallenge,
-  type NewPasskey,
-  type NewSession,
-  type NewUser,
-} from '../../db/schema/index.ts';
+import type { AuthChallengePurpose, Prisma } from '../../generated/prisma/client.ts';
+import { deletedIdOrUndefined, ID_SELECT, prisma, type DbExecutor } from '../../lib/prisma.ts';
 
-const USER_COLUMNS = { id: users.id, name: users.name, webauthnUserId: users.webauthnUserId } as const;
+const USER_SELECT = { id: true, name: true, webauthnUserId: true } as const satisfies Prisma.UserSelect;
 
-const PASSKEY_COLUMNS = {
-  id: passkeys.id,
-  credentialId: passkeys.credentialId,
-  userId: passkeys.userId,
-  name: passkeys.name,
-  publicKey: passkeys.publicKey,
-  counter: passkeys.counter,
-  transports: passkeys.transports,
-  isSynced: passkeys.isSynced,
-  lastUsedAt: passkeys.lastUsedAt,
-  createdAt: passkeys.createdAt,
-} as const;
+const PASSKEY_SELECT = {
+  id: true,
+  credentialId: true,
+  userId: true,
+  name: true,
+  publicKey: true,
+  counter: true,
+  transports: true,
+  isSynced: true,
+  lastUsedAt: true,
+  createdAt: true,
+} as const satisfies Prisma.PasskeySelect;
 
-const SESSION_COLUMNS = {
-  tokenHash: sessions.tokenHash,
-  userId: sessions.userId,
-  signedInAt: sessions.signedInAt,
-  lastSeenAt: sessions.lastSeenAt,
-  userName: users.name,
-} as const;
+const SESSION_SELECT = {
+  tokenHash: true,
+  userId: true,
+  signedInAt: true,
+  lastSeenAt: true,
+  user: { select: { name: true } },
+} as const satisfies Prisma.SessionSelect;
+
+const CHALLENGE_SELECT = { challenge: true, webauthnUserId: true } as const satisfies Prisma.AuthChallengeSelect;
+
+type NewUser = Pick<Prisma.UserUncheckedCreateInput, 'name' | 'webauthnUserId'>;
+
+type NewPasskey = Omit<Prisma.PasskeyUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt' | 'sessions'>;
+
+type NewSession = Pick<
+  Prisma.SessionUncheckedCreateInput,
+  'tokenHash' | 'userId' | 'passkeyId' | 'signedInAt' | 'lastSeenAt'
+>;
+
+type NewAuthChallenge = Pick<
+  Prisma.AuthChallengeUncheckedCreateInput,
+  'challenge' | 'purpose' | 'webauthnUserId' | 'expiresAt'
+>;
 
 type PasskeyUse = { counter: number; isSynced: boolean; lastUsedAt: Date };
 
@@ -53,147 +57,160 @@ type CompletedSignIn = {
   session: NewSession;
 };
 
-type UserRow = { id: number; name: string; webauthnUserId: string };
+type UserRow = Prisma.UserGetPayload<{ select: typeof USER_SELECT }>;
 
-async function countUsers(executor: DbExecutor = db): Promise<number> {
-  const row = await executor.select({ total: count() }).from(users).get();
+type TakenChallenge = { challenge: string; webauthnUserId: string | null };
 
-  return row?.total ?? 0;
+function countUsers(executor: DbExecutor = prisma): Promise<number> {
+  return executor.user.count();
 }
 
-async function deleteSession(tokenHash: string, executor: DbExecutor = db): Promise<void> {
-  await executor.delete(sessions).where(eq(sessions.tokenHash, tokenHash));
+async function deleteSession(tokenHash: string, executor: DbExecutor = prisma): Promise<void> {
+  await executor.session.deleteMany({ where: { tokenHash } });
+}
+
+async function findSession(tokenHash: string) {
+  const session = await prisma.session.findUnique({ where: { tokenHash }, select: SESSION_SELECT });
+
+  if (!session) return undefined;
+
+  const { user, ...times } = session;
+
+  return { ...times, userName: user.name };
+}
+
+async function findPasskey(credentialId: string) {
+  return (await prisma.passkey.findUnique({ where: { credentialId }, select: PASSKEY_SELECT })) ?? undefined;
 }
 
 export const authRepository = {
   // There is one user at most; the app is single-person by design.
-  findUser: (executor: DbExecutor = db): Promise<UserRow | undefined> =>
-    executor.select(USER_COLUMNS).from(users).limit(1).get(),
+  findUser: async (): Promise<UserRow | undefined> =>
+    (await prisma.user.findFirst({ select: USER_SELECT })) ?? undefined,
 
   countUsers,
 
   // Users cascade to their passkeys and sessions; challenges and setup codes go with them. All or nothing: a reset
   // that fails halfway must not leave, say, the passkeys gone but the old setup code still valid.
-  deleteEverything: (): Promise<void> =>
-    db.transaction(async (tx) => {
-      await tx.delete(users);
-      await tx.delete(authChallenges);
-      await tx.delete(setupCodes);
-    }),
-
-  replaceSetupCode: async (codeHash: string, executor: DbExecutor = db): Promise<void> => {
-    await executor.delete(setupCodes);
-    await executor.insert(setupCodes).values({ codeHash });
+  deleteEverything: async (): Promise<void> => {
+    await prisma.$transaction([
+      prisma.user.deleteMany(),
+      prisma.authChallenge.deleteMany(),
+      prisma.setupCode.deleteMany(),
+    ]);
   },
 
-  hasSetupCode: async (codeHash: string, executor: DbExecutor = db): Promise<boolean> => {
-    const row = await executor
-      .select({ id: setupCodes.id })
-      .from(setupCodes)
-      .where(eq(setupCodes.codeHash, codeHash))
-      .get();
+  replaceSetupCode: async (codeHash: string): Promise<void> => {
+    await prisma.$transaction([
+      prisma.setupCode.deleteMany(),
+      prisma.setupCode.create({ data: { codeHash }, select: ID_SELECT }),
+    ]);
+  },
 
-    return row !== undefined;
+  hasSetupCode: async (codeHash: string): Promise<boolean> => {
+    const row = await prisma.setupCode.findUnique({ where: { codeHash }, select: ID_SELECT });
+
+    return row !== null;
   },
 
   // Expired challenges are swept whenever a new one is made, so the table stays a handful of rows.
-  createChallenge: async (data: NewAuthChallenge, executor: DbExecutor = db): Promise<void> => {
-    await executor.delete(authChallenges).where(lt(authChallenges.expiresAt, new Date()));
-    await executor.insert(authChallenges).values(data);
+  createChallenge: async (data: NewAuthChallenge): Promise<void> => {
+    await prisma.$transaction([
+      prisma.authChallenge.deleteMany({ where: { expiresAt: { lt: new Date() } } }),
+      prisma.authChallenge.create({ data, select: ID_SELECT }),
+    ]);
   },
 
-  // Single use: the row is deleted as it is read, and only an unexpired one of the right purpose counts.
-  takeChallenge: (challenge: string, purpose: AuthChallengePurpose, executor: DbExecutor = db) =>
-    executor
-      .delete(authChallenges)
-      .where(
-        and(
-          eq(authChallenges.challenge, challenge),
-          eq(authChallenges.purpose, purpose),
-          gt(authChallenges.expiresAt, new Date()),
-        ),
-      )
-      .returning({ challenge: authChallenges.challenge, webauthnUserId: authChallenges.webauthnUserId })
-      .get(),
+  // Single use: only an unexpired one of the right purpose counts, and only the caller whose delete removed the row
+  // gets it back, so two requests racing with the same challenge cannot both use it.
+  takeChallenge: (challenge: string, purpose: AuthChallengePurpose): Promise<TakenChallenge | undefined> =>
+    prisma.$transaction(async (tx) => {
+      const where = { challenge, purpose, expiresAt: { gt: new Date() } };
+      const found = await tx.authChallenge.findFirst({ where, select: CHALLENGE_SELECT });
 
-  findPasskey: (credentialId: string, executor: DbExecutor = db) =>
-    executor.select(PASSKEY_COLUMNS).from(passkeys).where(eq(passkeys.credentialId, credentialId)).get(),
+      if (!found) return undefined;
 
-  listPasskeys: (userId: number, executor: DbExecutor = db) =>
-    executor
-      .select(PASSKEY_COLUMNS)
-      .from(passkeys)
-      .where(eq(passkeys.userId, userId))
-      .orderBy(desc(passkeys.createdAt), desc(passkeys.id)),
+      const { count } = await tx.authChallenge.deleteMany({ where });
 
-  countPasskeys: (userId: number, executor: DbExecutor = db): Promise<number> =>
-    executor.$count(passkeys, eq(passkeys.userId, userId)),
+      return count === 0 ? undefined : found;
+    }),
 
-  createPasskey: (data: NewPasskey, executor: DbExecutor = db) =>
-    executor.insert(passkeys).values(data).returning(PASSKEY_COLUMNS).get(),
+  findPasskey,
+
+  listPasskeys: (userId: number) =>
+    prisma.passkey.findMany({
+      where: { userId },
+      select: PASSKEY_SELECT,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    }),
+
+  countPasskeys: (userId: number): Promise<number> => prisma.passkey.count({ where: { userId } }),
+
+  createPasskey: (data: NewPasskey) => prisma.passkey.create({ data, select: PASSKEY_SELECT }),
 
   // The sessions it opened go with it (foreign key cascade).
-  deletePasskey: (id: number, executor: DbExecutor = db) =>
-    executor.delete(passkeys).where(eq(passkeys.id, id)).returning({ id: passkeys.id }).get(),
+  deletePasskey: async (id: number): Promise<{ id: number } | undefined> => {
+    const write = await prisma.passkey.deleteMany({ where: { id } });
 
-  findSession: (tokenHash: string, executor: DbExecutor = db) =>
-    executor
-      .select(SESSION_COLUMNS)
-      .from(sessions)
-      .innerJoin(users, eq(users.id, sessions.userId))
-      .where(eq(sessions.tokenHash, tokenHash))
-      .get(),
+    return deletedIdOrUndefined(id, write);
+  },
 
-  touchSession: async (tokenHash: string, lastSeenAt: Date, executor: DbExecutor = db): Promise<void> => {
-    await executor.update(sessions).set({ lastSeenAt }).where(eq(sessions.tokenHash, tokenHash));
+  findSession,
+
+  touchSession: async (tokenHash: string, lastSeenAt: Date): Promise<void> => {
+    await prisma.session.updateMany({ where: { tokenHash }, data: { lastSeenAt } });
   },
 
   deleteSession,
 
-  deleteUserSessions: async (userId: number, executor: DbExecutor = db): Promise<void> => {
-    await executor.delete(sessions).where(eq(sessions.userId, userId));
+  deleteUserSessions: async (userId: number): Promise<void> => {
+    await prisma.session.deleteMany({ where: { userId } });
   },
 
   // Sessions past either timeout; swept on each sign-in so old rows never pile up.
-  deleteExpiredSessions: async (signedInBefore: Date, lastSeenBefore: Date, executor: DbExecutor = db) => {
-    await executor
-      .delete(sessions)
-      .where(or(lt(sessions.signedInAt, signedInBefore), lt(sessions.lastSeenAt, lastSeenBefore)));
+  deleteExpiredSessions: async (signedInBefore: Date, lastSeenBefore: Date): Promise<void> => {
+    await prisma.session.deleteMany({
+      where: { OR: [{ signedInAt: { lt: signedInBefore } }, { lastSeenAt: { lt: lastSeenBefore } }] },
+    });
   },
 
   // First run, all or nothing: the user, their first passkey and session appear together and the setup code goes.
   // Returns undefined when someone else finished setup first (the user count is checked inside the transaction).
   completeSetup: (setup: CompletedSetup): Promise<UserRow | undefined> =>
-    db.transaction(async (tx) => {
+    prisma.$transaction(async (tx) => {
+      // Two setups racing would both count 0 users under Postgres's default isolation. The lock makes the second
+      // wait for the first to commit, then it counts 1 and stops. It ends with the transaction.
+      await tx.$executeRaw`lock table users in share row exclusive mode`;
+
       const isAlreadySetUp = (await countUsers(tx)) > 0;
 
       if (isAlreadySetUp) return undefined;
 
-      const user = await tx.insert(users).values(setup.user).returning(USER_COLUMNS).get();
-      const passkey = await tx
-        .insert(passkeys)
-        .values({ ...setup.passkey, userId: user.id })
-        .returning({ id: passkeys.id })
-        .get();
-      await tx.insert(sessions).values({ ...setup.session, userId: user.id, passkeyId: passkey.id });
-      await tx.delete(setupCodes);
+      const user = await tx.user.create({ data: setup.user, select: USER_SELECT });
+      const passkey = await tx.passkey.create({ data: { ...setup.passkey, userId: user.id }, select: ID_SELECT });
+
+      await tx.session.create({
+        data: { ...setup.session, userId: user.id, passkeyId: passkey.id },
+        select: ID_SELECT,
+      });
+      await tx.setupCode.deleteMany();
 
       return user;
     }),
 
   // A sign-in: the passkey's new counter, the old session of this browser (if any) out, the new one in.
   completeSignIn: (signIn: CompletedSignIn): Promise<void> =>
-    db.transaction(async (tx) => {
-      await tx.update(passkeys).set(signIn.passkeyUse).where(eq(passkeys.id, signIn.passkeyId));
+    prisma.$transaction(async (tx) => {
+      await tx.passkey.updateMany({ where: { id: signIn.passkeyId }, data: signIn.passkeyUse });
 
       if (signIn.previousTokenHash) await deleteSession(signIn.previousTokenHash, tx);
 
-      await tx.insert(sessions).values(signIn.session);
+      await tx.session.create({ data: signIn.session, select: ID_SELECT });
     }),
 };
 
-// Re-exported so the service can name a challenge's purpose without importing the schema.
+// Re-exported so the service can name a challenge's purpose without importing the generated client.
 export type { AuthChallengePurpose };
 
-export type PasskeyRow = NonNullable<Awaited<ReturnType<typeof authRepository.findPasskey>>>;
-export type SessionRow = NonNullable<Awaited<ReturnType<typeof authRepository.findSession>>>;
+export type PasskeyRow = NonNullable<Awaited<ReturnType<typeof findPasskey>>>;
+export type SessionRow = NonNullable<Awaited<ReturnType<typeof findSession>>>;

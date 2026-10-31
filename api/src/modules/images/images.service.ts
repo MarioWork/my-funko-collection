@@ -4,11 +4,11 @@ import {
   readImageDimensions,
   storedFileKey,
   storedFileUrl,
-  variantFileName,
-  type ImageVariant,
+  sizeFileName,
+  type ImageSize,
   type StoredImageFiles,
 } from '../../lib/imageStorage.ts';
-import { toLimitOffset } from '../../lib/pagination.ts';
+import { toSkipTake } from '../../lib/pagination.ts';
 import { imagesRepository, type LinkedImageRow } from './images.repository.ts';
 import type {
   ImageGroup,
@@ -22,7 +22,7 @@ import type {
 // The group the loose files share in the grouped list.
 const LOOSE_GROUP_KEY = 'loose';
 // Which stored size to read a loose file's dimensions from, best first.
-const DIMENSION_VARIANTS: ImageVariant[] = ['large', 'medium', 'small'];
+const DIMENSION_SIZES: ImageSize[] = ['large', 'medium', 'small'];
 
 type Comparator = (first: ImageListEntry, second: ImageListEntry) => number;
 
@@ -70,11 +70,11 @@ function toLinkedEntry(row: LinkedImageRow, files: StoredImageFiles | undefined,
     key: storageKey(folder, row.fileKey),
     id: row.id,
     funko: { id: row.funkoId, name: row.funkoName, number: row.funkoNumber },
-    fileName: variantFileName(row.fileKey, 'large'),
+    fileName: sizeFileName(row.fileKey, 'large'),
     width: row.width,
     height: row.height,
     sizeBytes: row.sizeBytes,
-    variantCount: files?.variants.length ?? 0,
+    sizeCount: files?.sizes.length ?? 0,
     isMain: mainIds.has(row.id),
     createdAt: row.createdAt.toISOString(),
     url: storedFileUrl(folder, row.fileKey, 'large'),
@@ -84,24 +84,24 @@ function toLinkedEntry(row: LinkedImageRow, files: StoredImageFiles | undefined,
   };
 }
 
-function urlIfPresent(files: StoredImageFiles, variant: ImageVariant): string | null {
-  return files.variants.includes(variant) ? storedFileUrl(files.folder, files.fileKey, variant) : null;
+function urlIfPresent(files: StoredImageFiles, size: ImageSize): string | null {
+  return files.sizes.includes(size) ? storedFileUrl(files.folder, files.fileKey, size) : null;
 }
 
 async function toLooseEntry(files: StoredImageFiles): Promise<ImageListEntry> {
-  const bestVariant = DIMENSION_VARIANTS.find((variant) => files.variants.includes(variant));
-  const dimensions = bestVariant ? await readImageDimensions(files.folder, files.fileKey, bestVariant) : null;
-  const anyUrl = bestVariant ? storedFileUrl(files.folder, files.fileKey, bestVariant) : null;
+  const bestSize = DIMENSION_SIZES.find((size) => files.sizes.includes(size));
+  const dimensions = bestSize ? await readImageDimensions(files.folder, files.fileKey, bestSize) : null;
+  const anyUrl = bestSize ? storedFileUrl(files.folder, files.fileKey, bestSize) : null;
 
   return {
     key: storageKey(files.folder, files.fileKey),
     id: null,
     funko: null,
-    fileName: variantFileName(files.fileKey, bestVariant ?? 'large'),
+    fileName: sizeFileName(files.fileKey, bestSize ?? 'large'),
     width: dimensions?.width ?? null,
     height: dimensions?.height ?? null,
     sizeBytes: files.sizeBytes,
-    variantCount: files.variants.length,
+    sizeCount: files.sizes.length,
     isMain: false,
     createdAt: files.modifiedAt.toISOString(),
     // The full-size file, or the best one left when it is missing.
@@ -154,9 +154,9 @@ export async function getAllImages(): Promise<ImageListEntry[]> {
 
 export async function getImages(query: ListImagesQuery): Promise<ImageListResponse> {
   const matching = await collectEntries(query);
-  const { limit, offset } = toLimitOffset(query);
+  const { skip, take } = toSkipTake(query);
 
-  return { data: matching.slice(offset, offset + limit), totalResultNumber: matching.length, currentPage: query.page };
+  return { data: matching.slice(skip, skip + take), totalResultNumber: matching.length, currentPage: query.page };
 }
 
 // One funko's images (or all the loose files) with their totals. Its images keep the list's order.
@@ -193,9 +193,9 @@ export async function getImageGroups(query: ListImagesQuery): Promise<ImageGroup
   const directionFactor = directionFactorOf(query);
   funkoGroups.sort((first, second) => compare(first, second) * directionFactor || first.key.localeCompare(second.key));
   const ordered = [...funkoGroups, ...looseGroups];
-  const { limit, offset } = toLimitOffset(query);
+  const { skip, take } = toSkipTake(query);
 
-  return { data: ordered.slice(offset, offset + limit), totalResultNumber: ordered.length, currentPage: query.page };
+  return { data: ordered.slice(skip, skip + take), totalResultNumber: ordered.length, currentPage: query.page };
 }
 
 // Deletes the image files on disk that no row points at (and folders left empty). Returns how many files went.

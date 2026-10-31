@@ -12,13 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
 
+type ExportMenuVariant = 'ghost' | 'outline';
+
 type Props = {
   // "Export Pop! Marvel", "Export all images": the button's name, its tooltip and the menu's title.
   label: string;
   // The download link for one format.
   hrefFor: (format: ExportFormatUtil) => string;
   // Ghost in a list row, outline in a page header.
-  variant?: 'ghost' | 'outline';
+  variant?: ExportMenuVariant;
   // Set when there is nothing to export yet: the button stays, disabled, and says why.
   disabledReason?: string;
   // Options above the formats (a switch that changes what the links download).

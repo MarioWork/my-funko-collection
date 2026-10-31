@@ -1,5 +1,5 @@
 import { buildApp, type App } from '../../app.ts';
-import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
+import { resetTestDb } from '../../testDb.ts';
 import { createCollection, createFunko, createItem, type SignedInClient, signIn } from '../../testFixtures.ts';
 
 const URL = '/collections';
@@ -20,7 +20,6 @@ let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {

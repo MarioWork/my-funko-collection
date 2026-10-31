@@ -1,6 +1,7 @@
-# Home server deployment. Everything worth backing up lives in ./data (SQLite file + uploaded images).
+# Home server deployment. Everything worth backing up lives in ./data (the Postgres files + uploaded images).
+# The database password comes from a .env file next to this one: POSTGRES_PASSWORD=<letters and digits> (README).
 # The web container (Caddy) is the only thing on the LAN: it serves the app over HTTPS and proxies /api and
-# /uploads to the api container, which is not published.
+# /uploads to the api container. Neither the api nor the database is published.
 # The one address the app is opened at, used by both containers: Caddy answers on it, and passkeys are tied to
 # its host name for good (a passkey made for one name never works on another, and never on a bare IP address).
 # Pick it once. A Tailscale name (https://funko.<your-tailnet>.ts.net) is the plan: see README, "Sign-in".
@@ -26,8 +27,23 @@ services:
       api:
         condition: service_healthy
 
+  # Runs once per `up`: applies pending database migrations, then exits. The api waits for it to succeed.
+  migrate:
+    build:
+      context: ./api
+      target: migrate
+    container_name: my-funko-collection-migrate
+    restart: 'no'
+    environment:
+      DATABASE_URL: postgresql://funko:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/funko
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
-    build: ./api
+    build:
+      context: ./api
+      target: runtime
     container_name: my-funko-collection-api
     restart: unless-stopped
     expose:
@@ -36,9 +52,9 @@ services:
       NODE_ENV: production
       LOG_LEVEL: info
       PORT: 3000
-      DATABASE_URL: file:/app/data/app.db
+      # The password goes inside a URL, hence letters and digits only.
+      DATABASE_URL: postgresql://funko:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/funko
       UPLOADS_DIR: /app/data/uploads
-      MIGRATE_ON_START: 'true'
       # Caddy is the one proxy in front: read the real device address from X-Forwarded-For (for rate limits).
       TRUST_PROXY_HOPS: 1
       # Passkeys are checked against this origin, and writes from any other origin are refused.
@@ -46,13 +62,37 @@ services:
       MAX_IMAGE_BYTES: 5242880
       MAX_IMAGES_PER_FUNKO: 10
     volumes:
-      - ./data:/app/data
+      # Only the photos: the database files next to them belong to the db container.
+      - ./data/uploads:/app/data/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://localhost:3000/ready').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
+
+  db:
+    image: postgres:18
+    container_name: my-funko-collection-db
+    restart: unless-stopped
+    expose:
+      - '5432'
+    environment:
+      POSTGRES_USER: funko
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: funko
+    volumes:
+      # Postgres 18 images keep their data under /var/lib/postgresql/18/docker: mount the parent.
+      - ./data/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'funko', '-d', 'funko']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   caddy_data:

@@ -49,7 +49,7 @@ describe('addCategory', () => {
   });
 
   it('returns the 409 envelope for a taken name', async () => {
-    const result = await categoryService.addCategory({ name: 'Star Wars' });
+    const result = await categoryService.addCategory({ name: 'Pop! Star Wars' });
 
     expect(result).toMatchObject({ success: false, error: { statusCode: 409 } });
   });

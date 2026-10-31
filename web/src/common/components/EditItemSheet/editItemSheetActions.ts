@@ -1,5 +1,4 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { ValidationError } from 'yup';
 import type { CollectionItemApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import collectionItemService from '@services/collectionItemService/collectionItemService';
@@ -8,6 +7,7 @@ import {
   type UpdateCollectionItem,
 } from '@services/collectionItemService/collectionItemService.type';
 import { parseFormData } from '@utils/formDataUtils';
+import { failWhenInvalid } from '@utils/actionUtils';
 
 type EditItemFormData = { item: UpdateCollectionItem };
 
@@ -17,13 +17,9 @@ export const updateItemAction = async ({
 }: ActionFunctionArgs): Promise<JSONResponseUtil<CollectionItemApiModel>> => {
   const { item } = parseFormData<EditItemFormData>(await request.formData());
 
-  try {
+  return failWhenInvalid(async () => {
     const valid = await UpdateCollectionItemSchema.validate(item);
 
-    return await collectionItemService.updateCollectionItem(Number(params.collectionId), Number(params.itemId), valid);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return collectionItemService.updateCollectionItem(Number(params.collectionId), Number(params.itemId), valid);
+  });
 };

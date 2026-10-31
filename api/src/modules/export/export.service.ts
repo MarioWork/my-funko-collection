@@ -1,5 +1,5 @@
 import { env } from '../../config/env.ts';
-import { readVariantAsJpeg } from '../../lib/imageStorage.ts';
+import { readSizeAsJpeg } from '../../lib/imageStorage.ts';
 import { getAllImages } from '../images/images.service.ts';
 import type { ImageListEntry } from '../images/images.type.ts';
 import { toCsv, toFunkoTree, toImagesCsv, toListCsv } from './export.formats.ts';
@@ -94,7 +94,7 @@ async function getScopedLines(query: ExportFunkosQuery) {
 // keeps the file small). A file missing on disk is left out.
 async function loadSheetImages(funkoId: number, lookups: Lookups): Promise<SheetImage[]> {
   const images = lookups.imagesByFunko.get(funkoId) ?? [];
-  const jpegs = await Promise.all(images.map((image) => readVariantAsJpeg(funkoId, image.fileKey, 'small')));
+  const jpegs = await Promise.all(images.map((image) => readSizeAsJpeg(funkoId, image.fileKey, 'small')));
 
   return jpegs.filter((jpeg) => jpeg !== undefined);
 }

@@ -1,3 +1,4 @@
+import { nowIso } from '@mocks/mockStoreUtils';
 import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import writeExcelFile from 'write-excel-file/browser';
@@ -36,7 +37,7 @@ function toJson(kind: ExportListKindUtil, listExport: ListExport) {
     return { ...entry.summary, funkos };
   });
 
-  return { exportedAt: new Date().toISOString(), kind, includesFunkos: listExport.includeFunkos, entries };
+  return { exportedAt: nowIso(), kind, includesFunkos: listExport.includeFunkos, entries };
 }
 
 async function toSpreadsheet(listExport: ListExport): Promise<Blob> {

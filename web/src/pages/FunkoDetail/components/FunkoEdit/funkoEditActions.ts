@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { array, number, ValidationError } from 'yup';
+import { array, number } from 'yup';
 import type { FunkoApiModel } from '@app-types/models';
 import { DEFAULT_FIRST_PAGE, type JSONResponseUtil } from '@app-types/utility';
 import collectionItemService, { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
@@ -8,6 +8,7 @@ import { UpdateFunkoSchema, type UpdateFunko } from '@services/funkoService/funk
 import { parseFormData } from '@utils/formDataUtils';
 import { newItemPayload } from '@utils/newItemUtils';
 import { FUNKO_ITEMS_PAGE_SIZE } from '../../funkoDetailUtils';
+import { failWhenInvalid } from '@utils/actionUtils';
 
 type EditFunkoFormData = { funko: UpdateFunko; collectionIds: number[] };
 
@@ -42,7 +43,7 @@ export const editFunkoAction = async ({
   const funkoId = Number(params.funkoId);
   const { funko, collectionIds } = parseFormData<EditFunkoFormData>(await request.formData());
 
-  try {
+  return failWhenInvalid(async () => {
     const validFunko = await UpdateFunkoSchema.validate(funko);
     const validCollectionIds = await collectionIdsSchema.validate(collectionIds);
     const updated = await funkoService.updateFunko(funkoId, validFunko);
@@ -54,9 +55,5 @@ export const editFunkoAction = async ({
     if (!isEverySynced) return { success: false, error: { message: COLLECTIONS_FAILED_MESSAGE } };
 
     return updated;
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+  });
 };

@@ -26,18 +26,18 @@ const SHARP_CACHE_MB = 50;
 const UNSUPPORTED_IMAGE_MESSAGE = 'Not a supported image';
 const MISSING_FILE_CODE = 'ENOENT';
 
-export const IMAGE_VARIANTS = ['large', 'medium', 'small'] as const;
-export type ImageVariant = (typeof IMAGE_VARIANTS)[number];
+export const IMAGE_SIZES = ['large', 'medium', 'small'] as const;
+export type ImageSize = (typeof IMAGE_SIZES)[number];
 
-type VariantSpec = { suffix: string; maxPx: number; quality: number };
+type SizeSpec = { suffix: string; maxPx: number; quality: number };
 
-const VARIANT_SPECS: Record<ImageVariant, VariantSpec> = {
+const SIZE_SPECS: Record<ImageSize, SizeSpec> = {
   large: { suffix: '.webp', maxPx: env.IMAGE_LARGE_PX, quality: LARGE_QUALITY },
   medium: { suffix: '.md.webp', maxPx: env.IMAGE_MEDIUM_PX, quality: MEDIUM_QUALITY },
   small: { suffix: '.sm.webp', maxPx: env.IMAGE_SMALL_PX, quality: SMALL_QUALITY },
 };
 
-const SUFFIX_VARIANTS = IMAGE_VARIANTS.map((variant) => ({ variant, suffix: VARIANT_SPECS[variant].suffix }))
+const SUFFIX_SIZES = IMAGE_SIZES.map((size) => ({ size, suffix: SIZE_SPECS[size].suffix }))
   // Longest suffix first, so ".md.webp" is not taken for ".webp".
   .sort((first, second) => second.suffix.length - first.suffix.length);
 
@@ -68,12 +68,12 @@ function funkoFolder(funkoId: number): string {
   return join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER, String(funkoId));
 }
 
-export function variantFileName(fileKey: string, variant: ImageVariant): string {
-  return `${fileKey}${VARIANT_SPECS[variant].suffix}`;
+export function sizeFileName(fileKey: string, size: ImageSize): string {
+  return `${fileKey}${SIZE_SPECS[size].suffix}`;
 }
 
-export function variantUrl(funkoId: number, fileKey: string, variant: ImageVariant): string {
-  return `${UPLOADS_URL_PREFIX}/${FUNKOS_UPLOAD_FOLDER}/${funkoId}/${variantFileName(fileKey, variant)}`;
+export function sizeUrl(funkoId: number, fileKey: string, size: ImageSize): string {
+  return `${UPLOADS_URL_PREFIX}/${FUNKOS_UPLOAD_FOLDER}/${funkoId}/${sizeFileName(fileKey, size)}`;
 }
 
 // Called once by the uploads plugin: caps sharp's threads and cache, and creates the folder.
@@ -113,7 +113,7 @@ async function decode(buffer: Buffer): Promise<sharp.Sharp> {
   return pipeline;
 }
 
-async function renderVariant(pipeline: sharp.Sharp, spec: VariantSpec) {
+async function renderSize(pipeline: sharp.Sharp, spec: SizeSpec) {
   return pipeline
     .clone()
     .resize({ width: spec.maxPx, height: spec.maxPx, fit: 'inside', withoutEnlargement: true })
@@ -151,19 +151,19 @@ export async function processImage(funkoId: number, buffer: Buffer): Promise<Sto
 
   try {
     const [large, medium, small] = await Promise.all([
-      renderVariant(pipeline, VARIANT_SPECS.large),
-      renderVariant(pipeline, VARIANT_SPECS.medium),
-      renderVariant(pipeline, VARIANT_SPECS.small),
+      renderSize(pipeline, SIZE_SPECS.large),
+      renderSize(pipeline, SIZE_SPECS.medium),
+      renderSize(pipeline, SIZE_SPECS.small),
     ]);
     const placeholder = await renderPlaceholder(pipeline);
-    const outputs: [ImageVariant, Buffer][] = [
+    const outputs: [ImageSize, Buffer][] = [
       ['large', large.data],
       ['medium', medium.data],
       ['small', small.data],
     ];
 
-    for (const [variant, data] of outputs) {
-      const path = join(folder, variantFileName(fileKey, variant));
+    for (const [size, data] of outputs) {
+      const path = join(folder, sizeFileName(fileKey, size));
 
       await writeAtomically(path, data);
       writtenPaths.push(path);
@@ -184,21 +184,21 @@ export async function processImage(funkoId: number, buffer: Buffer): Promise<Sto
   }
 }
 
-// Reads the stored large variant back as bytes, for a rotate that regenerates every variant.
-export async function readLargeVariant(funkoId: number, fileKey: string): Promise<Buffer> {
-  return readFile(join(funkoFolder(funkoId), variantFileName(fileKey, 'large')));
+// Reads the stored large size back as bytes, for a rotate that regenerates every size.
+export async function readLargeFile(funkoId: number, fileKey: string): Promise<Buffer> {
+  return readFile(join(funkoFolder(funkoId), sizeFileName(fileKey, 'large')));
 }
 
 export type JpegImage = { content: Buffer; width: number; height: number };
 
-// A stored variant as JPEG, for files that cannot hold WebP (spreadsheets). Undefined when the file is missing.
-export async function readVariantAsJpeg(
+// A stored size as JPEG, for files that cannot hold WebP (spreadsheets). Undefined when the file is missing.
+export async function readSizeAsJpeg(
   funkoId: number,
   fileKey: string,
-  variant: ImageVariant,
+  size: ImageSize,
 ): Promise<JpegImage | undefined> {
   try {
-    const source = await readFile(join(funkoFolder(funkoId), variantFileName(fileKey, variant)));
+    const source = await readFile(join(funkoFolder(funkoId), sizeFileName(fileKey, size)));
     const { data, info } = await sharp(source)
       .jpeg({ quality: EXPORT_JPEG_QUALITY })
       .toBuffer({ resolveWithObject: true });
@@ -221,11 +221,11 @@ export async function removeImageFiles(funkoId: number, fileKey: string): Promis
 
   forgetStoredFiles();
 
-  for (const variant of IMAGE_VARIANTS) {
+  for (const size of IMAGE_SIZES) {
     try {
-      await unlink(join(folder, variantFileName(fileKey, variant)));
+      await unlink(join(folder, sizeFileName(fileKey, size)));
     } catch (error: unknown) {
-      log.warn({ err: error, funkoId, fileKey, variant }, 'could not remove image file');
+      log.warn({ err: error, funkoId, fileKey, size }, 'could not remove image file');
     }
   }
 }
@@ -245,7 +245,7 @@ export type StoredImageFiles = {
   // The folder under funkos/: the funko id the files were saved for.
   folder: string;
   fileKey: string;
-  variants: ImageVariant[];
+  sizes: ImageSize[];
   // Sum of the files present.
   sizeBytes: number;
   // The newest of the files' modification times: when it was saved.
@@ -257,12 +257,12 @@ export type ImageDimensions = {
   height: number;
 };
 
-function parseVariantFile(fileName: string): { fileKey: string; variant: ImageVariant } | null {
-  const match = SUFFIX_VARIANTS.find(({ suffix }) => fileName.endsWith(suffix));
+function parseSizeFile(fileName: string): { fileKey: string; size: ImageSize } | null {
+  const match = SUFFIX_SIZES.find(({ suffix }) => fileName.endsWith(suffix));
 
   if (!match) return null;
 
-  return { fileKey: fileName.slice(0, -match.suffix.length), variant: match.variant };
+  return { fileKey: fileName.slice(0, -match.suffix.length), size: match.size };
 }
 
 async function listFolderImages(folder: string): Promise<StoredImageFiles[]> {
@@ -270,7 +270,7 @@ async function listFolderImages(folder: string): Promise<StoredImageFiles[]> {
   const byKey = new Map<string, StoredImageFiles>();
 
   for (const fileName of await readdir(folderPath)) {
-    const parsed = parseVariantFile(fileName);
+    const parsed = parseSizeFile(fileName);
 
     if (!parsed) continue;
 
@@ -278,12 +278,12 @@ async function listFolderImages(folder: string): Promise<StoredImageFiles[]> {
     const entry = byKey.get(parsed.fileKey) ?? {
       folder,
       fileKey: parsed.fileKey,
-      variants: [],
+      sizes: [],
       sizeBytes: 0,
       modifiedAt: fileStat.mtime,
     };
 
-    entry.variants.push(parsed.variant);
+    entry.sizes.push(parsed.size);
     entry.sizeBytes += fileStat.size;
     if (fileStat.mtime > entry.modifiedAt) entry.modifiedAt = fileStat.mtime;
     byKey.set(parsed.fileKey, entry);
@@ -345,8 +345,8 @@ export async function listStoredImageFiles(): Promise<StoredImageFiles[]> {
   return storedFilesCache.files;
 }
 
-export function storedFileUrl(folder: string, fileKey: string, variant: ImageVariant): string {
-  return `${UPLOADS_URL_PREFIX}/${FUNKOS_UPLOAD_FOLDER}/${folder}/${variantFileName(fileKey, variant)}`;
+export function storedFileUrl(folder: string, fileKey: string, size: ImageSize): string {
+  return `${UPLOADS_URL_PREFIX}/${FUNKOS_UPLOAD_FOLDER}/${folder}/${sizeFileName(fileKey, size)}`;
 }
 
 // Loose files' dimensions, which mean decoding the file's header: remembered by file and size, so a changed file is
@@ -357,13 +357,13 @@ const dimensionsCache = new Map<string, ImageDimensions | null>();
 export async function readImageDimensions(
   folder: string,
   fileKey: string,
-  variant: ImageVariant,
+  size: ImageSize,
 ): Promise<ImageDimensions | null> {
-  const path = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER, folder, variantFileName(fileKey, variant));
+  const path = join(env.UPLOADS_DIR, FUNKOS_UPLOAD_FOLDER, folder, sizeFileName(fileKey, size));
 
   try {
-    const { size } = await stat(path);
-    const cacheKey = `${path}:${size}`;
+    const { size: byteSize } = await stat(path);
+    const cacheKey = `${path}:${byteSize}`;
 
     if (dimensionsCache.has(cacheKey)) return dimensionsCache.get(cacheKey) ?? null;
 
@@ -374,7 +374,7 @@ export async function readImageDimensions(
 
     return dimensions;
   } catch (error: unknown) {
-    log.warn({ err: error, folder, fileKey, variant }, 'could not read image dimensions');
+    log.warn({ err: error, folder, fileKey, size }, 'could not read image dimensions');
 
     return null;
   }
@@ -396,8 +396,8 @@ async function pruneFolder(folder: string, knownKeys: Set<string>): Promise<numb
   let removed = 0;
 
   for (const fileName of await readdir(folderPath)) {
-    // A file that is not a variant (a stray `.tmp`) has no key a row could hold, so it goes too.
-    const fileKey = parseVariantFile(fileName)?.fileKey ?? fileName;
+    // A file that is not a size (a stray `.tmp`) has no key a row could hold, so it goes too.
+    const fileKey = parseSizeFile(fileName)?.fileKey ?? fileName;
     const isKnown = knownKeys.has(storedFileKey(folder, fileKey));
 
     if (isKnown) continue;

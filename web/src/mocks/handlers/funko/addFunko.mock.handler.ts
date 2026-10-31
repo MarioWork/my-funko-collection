@@ -2,7 +2,9 @@ import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { badRequest, conflict, created, toFunkoModel } from '@mocks/mockResponses';
-import { mockStore, nextId, nowIso, type MockFunkoRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockFunkoRow } from '@mocks/mockStore.type';
+import { nextId, nowIso } from '@mocks/mockStoreUtils';
 import type { CreateFunko } from '@services/funkoService/funkoService.type';
 import { findDuplicate } from './funkoMockUtils';
 

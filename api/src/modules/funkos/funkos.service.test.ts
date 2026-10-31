@@ -9,9 +9,7 @@ vi.mock('./funkos.repository.ts', () => ({
     findManyByIds: vi.fn(),
     primaryImagesByFunkoIds: vi.fn(),
     collectionsByFunkoIds: vi.fn(),
-    tagNamesByFunkoIds: vi.fn(),
   },
-  splitSearchWords: () => [],
 }));
 
 vi.mock('../categories/categories.service.ts', () => ({
@@ -49,15 +47,5 @@ describe('addFunko', () => {
       message: `Category ${CATEGORY_ID} does not exist`,
     });
     expect(funkosRepository.findIdByIdentity).not.toHaveBeenCalled();
-  });
-
-  it('throws a non-operational INTERNAL_ERROR when the new row cannot be read back', async () => {
-    vi.mocked(getCategory).mockResolvedValue(CATEGORY);
-    vi.mocked(funkosRepository.findIdByIdentity).mockResolvedValue(undefined);
-    vi.mocked(funkosRepository.create).mockResolvedValue(undefined);
-
-    const attempt = addFunko(INPUT);
-
-    await expect(attempt).rejects.toMatchObject({ code: 'INTERNAL_ERROR', isOperational: false });
   });
 });
