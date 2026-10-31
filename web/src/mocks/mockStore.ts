@@ -1,6 +1,6 @@
 // The in-memory data behind every mock handler. One store per page load (and per test, through resetMockStore()),
 // so an add or a delete changes the next list the way the real API would. It is what the signed-in user sees: the
-// whole catalogue, and only their own collections and items (the API never sends another user's).
+// whole catalogue, and only their own collections, items and tags (the API never sends another user's).
 import type { AuthStateUtil as AuthState, UserRoleUtil as UserRole } from '@app-types/utility';
 import { createMockAuth, initialAuthState } from './mockAuth';
 import { createSeedData } from './mockSeed';
