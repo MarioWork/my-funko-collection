@@ -70,7 +70,8 @@ export type MockAuth = {
 
 // The other users, as GET /users lists them, plus their password as typed (the temporary one an admin was shown),
 // so a password sign-in as one of them works in mock mode. The API keeps only a hash.
-export type MockUserRow = UserApiModel & { password: string | null };
+// `isLastAdmin` is worked out from every row when the list is read, as the API does.
+export type MockUserRow = Omit<UserApiModel, 'isLastAdmin'> & { password: string | null };
 
 export type MockStore = {
   auth: MockAuth;

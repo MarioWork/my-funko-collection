@@ -102,21 +102,21 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 
 ## Pages
 
-| Path                                | What                                                                                                     |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `/home`                             | Your stats (the funkos in your collections), recent funkos, your collections, by category, quick actions |
-| `/funkos`, `/funkos/:id`            | The catalog: grid or table, search + filters + sort, detail with gallery                                 |
-| `/add`, `/add/manual`               | Scan-first add page: images, details, a card per collection (own copy)                                   |
-| `/collections`, `/collections/:id`  | Your lists and their items (table on desktop, cards on phones)                                           |
-| `/items`                            | Every item across collections (filter by tag to find a box)                                              |
-| `/search`                           | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                            |
-| `/categories`, `/tags`, `/settings` | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports               |
-| `/users`, `/users/add`              | Admin group, admins only: every user with role and state; New user shows the temporary password once     |
-| `/images`                           | Admin group, admins only: every stored image, loose files included, with who uploaded it and when        |
-| `/settings` → Security              | Passkeys (add, remove), sign out, sign out everywhere                                                    |
-| `/login`                            | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                   |
-| `/setup?code=...`                   | First run: your name and the first passkey, from the link in the log                                     |
-| `/set-password`                     | Outside the shell: a user signed in with a temporary password chooses their own before anything else     |
+| Path                                     | What                                                                                                                                                                   |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/home`                                  | Your stats (the funkos in your collections), recent funkos, your collections, by category, quick actions                                                               |
+| `/funkos`, `/funkos/:id`                 | The catalog: grid or table, search + filters + sort, detail with gallery                                                                                               |
+| `/add`, `/add/manual`                    | Scan-first add page: images, details, a card per collection (own copy)                                                                                                 |
+| `/collections`, `/collections/:id`       | Your lists and their items (table on desktop, cards on phones)                                                                                                         |
+| `/items`                                 | Every item across collections (filter by tag to find a box)                                                                                                            |
+| `/search`                                | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                                                                                          |
+| `/categories`, `/tags`, `/settings`      | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports                                                                             |
+| `/users`, `/users/add`, `/users/:userId` | Admin group, admins only: every user with role and state; New user shows the temporary password once; Manage changes a role, gives a new temporary password or deletes |
+| `/images`                                | Admin group, admins only: every stored image, loose files included, with who uploaded it and when                                                                      |
+| `/settings` → Security                   | Passkeys (add, remove), sign out, sign out everywhere                                                                                                                  |
+| `/login`                                 | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                                                                                 |
+| `/setup?code=...`                        | First run: your name and the first passkey, from the link in the log                                                                                                   |
+| `/set-password`                          | Outside the shell: a user signed in with a temporary password chooses their own before anything else                                                                   |
 
 ## How data flows
 
@@ -152,6 +152,13 @@ HttpOnly cookie the app never sees.
   `mustChangePassword`: `signedInUserMiddleware` sends every app page to `/set-password`, and `authMiddleware` does
   the same for any 403 `PASSWORD_CHANGE_REQUIRED`. That page (outside the shell) saves the new password under the
   username the admin gave, or signs out; saving opens Home.
+- **Managing users.** Each row's _Manage_ link opens `/users/:userId` (a routed dialog over the list, its own page on
+  phones; the user comes from the list's loader, `USER_LIST_ROUTE_ID`): _Make admin_ / _Make member_, _New temporary
+  password_ (asks for a username when the user has none; the password is shown once, like New user) and _Delete user_.
+  Each confirms in an alert dialog, needs a recent sign-in (the shared "confirm with passkey" step), and ends that
+  user's sessions. The last admin (`isLastAdmin` from the API) keeps _Make member_ and _Delete user_ disabled, saying
+  why (`DisabledReason`: hover, keyboard focus, tap, and the button's description). Changing or deleting yourself
+  signs you out: the list reload answers 401 and `authMiddleware` goes to the login page.
 - **Lost session.** The root route's `authMiddleware` lets every loader and action run, then turns any 401
   `UNAUTHORIZED` (a thrown read or an action's envelope) into a redirect to the login page, remembering the page.
   `redirectTo` is checked (`safeRedirectPath`): only a path inside the app.
@@ -162,7 +169,7 @@ HttpOnly cookie the app never sees.
   login action with an `intent`. The fields carry `autocomplete` (`username`, `current-password`, `new-password` in
   Settings) so password managers fill them, and paste works. _Settings → Security → Password_ sets or changes it;
   15+ characters is checked here, the common-password list only by the API (shown on the field).
-- **Confirm it's you.** Adding or removing a passkey, or saving a password, needs a sign-in from the last 10 minutes. On a 403
+- **Confirm it's you.** Adding or removing a passkey, saving a password, or creating or changing a user needs a sign-in from the last 10 minutes. On a 403
   `REAUTH_REQUIRED` the dialog switches to "Confirm with passkey" and submits again with `isReauth`; the action
   signs in afresh, then retries (`withFreshSignIn`).
 - **Mocks.** `mockStore.auth` starts signed in as Mario with two passkeys; `setMockAuthState()` (tests) or
@@ -172,8 +179,9 @@ HttpOnly cookie the app never sees.
   (tests) makes him a member, and `requireAdmin.mock.handler.ts` then answers 403 `ADMIN_ONLY` on the admin-only
   routes, like the API. `mockStore.users` holds the other users (`mockUsers.ts`: leia, an admin; luke, with the
   temporary password `MOCK_TEMPORARY_PASSWORD`; han, whose one expired): `GET /users` lists them after the
-  signed-in user, `POST /users` adds one with a made-up temporary password, and a password sign-in as one of them
-  makes the browser theirs. `setMockMustChangePassword()` (tests) starts signed in with a temporary password;
+  signed-in user (`isLastAdmin` worked out from every row), `POST /users` adds one with a made-up temporary password,
+  `PATCH|DELETE /users/:userId` and `POST /users/:userId/temporary-password` change them like the API (a change to
+  Mario signs this browser out), and a password sign-in as one of them makes the browser theirs. `setMockMustChangePassword()` (tests) starts signed in with a temporary password;
   `requirePasswordChange.mock.handler.ts` then answers 403 `PASSWORD_CHANGE_REQUIRED` like the API. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
   mock user (`shellRoute()` for a table that needs it placed by hand). The store holds only Mario's own collections,
   items and tags, as the API sends them; an item write naming a tag that is not in it answers 404, like the API.

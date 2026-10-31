@@ -1,7 +1,8 @@
 import type { Locator, Page } from '@playwright/test';
 import { USER_ROUTES_PATHS } from '../../src/application/routes/routesUtils';
 
-// The admin's Users page and its "New user" dialog (its own page on phones).
+// The admin's Users page, its "New user" dialog and the "Manage" dialog of one user (their own pages on phones). Every
+// change confirms in an alert dialog first; fresh from sign-in, so no "confirm it's you" step comes before it.
 export class UsersPage {
   readonly heading: Locator;
   readonly temporaryPassword: Locator;
@@ -11,7 +12,8 @@ export class UsersPage {
   constructor(page: Page) {
     this.page = page;
     this.heading = page.getByRole('heading', { level: 1, name: 'Users' });
-    this.temporaryPassword = page.getByLabel('Temporary password');
+    // Exact: the dialogs around it are titled "... new temporary password" too.
+    this.temporaryPassword = page.getByLabel('Temporary password', { exact: true });
   }
 
   async goto() {
@@ -30,7 +32,30 @@ export class UsersPage {
     await this.page.getByRole('button', { name: 'Done' }).click();
   }
 
+  async manage(username: string) {
+    await this.page.getByRole('link', { name: `Manage ${username}` }).click();
+  }
+
+  async makeAdmin() {
+    await this.page.getByRole('button', { name: 'Make admin' }).click();
+    await this.confirm('Make admin');
+  }
+
+  async giveNewTemporaryPassword() {
+    await this.page.getByRole('button', { name: 'New temporary password' }).click();
+    await this.confirm('Make password');
+  }
+
+  async deleteUser() {
+    await this.page.getByRole('button', { name: 'Delete user' }).click();
+    await this.confirm('Delete user');
+  }
+
   rowOf(username: string): Locator {
     return this.page.getByRole('row').filter({ has: this.page.getByRole('cell', { name: username, exact: true }) });
+  }
+
+  private async confirm(buttonName: string) {
+    await this.page.getByRole('alertdialog').getByRole('button', { name: buttonName }).click();
   }
 }

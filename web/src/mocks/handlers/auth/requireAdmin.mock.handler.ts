@@ -46,6 +46,9 @@ const ADMIN_ONLY_ROUTES: AdminOnlyRoute[] = [
   { method: HttpVerbsUtil.GET, path: '/export/images.xlsx' },
   { method: HttpVerbsUtil.GET, path: '/users' },
   { method: HttpVerbsUtil.POST, path: '/users' },
+  { method: HttpVerbsUtil.PATCH, path: '/users/:userId' },
+  { method: HttpVerbsUtil.POST, path: '/users/:userId/temporary-password' },
+  { method: HttpVerbsUtil.DELETE, path: '/users/:userId' },
 ];
 
 async function refuseMember() {

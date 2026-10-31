@@ -80,11 +80,16 @@ export const IMAGE_ROUTES_PATHS = {
   BASE: '/images',
 };
 
-// Admins only: every user, and the dialog that creates one.
+// Admins only: every user, the dialog that creates one, and the one that manages one (role, a new temporary
+// password, delete).
 export const USER_ROUTES_PATHS = {
   BASE: '/users',
   ADD: 'add',
+  manage: (userId?: string) => (userId ? `/users/${userId}` : '/users/:userId'),
 };
+
+// The Users page's route: the manage dialog reads the user from its list instead of asking the API again.
+export const USER_LIST_ROUTE_ID = 'users';
 
 export const TAG_ROUTES_PATHS = {
   BASE: '/tags',

@@ -86,3 +86,101 @@ it('says on the field when the username is taken', async () => {
   expect(await screen.findByText('That username is taken. Pick another one.')).toBeVisible();
   expect(screen.getByLabelText('Username')).toHaveAccessibleDescription(/That username is taken\./);
 });
+
+describe('managing a user', () => {
+  const MARIO_ID = 1;
+  const LEIA_ID = 2;
+  const LUKE_ID = 3;
+  const HAN_ID = 4;
+
+  const manageUser = (userId: number) => renderUsers(USER_ROUTES_PATHS.manage(String(userId)));
+
+  const storedUser = (userId: number) => mockStore.users.find((user) => user.id === userId);
+
+  async function confirmIn(dialogName: string, buttonName: string): Promise<void> {
+    const dialog = await screen.findByRole('alertdialog', { name: dialogName });
+
+    await userEvent.click(within(dialog).getByRole('button', { name: buttonName }));
+  }
+
+  it('opens from the user’s row', async () => {
+    renderUsers();
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Manage luke' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Manage luke' })).toBeVisible();
+  });
+
+  it('makes a member an admin once confirmed', async () => {
+    manageUser(LUKE_ID);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Make admin' }));
+    await confirmIn('Make luke an admin?', 'Make admin');
+
+    const panel = await screen.findByRole('dialog', { name: 'Manage luke' });
+    expect(await within(panel).findByRole('button', { name: 'Make member' })).toBeVisible();
+    expect(storedUser(LUKE_ID)?.role).toBe(UserRoleUtil.ADMIN);
+  });
+
+  it('gives a user a new temporary password and shows it once', async () => {
+    manageUser(HAN_ID);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'New temporary password' }));
+    await confirmIn('Give han a new temporary password?', 'Make password');
+
+    const password = await screen.findByLabelText('Temporary password');
+    expect(password).toHaveValue(storedUser(HAN_ID)?.password);
+    expect(password).toHaveAccessibleDescription(/Copy it now: it is not shown again\./);
+  });
+
+  it('asks for a username when the user has none, then gives them the temporary password', async () => {
+    const leia = storedUser(LEIA_ID);
+    if (leia) leia.username = null;
+    manageUser(LEIA_ID);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'New temporary password' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Give leia a new temporary password?' });
+    await userEvent.type(within(dialog).getByLabelText('Username'), 'Leia.Organa');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Make password' }));
+
+    expect(await screen.findByLabelText('Temporary password')).toBeVisible();
+    expect(storedUser(LEIA_ID)?.username).toBe('leia.organa');
+  });
+
+  it('deletes a user once confirmed and goes back to the list', async () => {
+    manageUser(LUKE_ID);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete user' }));
+    await confirmIn('Delete luke?', 'Delete user');
+
+    expect(await screen.findByText('3 users')).toBeVisible();
+    expect(screen.queryByRole('cell', { name: 'luke' })).not.toBeInTheDocument();
+  });
+
+  it('asks the admin to confirm with a passkey when their sign-in is older than 10 minutes', async () => {
+    mockStore.auth.isSignInRecent = false;
+    vi.mocked(startAuthentication).mockResolvedValue(createAuthenticationResponseMockModel());
+    manageUser(LUKE_ID);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete user' }));
+    await confirmIn('Delete luke?', 'Delete user');
+    await confirmIn("Confirm it's you", 'Confirm with passkey');
+
+    expect(await screen.findByText('3 users')).toBeVisible();
+    expect(startAuthentication).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the last admin: making them a member and deleting them are disabled, with the reason', async () => {
+    const leia = storedUser(LEIA_ID);
+    if (leia) leia.role = UserRoleUtil.MEMBER;
+    manageUser(MARIO_ID);
+
+    const makeMember = await screen.findByRole('button', { name: 'Make member' });
+    const deleteUser = screen.getByRole('button', { name: 'Delete user' });
+
+    expect(makeMember).toHaveAttribute('aria-disabled', 'true');
+    expect(makeMember).toHaveAccessibleDescription(/always be at least one admin/);
+    expect(deleteUser).toHaveAttribute('aria-disabled', 'true');
+    expect(deleteUser).toHaveAccessibleDescription(/always be at least one admin/);
+  });
+});
