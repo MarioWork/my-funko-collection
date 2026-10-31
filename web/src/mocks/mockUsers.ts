@@ -2,6 +2,7 @@
 // state an admin can meet, with fixed dates so tests can name them.
 import { UserRoleUtil, UserStateUtil } from '@app-types/utility';
 import { MOCK_USER_ID } from './mockAuth';
+import type { UserApiModel } from '@app-types/models';
 import type { MockAuth, MockUserRow } from './mockStore.type';
 import { mockDate, nowIso } from './mockStoreUtils';
 
@@ -64,10 +65,27 @@ export function mockUserRowOf(auth: MockAuth): MockUserRow {
   };
 }
 
+// When a temporary password made now stops working: 7 days from the mock clock's now.
+export function temporaryPasswordExpiryFrom(madeAt: string): string {
+  return new Date(new Date(madeAt).getTime() + TEMPORARY_PASSWORD_LIFETIME_MS).toISOString();
+}
+
+// The app-made temporary password the mocks hand out for a user id: fixed, so tests can name it.
+export function mockTemporaryPasswordFor(id: number): string {
+  return `vinyl-${String(id).padStart(5, '0')}-shelf-heads`;
+}
+
+// A row as the API answers it: never a password, and whether it is the only admin left.
+export function toMockUserModel({ password: _password, ...user }: MockUserRow, everyone: MockUserRow[]): UserApiModel {
+  const adminCount = everyone.filter((row) => row.role === UserRoleUtil.ADMIN).length;
+
+  return { ...user, isLastAdmin: user.role === UserRoleUtil.ADMIN && adminCount === 1 };
+}
+
 // A new user with an app-made temporary password, dead 7 days from the mock clock's now.
 export function newMockUserRow(id: number, username: string, role: UserRoleUtil): MockUserRow {
   const createdAt = nowIso();
-  const expiresAt = new Date(new Date(createdAt).getTime() + TEMPORARY_PASSWORD_LIFETIME_MS).toISOString();
+  const expiresAt = temporaryPasswordExpiryFrom(createdAt);
 
   return {
     id,
@@ -77,6 +95,6 @@ export function newMockUserRow(id: number, username: string, role: UserRoleUtil)
     state: UserStateUtil.TEMPORARY_PASSWORD,
     temporaryPasswordExpiresAt: expiresAt,
     createdAt,
-    password: `vinyl-${String(id).padStart(5, '0')}-shelf-heads`,
+    password: mockTemporaryPasswordFor(id),
   };
 }

@@ -1,6 +1,6 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useFetcher, useNavigate } from 'react-router';
-import type { CreatedUserApiModel } from '@app-types/models';
+import type { UserWithTemporaryPasswordApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { USER_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FormPanel from '@components/FormPanel';
@@ -20,14 +20,14 @@ import {
 } from './addUserDialogUtils';
 import AddUserFields from './components/AddUserFields';
 import AddUserFooter from './components/AddUserFooter';
-import TemporaryPasswordView from './components/TemporaryPasswordView';
+import TemporaryPasswordView from '../TemporaryPasswordView';
 
 const FORM_ID = 'add-user';
 
 // Routed under /users/add. The admin gives a username and a role; the API makes a temporary password, which the
 // dialog shows once to copy. Closing goes back to the list, where the new user already shows.
 function AddUserDialog() {
-  const fetcher = useFetcher<JSONResponseUtil<CreatedUserApiModel>>();
+  const fetcher = useFetcher<JSONResponseUtil<UserWithTemporaryPasswordApiModel>>();
   const navigate = useNavigate();
   const { control, handleSubmit } = useFormCompat<AddUserFormValues>({
     defaultValues: ADD_USER_DEFAULT_VALUES,
@@ -63,7 +63,7 @@ function AddUserDialog() {
       }
     >
       {created ? (
-        <TemporaryPasswordView created={created} idPrefix={FORM_ID} />
+        <TemporaryPasswordView result={created} idPrefix={FORM_ID} />
       ) : (
         <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-4">
           <AddUserFields

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { axiosActions } from '@api/axiosActions';
-import type { CreatedUserApiModel, UserApiModel } from '@app-types/models';
+import type { UserApiModel, UserId, UserWithTemporaryPasswordApiModel } from '@app-types/models';
 import {
   ApiUrlParamsUtil,
   HttpVerbsUtil,
@@ -9,12 +9,13 @@ import {
   type PaginationUtil,
   type ResponseWithPaginationUtil,
 } from '@app-types/utility';
-import type { CreateUser } from './userService.type';
+import type { CreateUser, NewTemporaryPassword, UpdateUser } from './userService.type';
 
 const BASE_USERS_URL = '/users';
 
-// Admins only (the API answers 403 ADMIN_ONLY to a member). Creating a user also needs a sign-in from the last
-// 10 minutes (403 REAUTH_REQUIRED otherwise).
+// Admins only (the API answers 403 ADMIN_ONLY to a member). Every write also needs a sign-in from the last
+// 10 minutes (403 REAUTH_REQUIRED otherwise). A role change, a new temporary password and a delete end every session
+// of that user; the last admin can't be made a member or deleted (409 LAST_ADMIN).
 export default {
   getUsers: async ({
     pagination,
@@ -34,9 +35,33 @@ export default {
   },
 
   // The answer carries the app-made temporary password, the only time it is ever sent.
-  addUser: async (fields: CreateUser): Promise<JSONResponseUtil<CreatedUserApiModel>> =>
-    axiosActions<CreatedUserApiModel>({ url: BASE_USERS_URL, method: HttpVerbsUtil.POST, data: fields }),
+  addUser: async (fields: CreateUser): Promise<JSONResponseUtil<UserWithTemporaryPasswordApiModel>> =>
+    axiosActions<UserWithTemporaryPasswordApiModel>({ url: BASE_USERS_URL, method: HttpVerbsUtil.POST, data: fields }),
+
+  updateUser: async (id: UserId, fields: UpdateUser): Promise<JSONResponseUtil<UserApiModel>> =>
+    axiosActions<UserApiModel>({ url: `${BASE_USERS_URL}/${id}`, method: HttpVerbsUtil.PATCH, data: fields }),
+
+  // For a user who forgot their password. The answer carries the new temporary password, the only time it is sent.
+  addTemporaryPassword: async (
+    id: UserId,
+    fields: NewTemporaryPassword,
+  ): Promise<JSONResponseUtil<UserWithTemporaryPasswordApiModel>> =>
+    axiosActions<UserWithTemporaryPasswordApiModel>({
+      url: `${BASE_USERS_URL}/${id}/temporary-password`,
+      method: HttpVerbsUtil.POST,
+      data: fields,
+    }),
+
+  deleteUser: async (id: UserId): Promise<JSONResponseUtil> =>
+    axiosActions({ url: `${BASE_USERS_URL}/${id}`, method: HttpVerbsUtil.DELETE }),
 };
+
+// The codes the user writes answer with that a page reacts to.
+export const UserApiErrorCodes = {
+  LAST_ADMIN: 'LAST_ADMIN',
+  USERNAME_REQUIRED: 'USERNAME_REQUIRED',
+} as const;
+export type UserApiErrorCodes = (typeof UserApiErrorCodes)[keyof typeof UserApiErrorCodes];
 
 export const UserApiSortingFields = {
   USERNAME: 'USERNAME',

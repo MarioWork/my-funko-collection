@@ -1,6 +1,6 @@
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
-import type { CreatedUserApiModel } from '@app-types/models';
+import type { UserWithTemporaryPasswordApiModel } from '@app-types/models';
 import InlineAlert from '@components/InlineAlert';
 import { Button } from '@components/ui/button';
 import { Field, FieldDescription, FieldLabel } from '@components/ui/field';
@@ -8,15 +8,15 @@ import { Input } from '@components/ui/input';
 import { formatDateTime } from '@utils/dateUtils';
 
 type Props = {
-  created: CreatedUserApiModel;
+  result: UserWithTemporaryPasswordApiModel;
   idPrefix: string;
 };
 
-// The one time the temporary password is shown: the admin copies it and hands it over. Nothing stores it, so closing
-// the dialog loses it for good.
-function TemporaryPasswordView({ created, idPrefix }: Props) {
+// The one time a temporary password is shown (a new user, or a new password for one who forgot theirs): the admin
+// copies it and hands it over. Nothing stores it, so closing the dialog loses it for good.
+function TemporaryPasswordView({ result, idPrefix }: Props) {
   const [isCopied, setIsCopied] = useState(false);
-  const { user, temporaryPassword } = created;
+  const { user, temporaryPassword } = result;
   const passwordId = `${idPrefix}-temporary-password`;
   const hintId = `${passwordId}-description`;
   const expiresAt = user.temporaryPasswordExpiresAt;

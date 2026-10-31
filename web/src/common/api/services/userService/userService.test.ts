@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw/http';
 import { SortingDirectionUtil, UserRoleUtil, UserStateUtil } from '@app-types/utility';
+import { MOCK_USER_ID } from '@mocks/mockAuth';
+import { mockStore } from '@mocks/mockStore';
 import { TEST_BASE_API_URL, server } from '@mocks/server';
 import userService, { UserApiSortingFields } from './userService';
 
@@ -47,5 +49,71 @@ describe('addUser', () => {
     const result = await userService.addUser({ username: 'leia', role: UserRoleUtil.ADMIN });
 
     expect(result).toMatchObject({ success: false, error: { statusCode: 409, code: 'CONFLICT' } });
+  });
+});
+
+describe('updateUser', () => {
+  it('sends the new role to the user’s path and returns the changed user', async () => {
+    let received: { path: string; body: unknown } | undefined;
+    server.use(
+      http.patch(`${TEST_BASE_API_URL}/users/:userId`, async ({ request, params }) => {
+        received = { path: String(params.userId), body: await request.json() };
+
+        return HttpResponse.json({ id: 3, role: UserRoleUtil.ADMIN });
+      }),
+    );
+
+    const result = await userService.updateUser(3, { role: UserRoleUtil.ADMIN });
+
+    expect(received).toEqual({ path: '3', body: { role: UserRoleUtil.ADMIN } });
+    expect(result).toMatchObject({ success: true, data: { id: 3, role: UserRoleUtil.ADMIN } });
+  });
+
+  it('returns the 409 LAST_ADMIN envelope when the last admin would become a member', async () => {
+    mockStore.users = mockStore.users.filter((user) => user.role !== UserRoleUtil.ADMIN);
+
+    const result = await userService.updateUser(MOCK_USER_ID, { role: UserRoleUtil.MEMBER });
+
+    expect(result).toMatchObject({ success: false, error: { statusCode: 409, code: 'LAST_ADMIN' } });
+  });
+});
+
+describe('addTemporaryPassword', () => {
+  it('posts to the user’s temporary-password path and returns the new password once', async () => {
+    let receivedPath = '';
+    server.use(
+      http.post(`${TEST_BASE_API_URL}/users/:userId/temporary-password`, ({ request }) => {
+        receivedPath = new URL(request.url).pathname;
+
+        return HttpResponse.json({ user: { id: 4 }, temporaryPassword: 'abcde-fghjk-mnpqr-stuvw' });
+      }),
+    );
+
+    const result = await userService.addTemporaryPassword(4, {});
+
+    expect(receivedPath).toBe('/api/users/4/temporary-password');
+    expect(result).toMatchObject({ success: true, data: { temporaryPassword: 'abcde-fghjk-mnpqr-stuvw' } });
+  });
+
+  it('returns the 400 USERNAME_REQUIRED envelope for a user with no username when none is sent', async () => {
+    const result = await userService.addTemporaryPassword(MOCK_USER_ID, {});
+
+    expect(result).toMatchObject({ success: false, error: { statusCode: 400, code: 'USERNAME_REQUIRED' } });
+  });
+});
+
+describe('deleteUser', () => {
+  it('deletes the user, who then leaves the list', async () => {
+    const result = await userService.deleteUser(3);
+    const list = await userService.getUsers({ pagination: { page: '1', size: '100' } });
+
+    expect(result.success).toBe(true);
+    expect(list.data.map((user) => user.id)).not.toContain(3);
+  });
+
+  it('returns the 404 envelope for a user that does not exist', async () => {
+    const result = await userService.deleteUser(999);
+
+    expect(result).toMatchObject({ success: false, error: { statusCode: 404 } });
   });
 });
