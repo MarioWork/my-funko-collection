@@ -3,7 +3,7 @@ import { delay } from 'msw/utils/delay';
 import type { UserWithTemporaryPasswordApiModel } from '@app-types/models';
 import { UserStateUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { conflict, errorResponse, notFound } from '@mocks/mockResponses';
+import { badRequest, conflict, errorResponse } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockUserRow } from '@mocks/mockStore.type';
 import { nowIso } from '@mocks/mockStoreUtils';
@@ -11,11 +11,17 @@ import { mockTemporaryPasswordFor, temporaryPasswordExpiryFrom, toMockUserModel 
 import { UserApiErrorCodes } from '@services/userService/userService';
 import type { NewTemporaryPassword } from '@services/userService/userService.type';
 import { BAD_REQUEST_STATUS } from '@utils/httpStatusUtils';
-import { reauthRequiredResponse } from '../auth/authMockUtils';
-import { endMockSessionsOf, everyMockUser, findMockUser, isSignedInMockUser, storedMockUser } from './userMockUtils';
+import {
+  USERNAME_TAKEN_MESSAGE,
+  endMockSessionsOf,
+  everyMockUser,
+  findMockUser,
+  isSignedInMockUser,
+  readManagedMockUser,
+  storedMockUser,
+} from './userMockUtils';
 
-const ENTITY = 'User';
-const USERNAME_TAKEN_MESSAGE = 'That username is taken. Pick another one.';
+const USERNAME_ALREADY_SET_MESSAGE = 'This user already has a username, and keeps it.';
 const USERNAME_REQUIRED_MESSAGE = 'This user has no username yet. Pick one for them.';
 
 type NewSignIn = Pick<MockUserRow, 'username' | 'password'>;
@@ -52,17 +58,18 @@ export default (baseUrl: string) => [
   http.post(`${baseUrl}/users/:userId/temporary-password`, async ({ request, params }) => {
     await delay(MOCK_DELAY);
 
-    const reauthRequired = reauthRequiredResponse();
+    const managed = readManagedMockUser(params.userId);
 
-    if (reauthRequired) return reauthRequired;
+    if (managed instanceof Response) return managed;
 
-    const userId = Number(params.userId);
-    const user = findMockUser(userId);
-
-    if (!user) return notFound(ENTITY, userId);
-
+    const { userId, user } = managed;
     const body = (await request.json()) as NewTemporaryPassword;
-    const username = body.username?.trim().toLowerCase() ?? user.username;
+    const requested = body.username?.trim().toLowerCase();
+    const isRename = user.username !== null && requested !== undefined && requested !== user.username;
+
+    if (isRename) return badRequest(USERNAME_ALREADY_SET_MESSAGE);
+
+    const username = user.username ?? requested;
 
     if (!username) return usernameRequired();
 

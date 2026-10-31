@@ -30,7 +30,7 @@ export const UpdateUserSchema = z.strictObject({
 });
 
 // A user with no username yet (signed in with a passkey only, or after yarn auth:reset) needs one to use the
-// temporary password: the admin picks it here. A user who has one keeps it unless a new one is given.
+// temporary password: the admin picks it here. A user who has one keeps it (another one answers 400).
 export const NewTemporaryPasswordSchema = z.strictObject({
   username: UsernameSchema.optional(),
 });

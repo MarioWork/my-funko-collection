@@ -5,7 +5,13 @@ import { useActionToast } from '@hooks/useActionToast';
 import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
 import { userTitle } from '../../../userListUtils';
 import { useUserChange } from '../hooks/useUserChange';
-import { SIGNS_OUT_EVERYWHERE, makeRoleLabel, otherRoleOf, roleWithArticle } from '../manageUserDialogUtils';
+import {
+  ROLE_HINTS,
+  SIGNS_OUT_EVERYWHERE,
+  makeRoleLabel,
+  otherRoleOf,
+  roleWithArticle,
+} from '../manageUserDialogUtils';
 import UserChangeDialog from './UserChangeDialog';
 import UserChangeFooter from './UserChangeFooter';
 
@@ -14,12 +20,8 @@ type Props = {
   onClose: () => void;
 };
 
-const ROLE_HINTS = {
-  ADMIN: 'An admin manages users, images and the catalogue.',
-  MEMBER: 'A member keeps their own collections and reads the catalogue.',
-} as const;
-
-// Gives the user the other role. Their sessions end, so the new role applies from their next sign-in.
+// Gives the user the other role. Their sessions end, so the new role applies from their next sign-in. The toast has
+// no Undo on purpose: changing back ends their sessions again and needs its own confirmation and recent sign-in.
 function ChangeRoleDialog({ user, onClose }: Props) {
   const change = useUserChange(user.id);
   const newRole = otherRoleOf(user.role);
