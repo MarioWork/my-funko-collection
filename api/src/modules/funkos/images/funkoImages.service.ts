@@ -54,13 +54,14 @@ async function assertFunkoExists(funkoId: number): Promise<void> {
   if (!exists) throw new NotFoundError(PARENT_ENTITY, funkoId);
 }
 
-async function storeOne(funkoId: number, buffer: Buffer): Promise<FunkoImageRow> {
+// `uploadedById` is the signed-in user: every image records who uploaded it.
+async function storeOne(uploadedById: number, funkoId: number, buffer: Buffer): Promise<FunkoImageRow> {
   await assertNotDuplicate(funkoId, hashImage(buffer));
 
   // Bytes that are not an image are refused here with a 400 (imageStorage throws BadRequestError).
   const stored = await processImage(funkoId, buffer);
   const position = await funkoImagesRepository.nextPosition(funkoId);
-  const row = await funkoImagesRepository.create({ funkoId, position, ...stored });
+  const row = await funkoImagesRepository.create({ funkoId, uploadedById, position, ...stored });
 
   log.info({ funkoId, imageId: row.id, sizeBytes: row.sizeBytes }, 'image stored');
 
@@ -74,7 +75,7 @@ export async function getImages(funkoId: number): Promise<FunkoImageResponse[]> 
 }
 
 // Files are processed one at a time on purpose: it bounds memory and CPU on the home server.
-export async function addImages(funkoId: number, buffers: Buffer[]): Promise<FunkoImageResponse[]> {
+export async function addImages(userId: number, funkoId: number, buffers: Buffer[]): Promise<FunkoImageResponse[]> {
   if (buffers.length === 0) throw new BadRequestError('Send at least one file in the "file" field');
 
   await assertFunkoExists(funkoId);
@@ -89,18 +90,18 @@ export async function addImages(funkoId: number, buffers: Buffer[]): Promise<Fun
     if (seenHashes.has(contentHash)) throw new ConflictError('The same image was sent twice in one request');
 
     seenHashes.add(contentHash);
-    stored.push(await storeOne(funkoId, buffer));
+    stored.push(await storeOne(userId, funkoId, buffer));
   }
 
   return stored.map(toImageResponse);
 }
 
-export async function addImageFromUrl(funkoId: number, url: string): Promise<FunkoImageResponse> {
+export async function addImageFromUrl(userId: number, funkoId: number, url: string): Promise<FunkoImageResponse> {
   await assertFunkoExists(funkoId);
   await assertRoomFor(funkoId, 1);
 
   const buffer = await fetchRemoteFile(url, env.MAX_IMAGE_BYTES);
-  const row = await storeOne(funkoId, buffer);
+  const row = await storeOne(userId, funkoId, buffer);
 
   return toImageResponse(row);
 }

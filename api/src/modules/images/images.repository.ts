@@ -11,6 +11,8 @@ const LINKED_IMAGE_SELECT = {
   position: true,
   createdAt: true,
   funko: { select: { name: true, number: true } },
+  // Null once the user who uploaded it is deleted.
+  uploadedBy: { select: { id: true, name: true } },
 } as const;
 
 export type LinkedImageRow = Awaited<ReturnType<typeof imagesRepository.listLinked>>[number];

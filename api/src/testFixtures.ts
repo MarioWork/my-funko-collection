@@ -171,6 +171,11 @@ export async function createUser(name = nextName('User'), role: UserRole = 'MEMB
   });
 }
 
+// Deletes a user row, as the admin's Users page will: the database decides what goes with them and what stays.
+export async function deleteUser(userId: number): Promise<void> {
+  await prisma.user.delete({ where: { id: userId } });
+}
+
 // Which row is the test user of each role: the admin is the first admin (the one who set the app up), the
 // member is the one named "Member", so a member made with createUser() is never mistaken for it.
 const TEST_USER_FILTERS: Record<UserRole, { role: UserRole; name?: string }> = {

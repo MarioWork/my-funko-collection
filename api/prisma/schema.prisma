@@ -123,27 +123,32 @@ model Funko {
 }
 
 // One uploaded photo. The three WebP sizes on disk share `fileKey`: `<key>.webp`, `<key>.md.webp`, `<key>.sm.webp`.
+// `createdAt` is when it was uploaded.
 model FunkoImage {
-  id          Int      @id @default(autoincrement())
-  funkoId     Int      @map("funko_id")
-  fileKey     String   @unique(map: "funko_images_file_key_uidx") @map("file_key")
+  id           Int      @id @default(autoincrement())
+  funkoId      Int      @map("funko_id")
+  // The user who uploaded it. Deleting that user keeps the image and clears this: a removed user.
+  uploadedById Int?     @map("uploaded_by_id")
+  fileKey      String   @unique(map: "funko_images_file_key_uidx") @map("file_key")
   // Dimensions of the large size.
-  width       Int
-  height      Int
+  width        Int
+  height       Int
   // Sum of the three files.
-  sizeBytes   Int      @map("size_bytes")
+  sizeBytes    Int      @map("size_bytes")
   // sha256 of the uploaded bytes, hex: the same photo twice on one funko is refused.
-  contentHash String   @map("content_hash")
+  contentHash  String   @map("content_hash")
   // A tiny base64 WebP data URI shown while the real file loads.
-  placeholder String
-  position    Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  placeholder  String
+  position     Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  funko Funko @relation(fields: [funkoId], references: [id], onDelete: Cascade)
+  funko      Funko @relation(fields: [funkoId], references: [id], onDelete: Cascade)
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@unique([funkoId, contentHash], map: "funko_images_funko_id_content_hash_uidx")
   @@index([funkoId, position], map: "funko_images_funko_id_position_idx")
+  @@index([uploadedById], map: "funko_images_uploaded_by_id_idx")
   @@map("funko_images")
 }
 
@@ -239,9 +244,10 @@ model User {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  passkeys    Passkey[]
-  sessions    Session[]
-  collections Collection[]
+  passkeys       Passkey[]
+  sessions       Session[]
+  collections    Collection[]
+  uploadedImages FunkoImage[]
 
   @@map("users")
 }
