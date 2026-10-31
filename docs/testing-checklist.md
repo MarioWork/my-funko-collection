@@ -50,7 +50,7 @@ covers what only a person notices: how it looks, feels, reads and recovers.
 - [ ] Changing the password signs out the other browsers that used the old one; passkey sign-ins stay.
 - [ ] _Sign out_ ends this browser's session; _Sign out everywhere_ ends all of them.
 - [ ] Locked out: `yarn auth:reset` (or the README's container command) removes every passkey and password
-      and prints a new setup link; the collection itself is untouched.
+      and prints a new setup link; the collections are untouched, and the new passkey signs in to them.
 
 ## 2. Navigation
 
@@ -76,7 +76,8 @@ covers what only a person notices: how it looks, feels, reads and recovers.
 
 ## 3. Home
 
-- [ ] The stats tiles show the right totals (funkos, items, money spent, images and their size).
+- [ ] The stats tiles show the right totals for your own collections (the funkos in them, items, money spent,
+      their images and size); the Funkos tile opens the funkos list filtered to "In a collection".
 - [ ] Each linked tile opens the matching page (the Images tile opens the Images page).
 - [ ] Recently added shows the newest funkos; each opens its page.
 - [ ] Collections overview and the category bars match the real counts; their links open the filtered lists.
