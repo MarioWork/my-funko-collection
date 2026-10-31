@@ -49,13 +49,22 @@ covers what only a person notices: how it looks, feels, reads and recovers.
       minute are slowed down, never locked.
 - [ ] Changing the password signs out the other browsers that used the old one; passkey sign-ins stay.
 - [ ] _Sign out_ ends this browser's session; _Sign out everywhere_ ends all of them.
+- [ ] As an admin, _Users_ (Admin group) lists every user with their role and state in words. _New user_ asks for a
+      username and a role (and a passkey to confirm when the sign-in is older than 10 minutes), then shows the
+      temporary password once with a Copy button; after _Done_ it is gone, and the new user is listed with
+      "Temporary password". A taken username is refused on the field. A member opening `/users` gets "This page is
+      for admins".
+- [ ] Signing in with that temporary password goes straight to "Choose your password", whatever page was asked
+      for; every other page sends you back there. Saving the temporary one again is refused on the field; saving a
+      new one opens Home, and the new user sees only their own empty "Owned" and "Wishlist".
+- [ ] A temporary password unused for 7 days no longer signs in, with a message to ask an admin for a new one.
 - [ ] Locked out: `yarn auth:reset` (or the README's container command) removes every passkey and password
       and prints a new setup link; the collections are untouched, and the new passkey signs in to them.
 
 ## 2. Navigation
 
-- [ ] **Desktop sidebar:** Home, Funkos, Collections, Search; then Categories, Series, Tags, Images; Settings at
-      the bottom. The current page is highlighted.
+- [ ] **Desktop sidebar:** Home, Funkos, Collections, Search; then Categories, Series, Tags; Users and Images under
+      Admin (admins only); Settings at the bottom. The current page is highlighted.
 - [ ] The sidebar collapses to icons and expands again from its edge (the arrow on hover or keyboard focus), smoothly,
       with no bounce or jump in the page. Collapsed, it is wide enough not to be clicked by mistake.
 - [ ] Collapsed, each icon still shows its name in a tooltip.

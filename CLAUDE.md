@@ -50,9 +50,15 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   route and `/uploads` file needs a session unless it sets `config: { isPublic: true }`; keep that list tiny, and
   add new public routes to `PUBLIC_ROUTES` in `auth.route.test.ts`. Sessions are server-side rows (SHA-256 of an
   HttpOnly cookie token), never JWTs or localStorage. No TOTP, email or "auth off" switch, not even in dev.
+- Admins create every user (`POST /users`, a sign-in from the last 10 minutes) with an app-made temporary password,
+  sent once and stored only as a hash; it dies 7 days after it was made unless replaced
+  (`users.temporary_password_expires_at`). Until then the session gets 403 `PASSWORD_CHANGE_REQUIRED` on every
+  locked route but those with `config: { isAllowedWithTemporaryPassword: true }` (`PUT /auth/password`, sign-out);
+  keep that list tiny. The web's `signedInUserMiddleware` and `authMiddleware` send such a user to `/set-password`,
+  and the mocks refuse the rest in `requirePasswordChange.mock.handler.ts`.
 - Roles: a user is an `ADMIN` or a `MEMBER` (`docs/GLOSSARY.md`); whoever sets the app up is an admin. Catalogue
-  writes (funkos, categories, series, funko images) and the images lists set `config: { isAdminOnly: true }` and
-  answer 403 `ADMIN_ONLY` to a member; add every new one to `ADMIN_ONLY_ROUTES` in `auth.route.test.ts` (the test
+  writes (funkos, categories, series, funko images), the images lists and the users set
+  `config: { isAdminOnly: true }` and answer 403 `ADMIN_ONLY` to a member; add every new one to `ADMIN_ONLY_ROUTES` in `auth.route.test.ts` (the test
   calls every route as a member). The role check sits next to the sign-in check in `auth.plugin.ts`'s `onRequest`
   hook, a route-level gate rather than a service check (node-ts-api §9), like the sign-in exception below. The web
   hides those controls with `useIsAdmin()` (admin-only pages call `assertAdmin()` in their loader), and the mocks
@@ -134,8 +140,8 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   No `dark:` colour overrides, no hex in a component.
 - Every write is a React Router action through `useFetcher`; `fetcher.submit` returns a promise, so `void` it.
 - The signed-in user lives in React Router middleware (decided 2026-10-31 by Mario): the shell route's
-  `signedInUserMiddleware` (`src/application/routes/`) asks `/auth/status` once, keeps it until sign-out, a 401 or
-  a password save, and puts it in the router `context`. Loaders and actions read `context.get(signedInUserContext)`
+  `signedInUserMiddleware` (`src/application/routes/`) asks `/auth/status` once, keeps it until sign-out, a 401, a
+  403 `ADMIN_ONLY` / `PASSWORD_CHANGE_REQUIRED` or a password save, and puts it in the router `context`. Loaders and actions read `context.get(signedInUserContext)`
   (`assertAdmin(context)`); components use `useSignedInUser` / `useIsAdmin`. Never call `getStatus()` again.
 - Two reads call a service outside a loader, on purpose (kept 2026-10-23): the scanner's barcode lookup in
   `pages/Add/hooks/useAddFlow.ts` (reads `error.response` to tell "not found" from a failure) and the type-ahead in
