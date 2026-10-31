@@ -12,18 +12,18 @@ type Props = {
   confirmIcon: ReactNode;
   isDestructive: boolean;
   isSaving: boolean;
-  needsReauth: boolean;
+  isReauthNeeded: boolean;
   // The confirm button submits this form when there is one (the username of a new temporary password).
   formId?: string;
   onConfirm: () => void;
 };
 
-type ConfirmIconProps = Pick<Props, 'confirmIcon' | 'isSaving' | 'needsReauth'>;
+type ConfirmIconProps = Pick<Props, 'confirmIcon' | 'isSaving' | 'isReauthNeeded'>;
 
-function ConfirmIcon({ confirmIcon, isSaving, needsReauth }: ConfirmIconProps) {
+function ConfirmIcon({ confirmIcon, isSaving, isReauthNeeded }: ConfirmIconProps) {
   if (isSaving) return <Spinner data-icon="inline-start" />;
 
-  if (needsReauth) return <Fingerprint data-icon="inline-start" aria-hidden="true" />;
+  if (isReauthNeeded) return <Fingerprint data-icon="inline-start" aria-hidden="true" />;
 
   return confirmIcon;
 }
@@ -35,12 +35,12 @@ function UserChangeFooter({
   confirmIcon,
   isDestructive,
   isSaving,
-  needsReauth,
+  isReauthNeeded,
   formId,
   onConfirm,
 }: Props) {
   const busyReason = reasonWhen(isSaving, DISABLED_REASONS.WORKING);
-  const isRed = isDestructive && !needsReauth;
+  const isRed = isDestructive && !isReauthNeeded;
 
   return (
     <AlertDialogFooter>
@@ -55,8 +55,8 @@ function UserChangeFooter({
           disabled={isSaving}
           onClick={formId ? undefined : onConfirm}
         >
-          <ConfirmIcon confirmIcon={confirmIcon} isSaving={isSaving} needsReauth={needsReauth} />
-          {needsReauth ? CONFIRM_IDENTITY_COPY.BUTTON : confirmLabel}
+          <ConfirmIcon confirmIcon={confirmIcon} isSaving={isSaving} isReauthNeeded={isReauthNeeded} />
+          {isReauthNeeded ? CONFIRM_IDENTITY_COPY.BUTTON : confirmLabel}
         </Button>
       </DisabledReason>
     </AlertDialogFooter>

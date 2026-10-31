@@ -9,7 +9,7 @@ import type { MockUserRow } from '@mocks/mockStore.type';
 import { nowIso } from '@mocks/mockStoreUtils';
 import { mockTemporaryPasswordFor, temporaryPasswordExpiryFrom, toMockUserModel } from '@mocks/mockUsers';
 import { UserApiErrorCodes } from '@services/userService/userService';
-import type { NewTemporaryPassword } from '@services/userService/userService.type';
+import type { CreateTemporaryPassword } from '@services/userService/userService.type';
 import { BAD_REQUEST_STATUS } from '@utils/httpStatusUtils';
 import {
   USERNAME_TAKEN_MESSAGE,
@@ -63,7 +63,7 @@ export default (baseUrl: string) => [
     if (managed instanceof Response) return managed;
 
     const { userId, user } = managed;
-    const body = (await request.json()) as NewTemporaryPassword;
+    const body = (await request.json()) as CreateTemporaryPassword;
     const requested = body.username?.trim().toLowerCase();
     const isRename = user.username !== null && requested !== undefined && requested !== user.username;
 

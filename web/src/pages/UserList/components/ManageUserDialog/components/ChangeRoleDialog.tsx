@@ -36,7 +36,7 @@ function ChangeRoleDialog({ user, onClose }: Props) {
       title={`Make ${name} ${roleWithArticle(newRole)}?`}
       description={`${ROLE_HINTS[newRole]} ${SIGNS_OUT_EVERYWHERE}`}
       nextStep={`Then ${name} becomes ${roleWithArticle(newRole)}.`}
-      needsReauth={change.needsReauth}
+      isReauthNeeded={change.isReauthNeeded}
       isSaving={change.isSaving}
       failure={change.failure}
       onClose={onClose}
@@ -46,7 +46,7 @@ function ChangeRoleDialog({ user, onClose }: Props) {
           confirmIcon={<UserCog data-icon="inline-start" aria-hidden="true" />}
           isDestructive={false}
           isSaving={change.isSaving}
-          needsReauth={change.needsReauth}
+          isReauthNeeded={change.isReauthNeeded}
           onConfirm={() => change.submit(HttpVerbsUtil.PATCH, { role: newRole })}
         />
       }

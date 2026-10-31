@@ -6,6 +6,7 @@ import { USER_ROUTES_PATHS } from '../../src/application/routes/routesUtils';
 export class UsersPage {
   readonly heading: Locator;
   readonly temporaryPassword: Locator;
+  readonly makeMemberButton: Locator;
 
   private readonly page: Page;
 
@@ -13,6 +14,7 @@ export class UsersPage {
     this.page = page;
     this.heading = page.getByRole('heading', { level: 1, name: 'Users' });
     // Exact: the dialogs around it are titled "... new temporary password" too.
+    this.makeMemberButton = page.getByRole('button', { name: 'Make member' });
     this.temporaryPassword = page.getByLabel('Temporary password', { exact: true });
   }
 
@@ -42,7 +44,7 @@ export class UsersPage {
   }
 
   async makeMember() {
-    await this.page.getByRole('button', { name: 'Make member' }).click();
+    await this.makeMemberButton.click();
     await this.confirm('Make member');
   }
 
@@ -54,6 +56,11 @@ export class UsersPage {
   async deleteUser() {
     await this.page.getByRole('button', { name: 'Delete user' }).click();
     await this.confirm('Delete user');
+  }
+
+  // The page header's count: "3 users".
+  userCount(count: number): Locator {
+    return this.page.getByText(`${count} users`, { exact: true });
   }
 
   rowOf(username: string): Locator {

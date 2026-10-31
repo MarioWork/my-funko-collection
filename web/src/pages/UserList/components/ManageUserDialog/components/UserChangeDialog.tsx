@@ -17,7 +17,7 @@ type Props = {
   description: string;
   // What happens once the admin has confirmed with a passkey: "Then luke is deleted."
   nextStep?: string;
-  needsReauth: boolean;
+  isReauthNeeded: boolean;
   isSaving: boolean;
   failure: ApiError | undefined;
   footer: ReactNode;
@@ -31,15 +31,15 @@ function UserChangeDialog({
   title,
   description,
   nextStep = '',
-  needsReauth,
+  isReauthNeeded,
   isSaving,
   failure,
   footer,
   onClose,
   children,
 }: Props) {
-  const shownTitle = needsReauth ? CONFIRM_IDENTITY_COPY.TITLE : title;
-  const shownDescription = needsReauth ? `${CONFIRM_IDENTITY_COPY.DESCRIPTION} ${nextStep}` : description;
+  const shownTitle = isReauthNeeded ? CONFIRM_IDENTITY_COPY.TITLE : title;
+  const shownDescription = isReauthNeeded ? `${CONFIRM_IDENTITY_COPY.DESCRIPTION} ${nextStep}` : description;
 
   const changeOpen = (isOpen: boolean) => {
     if (!isOpen && !isSaving) onClose();

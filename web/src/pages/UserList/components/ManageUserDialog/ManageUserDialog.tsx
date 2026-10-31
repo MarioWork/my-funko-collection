@@ -11,7 +11,7 @@ import DeleteUserDialog from './components/DeleteUserDialog';
 import TemporaryPasswordDialog from './components/TemporaryPasswordDialog';
 import UserActions from './components/UserActions';
 import { useManagedUser } from './hooks/useManagedUser';
-import { USER_CHANGE, type UserChange } from './manageUserDialogUtils';
+import { UserChange } from './manageUserDialogUtils';
 
 type ChangeDialogProps = {
   user: UserApiModel;
@@ -20,20 +20,20 @@ type ChangeDialogProps = {
   onDeleted: () => void;
 };
 
-type UserFactsProps = {
-  user: UserApiModel;
-};
-
 // The confirm dialog of the change the admin picked, mounted fresh each time so it starts clean.
 function ChangeDialog({ user, change, onClose, onDeleted }: ChangeDialogProps) {
   const dialogs: Record<UserChange, React.ReactNode> = {
-    [USER_CHANGE.ROLE]: <ChangeRoleDialog user={user} onClose={onClose} />,
-    [USER_CHANGE.TEMPORARY_PASSWORD]: <TemporaryPasswordDialog user={user} onClose={onClose} />,
-    [USER_CHANGE.DELETE]: <DeleteUserDialog user={user} onClose={onClose} onDeleted={onDeleted} />,
+    [UserChange.ROLE]: <ChangeRoleDialog user={user} onClose={onClose} />,
+    [UserChange.TEMPORARY_PASSWORD]: <TemporaryPasswordDialog user={user} onClose={onClose} />,
+    [UserChange.DELETE]: <DeleteUserDialog user={user} onClose={onClose} onDeleted={onDeleted} />,
   };
 
   return dialogs[change];
 }
+
+type UserFactsProps = {
+  user: UserApiModel;
+};
 
 function UserFacts({ user }: UserFactsProps) {
   return (
