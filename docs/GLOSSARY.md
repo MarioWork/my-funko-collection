@@ -66,6 +66,10 @@ _Avoid_: Combine, dedupe
 A picture of a funko, taken by a user. A funko can have several, in a chosen order.
 _Avoid_: Photo, picture
 
+**Uploader**:
+The user who added an image, kept with the time they added it. Images from before this was recorded belong to the first admin.
+_Avoid_: Owner, author, creator
+
 ### The lists
 
 **Collection**:
@@ -97,6 +101,10 @@ _Avoid_: Label, box, location
 **User**:
 A person who can sign in. Each user has their own collections, items and tags.
 _Avoid_: Account, member (that is a role)
+
+**Removed user**:
+How the app names a user who no longer exists, where something they left behind is still shown, such as the uploader of an image.
+_Avoid_: Deleted account, unknown user, ghost
 
 **Admin**:
 A user who manages users, images, submissions and the catalogue. Only an admin can create a user. There is always at least one. An admin never sees other users' collections.
