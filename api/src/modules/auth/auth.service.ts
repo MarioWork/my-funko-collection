@@ -26,6 +26,7 @@ import type {
   SetupVerify,
   SignInVerify,
   SignedInResponse,
+  UserRole,
 } from './auth.schema.ts';
 import { isCommonPassword } from './commonPasswords.ts';
 
@@ -74,6 +75,7 @@ export type AuthSession = {
   userId: number;
   userName: string;
   username: string | null;
+  userRole: UserRole;
   signedInAt: Date;
 };
 
@@ -86,6 +88,7 @@ function toAuthSession(row: SessionRow): AuthSession {
     userId: row.userId,
     userName: row.userName,
     username: row.username,
+    userRole: row.userRole,
     signedInAt: row.signedInAt,
   };
 }
@@ -237,7 +240,8 @@ async function verifySignedAnswer(
 // --- Status and sessions ---------------------------------------------------------------------------------------
 
 export async function getAuthStatus(session: AuthSession | null): Promise<AuthStatusResponse> {
-  if (session) return { state: 'signedIn', user: { name: session.userName, username: session.username } };
+  if (session)
+    return { state: 'signedIn', user: { name: session.userName, username: session.username, role: session.userRole } };
 
   const isSetUp = (await authRepository.countUsers()) > 0;
 
@@ -326,7 +330,8 @@ export async function addFirstUser(setup: SetupVerify): Promise<NewSessionToken>
   const session = newSessionRow(now);
 
   const user = await authRepository.completeSetup({
-    user: { name: setup.name, webauthnUserId: challenge.webauthnUserId },
+    // Whoever sets the app up runs it: the first user is always an admin.
+    user: { name: setup.name, role: 'ADMIN', webauthnUserId: challenge.webauthnUserId },
     passkey: {
       credentialId: registration.credential.id,
       name: setup.passkeyName ?? DEFAULT_PASSKEY_NAME,
@@ -342,7 +347,7 @@ export async function addFirstUser(setup: SetupVerify): Promise<NewSessionToken>
 
   log.info({ userId: user.id }, 'first user set up');
 
-  return { token: session.token, result: { user: { name: user.name, username: user.username } } };
+  return { token: session.token, result: { user: { name: user.name, username: user.username, role: user.role } } };
 }
 
 // --- Sign in -----------------------------------------------------------------------------------------------------
@@ -397,7 +402,7 @@ export async function addSession({ response }: SignInVerify, previous: AuthSessi
 
   log.info({ userId: passkey.userId, passkeyId: passkey.id }, 'signed in');
 
-  return { token: session.token, result: { user: { name: user.name, username: user.username } } };
+  return { token: session.token, result: { user: { name: user.name, username: user.username, role: user.role } } };
 }
 
 // Checked against when the username is unknown, so a wrong username takes as long as a wrong password and the
@@ -432,7 +437,7 @@ export async function addPasswordSession(
 
   log.info({ userId: user.id }, 'signed in with a password');
 
-  return { token: session.token, result: { user: { name: user.name, username: user.username } } };
+  return { token: session.token, result: { user: { name: user.name, username: user.username, role: user.role } } };
 }
 
 // --- Password ----------------------------------------------------------------------------------------------------
@@ -462,7 +467,7 @@ export async function setPassword(
 
   log.info({ userId: session.userId }, 'password set');
 
-  return { user: { name: user.name, username: user.username } };
+  return { user: { name: user.name, username: user.username, role: user.role } };
 }
 
 // --- Passkeys ----------------------------------------------------------------------------------------------------

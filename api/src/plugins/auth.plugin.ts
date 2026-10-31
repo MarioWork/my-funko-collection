@@ -11,6 +11,9 @@ declare module 'fastify' {
   interface FastifyContextConfig {
     // Opt a route out of the sign-in check. Everything else, the image files included, needs a session.
     isPublic?: boolean;
+    // Only an admin may call it: catalogue writes (funkos, categories, series, images) and the images lists. A
+    // member gets 403 ADMIN_ONLY.
+    isAdminOnly?: boolean;
   }
 
   interface FastifyRequest {
@@ -25,6 +28,7 @@ const DOCS_PATH = '/docs';
 const UNAUTHORIZED_STATUS = 401;
 const FORBIDDEN_STATUS = 403;
 const APP_ORIGIN = new URL(env.APP_ORIGIN).origin;
+const ADMIN_ONLY_MESSAGE = 'Only an admin can do this';
 
 // The OpenAPI page is only registered outside production and reads no data of its own. Matched on the route's
 // registered pattern (not the raw URL), and only /docs itself or below it: a future /documents stays locked.
@@ -68,7 +72,7 @@ export const authPlugin = fp(async (app) => {
   app.decorateRequest('session', null);
 
   // Every route documents what this plugin can answer for it, so the OpenAPI shows the envelope: 401 on a locked
-  // route, 403 (a cross-site write) on any write. Added here once instead of on each of the routes.
+  // route, 403 on any write (a cross-site write) and on an admin-only route. Added here once instead of on each.
   app.addHook('onRoute', (route) => {
     const response = route.schema?.response as Record<number, unknown> | undefined;
 
@@ -78,7 +82,9 @@ export const authPlugin = fp(async (app) => {
     const isWrite = methods.some((method) => !SAFE_METHODS.has(method));
 
     if (route.config?.isPublic !== true) response[UNAUTHORIZED_STATUS] ??= ErrorResponseSchema;
-    if (isWrite) response[FORBIDDEN_STATUS] ??= ErrorResponseSchema;
+    const isAdminOnly = route.config?.isAdminOnly === true;
+
+    if (isWrite || isAdminOnly) response[FORBIDDEN_STATUS] ??= ErrorResponseSchema;
   });
 
   app.addHook('onRequest', async (request) => {
@@ -91,6 +97,11 @@ export const authPlugin = fp(async (app) => {
     const isPublic = request.routeOptions.config.isPublic === true || isDocsRoute(request);
 
     if (!isPublic && !request.session) throw new UnauthorizedError('Sign in to continue');
+
+    const isAdminOnly = request.routeOptions.config.isAdminOnly === true;
+    const isAdmin = request.session?.userRole === 'ADMIN';
+
+    if (isAdminOnly && !isAdmin) throw new ForbiddenError(ADMIN_ONLY_MESSAGE, 'ADMIN_ONLY');
   });
 
   // API answers hold the collection: no browser or proxy cache keeps them. Image files set their own header.

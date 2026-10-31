@@ -27,6 +27,29 @@ const PUBLIC_ROUTES = new Set([
   'POST /auth/login/password',
   'POST /auth/logout',
 ]);
+// Routes only an admin may call: catalogue writes and the images lists. A member gets 403 ADMIN_ONLY on these and
+// never on any other route.
+const ADMIN_ONLY_ROUTES = new Set([
+  'POST /categories',
+  'PATCH /categories/{categoryId}',
+  'DELETE /categories/{categoryId}',
+  'POST /series',
+  'PATCH /series/{seriesId}',
+  'DELETE /series/{seriesId}',
+  'POST /funkos',
+  'PATCH /funkos/{funkoId}',
+  'DELETE /funkos/{funkoId}',
+  'POST /funkos/{funkoId}/images',
+  'POST /funkos/{funkoId}/images/from-url',
+  'PATCH /funkos/{funkoId}/images/order',
+  'POST /funkos/{funkoId}/images/{imageId}/rotate',
+  'DELETE /funkos/{funkoId}/images/{imageId}',
+  'GET /images',
+  'GET /images/groups',
+  'GET /export/images.csv',
+  'GET /export/images.json',
+  'GET /export/images.xlsx',
+]);
 // The rate limit counts per address: each test speaks from its own, so no test eats another's allowance.
 let addressCounter = 0;
 
@@ -121,7 +144,15 @@ describe('GET /auth/status', () => {
 
     const response = await api.inject({ method: 'GET', url: `${URL}/status` });
 
-    expect(response.json()).toEqual({ state: 'signedIn', user: { name: 'Tester', username: null } });
+    expect(response.json()).toEqual({ state: 'signedIn', user: { name: 'Tester', username: null, role: 'ADMIN' } });
+  });
+
+  it('answers the MEMBER role when a member is signed in', async () => {
+    const member = await signIn(app, { role: 'MEMBER' });
+
+    const response = await member.inject({ method: 'GET', url: `${URL}/status` });
+
+    expect(response.json()).toEqual({ state: 'signedIn', user: { name: 'Member', username: null, role: 'MEMBER' } });
   });
 
   it('marks the answer no-store when any API route answers, so no cache keeps the collection', async () => {
@@ -159,7 +190,7 @@ describe('POST /auth/setup/verify', () => {
     });
 
     expect(verifyResponse.statusCode).toBe(200);
-    expect(verifyResponse.json()).toEqual({ user: { name: OWNER_NAME, username: null } });
+    expect(verifyResponse.json()).toEqual({ user: { name: OWNER_NAME, username: null, role: 'ADMIN' } });
     const cookie = sessionCookieOf(verifyResponse.headers['set-cookie']) ?? '';
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('SameSite=Strict');
@@ -170,7 +201,7 @@ describe('POST /auth/setup/verify', () => {
       url: `${URL}/status`,
       cookies: { [SESSION_COOKIE_NAME]: tokenOf(verifyResponse.headers['set-cookie']) },
     });
-    expect(status.json()).toEqual({ state: 'signedIn', user: { name: OWNER_NAME, username: null } });
+    expect(status.json()).toEqual({ state: 'signedIn', user: { name: OWNER_NAME, username: null, role: 'ADMIN' } });
   });
 
   it('returns 401 PASSKEY_FAILED when the passkey was made for another site', async () => {
@@ -278,7 +309,7 @@ describe('POST /auth/login/verify', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ user: { name: OWNER_NAME, username: null } });
+    expect(response.json()).toEqual({ user: { name: OWNER_NAME, username: null, role: 'ADMIN' } });
     const newToken = tokenOf(response.headers['set-cookie']);
     expect(newToken).not.toBe(firstToken);
     const oldSession = await app.inject({
@@ -380,6 +411,45 @@ describe('ANY /<every non-public route>', () => {
     }
 
     expect(checked.length).toBeGreaterThan(MIN_LOCKED_ROUTES);
+  });
+});
+
+describe('ANY /<every admin-only route>', () => {
+  it('returns 403 ADMIN_ONLY for every admin-only route, and for no other route, when a member calls it', async () => {
+    const document = app.swagger() as { paths: Record<string, Record<string, unknown>> };
+    const adminOnlySeen: string[] = [];
+
+    for (const [path, operations] of Object.entries(document.paths)) {
+      for (const method of Object.keys(operations)) {
+        const route = `${method.toUpperCase()} ${path}`;
+
+        if (PUBLIC_ROUTES.has(route)) continue;
+
+        // A fresh session per call: logging out everywhere must not sign the next call out.
+        const member = await signIn(app, { role: 'MEMBER' });
+        const url = path.replace(/\{[^}]+\}/g, '1');
+        const response = await member.inject({ method: method.toUpperCase(), url });
+        const isAdminOnlyAnswer =
+          response.statusCode === 403 && response.json<{ code: string }>().code === 'ADMIN_ONLY';
+
+        expect({ route, isAdminOnlyAnswer }).toEqual({ route, isAdminOnlyAnswer: ADMIN_ONLY_ROUTES.has(route) });
+        if (isAdminOnlyAnswer) adminOnlySeen.push(route);
+      }
+    }
+
+    expect(adminOnlySeen.sort()).toEqual([...ADMIN_ONLY_ROUTES].sort());
+  });
+
+  it('lets an admin through every admin-only route', async () => {
+    for (const route of ADMIN_ONLY_ROUTES) {
+      const [method = 'GET', path = '/'] = route.split(' ');
+      const admin = await signIn(app);
+      const url = path.replace(/\{[^}]+\}/g, '1');
+
+      const response = await admin.inject({ method, url });
+
+      expect({ route, status: response.statusCode }).not.toEqual({ route, status: 403 });
+    }
   });
 });
 

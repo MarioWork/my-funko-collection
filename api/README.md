@@ -75,7 +75,7 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 | `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                  |
 | `collection_item_tags` | Item ↔ tag                                                                                      |
 | `tags`                 | A free label on an item, mainly the storage box ("Box 3")                                       |
-| `users`                | The person who signs in: name, WebAuthn user handle, lower-case username and argon2id hash      |
+| `users`                | A person who signs in: name, role, WebAuthn user handle, lower-case username and argon2id hash  |
 | `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device)              |
 | `sessions`             | A signed-in browser: SHA-256 of the cookie token, how it signed in, sign-in and last-seen times |
 | `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                             |
@@ -83,7 +83,7 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 
 Value sets: funko `type` is one of `POP`, `POP_DELUXE`, `POP_RIDES`, `POP_MOMENT`, `POP_TOWN`, `POP_ALBUM`,
 `POP_JUMBO`, `POP_KEYCHAIN`, `SODA`, `BITTY_POP`, `MYSTERY_MINI`, `OTHER`; item `condition` is `MINT_IN_BOX`,
-`BOX_DAMAGED`, `OUT_OF_BOX` or null.
+`BOX_DAMAGED`, `OUT_OF_BOX` or null; user `role` is `ADMIN` or `MEMBER` (the default for a new row).
 
 Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A gets a leading zero
 (`src/lib/barcode.ts`), so a scanned code matches a typed one.
@@ -111,6 +111,11 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   Stored only as an argon2id hash (`src/lib/passwordHash.ts`, Node's own `crypto.argon2`, 19 MiB, 2 passes).
   Usernames are 3–32 letters, digits, `.`, `-` or `_`, compared lower-case. A wrong username, a wrong password and
   a user with no password all get the same 401 `SIGN_IN_FAILED`, after the same hashing time.
+- **Roles.** A user is an `ADMIN` or a `MEMBER`. Whoever sets the app up is an admin (the migration made the user
+  already there one). Routes with `config: { isAdminOnly: true }` answer 403 `ADMIN_ONLY` to a member: every
+  catalogue write (funkos, categories, series, funko images) and the images lists (`GET /images`, `/images/groups`,
+  `/export/images.*`). Members read the catalogue and keep their own collections, items and tags.
+  `auth.route.test.ts` lists every admin-only route in `ADMIN_ONLY_ROUTES` and calls every route as a member.
 - **Cross-site writes.** Any non-GET request whose `Sec-Fetch-Site` is not `same-origin`/`none`, or whose `Origin`
   is not `APP_ORIGIN`, answers 403 `CROSS_SITE_REQUEST`.
 - **Limits.** The ceremony routes allow 10 requests a minute per address (5 attempts); password sign-in allows 5.
@@ -198,6 +203,7 @@ One envelope: `{ code, message, issues?, existingId? }`.
 | 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                              |
 | 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                              |
 | 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey or password change needs a fresh sign-in |
+| 403    | `ADMIN_ONLY`                                             | A member called an admin-only route (catalogue writes, images lists)          |
 | 404    | `NOT_FOUND`                                              |                                                                               |
 | 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin                |
 | 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                                |

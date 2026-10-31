@@ -1,7 +1,13 @@
 import type { AuthChallengePurpose, Prisma } from '../../generated/prisma/client.ts';
 import { deletedIdOrUndefined, ID_SELECT, prisma, type DbExecutor } from '../../lib/prisma.ts';
 
-const USER_SELECT = { id: true, name: true, username: true, webauthnUserId: true } as const satisfies Prisma.UserSelect;
+const USER_SELECT = {
+  id: true,
+  name: true,
+  username: true,
+  role: true,
+  webauthnUserId: true,
+} as const satisfies Prisma.UserSelect;
 
 const PASSKEY_SELECT = {
   id: true,
@@ -21,14 +27,14 @@ const SESSION_SELECT = {
   userId: true,
   signedInAt: true,
   lastSeenAt: true,
-  user: { select: { name: true, username: true } },
+  user: { select: { name: true, username: true, role: true } },
 } as const satisfies Prisma.SessionSelect;
 
 const PASSWORD_USER_SELECT = { ...USER_SELECT, passwordHash: true } as const satisfies Prisma.UserSelect;
 
 const CHALLENGE_SELECT = { challenge: true, webauthnUserId: true } as const satisfies Prisma.AuthChallengeSelect;
 
-type NewUser = Pick<Prisma.UserUncheckedCreateInput, 'name' | 'webauthnUserId'>;
+type NewUser = Pick<Prisma.UserUncheckedCreateInput, 'name' | 'role' | 'webauthnUserId'>;
 
 type NewPasskey = Omit<Prisma.PasskeyUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt' | 'sessions'>;
 
@@ -85,7 +91,7 @@ async function findSession(tokenHash: string) {
 
   const { user, ...times } = session;
 
-  return { ...times, userName: user.name, username: user.username };
+  return { ...times, userName: user.name, username: user.username, userRole: user.role };
 }
 
 async function findPasskey(credentialId: string) {

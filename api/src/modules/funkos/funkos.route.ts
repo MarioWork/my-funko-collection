@@ -63,6 +63,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
     '/',
     {
       prefixTrailingSlash: 'no-slash',
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Create a funko (409 with existingId when it already exists)',
@@ -80,6 +81,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
   app.patch(
     '/:funkoId',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Update a funko',
@@ -99,6 +101,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
   app.delete(
     '/:funkoId',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Delete a funko and its images (409 while it sits in a collection, unless force=true)',

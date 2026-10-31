@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import type { App } from './app.ts';
 import { normaliseBarcode } from './lib/barcode.ts';
 import { generateImage, type GeneratedImageOptions } from './lib/imageStorage.ts';
-import type { SignInMethod } from './generated/prisma/client.ts';
+import type { SignInMethod, UserRole } from './generated/prisma/client.ts';
 import { prisma } from './lib/prisma.ts';
 import { createSecureToken, hashSecureToken } from './lib/secureToken.ts';
 import { SESSION_COOKIE_NAME } from './lib/sessionCookie.ts';
@@ -145,14 +145,16 @@ export type SignedInClient = {
   inject: (options: InjectOptions) => Promise<LightMyRequestResponse>;
 };
 
-// The test user, made once per database: the app has one user at most.
-async function findOrCreateTestUser(): Promise<{ id: number }> {
-  const existing = await prisma.user.findFirst({ select: { id: true } });
+const TEST_USER_NAMES: Record<UserRole, string> = { ADMIN: TEST_USER_NAME, MEMBER: 'Member' };
+
+// The test user of a role, made once per database: one admin, and one member for the admin-only checks.
+async function findOrCreateTestUser(role: UserRole): Promise<{ id: number }> {
+  const existing = await prisma.user.findFirst({ where: { role }, select: { id: true } });
 
   if (existing) return existing;
 
   return prisma.user.create({
-    data: { name: TEST_USER_NAME, webauthnUserId: randomBytes(RANDOM_ID_BYTES).toString('base64url') },
+    data: { name: TEST_USER_NAMES[role], role, webauthnUserId: randomBytes(RANDOM_ID_BYTES).toString('base64url') },
     select: { id: true },
   });
 }
@@ -179,11 +181,12 @@ export async function createPasskeyRow(
 // A user with a live session, straight in the database (no passkey ceremony): `inject` sends its cookie.
 // `signedInAt` / `lastSeenAt` backdate the session, for the "signed in recently" and timeout rules.
 // `signInMethod` PASSWORD opens it without a passkey; PASSKEY (the default) makes a passkey row to open it.
+// `role` MEMBER signs in as the member instead of the admin (the default).
 export async function signIn(
   app: App,
-  options: { signedInAt?: Date; lastSeenAt?: Date; signInMethod?: SignInMethod } = {},
+  options: { signedInAt?: Date; lastSeenAt?: Date; signInMethod?: SignInMethod; role?: UserRole } = {},
 ): Promise<SignedInClient> {
-  const user = await findOrCreateTestUser();
+  const user = await findOrCreateTestUser(options.role ?? 'ADMIN');
   const signInMethod = options.signInMethod ?? 'PASSKEY';
   const passkey = signInMethod === 'PASSKEY' ? await createPasskeyRow(user.id) : undefined;
   const token = createSecureToken();
