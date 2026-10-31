@@ -1,5 +1,5 @@
-// Locked out? Removes the user, every passkey, the password and every sign-in, then prints a new setup link. The
-// collection itself (funkos, collections, images) is not touched.
+// Locked out? Removes every passkey, password and sign-in, then prints a new setup link. The users stay, and so
+// does everything they own (collections, items) and the catalogue: setup gives the first user a new passkey.
 // Dev: yarn auth:reset. In the container: docker compose exec api node dist/cli/resetAuth.js
 import { logger } from '../lib/logger.ts';
 import { prisma } from '../lib/prisma.ts';

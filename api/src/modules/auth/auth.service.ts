@@ -158,7 +158,7 @@ async function assertSetupCode(code: string): Promise<void> {
 }
 
 async function assertNotSetUp(): Promise<void> {
-  const isSetUp = (await authRepository.countUsers()) > 0;
+  const isSetUp = (await authRepository.countUsersWhoCanSignIn()) > 0;
 
   if (isSetUp) throw new HttpError(ALREADY_SET_UP_MESSAGE, { code: 'ALREADY_SET_UP', statusCode: 409 });
 }
@@ -239,7 +239,7 @@ async function verifySignedAnswer(
 export async function getAuthStatus(session: AuthSession | null): Promise<AuthStatusResponse> {
   if (session) return { state: 'signedIn', user: { name: session.userName, username: session.username } };
 
-  const isSetUp = (await authRepository.countUsers()) > 0;
+  const isSetUp = (await authRepository.countUsersWhoCanSignIn()) > 0;
 
   return { state: isSetUp ? 'signedOut' : 'setup' };
 }
@@ -279,7 +279,7 @@ export async function deleteAllSessions(session: AuthSession): Promise<void> {
 // When nobody has set the app up, a fresh one-time code (the old one stops working). Undefined otherwise.
 // Called on every boot, and by yarn auth:reset after deleteSignIns.
 export async function addSetupCode(): Promise<string | undefined> {
-  const isSetUp = (await authRepository.countUsers()) > 0;
+  const isSetUp = (await authRepository.countUsersWhoCanSignIn()) > 0;
 
   if (isSetUp) return undefined;
 
@@ -289,9 +289,10 @@ export async function addSetupCode(): Promise<string | undefined> {
   return code;
 }
 
-// The lockout way back (yarn auth:reset): the user, every passkey and session go. The collection stays.
+// The lockout way back (yarn auth:reset): every passkey, password and session goes. The users stay, and with them
+// their collections; the next setup gives the first user a way back in.
 export async function deleteSignIns(): Promise<void> {
-  await authRepository.deleteEverything();
+  await authRepository.deleteEverySignIn();
 }
 
 export function getSetupLink(code: string): string {
@@ -349,7 +350,7 @@ export async function addFirstUser(setup: SetupVerify): Promise<NewSessionToken>
 
 // No allowCredentials: the browser offers whichever passkey it holds for this site, so there is no name to type.
 export async function getSignInOptions(): Promise<AuthenticationOptionsResponse> {
-  const isSetUp = (await authRepository.countUsers()) > 0;
+  const isSetUp = (await authRepository.countUsersWhoCanSignIn()) > 0;
 
   if (!isSetUp) throw new HttpError('Nobody has set the app up yet', { code: 'NOT_SET_UP', statusCode: 409 });
 

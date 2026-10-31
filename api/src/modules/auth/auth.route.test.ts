@@ -360,6 +360,31 @@ describe('POST /auth/login/verify', () => {
   });
 });
 
+describe('POST /auth/setup/verify after yarn auth:reset', () => {
+  it('gives the first user a new passkey and keeps their collections when the app was reset', async () => {
+    const token = await setUp(new TestPasskey(), (await addSetupCode()) ?? '');
+    const cookies = { [SESSION_COOKIE_NAME]: token };
+    const created = await app.inject({ method: 'POST', url: '/collections', cookies, payload: { name: 'For sale' } });
+    expect(created.statusCode).toBe(201);
+    await deleteSignIns();
+
+    const status = await app.inject({ method: 'GET', url: `${URL}/status` });
+    const newToken = await setUp(new TestPasskey(), (await addSetupCode()) ?? '');
+    const collections = await app.inject({
+      method: 'GET',
+      url: '/collections',
+      cookies: { [SESSION_COOKIE_NAME]: newToken },
+    });
+
+    expect(status.json()).toEqual({ state: 'setup' });
+    expect(collections.json<{ data: { name: string }[] }>().data.map(({ name }) => name)).toEqual([
+      'For sale',
+      'Owned',
+      'Wishlist',
+    ]);
+  });
+});
+
 describe('ANY /<every non-public route>', () => {
   it('returns 401 for every non-public route in the API when there is no session', async () => {
     const document = app.swagger() as { paths: Record<string, Record<string, unknown>> };

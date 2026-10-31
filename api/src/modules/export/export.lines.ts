@@ -108,16 +108,17 @@ export function groupBy<Row, Key>(rows: Row[], keyOf: (row: Row) => Key): Map<Ke
   return grouped;
 }
 
-export async function loadEverything() {
+// Everything one export needs, for the signed-in user: the whole catalogue, and only their own lists.
+export async function loadEverything(userId: number) {
   const [categories, series, funkos, images, collections, tags, items, itemTags] = await Promise.all([
     exportRepository.categories(),
     exportRepository.series(),
     exportRepository.funkos(),
     exportRepository.images(),
-    exportRepository.collections(),
+    exportRepository.collections(userId),
     exportRepository.tags(),
-    exportRepository.items(),
-    exportRepository.itemTags(),
+    exportRepository.items(userId),
+    exportRepository.itemTags(userId),
   ]);
 
   return { categories, series, funkos, images, collections, tags, items, itemTags };
