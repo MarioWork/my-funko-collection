@@ -3,7 +3,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { DEFAULT_FIRST_PAGE } from '@app-types/utility';
 import collectionItemService, { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
 import funkoService from '@services/funkoService/funkoService';
-import { assertCanEditFunko } from '@utils/adminRouteUtils';
+import { assertCanEditFunko } from '@utils/funkoRouteUtils';
 import { FUNKO_ITEMS_PAGE_SIZE } from '../../funkoDetailUtils';
 
 // The funko with its photos, the form's options (categories, collections, tags) and the collections it is in now.

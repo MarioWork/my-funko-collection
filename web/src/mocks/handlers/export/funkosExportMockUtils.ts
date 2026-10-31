@@ -1,6 +1,6 @@
 // The rules of the API's GET /export/funkos.{csv,json,xlsx} over the mock store: which funkos one filter keeps,
 // the file name, and the lines every format is built from.
-import { catalogueFunkos } from '@mocks/mockCatalogueUtils';
+import { readableFunkos } from '@mocks/mockCatalogueUtils';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow, MockItemRow } from '@mocks/mockStore.type';
 import { ExportFunkosScopeUtil } from '@app-types/utility';
@@ -151,7 +151,7 @@ export type ExportLine = { funko: MockFunkoRow; item: MockItemRow | null };
 
 // One line per funko and item; with a category or series filter (or none), a funko in no collection gets one line.
 function linesFor(reader: ScopeReader | undefined, id: number): ExportLine[] {
-  return catalogueFunkos().flatMap((funko): ExportLine[] => {
+  return readableFunkos().flatMap((funko): ExportLine[] => {
     const items = mockStore.items.filter((item) => item.funkoId === funko.id);
 
     if (reader?.isItemIncluded) {

@@ -1,11 +1,10 @@
 import { data, type RouterContextProvider } from 'react-router';
-import type { FunkoApiModel } from '@app-types/models';
 import { UserRoleUtil } from '@app-types/utility';
 import { signedInUserContext } from '@application/routes/signedInUserMiddleware';
-import { canEditFunko } from '@utils/funkoAccessUtils';
 import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
 
-function isAdminIn(context: Readonly<RouterContextProvider>): boolean {
+// Whether the signed-in user, from the router context, is an admin: for loaders and actions, where no hook runs.
+export function isAdminIn(context: Readonly<RouterContextProvider>): boolean {
   const { role } = context.get(signedInUserContext);
 
   return role === UserRoleUtil.ADMIN;
@@ -19,15 +18,4 @@ export function assertAdmin(context: Readonly<RouterContextProvider>): void {
   // isRouteErrorResponse. It is not an Error object on purpose.
   // eslint-disable-next-line @typescript-eslint/only-throw-error
   if (!isAdminIn(context)) throw data(null, { status: FORBIDDEN_STATUS });
-}
-
-// For Edit funko: an admin edits any funko, a member only their own waiting submission. Anyone else opening its URL
-// gets the same "for admins" error page.
-export function assertCanEditFunko(
-  context: Readonly<RouterContextProvider>,
-  funko: Pick<FunkoApiModel, 'status' | 'isSubmittedByMe'>,
-): void {
-  // See assertAdmin: a route error response, not an Error.
-  // eslint-disable-next-line @typescript-eslint/only-throw-error
-  if (!canEditFunko(funko, isAdminIn(context))) throw data(null, { status: FORBIDDEN_STATUS });
 }
