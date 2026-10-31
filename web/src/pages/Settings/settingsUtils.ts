@@ -1,5 +1,6 @@
 import { object, type InferType } from 'yup';
 import { AuthApiErrorCodes } from '@services/authService/authService';
+import { SetPasswordSchema } from '@services/authService/authService.type';
 import { passkeyNameSchema } from '@utils/authUtils';
 import { PasskeyCeremonyFailureUtil, type AuthFailureMessagesUtil } from '@app-types/utility';
 
@@ -14,14 +15,28 @@ export type AddPasskeyFormData = { passkey: AddPasskeyFormValues; isReauth?: boo
 
 export type DeletePasskeyFormData = { isReauth?: boolean };
 
-// The shared "confirm it's you" step of adding and removing a passkey.
+export const setPasswordFormSchema = object({
+  username: SetPasswordSchema.fields.username,
+  password: SetPasswordSchema.fields.password,
+});
+
+export type SetPasswordFormValues = InferType<typeof setPasswordFormSchema>;
+
+export type SetPasswordFormData = { credentials: SetPasswordFormValues; isReauth?: boolean };
+
+// The shared "confirm it's you" step of changing a passkey or the password.
 export const CONFIRM_IDENTITY_COPY = {
   TITLE: "Confirm it's you",
-  DESCRIPTION: 'Changing your passkeys needs a sign-in from the last 10 minutes. Use any of your passkeys to confirm.',
+  DESCRIPTION:
+    'Changing how you sign in needs a sign-in from the last 10 minutes. Use any of your passkeys to confirm.',
   BUTTON: 'Confirm with passkey',
 } as const;
 
 export const LAST_PASSKEY_REASON = 'You need at least one passkey.';
+
+export const PASSWORD_FAILURE_MESSAGES: AuthFailureMessagesUtil = {
+  [AuthApiErrorCodes.SIGN_IN_FAILED]: "That passkey didn't work. Try again, or pick another one.",
+};
 
 export const PASSKEY_FAILURE_MESSAGES: AuthFailureMessagesUtil = {
   [PasskeyCeremonyFailureUtil.ALREADY_REGISTERED]:

@@ -75,7 +75,7 @@ function AddPasskeyDialog({ onClose }: Props) {
         </DialogHeader>
         <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-4">
           <PasskeyNameField control={control} idPrefix={FORM_ID} />
-          {needsReauth ? <ReauthNotice /> : null}
+          {needsReauth ? <ReauthNotice nextStep="Then your browser asks where to save the new one." /> : null}
           {shownFailure ? (
             <InlineAlert tone="error">{authFailureMessage(shownFailure, PASSKEY_FAILURE_MESSAGES)}</InlineAlert>
           ) : null}

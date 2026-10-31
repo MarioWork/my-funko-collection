@@ -3,6 +3,11 @@ import { z } from 'zod';
 export const AUTH_STATES = ['setup', 'signedOut', 'signedIn'] as const;
 
 const NAME_MAX_LENGTH = 60;
+// NIST SP 800-63B-4: at least 15 characters for a password used on its own, and room for long passphrases.
+export const PASSWORD_MIN_LENGTH = 15;
+const PASSWORD_MAX_LENGTH = 256;
+const USERNAME_MIN_LENGTH = 3;
+const USERNAME_MAX_LENGTH = 32;
 // Generous ceilings: real values are a few hundred bytes, these only stop absurd bodies early.
 const ID_MAX_LENGTH = 1024;
 const ENCODED_MAX_LENGTH = 65_536;
@@ -17,6 +22,21 @@ const base64Url = (maxLength: number) =>
     .regex(/^[A-Za-z0-9_-]+$/, 'Must be base64url');
 
 const DisplayNameSchema = z.string().trim().min(1).max(NAME_MAX_LENGTH);
+
+// Letters, digits, dot, dash and underscore; compared and stored lower-case, so "Mario" signs in as "mario".
+const UsernameSchema = z
+  .string()
+  .trim()
+  .min(USERNAME_MIN_LENGTH)
+  .max(USERNAME_MAX_LENGTH)
+  .regex(/^[A-Za-z0-9._-]+$/, 'Use letters, digits, dots, dashes or underscores')
+  .transform((username) => username.toLowerCase());
+
+// Never trimmed: every character typed is part of the password. No character-mix rules.
+const NewPasswordSchema = z
+  .string()
+  .min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`)
+  .max(PASSWORD_MAX_LENGTH);
 
 // What @simplewebauthn/browser sends back; the library checks the signed contents, this only checks the shape.
 const ClientExtensionResultsSchema = z.object({
@@ -69,6 +89,17 @@ export const SignInVerifySchema = z.strictObject({
   response: AuthenticationResponseSchema,
 });
 
+// Sign-in only checks the shape: a wrong length is just a wrong password, with the same answer as any other.
+export const PasswordSignInSchema = z.strictObject({
+  username: z.string().trim().min(1).max(USERNAME_MAX_LENGTH),
+  password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
+});
+
+export const SetPasswordSchema = z.strictObject({
+  username: UsernameSchema,
+  password: NewPasswordSchema,
+});
+
 export const AddPasskeyVerifySchema = z.strictObject({
   name: DisplayNameSchema,
   response: RegistrationResponseSchema,
@@ -76,7 +107,8 @@ export const AddPasskeyVerifySchema = z.strictObject({
 
 export const PasskeyParamsSchema = z.object({ passkeyId: base64Url(ID_MAX_LENGTH) });
 
-const AuthUserSchema = z.object({ name: z.string() });
+// `username` is null until the user sets a password.
+const AuthUserSchema = z.object({ name: z.string(), username: z.string().nullable() });
 
 export const AuthStatusResponseSchema = z
   .object({ state: z.enum(AUTH_STATES), user: AuthUserSchema.optional() })
@@ -110,6 +142,8 @@ export type AuthState = (typeof AUTH_STATES)[number];
 export type SetupOptions = z.infer<typeof SetupOptionsSchema>;
 export type SetupVerify = z.infer<typeof SetupVerifySchema>;
 export type SignInVerify = z.infer<typeof SignInVerifySchema>;
+export type PasswordSignIn = z.infer<typeof PasswordSignInSchema>;
+export type SetPassword = z.infer<typeof SetPasswordSchema>;
 export type AddPasskeyVerify = z.infer<typeof AddPasskeyVerifySchema>;
 export type AuthStatusResponse = z.infer<typeof AuthStatusResponseSchema>;
 export type SignedInResponse = z.infer<typeof SignedInResponseSchema>;

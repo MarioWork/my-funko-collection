@@ -4,7 +4,7 @@ import type { LoaderDataUtil } from '@app-types/utility';
 import type { loader } from '@application/layout/AppShell/appShellLoader';
 import { APP_SHELL_ROUTE_ID } from '@application/routes/routesUtils';
 
-const UNKNOWN_USER: AuthUserApiModel = { name: '' };
+const UNKNOWN_USER: AuthUserApiModel = { name: '', username: null };
 
 // The signed-in user, from the app shell's loader. Any page inside the shell can read it without another request.
 export function useSignedInUser(): AuthUserApiModel {

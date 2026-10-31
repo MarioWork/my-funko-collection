@@ -8,8 +8,9 @@ import {
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { env } from '../../config/env.ts';
-import { ForbiddenError, HttpError, NotFoundError, UnauthorizedError } from '../../lib/httpErrors.ts';
+import { ConflictError, ForbiddenError, HttpError, NotFoundError, UnauthorizedError } from '../../lib/httpErrors.ts';
 import { logger } from '../../lib/logger.ts';
+import { hashPassword, verifyPassword } from '../../lib/passwordHash.ts';
 import { createSecureToken, hashSecureToken } from '../../lib/secureToken.ts';
 import { authRepository, type AuthChallengePurpose, type PasskeyRow, type SessionRow } from './auth.repository.ts';
 import type {
@@ -18,12 +19,15 @@ import type {
   AuthenticationOptionsResponse,
   PasskeyListResponse,
   PasskeyResponse,
+  PasswordSignIn,
   RegistrationOptionsResponse,
+  SetPassword,
   SetupOptions,
   SetupVerify,
   SignInVerify,
   SignedInResponse,
 } from './auth.schema.ts';
+import { isCommonPassword } from './commonPasswords.ts';
 
 const log = logger.child({ module: 'auth' });
 
@@ -36,7 +40,7 @@ const SESSION_ABSOLUTE_MS = 30 * DAY_MS;
 const SESSION_IDLE_MS = 7 * DAY_MS;
 // lastSeenAt is written at most this often, so reading a page is not a database write.
 const SESSION_TOUCH_INTERVAL_MS = HOUR_MS;
-// Adding or removing a passkey needs a passkey sign-in this recent.
+// Adding or removing a passkey, or setting a password, needs a sign-in this recent (either way).
 const RECENT_SIGN_IN_MS = 10 * MINUTE_MS;
 // The browser gives up after CEREMONY_TIMEOUT_MS; the challenge outlives it a little.
 const CEREMONY_TIMEOUT_MS = 2 * MINUTE_MS;
@@ -53,10 +57,14 @@ const RP_ID = new URL(env.APP_ORIGIN).hostname;
 
 // One message for every failed sign-in, so a failure says nothing about why.
 const SIGN_IN_FAILED_MESSAGE = "That passkey didn't work. Try again.";
+// The same answer for a wrong username, a wrong password and a user with no password: it says nothing about which.
+const PASSWORD_SIGN_IN_FAILED_MESSAGE = "That username and password don't match. Try again.";
+const COMMON_PASSWORD_MESSAGE = 'That password is too common. Pick one nobody would guess.';
+const USERNAME_TAKEN_MESSAGE = 'That username is taken. Pick another one.';
 const PASSKEY_FAILED_MESSAGE = "The passkey couldn't be saved. Try again.";
 const SETUP_CODE_MESSAGE = 'This setup link is wrong or was already used';
 const ALREADY_SET_UP_MESSAGE = 'The app is already set up. Sign in instead.';
-const REAUTH_MESSAGE = 'Confirm it’s you with a passkey first';
+const REAUTH_MESSAGE = 'Confirm it’s you first';
 
 const ClientDataSchema = z.object({ challenge: z.string().min(1) });
 
@@ -65,6 +73,7 @@ export type AuthSession = {
   tokenHash: string;
   userId: number;
   userName: string;
+  username: string | null;
   signedInAt: Date;
 };
 
@@ -72,7 +81,13 @@ export type AuthSession = {
 export type NewSessionToken = { token: string; result: SignedInResponse };
 
 function toAuthSession(row: SessionRow): AuthSession {
-  return { tokenHash: row.tokenHash, userId: row.userId, userName: row.userName, signedInAt: row.signedInAt };
+  return {
+    tokenHash: row.tokenHash,
+    userId: row.userId,
+    userName: row.userName,
+    username: row.username,
+    signedInAt: row.signedInAt,
+  };
 }
 
 function toPasskeyResponse(row: PasskeyRow): PasskeyResponse {
@@ -148,8 +163,8 @@ async function assertNotSetUp(): Promise<void> {
   if (isSetUp) throw new HttpError(ALREADY_SET_UP_MESSAGE, { code: 'ALREADY_SET_UP', statusCode: 409 });
 }
 
-// A stolen, still-open session must not be able to swap the owner's passkeys: adding or removing one needs a
-// passkey sign-in from the last few minutes. Otherwise a thief could add their own passkey and keep coming back.
+// A stolen, still-open session must not be able to swap the owner's passkeys or password: changing one needs a
+// sign-in from the last few minutes. Otherwise a thief could add their own way in and keep coming back.
 function assertRecentSignIn(session: AuthSession): void {
   const isRecentSignIn = Date.now() - session.signedInAt.getTime() <= RECENT_SIGN_IN_MS;
 
@@ -222,7 +237,7 @@ async function verifySignedAnswer(
 // --- Status and sessions ---------------------------------------------------------------------------------------
 
 export async function getAuthStatus(session: AuthSession | null): Promise<AuthStatusResponse> {
-  if (session) return { state: 'signedIn', user: { name: session.userName } };
+  if (session) return { state: 'signedIn', user: { name: session.userName, username: session.username } };
 
   const isSetUp = (await authRepository.countUsers()) > 0;
 
@@ -327,7 +342,7 @@ export async function addFirstUser(setup: SetupVerify): Promise<NewSessionToken>
 
   log.info({ userId: user.id }, 'first user set up');
 
-  return { token: session.token, result: { user: { name: user.name } } };
+  return { token: session.token, result: { user: { name: user.name, username: user.username } } };
 }
 
 // --- Sign in -----------------------------------------------------------------------------------------------------
@@ -382,7 +397,73 @@ export async function addSession({ response }: SignInVerify, previous: AuthSessi
 
   log.info({ userId: passkey.userId, passkeyId: passkey.id }, 'signed in');
 
-  return { token: session.token, result: { user: { name: user.name } } };
+  return { token: session.token, result: { user: { name: user.name, username: user.username } } };
+}
+
+// Checked against when the username is unknown, so a wrong username takes as long as a wrong password and the
+// answer time says nothing about which usernames exist. Made once, on first use.
+let timingDecoyHash: Promise<string> | undefined;
+
+function getTimingDecoyHash(): Promise<string> {
+  timingDecoyHash ??= hashPassword(createSecureToken());
+
+  return timingDecoyHash;
+}
+
+async function findPasswordUser({ username, password }: PasswordSignIn) {
+  const user = await authRepository.findUserByUsername(username.toLowerCase());
+  const storedHash = user?.passwordHash ?? (await getTimingDecoyHash());
+  const isMatch = await verifyPassword(password, storedHash);
+
+  return isMatch && user?.passwordHash ? user : undefined;
+}
+
+// Password sign-in: one answer for every failure, and no lockout (anyone could lock the owner out); the route's
+// rate limit caps the tries. Like a passkey sign-in, the new session replaces this browser's old one.
+export async function addPasswordSession(
+  signIn: PasswordSignIn,
+  previous: AuthSession | null,
+): Promise<NewSessionToken> {
+  const user = await findPasswordUser(signIn);
+
+  if (!user) throw new UnauthorizedError(PASSWORD_SIGN_IN_FAILED_MESSAGE, 'SIGN_IN_FAILED');
+
+  const now = new Date();
+  const session = newSessionRow(now);
+
+  await authRepository.completePasswordSignIn({
+    previousTokenHash: previous?.tokenHash,
+    session: { ...session.row, userId: user.id, signInMethod: 'PASSWORD', passkeyId: null },
+  });
+
+  log.info({ userId: user.id }, 'signed in with a password');
+
+  return { token: session.token, result: { user: { name: user.name, username: user.username } } };
+}
+
+// --- Password ----------------------------------------------------------------------------------------------------
+
+// Sets or changes the username and password. Needs a recent sign-in; the length is checked by the schema, the
+// common-password list here. Every other session a password opened ends; this one stays.
+export async function setPassword(session: AuthSession, { username, password }: SetPassword): Promise<void> {
+  assertRecentSignIn(session);
+
+  if (isCommonPassword(password)) {
+    throw new HttpError(COMMON_PASSWORD_MESSAGE, { code: 'COMMON_PASSWORD', statusCode: 400 });
+  }
+
+  const holder = await authRepository.findUserByUsername(username);
+
+  if (holder && holder.id !== session.userId) throw new ConflictError(USERNAME_TAKEN_MESSAGE);
+
+  await authRepository.setPassword({
+    userId: session.userId,
+    username,
+    passwordHash: await hashPassword(password),
+    keepTokenHash: session.tokenHash,
+  });
+
+  log.info({ userId: session.userId }, 'password set');
 }
 
 // --- Passkeys ----------------------------------------------------------------------------------------------------

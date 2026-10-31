@@ -26,6 +26,13 @@ export class AuthPage {
     await this.page.getByRole('button', { name: 'Create my passkey' }).click();
   }
 
+  async signInWithPassword(username: string, password: string) {
+    const form = this.page.getByRole('form', { name: 'Sign in with a password' });
+    await form.getByLabel('Username').fill(username);
+    await form.getByLabel('Password').fill(password);
+    await form.getByRole('button', { name: 'Sign in with password' }).click();
+  }
+
   async signInWithPasskey() {
     await this.page.getByRole('button', { name: 'Sign in with passkey' }).click();
   }

@@ -1,6 +1,8 @@
 import { UNAUTHORIZED_ERROR_CODE } from '@api/axiosActions';
 import { errorResponse, FORBIDDEN_STATUS, UNAUTHORIZED_STATUS } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
+import type { AuthUserApiModel } from '@app-types/models';
+import type { MockAuth } from '@mocks/mockStore.type';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 
 // The parts of a WebAuthn response the mocks check: what the browser library always sends. The real API verifies
@@ -33,6 +35,11 @@ export function rpIdOf(request: Request): string {
   return new URL(request.url).hostname;
 }
 
+// The user as the API describes them in a sign-in or status answer.
+export function mockUserOf({ userName, username }: MockAuth): AuthUserApiModel {
+  return { name: userName, username };
+}
+
 export const unauthorized = (): Response =>
   errorResponse(UNAUTHORIZED_STATUS, UNAUTHORIZED_ERROR_CODE, 'Sign in to continue.');
 
@@ -40,5 +47,5 @@ export const unauthorized = (): Response =>
 export function reauthRequiredResponse(): Response | undefined {
   if (mockStore.auth.isSignInRecent) return undefined;
 
-  return errorResponse(FORBIDDEN_STATUS, AuthApiErrorCodes.REAUTH_REQUIRED, 'Sign in again to change your passkeys.');
+  return errorResponse(FORBIDDEN_STATUS, AuthApiErrorCodes.REAUTH_REQUIRED, 'Confirm it’s you first.');
 }

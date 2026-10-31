@@ -6,7 +6,9 @@ import getAuthStatusHandler from './getAuthStatus.mock.handler';
 import listPasskeysHandler from './listPasskeys.mock.handler';
 import logoutHandler from './logout.mock.handler';
 import logoutEverywhereHandler from './logoutEverywhere.mock.handler';
+import passwordLoginHandler from './passwordLogin.mock.handler';
 import requireSessionHandler from './requireSession.mock.handler';
+import setPasswordHandler from './setPassword.mock.handler';
 import startAddPasskeyHandler from './startAddPasskey.mock.handler';
 import startLoginHandler from './startLogin.mock.handler';
 import startSetupHandler from './startSetup.mock.handler';
@@ -19,6 +21,8 @@ export const authMockHandlers = (baseUrl: string) => [
   ...finishSetupHandler(baseUrl),
   ...startLoginHandler(baseUrl),
   ...finishLoginHandler(baseUrl),
+  ...passwordLoginHandler(baseUrl),
+  ...setPasswordHandler(baseUrl),
   ...logoutHandler(baseUrl),
   ...logoutEverywhereHandler(baseUrl),
   ...listPasskeysHandler(baseUrl),

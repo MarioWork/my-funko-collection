@@ -4,13 +4,20 @@ import type { PasskeyApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS } from '@application/routes/routesUtils';
 import authService from '@services/authService/authService';
-import { CreatePasskeySchema } from '@services/authService/authService.type';
+import { CreatePasskeySchema, SetPasswordSchema } from '@services/authService/authService.type';
 import { parseFormData } from '@utils/formDataUtils';
 import { createPasskey } from '@utils/passkeyUtils';
-import { addPasskeyFormSchema, type AddPasskeyFormData, type DeletePasskeyFormData } from './settingsUtils';
+import {
+  addPasskeyFormSchema,
+  type AddPasskeyFormData,
+  type DeletePasskeyFormData,
+  type SetPasswordFormData,
+} from './settingsUtils';
 import { failWhenInvalid } from '@utils/actionUtils';
 
 // Settings → Security. The passkey actions run their browser ceremony here too, started by the dialog's submit.
+// Changing a passkey or the password needs a recent sign-in: the first try may answer REAUTH_REQUIRED, and the
+// dialog then submits again with `isReauth` (see withFreshSignIn).
 
 async function registerPasskey(name: string): Promise<JSONResponseUtil<PasskeyApiModel>> {
   const options = await authService.startAddPasskey();
@@ -26,8 +33,6 @@ async function registerPasskey(name: string): Promise<JSONResponseUtil<PasskeyAp
   return authService.addPasskey(fields);
 }
 
-// Both passkey writes need a recent sign-in: the first try may answer REAUTH_REQUIRED, and the dialog then submits
-// again with `isReauth` (see withFreshSignIn).
 export const addPasskeyAction = async ({ request }: ActionFunctionArgs): Promise<JSONResponseUtil<PasskeyApiModel>> => {
   const { passkey, isReauth } = parseFormData<AddPasskeyFormData>(await request.formData());
 
@@ -42,6 +47,16 @@ export const deletePasskeyAction = async ({ request, params }: ActionFunctionArg
   const { isReauth } = parseFormData<DeletePasskeyFormData>(await request.formData());
 
   return withFreshSignIn(isReauth === true, () => authService.deletePasskey(String(params.passkeyId)));
+};
+
+export const setPasswordAction = async ({ request }: ActionFunctionArgs): Promise<JSONResponseUtil> => {
+  const { credentials, isReauth } = parseFormData<SetPasswordFormData>(await request.formData());
+
+  return failWhenInvalid(async () => {
+    const fields = await SetPasswordSchema.validate(credentials);
+
+    return withFreshSignIn(isReauth === true, () => authService.setPassword(fields));
+  });
 };
 
 // Public on the API (204 even for an expired session): only a request that never got an answer fails here.
