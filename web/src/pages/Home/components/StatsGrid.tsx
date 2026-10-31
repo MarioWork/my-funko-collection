@@ -1,15 +1,17 @@
 import { Boxes, Coins, Images, Package } from 'lucide-react';
 import type { StatsApiModel } from '@app-types/models';
-import { COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS, IMAGE_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { COLLECTION_ROUTES_PATHS, IMAGE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import StatTile from './StatTile';
 import { formatCents } from '@utils/moneyUtils';
 import { formatBytes } from '@utils/byteUtils';
+import { funkosInOwnCollectionsPath } from '@utils/funkoLinkUtils';
 
 type Props = {
   stats: StatsApiModel;
 };
 
-// Four numbers: catalog size, pieces in the default list, money in it, photos on disk.
+// Four numbers, all about the signed-in user's own collections: the funkos in them, pieces in the default list,
+// money in it, photos of those funkos.
 function StatsGrid({ stats }: Props) {
   const defaultCollection = stats.collections.find((collection) => collection.isDefault);
   const ownedLabel = defaultCollection ? `In ${defaultCollection.name}` : 'Owned';
@@ -22,7 +24,7 @@ function StatsGrid({ stats }: Props) {
         label="Funkos"
         value={String(stats.funkoCount)}
         hint={`${stats.categoryCount} categories`}
-        to={FUNKO_ROUTES_PATHS.BASE}
+        to={funkosInOwnCollectionsPath()}
       />
       <StatTile
         icon={Boxes}
