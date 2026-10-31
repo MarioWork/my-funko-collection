@@ -1,6 +1,6 @@
 # My Funko Collection
 
-A tracker for one person's Funko Pops: what figures exist, which lists they sit in, and where each one is stored.
+A tracker for the Funko Pops of a few people who share one app: what figures exist, which lists each person keeps them in, and where each one is stored.
 
 ## Language
 
@@ -28,7 +28,7 @@ _Avoid_: Show, franchise, category
 
 **Variant**:
 A special version of a funko, such as a chase, glow-in-the-dark or flocked one. A variant is its own funko.
-_Avoid_: Edition, version. Never use it for the sizes a photo is kept in.
+_Avoid_: Edition, version. Never use it for the sizes an image is kept in.
 
 **Chase**:
 A rare variant, shipped in small numbers next to the regular funko.
@@ -42,18 +42,38 @@ _Avoid_: Sticker, retailer
 The code printed on the box, always in its 13-digit form. Many funkos have none.
 _Avoid_: UPC, EAN, SKU
 
-**Photo**:
-A picture of a funko that the user took. A funko can have several, in an order the user picks.
-_Avoid_: Image, picture
+**Catalogue**:
+Every funko in the app. One catalogue, shared by all users.
+_Avoid_: Database, library, collection
+
+**Submission**:
+A funko a member added, waiting for an admin. The member can use it in their own collections right away; nobody else sees it until it is approved.
+_Avoid_: Request, proposal, draft
+
+**Approve**:
+An admin accepts a submission, and the funko joins the catalogue for everyone.
+_Avoid_: Publish, accept
+
+**Reject**:
+An admin turns a submission down.
+_Avoid_: Decline, deny
+
+**Merge**:
+An admin finds that a submission is a funko already in the catalogue, and moves the member's items onto that funko instead.
+_Avoid_: Combine, dedupe
+
+**Image**:
+A picture of a funko, taken by a user. A funko can have several, in a chosen order.
+_Avoid_: Photo, picture
 
 ### The lists
 
 **Collection**:
-One of the user's own lists, such as "Owned" or "Wishlist". A funko can be in many.
+One of a user's own lists, such as "Owned" or "Wishlist". Only that user sees it. A funko can be in many.
 _Avoid_: List, shelf, category
 
 **Default collection**:
-The collection new funkos go into unless the user picks another. "Owned" from the start; there is always exactly one.
+The collection new funkos go into unless the user picks another. "Owned" from the start; each user always has exactly one.
 _Avoid_: Main list, primary
 
 **Item**:
@@ -69,15 +89,47 @@ The state of what the user has: mint in box, box damaged, or out of box. Empty o
 _Avoid_: Grade, state
 
 **Tag**:
-A label the user puts on items, mainly the storage box ("Box 3"). An item can have many.
+A label a user puts on their own items, mainly the storage box ("Box 3"). An item can have many.
 _Avoid_: Label, box, location
 
-### Sign-in
+### People and sign-in
+
+**User**:
+A person who can sign in. Each user has their own collections, items and tags.
+_Avoid_: Account, member (that is a role)
+
+**Admin**:
+A user who manages users, images, submissions and the catalogue. Only an admin can create a user. There is always at least one. An admin never sees other users' collections.
+_Avoid_: Owner, superuser
+
+**Member**:
+A user who is not an admin.
+_Avoid_: Normal user, regular user
+
+**Read-only**:
+A user an admin has limited to looking. They can still sign in, see their own collections and the catalogue, and look after their own password and passkeys, but change nothing else.
+_Avoid_: Disabled, suspended, banned
+
+**Notification**:
+A message inside the app telling a user something happened to them: a submission approved, rejected or merged, a new submission waiting (for admins), or a funko of theirs removed from the catalogue, with the reason.
+_Avoid_: Alert, message, email
+
+**Username**:
+The name a user signs in with.
+_Avoid_: Login, email, handle
+
+**Password**:
+One way to sign in. At least 15 characters and not a common one.
+_Avoid_: PIN, passphrase
+
+**Temporary password**:
+The password an admin gives a new user, or one who forgot theirs. The user must replace it before they can do anything else.
+_Avoid_: Reset password, initial password
 
 **Passkey**:
-The only way to sign in. Tied to the app's host name, so changing that name makes every passkey useless.
-_Avoid_: Password, login, key
+The other way to sign in. Tied to the app's host name, so changing that name makes every passkey useless.
+_Avoid_: Login, key
 
 **Setup link**:
-A one-time link that lets the user make the first passkey, or new ones after being locked out.
+A one-time link, printed by the server, that lets the first admin sign in for the first time, or after every admin is locked out.
 _Avoid_: Invite, reset link
