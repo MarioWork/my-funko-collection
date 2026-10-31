@@ -1,7 +1,8 @@
 import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { CONFLICT_STATUS, errorResponse, noContent, notFound } from '@mocks/mockResponses';
+import { errorResponse, noContent, notFound } from '@mocks/mockResponses';
+import { CONFLICT_STATUS } from '@utils/httpStatusUtils';
 import { mockStore } from '@mocks/mockStore';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { reauthRequiredResponse } from './authMockUtils';

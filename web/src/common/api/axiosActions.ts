@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import type { ApiError } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
+import { FORBIDDEN_STATUS, UNAUTHORIZED_STATUS } from '@utils/httpStatusUtils';
 
 type ApiErrorBody = Partial<Pick<ApiError, 'code' | 'message' | 'existingId' | 'issues'>>;
 
@@ -29,10 +30,11 @@ export async function axiosActions<T = unknown>(config: AxiosRequestConfig): Pro
   }
 }
 
-const UNAUTHORIZED_STATUS = 401;
 // The envelope code of a request made without a valid session. Other 401s (a wrong setup code, a passkey that did
 // not verify) carry their own code and belong to the page that made them.
 export const UNAUTHORIZED_ERROR_CODE = 'UNAUTHORIZED';
+// The envelope code of a member calling an admin-only route (403).
+export const ADMIN_ONLY_ERROR_CODE = 'ADMIN_ONLY';
 
 function isFailedEnvelope(value: unknown): value is JSONResponseUtil {
   return typeof value === 'object' && value !== null && 'success' in value && value.success === false;
@@ -46,4 +48,22 @@ export function isUnauthorizedFailure(value: unknown): boolean {
   if (isFailedEnvelope(value)) return value.error?.code === UNAUTHORIZED_ERROR_CODE;
 
   return false;
+}
+
+// The failure a loader's thrown read or an action's returned envelope carries, if it is one.
+function failureOf(value: unknown): ApiError | undefined {
+  if (axios.isAxiosError(value)) return toApiError(value.response?.status, value.response?.data);
+
+  if (isFailedEnvelope(value)) return value.error;
+
+  return undefined;
+}
+
+// Whether a read or a write was refused because the user is not an admin (any more).
+export function isAdminOnlyFailure(value: unknown): boolean {
+  const failure = failureOf(value);
+  const isForbidden = failure?.statusCode === FORBIDDEN_STATUS;
+  const isAdminOnly = failure?.code === ADMIN_ONLY_ERROR_CODE;
+
+  return isForbidden && isAdminOnly;
 }

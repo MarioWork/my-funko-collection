@@ -26,7 +26,7 @@ type Props = {
   emptyTitle: string;
   emptyDescription: string;
   // False shows the list read-only: no New, rename or delete (a member on a catalogue list).
-  canEdit?: boolean;
+  canEdit: boolean;
 };
 
 // The page around a ManageList (categories, series, tags): a header with New and Export, the list, the phone's
@@ -45,7 +45,7 @@ function ManageListPage({
   addPath,
   emptyTitle,
   emptyDescription,
-  canEdit = true,
+  canEdit,
 }: Props) {
   const childPage = useMobileChildPage();
   const addLabel = `New ${noun}`;

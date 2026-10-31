@@ -2,7 +2,8 @@ import { http, type HttpRequestHandler } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { HttpVerbsUtil, UserRoleUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { errorResponse, FORBIDDEN_STATUS } from '@mocks/mockResponses';
+import { errorResponse } from '@mocks/mockResponses';
+import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
 import { mockStore } from '@mocks/mockStore';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 

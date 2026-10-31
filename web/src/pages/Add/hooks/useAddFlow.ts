@@ -4,6 +4,7 @@ import { HttpVerbsUtil } from '@app-types/utility';
 import funkoService from '@services/funkoService/funkoService';
 import { type AddDestination } from '@utils/addDestinationUtils';
 import { createFormData } from '@utils/formDataUtils';
+import { NOT_FOUND_STATUS } from '@utils/httpStatusUtils';
 import { prepareUpload } from '@utils/pendingPhotoUtils';
 import type { AddActionData } from '../addActions';
 import type { AddFunkoSubmission } from '../components/AddFunkoForm/types';
@@ -18,7 +19,6 @@ type Options = {
 
 type LookupState = { isLookingUp: boolean; result: ScanResult | null };
 
-const NOT_FOUND_STATUS = 404;
 const MULTIPART = 'multipart/form-data';
 
 // The add flow's steps and writes. The page only renders what this hands back.

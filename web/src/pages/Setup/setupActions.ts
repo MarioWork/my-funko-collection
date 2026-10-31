@@ -2,6 +2,7 @@ import { redirect, type ActionFunctionArgs } from 'react-router';
 import type { AuthSessionApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import { defaultRedirectRoute } from '@application/routes/routesUtils';
+import { forgetSignedInUser } from '@application/routes/signedInUserMiddleware';
 import authService from '@services/authService/authService';
 import { FinishSetupSchema, StartSetupSchema } from '@services/authService/authService.type';
 import { parseFormData } from '@utils/formDataUtils';
@@ -32,6 +33,9 @@ export const setUpAction = async ({
     const result = await authService.finishSetup(setupFields);
 
     if (!result.success) return result;
+
+    // The new admin is signed in: the shell asks who it is instead of keeping any earlier answer.
+    forgetSignedInUser();
 
     return redirect(defaultRedirectRoute);
   });

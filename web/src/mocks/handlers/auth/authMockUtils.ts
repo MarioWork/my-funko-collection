@@ -1,5 +1,6 @@
 import { UNAUTHORIZED_ERROR_CODE } from '@api/axiosActions';
-import { errorResponse, FORBIDDEN_STATUS, UNAUTHORIZED_STATUS } from '@mocks/mockResponses';
+import { errorResponse } from '@mocks/mockResponses';
+import { FORBIDDEN_STATUS, UNAUTHORIZED_STATUS } from '@utils/httpStatusUtils';
 import { mockStore } from '@mocks/mockStore';
 import type { AuthUserApiModel } from '@app-types/models';
 import type { MockAuth } from '@mocks/mockStore.type';

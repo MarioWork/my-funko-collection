@@ -1,5 +1,5 @@
 import { redirect, type DataStrategyResult, type MiddlewareFunction } from 'react-router';
-import { isUnauthorizedFailure } from '@api/axiosActions';
+import { isAdminOnlyFailure, isUnauthorizedFailure } from '@api/axiosActions';
 import { loginPathFor, returnPathOf } from '@utils/authRedirectUtils';
 import { forgetSignedInUser } from './signedInUserMiddleware';
 
@@ -13,6 +13,10 @@ function hasUnauthorizedResult(results: RouteResults): boolean {
   return Object.values(results).some((routeResult) => isUnauthorizedFailure(routeResult?.result));
 }
 
+function hasAdminOnlyResult(results: RouteResults): boolean {
+  return Object.values(results).some((routeResult) => isAdminOnlyFailure(routeResult?.result));
+}
+
 // Root middleware: the one place a lost session is noticed. It lets every loader and action run, then turns each
 // "no valid session" answer (a read that threw a 401, an action's UNAUTHORIZED envelope) into a redirect to the
 // login page that remembers where the user was. React Router follows a redirect for a navigation and for a fetcher
@@ -20,7 +24,12 @@ function hasUnauthorizedResult(results: RouteResults): boolean {
 export const authMiddleware: MiddlewareFunction = async ({ request }, next) => {
   const results = await next();
 
-  if (!isRouteResults(results) || !hasUnauthorizedResult(results)) return results;
+  if (!isRouteResults(results)) return results;
+
+  // The API refused an admin-only call: the user is no longer an admin, so the next request asks who they are again.
+  if (hasAdminOnlyResult(results)) forgetSignedInUser();
+
+  if (!hasUnauthorizedResult(results)) return results;
 
   // The session is gone: whoever signs in next is asked for again.
   forgetSignedInUser();

@@ -1,8 +1,6 @@
 import { isRouteErrorResponse } from 'react-router';
-import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
-import type { ErrorCopy, ErrorKind } from './routeError.type';
-
-const NOT_FOUND_STATUS = 404;
+import { FORBIDDEN_STATUS, NOT_FOUND_STATUS } from '@utils/httpStatusUtils';
+import type { ErrorCopy, ErrorKind } from './types';
 
 export const ERROR_COPY: Record<ErrorKind, ErrorCopy> = {
   notFound: {

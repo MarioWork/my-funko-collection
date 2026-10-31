@@ -2,15 +2,13 @@ import axios from 'axios';
 import { http, HttpResponse } from 'msw/http';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
 import { HttpVerbsUtil } from '@app-types/utility';
+import { SERVER_ERROR_STATUS, UNAUTHORIZED_STATUS } from '@utils/httpStatusUtils';
 import { axiosActions, isUnauthorizedFailure, UNAUTHORIZED_ERROR_CODE } from './axiosActions';
 
 const TEST_PATH = '/actions-test';
 const TEST_URL = `${TEST_BASE_API_URL}${TEST_PATH}`;
 
 type CreatedRecord = { id: number };
-
-const UNAUTHORIZED_STATUS = 401;
-const SERVER_ERROR_STATUS = 500;
 
 describe('axiosActions', () => {
   it('wraps the response data as a success', async () => {

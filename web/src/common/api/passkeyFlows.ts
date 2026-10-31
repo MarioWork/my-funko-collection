@@ -1,5 +1,6 @@
 import type { AuthSessionApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
+import { forgetSignedInUser } from '@application/routes/signedInUserMiddleware';
 import authService from '@services/authService/authService';
 import { FinishLoginSchema } from '@services/authService/authService.type';
 import { getPasskey } from '@utils/passkeyUtils';
@@ -33,6 +34,9 @@ export async function withFreshSignIn<T>(
   const signIn = await signInWithPasskey();
 
   if (!signIn.success) return { success: false, error: signIn.error };
+
+  // The fresh sign-in replaces the session, and the passkey picked may be someone else's: ask who it is again.
+  forgetSignedInUser();
 
   return write();
 }

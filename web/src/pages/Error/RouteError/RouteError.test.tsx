@@ -7,10 +7,10 @@ import { FUNKO_ROUTES_PATHS, IMAGE_ROUTES_PATHS } from '@application/routes/rout
 import { UserRoleUtil } from '@app-types/utility';
 import { mockStore, setMockUserRole } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
+import { SERVER_ERROR_STATUS } from '@utils/httpStatusUtils';
 import RouteError from './RouteError';
 
 const SERVER_ERROR_MESSAGE = 'SQLITE_BUSY: database is locked';
-const SERVER_ERROR_STATUS = 500;
 const UNKNOWN_PATH = '/no-such-shelf';
 
 // The funko pages under a root that has the app's one error boundary, as in application/routes/index.tsx.

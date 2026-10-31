@@ -10,11 +10,17 @@ import { AUTH_ROUTES_PATHS } from './routesUtils';
 export const signedInUserContext = createContext<AuthUserApiModel>();
 
 // Client middleware runs on every navigation and fetcher call, so the status is asked once and kept here until
-// something can change it: signing out, a lost session (authMiddleware) or a saved password (forgetSignedInUser).
+// something can change it: signing in or out, a lost session or a refused admin-only call (authMiddleware), or a
+// saved password. Each of those calls forgetSignedInUser.
 let knownUser: AuthUserApiModel | undefined;
 
 export function forgetSignedInUser(): void {
   knownUser = undefined;
+}
+
+// False once the user was forgotten: the shell's shouldRevalidate then re-runs its loader for the fresh user.
+export function isSignedInUserKnown(): boolean {
+  return knownUser !== undefined;
 }
 
 async function loadSignedInUser(request: Request): Promise<AuthUserApiModel> {

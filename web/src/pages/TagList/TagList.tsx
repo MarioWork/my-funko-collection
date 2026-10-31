@@ -44,6 +44,8 @@ function TagList() {
       addPath={TAG_ROUTES_PATHS.ADD}
       emptyTitle="No tags yet"
       emptyDescription="Add the first one, like Box 1 or Display shelf."
+      // Tags label the user's own items, not the catalogue: every signed-in user may edit them.
+      canEdit
     />
   );
 }
