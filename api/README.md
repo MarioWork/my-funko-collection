@@ -65,21 +65,21 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 
 ## Data model
 
-| Table                  | What                                                                               |
-| ---------------------- | ---------------------------------------------------------------------------------- |
-| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"                |
-| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"                |
-| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode      |
-| `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder       |
-| `collections`          | One of the user's own lists: "Owned" (exactly one is the default), "Wishlist"      |
-| `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes     |
-| `collection_item_tags` | Item ↔ tag                                                                         |
-| `tags`                 | A free label on an item, mainly the storage box ("Box 3")                          |
-| `users`                | The one person who signs in: name and WebAuthn user handle                         |
-| `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device) |
-| `sessions`             | A signed-in browser: SHA-256 of the cookie token, sign-in and last-seen times      |
-| `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                |
-| `setup_codes`          | SHA-256 of the first-run code, only until someone sets the app up                  |
+| Table                  | What                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"                             |
+| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"                             |
+| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode                   |
+| `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder                    |
+| `collections`          | One of the user's own lists: "Owned" (exactly one is the default), "Wishlist"                   |
+| `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                  |
+| `collection_item_tags` | Item ↔ tag                                                                                      |
+| `tags`                 | A free label on an item, mainly the storage box ("Box 3")                                       |
+| `users`                | The one person who signs in: name and WebAuthn user handle                                      |
+| `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device)              |
+| `sessions`             | A signed-in browser: SHA-256 of the cookie token, how it signed in, sign-in and last-seen times |
+| `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                             |
+| `setup_codes`          | SHA-256 of the first-run code, only until someone sets the app up                               |
 
 Value sets: funko `type` is one of `POP`, `POP_DELUXE`, `POP_RIDES`, `POP_MOMENT`, `POP_TOWN`, `POP_ALBUM`,
 `POP_JUMBO`, `POP_KEYCHAIN`, `SODA`, `BITTY_POP`, `MYSTERY_MINI`, `OTHER`; item `condition` is `MINT_IN_BOX`,
@@ -99,7 +99,8 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   on stdout as plain text, kept out of the structured log. The code makes the first passkey; it is stored only as a SHA-256 and dies once used.
 - **Session.** A random 256-bit token in an `HttpOnly`, `SameSite=Strict`, `Path=/` cookie (`__Host-session` over
   https, `session` on the plain-http dev server); the database keeps its SHA-256. It lasts 30 days from the sign-in,
-  ends after 7 days unused, and a new one replaces the browser's old one at every sign-in.
+  ends after 7 days unused, and a new one replaces the browser's old one at every sign-in. It records how it was
+  opened (`PASSKEY` today, `PASSWORD` later); only a passkey session points at its passkey.
 - **Passkeys.** `@simplewebauthn/server`: discoverable, user verification required, no attestation (any passkey
   manager works, Bitwarden included). Adding or removing one needs a sign-in from the last 10 minutes; the last one can't go, and
   removing one ends every session it opened.

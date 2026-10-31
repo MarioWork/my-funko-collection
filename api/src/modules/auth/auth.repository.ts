@@ -32,7 +32,7 @@ type NewPasskey = Omit<Prisma.PasskeyUncheckedCreateInput, 'id' | 'createdAt' | 
 
 type NewSession = Pick<
   Prisma.SessionUncheckedCreateInput,
-  'tokenHash' | 'userId' | 'passkeyId' | 'signedInAt' | 'lastSeenAt'
+  'tokenHash' | 'userId' | 'signInMethod' | 'passkeyId' | 'signedInAt' | 'lastSeenAt'
 >;
 
 type NewAuthChallenge = Pick<
@@ -190,7 +190,7 @@ export const authRepository = {
       const passkey = await tx.passkey.create({ data: { ...setup.passkey, userId: user.id }, select: ID_SELECT });
 
       await tx.session.create({
-        data: { ...setup.session, userId: user.id, passkeyId: passkey.id },
+        data: { ...setup.session, userId: user.id, signInMethod: 'PASSKEY', passkeyId: passkey.id },
         select: ID_SELECT,
       });
       await tx.setupCode.deleteMany();

@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import type { App } from './app.ts';
 import { normaliseBarcode } from './lib/barcode.ts';
 import { generateImage, type GeneratedImageOptions } from './lib/imageStorage.ts';
+import type { SignInMethod } from './generated/prisma/client.ts';
 import { prisma } from './lib/prisma.ts';
 import { createSecureToken, hashSecureToken } from './lib/secureToken.ts';
 import { SESSION_COOKIE_NAME } from './lib/sessionCookie.ts';
@@ -157,7 +158,10 @@ async function findOrCreateTestUser(): Promise<{ id: number }> {
 }
 
 // A passkey row with a made-up key: enough for sessions to point at, it can't sign anything.
-export async function createPasskeyRow(userId: number, name = nextName('Passkey')): Promise<{ id: number }> {
+export async function createPasskeyRow(
+  userId: number,
+  name = nextName('Passkey'),
+): Promise<{ id: number; credentialId: string }> {
   return prisma.passkey.create({
     data: {
       credentialId: randomBytes(RANDOM_ID_BYTES).toString('base64url'),
@@ -168,24 +172,33 @@ export async function createPasskeyRow(userId: number, name = nextName('Passkey'
       transports: ['internal'],
       isSynced: true,
     },
-    select: { id: true },
+    select: { id: true, credentialId: true },
   });
 }
 
 // A user with a live session, straight in the database (no passkey ceremony): `inject` sends its cookie.
 // `signedInAt` / `lastSeenAt` backdate the session, for the "signed in recently" and timeout rules.
+// `signInMethod` PASSWORD opens it without a passkey; PASSKEY (the default) makes a passkey row to open it.
 export async function signIn(
   app: App,
-  options: { signedInAt?: Date; lastSeenAt?: Date } = {},
+  options: { signedInAt?: Date; lastSeenAt?: Date; signInMethod?: SignInMethod } = {},
 ): Promise<SignedInClient> {
   const user = await findOrCreateTestUser();
-  const passkey = await createPasskeyRow(user.id);
+  const signInMethod = options.signInMethod ?? 'PASSKEY';
+  const passkey = signInMethod === 'PASSKEY' ? await createPasskeyRow(user.id) : undefined;
   const token = createSecureToken();
   const signedInAt = options.signedInAt ?? new Date();
   const lastSeenAt = options.lastSeenAt ?? signedInAt;
 
   await prisma.session.create({
-    data: { tokenHash: hashSecureToken(token), userId: user.id, passkeyId: passkey.id, signedInAt, lastSeenAt },
+    data: {
+      tokenHash: hashSecureToken(token),
+      userId: user.id,
+      signInMethod,
+      passkeyId: passkey?.id ?? null,
+      signedInAt,
+      lastSeenAt,
+    },
   });
 
   return {
