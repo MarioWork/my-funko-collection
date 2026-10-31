@@ -27,9 +27,10 @@ const PUBLIC_ROUTES = new Set([
   'POST /auth/login/password',
   'POST /auth/logout',
 ]);
+// The paths under which every write changes the catalogue, so every write there must be admin-only.
+const CATALOGUE_PATH_PREFIXES = ['/funkos', '/categories', '/series'];
 // Routes only an admin may call: catalogue writes and the images lists. A member gets 403 ADMIN_ONLY on these and
 // never on any other route.
-const CATALOGUE_PATH_PREFIXES = ['/funkos', '/categories', '/series'];
 const ADMIN_ONLY_ROUTES = new Set([
   'POST /categories',
   'PATCH /categories/{categoryId}',
@@ -60,6 +61,15 @@ function nextAddress(): string {
   addressCounter += 1;
 
   return `10.0.${Math.floor(addressCounter / 250)}.${addressCounter % 250}`;
+}
+
+function isCataloguePath(path: string): boolean {
+  return CATALOGUE_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+// A route as "METHOD /path": anything but a read changes something.
+function isWriteRoute(route: string): boolean {
+  return !route.startsWith('GET ');
 }
 
 function sessionCookieOf(setCookie: string | string[] | undefined): string | undefined {
@@ -459,19 +469,10 @@ describe('ANY /<every admin-only route>', () => {
     await app.ready();
 
     const document = app.swagger() as { paths: Record<string, Record<string, unknown>> };
-    const catalogueWrites: string[] = [];
-
-    for (const [path, operations] of Object.entries(document.paths)) {
-      const isCataloguePath = CATALOGUE_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
-
-      if (!isCataloguePath) continue;
-
-      for (const method of Object.keys(operations)) {
-        const isWrite = method.toUpperCase() !== 'GET';
-
-        if (isWrite) catalogueWrites.push(`${method.toUpperCase()} ${path}`);
-      }
-    }
+    const catalogueWrites = Object.entries(document.paths)
+      .filter(([path]) => isCataloguePath(path))
+      .flatMap(([path, operations]) => Object.keys(operations).map((method) => `${method.toUpperCase()} ${path}`))
+      .filter(isWriteRoute);
 
     const missingWrites = catalogueWrites.filter((route) => !ADMIN_ONLY_ROUTES.has(route));
 
