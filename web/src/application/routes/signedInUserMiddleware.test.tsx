@@ -11,6 +11,8 @@ type MemoryRouter = ReturnType<typeof createMemoryRouter>;
 type RequestStartListener = Parameters<typeof server.events.on<'request:start'>>[1];
 
 const STATUS_PATH = '/auth/status';
+// The mock store's user (mockAuth.ts).
+const USER_NAME = 'Mario';
 const USERNAME = 'mario';
 const PASSWORD = 'shelves full of tiny heads';
 const OTHER_USER_NAME = 'Bea';
@@ -126,7 +128,7 @@ it('shows the new role on the next page once the API answers 403 ADMIN_ONLY', as
 
 it('shows the new user after someone else signs in on the same browser', async () => {
   const router = renderApp(BASE_ROUTES_PATHS.SETTINGS);
-  expect(await screen.findByText('Mario')).toBeVisible();
+  expect(await screen.findByText(USER_NAME)).toBeVisible();
 
   // Mario's session ends elsewhere; Bea opens the login page in this tab and signs in with her own account.
   setMockAuthState(AuthStateUtil.SIGNED_OUT);
@@ -137,5 +139,5 @@ it('shows the new user after someone else signs in on the same browser', async (
   await act(() => router.navigate(BASE_ROUTES_PATHS.SETTINGS));
 
   expect(await screen.findByText(OTHER_USER_NAME)).toBeVisible();
-  expect(screen.queryByText('Mario')).not.toBeInTheDocument();
+  expect(screen.queryByText(USER_NAME)).not.toBeInTheDocument();
 });
