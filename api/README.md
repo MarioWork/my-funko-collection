@@ -65,21 +65,21 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 
 ## Data model
 
-| Table                  | What                                                                                                 |
-| ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"                                  |
-| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"                                  |
-| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode                        |
-| `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder, uploader and time      |
-| `collections`          | One user's own list (`user_id`, name unique per user): "Owned" (each user's one default), "Wishlist" |
-| `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                       |
-| `collection_item_tags` | Item ↔ tag                                                                                           |
-| `tags`                 | One user's own label for their items (`user_id`, name unique per user), mainly the box ("Box 3")     |
-| `users`                | A person who signs in: name, role, WebAuthn user handle, lower-case username and argon2id hash       |
-| `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device)                   |
-| `sessions`             | A signed-in browser: SHA-256 of the cookie token, how it signed in, sign-in and last-seen times      |
-| `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                                  |
-| `setup_codes`          | SHA-256 of the first-run code, only until someone sets the app up                                    |
+| Table                  | What                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"                                                                               |
+| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"                                                                               |
+| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode                                                                     |
+| `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder, uploader and time                                                   |
+| `collections`          | One user's own list (`user_id`, name unique per user): "Owned" (each user's one default), "Wishlist"                                              |
+| `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                                                                    |
+| `collection_item_tags` | Item ↔ tag                                                                                                                                        |
+| `tags`                 | One user's own label for their items (`user_id`, name unique per user), mainly the box ("Box 3")                                                  |
+| `users`                | A person who signs in: name, role, WebAuthn user handle, lower-case username, argon2id hash and, while it is temporary, when the password expires |
+| `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device)                                                                |
+| `sessions`             | A signed-in browser: SHA-256 of the cookie token, how it signed in, sign-in and last-seen times                                                   |
+| `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                                                                               |
+| `setup_codes`          | SHA-256 of the first-run code, only until someone sets the app up                                                                                 |
 
 Value sets: funko `type` is one of `POP`, `POP_DELUXE`, `POP_RIDES`, `POP_MOMENT`, `POP_TOWN`, `POP_ALBUM`,
 `POP_JUMBO`, `POP_KEYCHAIN`, `SODA`, `BITTY_POP`, `MYSTERY_MINI`, `OTHER`; item `condition` is `MINT_IN_BOX`,
@@ -90,7 +90,7 @@ Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A get
 
 ## Sign-in
 
-A passkey or a username and password, for one person (`docs/adr/0002-passwords-next-to-passkeys.md`). Every route
+A passkey or a username and password, for each user (`docs/adr/0002-passwords-next-to-passkeys.md`). Every route
 needs a session except `/health`, `/ready`, `GET /auth/status`, the four setup / login ceremony routes and
 `POST /auth/login/password`, which say so with
 `config: { isPublic: true }`; the image files under `/uploads` need one too. `src/plugins/auth.plugin.ts` holds the
@@ -113,8 +113,20 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   a user with no password all get the same 401 `SIGN_IN_FAILED`, after the same hashing time.
 - **Roles.** A user is an `ADMIN` or a `MEMBER`. Whoever sets the app up is an admin (the migration made the user
   already there one). Routes with `config: { isAdminOnly: true }` answer 403 `ADMIN_ONLY` to a member: every
-  catalogue write (funkos, categories, series, funko images) and the images lists (`GET /images`, `/images/groups`,
-  `/export/images.*`). Members read the catalogue and keep their own collections, items and tags.
+  catalogue write (funkos, categories, series, funko images), the images lists (`GET /images`, `/images/groups`,
+  `/export/images.*`) and the users (`GET|POST /users`). Members read the catalogue and keep their own collections,
+  items and tags.
+- **New users.** Only an admin creates a user (`POST /users` with a username and a role), and it needs the admin's
+  sign-in from the last 10 minutes. The user is named after the username and gets an app-made temporary password:
+  four groups of five characters with no look-alikes (`abcde-fghjk-...`, ~99 bits), never on the common list,
+  stored only as its argon2id hash and sent once, in that answer. It stops working 7 days after it was made
+  (`temporary_password_expires_at`) unless the user replaces it first; signing in with an expired one answers 401
+  `TEMPORARY_PASSWORD_EXPIRED`, but only once the password matched. A session of a user whose password is temporary
+  (`mustChangePassword` in `GET /auth/status` and the sign-in answer) gets 403 `PASSWORD_CHANGE_REQUIRED` on every
+  locked route but `PUT /auth/password`, `POST /auth/logout` and `POST /auth/logout-everywhere`
+  (`config: { isAllowedWithTemporaryPassword: true }`), the image files included. Saving a new password (not the
+  temporary one: 400 `PASSWORD_REUSED`) makes it the user's own and opens the app. The database trigger gives the
+  new user their own "Owned" and "Wishlist".
   `auth.route.test.ts` lists every admin-only route in `ADMIN_ONLY_ROUTES` and calls every route as a member.
 - **Cross-site writes.** Any non-GET request whose `Sec-Fetch-Site` is not `same-origin`/`none`, or whose `Origin`
   is not `APP_ORIGIN`, answers 403 `CROSS_SITE_REQUEST`.
@@ -130,7 +142,7 @@ API answers carry `Cache-Control: no-store`; image files `private, max-age=31536
 
 Interactive docs with every schema: `GET /docs` (dev only). Auth: `GET /auth/status`, `POST /auth/setup/{options,verify}`,
 `POST /auth/login/{options,verify,password}`, `PUT /auth/password`, `POST /auth/logout`, `POST /auth/logout-everywhere`, `GET|POST /auth/passkeys`
-(`/options`, `/verify`), `DELETE /auth/passkeys/:passkeyId`. Every list endpoint takes `page` (1-based), `size`
+(`/options`, `/verify`), `DELETE /auth/passkeys/:passkeyId`. Users (admins only): `GET /users`, `POST /users`. Every list endpoint takes `page` (1-based), `size`
 (max 100), `sorting_fields` and `direction` (`ASC` | `DESC`) and answers `{ data, totalResultNumber, currentPage }`.
 Text filters are case-insensitive "contains"; id filters take a comma-separated list.
 
@@ -189,6 +201,8 @@ tags already there to the first user; another user whose items carried one got t
 | `GET /export/funkos.{csv,json,xlsx}`                               | The funkos of one `categoryId`, `seriesId`, `collectionId`, `tagId` or `funkoId` (all funkos without one): CSV and spreadsheet one line per funko and item, JSON one entry per funko with its items; every format links each photo (`image_urls` / `imageUrls`), and a single funko's spreadsheet embeds its photos on a Photos sheet; named after the filter (`category-pop-marvel.xlsx`), 404 for an unknown id |
 | `GET /export/{categories,series,collections,tags}.{csv,json,xlsx}` | A whole list (names, counts, notes, totals); `?includeFunkos=true` adds their funkos: a second sheet, the CSV's lines (each once), or nested per entry in the JSON                                                                                                                                                                                                                                                |
 | `GET /export/images.{csv,json,xlsx}`                               | Every stored image: its funko, file, size, upload date and absolute links to the three sizes (never the files)                                                                                                                                                                                                                                                                                                    |
+| `GET /users`                                                       | Admins only: every user with `role` and `state` (`ACTIVE`, `TEMPORARY_PASSWORD`, `TEMPORARY_PASSWORD_EXPIRED`, `NO_SIGN_IN`) and `temporaryPasswordExpiresAt`; sort `USERNAME` (default, users with none last) / `NAME` / `CREATION_DATE`                                                                                                                                                                         |
+| `POST /users`                                                      | Admins only, recent sign-in: `{ username, role }`; 201 `{ user, temporaryPassword }` (the only time the password is sent); 409 when the username is taken                                                                                                                                                                                                                                                         |
 | `GET /uploads/...`                                                 | The image files (immutable, cached for a year)                                                                                                                                                                                                                                                                                                                                                                    |
 
 `GET /funkos` filters: `q`, `name`, `number`, `barcode`, `exclusive`, `type`, `isChase`, `categoryId`, `category`,
@@ -205,19 +219,22 @@ Item list filters: `name`, `funkoId`, `tagId`, `categoryId`, `seriesId`, `condit
 
 One envelope: `{ code, message, issues?, existingId? }`.
 
-| Status | `code`                                                   | When                                                                          |
-| ------ | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| 400    | `VALIDATION_ERROR`                                       | Bad body or query; `issues` lists `{ path, message }`                         |
-| 400    | `COMMON_PASSWORD`                                        | The new password is on the common-password list                               |
-| 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                              |
-| 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                              |
-| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey or password change needs a fresh sign-in |
-| 403    | `ADMIN_ONLY`                                             | A member called an admin-only route (catalogue writes, images lists)          |
-| 404    | `NOT_FOUND`                                              |                                                                               |
-| 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin                |
-| 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                                |
-| 413    | `PAYLOAD_TOO_LARGE`                                      | Image over `MAX_IMAGE_BYTES`                                                  |
-| 429    |                                                          | Rate limit (600 requests a minute per client)                                 |
+| Status | `code`                                                   | When                                                                                |
+| ------ | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 400    | `VALIDATION_ERROR`                                       | Bad body or query; `issues` lists `{ path, message }`                               |
+| 400    | `COMMON_PASSWORD`                                        | The new password is on the common-password list                                     |
+| 400    | `PASSWORD_REUSED`                                        | The new password is the temporary one it should replace                             |
+| 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                                    |
+| 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                                    |
+| 401    | `TEMPORARY_PASSWORD_EXPIRED`                             | The right temporary password, after its 7 days                                      |
+| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey, password or user change needs a fresh sign-in |
+| 403    | `ADMIN_ONLY`                                             | A member called an admin-only route (catalogue writes, images lists, users)         |
+| 403    | `PASSWORD_CHANGE_REQUIRED`                               | Signed in with a temporary password: replace it first                               |
+| 404    | `NOT_FOUND`                                              |                                                                                     |
+| 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin                      |
+| 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                                      |
+| 413    | `PAYLOAD_TOO_LARGE`                                      | Image over `MAX_IMAGE_BYTES`                                                        |
+| 429    |                                                          | Rate limit (600 requests a minute per client)                                       |
 
 ## Images
 

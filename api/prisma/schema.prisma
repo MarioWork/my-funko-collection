@@ -238,17 +238,20 @@ model CollectionItemTag {
 
 // The person who signs in. A table (not a setting) so passkeys and sessions have something to point at.
 model User {
-  id             Int      @id @default(autoincrement())
-  name           String
+  id                         Int       @id @default(autoincrement())
+  name                       String
   // The random WebAuthn user handle (base64url), stored in every passkey made for this user. Never the row id.
-  webauthnUserId String   @unique(map: "users_webauthn_user_id_uidx") @map("webauthn_user_id")
+  webauthnUserId             String    @unique(map: "users_webauthn_user_id_uidx") @map("webauthn_user_id")
   // What the user types to sign in with a password, stored lower-case. Null until they set a password.
-  username       String?  @unique(map: "users_username_uidx")
+  username                   String?   @unique(map: "users_username_uidx")
   // An argon2id hash in PHC form ($argon2id$v=19$m=...,t=...,p=...$salt$hash). Never the password itself.
-  passwordHash   String?  @map("password_hash")
-  role           UserRole @default(MEMBER)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  passwordHash               String?   @map("password_hash")
+  // Set while the password is a temporary one an admin made: it works until then if unused, and the user must
+  // replace it before anything else. Null for a password the user chose (or no password).
+  temporaryPasswordExpiresAt DateTime? @map("temporary_password_expires_at") @db.Timestamptz(3)
+  role                       UserRole  @default(MEMBER)
+  createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   passkeys       Passkey[]
   sessions       Session[]

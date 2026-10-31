@@ -12,9 +12,12 @@ declare module 'fastify' {
   interface FastifyContextConfig {
     // Opt a route out of the sign-in check. Everything else, the image files included, needs a session.
     isPublic?: boolean;
-    // Only an admin may call it: catalogue writes (funkos, categories, series, images) and the images lists. A
-    // member gets 403 ADMIN_ONLY.
+    // Only an admin may call it: catalogue writes (funkos, categories, series, images), the images lists and the
+    // users. A member gets 403 ADMIN_ONLY.
     isAdminOnly?: boolean;
+    // Still open to a session signed in with a temporary password: replacing it, and signing out. Every other
+    // locked route answers 403 PASSWORD_CHANGE_REQUIRED until the user has chosen their own password.
+    isAllowedWithTemporaryPassword?: boolean;
   }
 
   interface FastifyRequest {
@@ -30,6 +33,7 @@ const UNAUTHORIZED_STATUS = 401;
 const FORBIDDEN_STATUS = 403;
 const APP_ORIGIN = new URL(env.APP_ORIGIN).origin;
 const ADMIN_ONLY_MESSAGE = 'Only an admin can do this';
+const PASSWORD_CHANGE_MESSAGE = 'Choose your own password first';
 
 // The OpenAPI page is only registered outside production and reads no data of its own. Matched on the route's
 // registered pattern (not the raw URL), and only /docs itself or below it: a future /documents stays locked.
@@ -57,12 +61,17 @@ function isCrossSiteWrite(request: FastifyRequest): boolean {
   return false;
 }
 
-// Whose collections a locked route works on. The hook below already refused a request with no session; this only
-// narrows the type, so a route that reaches it without one is a bug.
-export function signedInUserId(request: FastifyRequest): number {
+// The session of a locked route. The hook below already refused a request with no session; this only narrows the
+// type, so a route that reaches it without one is a bug.
+export function signedInSession(request: FastifyRequest): AuthSession {
   if (!request.session) throw new InternalError('A signed-in route ran without a session');
 
-  return request.session.userId;
+  return request.session;
+}
+
+// Whose collections a locked route works on.
+export function signedInUserId(request: FastifyRequest): number {
+  return signedInSession(request).userId;
 }
 
 async function readSession(request: FastifyRequest): Promise<AuthSession | null> {
@@ -90,10 +99,12 @@ export const authPlugin = fp(async (app) => {
     const methods = Array.isArray(route.method) ? route.method : [route.method];
     const isWrite = methods.some((method) => !SAFE_METHODS.has(method));
 
-    if (route.config?.isPublic !== true) response[UNAUTHORIZED_STATUS] ??= ErrorResponseSchema;
-    const isAdminOnly = route.config?.isAdminOnly === true;
+    const isPublic = route.config?.isPublic === true;
 
-    if (isWrite || isAdminOnly) response[FORBIDDEN_STATUS] ??= ErrorResponseSchema;
+    if (!isPublic) response[UNAUTHORIZED_STATUS] ??= ErrorResponseSchema;
+
+    // Every locked route can answer PASSWORD_CHANGE_REQUIRED to a temporary-password session.
+    if (isWrite || !isPublic) response[FORBIDDEN_STATUS] ??= ErrorResponseSchema;
   });
 
   app.addHook('onRequest', async (request) => {
@@ -106,6 +117,13 @@ export const authPlugin = fp(async (app) => {
     const isPublic = request.routeOptions.config.isPublic === true || isDocsRoute(request);
 
     if (!isPublic && !request.session) throw new UnauthorizedError('Sign in to continue');
+
+    const isAllowedWithTemporaryPassword =
+      isPublic || request.routeOptions.config.isAllowedWithTemporaryPassword === true;
+
+    if (request.session?.mustChangePassword && !isAllowedWithTemporaryPassword) {
+      throw new ForbiddenError(PASSWORD_CHANGE_MESSAGE, 'PASSWORD_CHANGE_REQUIRED');
+    }
 
     const isAdminOnly = request.routeOptions.config.isAdminOnly === true;
     const isAdmin = request.session?.userRole === 'ADMIN';

@@ -29,8 +29,8 @@ const PUBLIC_ROUTES = new Set([
 ]);
 // The paths under which every write changes the catalogue, so every write there must be admin-only.
 const CATALOGUE_PATH_PREFIXES = ['/funkos', '/categories', '/series'];
-// Routes only an admin may call: catalogue writes and the images lists. A member gets 403 ADMIN_ONLY on these and
-// never on any other route.
+// Routes only an admin may call: catalogue writes, the images lists and the users. A member gets 403 ADMIN_ONLY on
+// these and never on any other route.
 const ADMIN_ONLY_ROUTES = new Set([
   'POST /categories',
   'PATCH /categories/{categoryId}',
@@ -51,6 +51,8 @@ const ADMIN_ONLY_ROUTES = new Set([
   'GET /export/images.csv',
   'GET /export/images.json',
   'GET /export/images.xlsx',
+  'GET /users',
+  'POST /users',
 ]);
 // The rate limit counts per address: each test speaks from its own, so no test eats another's allowance.
 let addressCounter = 0;
@@ -155,7 +157,10 @@ describe('GET /auth/status', () => {
 
     const response = await api.inject({ method: 'GET', url: `${URL}/status` });
 
-    expect(response.json()).toEqual({ state: 'signedIn', user: { name: 'Tester', username: null, role: 'ADMIN' } });
+    expect(response.json()).toEqual({
+      state: 'signedIn',
+      user: { name: 'Tester', username: null, role: 'ADMIN', mustChangePassword: false },
+    });
   });
 
   it('answers the MEMBER role when a member is signed in', async () => {
@@ -163,7 +168,10 @@ describe('GET /auth/status', () => {
 
     const response = await member.inject({ method: 'GET', url: `${URL}/status` });
 
-    expect(response.json()).toEqual({ state: 'signedIn', user: { name: 'Member', username: null, role: 'MEMBER' } });
+    expect(response.json()).toEqual({
+      state: 'signedIn',
+      user: { name: 'Member', username: null, role: 'MEMBER', mustChangePassword: false },
+    });
   });
 
   it('marks the answer no-store when any API route answers, so no cache keeps the collection', async () => {
@@ -201,7 +209,9 @@ describe('POST /auth/setup/verify', () => {
     });
 
     expect(verifyResponse.statusCode).toBe(200);
-    expect(verifyResponse.json()).toEqual({ user: { name: OWNER_NAME, username: null, role: 'ADMIN' } });
+    expect(verifyResponse.json()).toEqual({
+      user: { name: OWNER_NAME, username: null, role: 'ADMIN', mustChangePassword: false },
+    });
     const cookie = sessionCookieOf(verifyResponse.headers['set-cookie']) ?? '';
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('SameSite=Strict');
@@ -212,7 +222,10 @@ describe('POST /auth/setup/verify', () => {
       url: `${URL}/status`,
       cookies: { [SESSION_COOKIE_NAME]: tokenOf(verifyResponse.headers['set-cookie']) },
     });
-    expect(status.json()).toEqual({ state: 'signedIn', user: { name: OWNER_NAME, username: null, role: 'ADMIN' } });
+    expect(status.json()).toEqual({
+      state: 'signedIn',
+      user: { name: OWNER_NAME, username: null, role: 'ADMIN', mustChangePassword: false },
+    });
   });
 
   it('returns 401 PASSKEY_FAILED when the passkey was made for another site', async () => {
@@ -320,7 +333,9 @@ describe('POST /auth/login/verify', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ user: { name: OWNER_NAME, username: null, role: 'ADMIN' } });
+    expect(response.json()).toEqual({
+      user: { name: OWNER_NAME, username: null, role: 'ADMIN', mustChangePassword: false },
+    });
     const newToken = tokenOf(response.headers['set-cookie']);
     expect(newToken).not.toBe(firstToken);
     const oldSession = await app.inject({

@@ -1,16 +1,12 @@
 import { z } from 'zod';
+import { USER_ROLES, USERNAME_MAX_LENGTH, UsernameSchema } from './auth.type.ts';
 
 export const AUTH_STATES = ['setup', 'signedOut', 'signedIn'] as const;
-// Matches the `UserRole` enum in prisma/schema.prisma; auth.repository.ts fails to compile if either side gains a
-// role the other lacks.
-export const USER_ROLES = ['ADMIN', 'MEMBER'] as const;
 
 const NAME_MAX_LENGTH = 60;
 // NIST SP 800-63B-4: at least 15 characters for a password used on its own, and room for long passphrases.
 export const PASSWORD_MIN_LENGTH = 15;
 const PASSWORD_MAX_LENGTH = 256;
-const USERNAME_MIN_LENGTH = 3;
-const USERNAME_MAX_LENGTH = 32;
 // Generous ceilings: real values are a few hundred bytes, these only stop absurd bodies early.
 const ID_MAX_LENGTH = 1024;
 const ENCODED_MAX_LENGTH = 65_536;
@@ -25,15 +21,6 @@ const base64Url = (maxLength: number) =>
     .regex(/^[A-Za-z0-9_-]+$/, 'Must be base64url');
 
 const DisplayNameSchema = z.string().trim().min(1).max(NAME_MAX_LENGTH);
-
-// Letters, digits, dot, dash and underscore; compared and stored lower-case, so "Mario" signs in as "mario".
-const UsernameSchema = z
-  .string()
-  .trim()
-  .min(USERNAME_MIN_LENGTH)
-  .max(USERNAME_MAX_LENGTH)
-  .regex(/^[A-Za-z0-9._-]+$/, 'Use letters, digits, dots, dashes or underscores')
-  .transform((username) => username.toLowerCase());
 
 // Never trimmed: every character typed is part of the password. No character-mix rules.
 const NewPasswordSchema = z
@@ -115,8 +102,14 @@ export const AddPasskeyVerifySchema = z.strictObject({
 
 export const PasskeyParamsSchema = z.object({ passkeyId: base64Url(ID_MAX_LENGTH) });
 
-// `username` is null until the user sets a password.
-const AuthUserSchema = z.object({ name: z.string(), username: z.string().nullable(), role: z.enum(USER_ROLES) });
+// `username` is null until the user sets a password. `mustChangePassword`: signed in with a temporary password, which
+// must be replaced before anything else.
+const AuthUserSchema = z.object({
+  name: z.string(),
+  username: z.string().nullable(),
+  role: z.enum(USER_ROLES),
+  mustChangePassword: z.boolean(),
+});
 
 export const AuthStatusResponseSchema = z
   .object({ state: z.enum(AUTH_STATES), user: AuthUserSchema.optional() })
@@ -147,7 +140,6 @@ export const PasskeyResponseSchema = z
 export const PasskeyListResponseSchema = z.object({ data: z.array(PasskeyResponseSchema) });
 
 export type AuthState = (typeof AUTH_STATES)[number];
-export type UserRole = (typeof USER_ROLES)[number];
 export type SetupOptions = z.infer<typeof SetupOptionsSchema>;
 export type SetupVerify = z.infer<typeof SetupVerifySchema>;
 export type SignInVerify = z.infer<typeof SignInVerifySchema>;
