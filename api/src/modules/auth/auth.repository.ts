@@ -1,8 +1,8 @@
 import type { AuthChallengePurpose, Prisma, UserRole as DbUserRole } from '../../generated/prisma/client.ts';
 import { deletedIdOrUndefined, ID_SELECT, prisma, type DbExecutor } from '../../lib/prisma.ts';
-import type { UserRole } from './auth.schema.ts';
+import type { UserRole } from './auth.type.ts';
 
-// USER_ROLES (auth.schema.ts) and the Prisma `UserRole` enum must hold the same values: this fails to compile when
+// USER_ROLES (auth.type.ts) and the Prisma `UserRole` enum must hold the same values: this fails to compile when
 // either side has a role the other lacks. The tuples stop TypeScript from checking each role on its own.
 type RolesMatch = [DbUserRole] extends [UserRole] ? ([UserRole] extends [DbUserRole] ? true : false) : false;
 const ROLES_MATCH: RolesMatch = true;
@@ -14,6 +14,7 @@ const USER_SELECT = {
   username: true,
   role: true,
   webauthnUserId: true,
+  temporaryPasswordExpiresAt: true,
 } as const satisfies Prisma.UserSelect;
 
 const PASSKEY_SELECT = {
@@ -34,7 +35,7 @@ const SESSION_SELECT = {
   userId: true,
   signedInAt: true,
   lastSeenAt: true,
-  user: { select: { name: true, username: true, role: true } },
+  user: { select: { name: true, username: true, role: true, temporaryPasswordExpiresAt: true } },
 } as const satisfies Prisma.SessionSelect;
 
 const PASSWORD_USER_SELECT = { ...USER_SELECT, passwordHash: true } as const satisfies Prisma.UserSelect;
@@ -100,7 +101,13 @@ async function findSession(tokenHash: string) {
 
   const { user, ...times } = session;
 
-  return { ...times, userName: user.name, username: user.username, userRole: user.role };
+  return {
+    ...times,
+    userName: user.name,
+    username: user.username,
+    userRole: user.role,
+    mustChangePassword: user.temporaryPasswordExpiresAt !== null,
+  };
 }
 
 async function findPasskey(credentialId: string) {
@@ -120,7 +127,7 @@ export const authRepository = {
     await prisma.$transaction([
       prisma.session.deleteMany(),
       prisma.passkey.deleteMany(),
-      prisma.user.updateMany({ data: { username: null, passwordHash: null } }),
+      prisma.user.updateMany({ data: { username: null, passwordHash: null, temporaryPasswordExpiresAt: null } }),
       prisma.authChallenge.deleteMany(),
       prisma.setupCode.deleteMany(),
     ]);
@@ -167,6 +174,9 @@ export const authRepository = {
   findUserByUsername: async (username: string) =>
     (await prisma.user.findUnique({ where: { username }, select: PASSWORD_USER_SELECT })) ?? undefined,
 
+  findPasswordHolder: async (id: number) =>
+    (await prisma.user.findUnique({ where: { id }, select: PASSWORD_USER_SELECT })) ?? undefined,
+
   // A new password ends every other session a password opened (one may have used the old password), all or
   // nothing. Passkey sessions stay: a leaked password could not have opened them. The service checks the username
   // first; one taken in between fails the unique index, which the error handler answers as a 409.
@@ -174,7 +184,7 @@ export const authRepository = {
     prisma.$transaction(async (tx) => {
       const user = await tx.user.update({
         where: { id: password.userId },
-        data: { username: password.username, passwordHash: password.passwordHash },
+        data: { username: password.username, passwordHash: password.passwordHash, temporaryPasswordExpiresAt: null },
         select: USER_SELECT,
       });
       await tx.session.deleteMany({

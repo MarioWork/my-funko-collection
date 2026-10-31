@@ -28,6 +28,7 @@ import { funkosRoutes } from './modules/funkos/funkos.route.ts';
 import { imagesRoutes } from './modules/images/images.route.ts';
 import { seriesRoutes } from './modules/series/series.route.ts';
 import { tagsRoutes } from './modules/tags/tags.route.ts';
+import { usersRoutes } from './modules/users/users.route.ts';
 import { authPlugin } from './plugins/auth.plugin.ts';
 import { prismaPlugin } from './plugins/prisma.plugin.ts';
 import { uploadsPlugin } from './plugins/uploads.plugin.ts';
@@ -102,6 +103,7 @@ export async function buildApp() {
   await app.register(suggestRoutes, { prefix: '/suggest' });
   await app.register(statsRoutes, { prefix: '/stats' });
   await app.register(exportRoutes, { prefix: '/export' });
+  await app.register(usersRoutes, { prefix: '/users' });
 
   return app;
 }
