@@ -5,7 +5,7 @@ import { formatBytes } from '@utils/byteUtils';
 import { cn } from '@utils/classNameUtils';
 import { formatDateTime } from '@utils/dateUtils';
 import { FADE_IN_CLASS } from '@utils/motionUtils';
-import { COMPLETE_SIZE_COUNT, imageDimensions, imageTitle } from '../imageListUtils';
+import { COMPLETE_SIZE_COUNT, imageDimensions, imageTitle, imageUploader } from '../imageListUtils';
 
 type Props = {
   image: ImageListEntryApiModel;
@@ -61,6 +61,7 @@ function ImageTableRow({ image, isNested = false, onOpen }: Props) {
       <TableCell className="hidden whitespace-nowrap tabular-nums @3xl:table-cell">
         {formatDateTime(image.createdAt)}
       </TableCell>
+      <TableCell className="hidden max-w-40 truncate @3xl:table-cell">{imageUploader(image)}</TableCell>
     </TableRow>
   );
 }

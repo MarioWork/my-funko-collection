@@ -5,8 +5,7 @@ import ImageDownloadButton from '@components/ImageDownloadButton';
 import LinkButton from '@components/LinkButton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
 import { formatBytes } from '@utils/byteUtils';
-import { formatDateTime } from '@utils/dateUtils';
-import { imageDimensions, imageTitle } from '../imageListUtils';
+import { imageDimensions, imageTitle, imageUploadText } from '../imageListUtils';
 
 type Props = {
   image: ImageListEntryApiModel | null;
@@ -22,7 +21,7 @@ const FILE_EXTENSION = /\.webp$/;
 // The picture itself, its facts on one line, and what you can do with it: open its funko, download it.
 function PreviewBody({ image }: BodyProps) {
   const pictureUrl = image.mediumUrl ?? image.url;
-  const facts = [imageDimensions(image), formatBytes(image.sizeBytes), formatDateTime(image.createdAt)].join(' · ');
+  const facts = [imageDimensions(image), formatBytes(image.sizeBytes)].join(' · ');
 
   return (
     <>
@@ -30,6 +29,7 @@ function PreviewBody({ image }: BodyProps) {
         <DialogTitle>{imageTitle(image)}</DialogTitle>
         <DialogDescription>
           {image.fileName} · {facts}
+          <span className="block">{imageUploadText(image)}</span>
         </DialogDescription>
       </DialogHeader>
       {pictureUrl ? (

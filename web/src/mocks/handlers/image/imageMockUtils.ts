@@ -1,10 +1,18 @@
-import type { ImageListEntryApiModel } from '@app-types/models';
+import type { ImageListEntryApiModel, NamedApiModel } from '@app-types/models';
+import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { mockStore } from '@mocks/mockStore';
 import type { MockImageRow } from '@mocks/mockStore.type';
 import { looseImageMock } from './models/imageMockModel.mock';
 
 const STORED_SIZES = 3;
 export const MAIN_POSITION = 0;
+
+// The mocks hold one user; any other id belonged to a user who is gone, as the API would have cleared it.
+function toUploader(uploadedById: number | null): NamedApiModel | null {
+  const isMockUser = uploadedById === MOCK_USER_ID;
+
+  return isMockUser ? { id: MOCK_USER_ID, name: mockStore.auth.userName } : null;
+}
 
 function toListEntry(image: MockImageRow): ImageListEntryApiModel {
   const funko = mockStore.funkos.find((row) => row.id === image.funkoId);
@@ -20,6 +28,7 @@ function toListEntry(image: MockImageRow): ImageListEntryApiModel {
     sizeCount: STORED_SIZES,
     isMain: image.position === MAIN_POSITION,
     createdAt: image.createdAt,
+    uploadedBy: toUploader(image.uploadedById),
     url: image.url,
     mediumUrl: image.mediumUrl,
     smallUrl: image.smallUrl,

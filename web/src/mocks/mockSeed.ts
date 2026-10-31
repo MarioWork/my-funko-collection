@@ -6,6 +6,7 @@ import {
   type ItemConditionUtil as ItemCondition,
 } from '@app-types/utility';
 import { DEFAULT_CURRENCY } from '@utils/moneyUtils';
+import { MOCK_USER_ID } from './mockAuth';
 import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from './mockImageUtils';
 import type { MockCollectionRow, MockFunkoRow, MockImageRow, MockItemRow, MockStore } from './mockStore.type';
 import { mockDate, mockEnv } from './mockStoreUtils';
@@ -208,6 +209,9 @@ const SEED_ITEMS: SeedItem[] = [
 ];
 
 const IMAGES_PER_FUNKO = 2;
+// The last seed funko's images were uploaded by a user who has since been deleted: the Images page shows a
+// removed user. Every other image is the mock user's.
+const REMOVED_UPLOADER_FUNKO_INDEX = SEED_FUNKOS.length - 1;
 // Generated funkos (`yarn dev:big`) get one to six images of varied sizes, like a real shelf.
 const EXTRA_MAX_IMAGES = 6;
 const EXTRA_BASE_IMAGE_BYTES = 120_000;
@@ -262,6 +266,7 @@ function createExtraImages(funkos: MockFunkoRow[], startId: number): MockImageRo
         position,
         sizeBytes: EXTRA_BASE_IMAGE_BYTES + sizeSpread * EXTRA_IMAGE_BYTES_STEP,
         createdAt: funko.createdAt,
+        uploadedById: MOCK_USER_ID,
         ...createMockImageUrls(funko.name, id),
       };
     }),
@@ -306,6 +311,7 @@ function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
         position,
         sizeBytes: MOCK_IMAGE_SIZE_BYTES,
         createdAt: mockDate(index),
+        uploadedById: index === REMOVED_UPLOADER_FUNKO_INDEX ? null : MOCK_USER_ID,
         ...createMockImageUrls(funko.name, index * IMAGES_PER_FUNKO + position),
       };
     }),

@@ -5,6 +5,7 @@ import type {
   CollectionItemApiModel,
   FunkoApiModel,
   FunkoDetailApiModel,
+  FunkoImageApiModel,
   FunkoSummaryApiModel,
   NamedApiModel,
   SeriesApiModel,
@@ -25,6 +26,7 @@ import type {
   MockSeriesRow,
   MockCollectionRow,
   MockFunkoRow,
+  MockImageRow,
   MockItemRow,
   MockNamedRow,
   MockTagRow,
@@ -105,13 +107,22 @@ export function toFunkoModel(row: MockFunkoRow): FunkoApiModel {
   };
 }
 
+// An image row as the funko endpoints answer it: without the columns only the store keeps.
+export function toFunkoImageModel({
+  funkoId: _funkoId,
+  uploadedById: _uploadedById,
+  ...image
+}: MockImageRow): FunkoImageApiModel {
+  return image;
+}
+
 export function toFunkoDetail(row: MockFunkoRow): FunkoDetailApiModel {
   return {
     ...toFunkoModel(row),
     images: mockStore.images
       .filter((image) => image.funkoId === row.id)
       .sort((first, second) => first.position - second.position || first.id - second.id)
-      .map(({ funkoId: _funkoId, ...image }) => image),
+      .map(toFunkoImageModel),
   };
 }
 
