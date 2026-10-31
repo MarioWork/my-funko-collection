@@ -23,4 +23,4 @@ export type { AuthSessionApiModel } from './authSessionApiModel.type';
 export type { PasskeyApiModel, PasskeyId } from './passkeyApiModel.type';
 export type { PasskeyListApiModel } from './passkeyListApiModel.type';
 export type { UserApiModel, UserId } from './userApiModel.type';
-export type { CreatedUserApiModel } from './createdUserApiModel.type';
+export type { UserWithTemporaryPasswordApiModel } from './userWithTemporaryPasswordApiModel.type';

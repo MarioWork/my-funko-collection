@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from 'react-router';
 import { withFreshSignIn } from '@api/passkeyFlows';
-import type { CreatedUserApiModel } from '@app-types/models';
+import type { UserWithTemporaryPasswordApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import userService from '@services/userService/userService';
 import { CreateUserSchema } from '@services/userService/userService.type';
@@ -14,7 +14,7 @@ import type { AddUserFormData } from './addUserDialogUtils';
 export const addUserAction = async ({
   request,
   context,
-}: ActionFunctionArgs): Promise<JSONResponseUtil<CreatedUserApiModel>> => {
+}: ActionFunctionArgs): Promise<JSONResponseUtil<UserWithTemporaryPasswordApiModel>> => {
   assertAdmin(context);
 
   const { user, isReauth } = parseFormData<AddUserFormData>(await request.formData());

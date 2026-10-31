@@ -1,13 +1,14 @@
 import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
-import type { CreatedUserApiModel } from '@app-types/models';
+import type { UserWithTemporaryPasswordApiModel } from '@app-types/models';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { conflict, created } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import { nextId } from '@mocks/mockStoreUtils';
-import { mockUserRowOf, newMockUserRow } from '@mocks/mockUsers';
+import { newMockUserRow, toMockUserModel } from '@mocks/mockUsers';
 import type { CreateUser } from '@services/userService/userService.type';
 import { reauthRequiredResponse } from '../auth/authMockUtils';
+import { everyMockUser } from './userMockUtils';
 
 const USERNAME_TAKEN_MESSAGE = 'That username is taken. Pick another one.';
 
@@ -23,14 +24,16 @@ export default (baseUrl: string) => [
 
     const body = (await request.json()) as CreateUser;
     const username = body.username.trim().toLowerCase();
-    const everyone = [mockUserRowOf(mockStore.auth), ...mockStore.users];
+    const everyone = everyMockUser();
 
     if (everyone.some((user) => user.username === username)) return conflict(USERNAME_TAKEN_MESSAGE);
 
-    const { password, ...user } = newMockUserRow(nextId(everyone), username, body.role);
+    const row = newMockUserRow(nextId(everyone), username, body.role);
 
-    mockStore.users.push({ ...user, password });
+    mockStore.users.push(row);
 
-    return created({ user, temporaryPassword: password ?? '' } satisfies CreatedUserApiModel);
+    const user = toMockUserModel(row, everyMockUser());
+
+    return created({ user, temporaryPassword: row.password ?? '' } satisfies UserWithTemporaryPasswordApiModel);
   }),
 ];

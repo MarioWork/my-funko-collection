@@ -56,6 +56,11 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   locked route but those with `config: { isAllowedWithTemporaryPassword: true }` (`PUT /auth/password`, sign-out);
   keep that list tiny. The web's `signedInUserMiddleware` and `authMiddleware` send such a user to `/set-password`,
   and the mocks refuse the rest in `requirePasswordChange.mock.handler.ts`.
+- Admins manage users (`PATCH /users/:id` role, `POST /users/:id/temporary-password`, `DELETE /users/:id`): each
+  needs a recent sign-in and ends all of that user's sessions. There is always one admin: the last one can't be made
+  a member or deleted (409 `LAST_ADMIN`, checked under a `users` table lock); the web disables those two controls
+  with the reason (`isLastAdmin`). Deleting a user cascades their sessions, passkeys, collections, items and tags in
+  the database; funkos stay and their images keep a null uploader.
 - Roles: a user is an `ADMIN` or a `MEMBER` (`docs/GLOSSARY.md`); whoever sets the app up is an admin. Catalogue
   writes (funkos, categories, series, funko images), the images lists and the users set
   `config: { isAdminOnly: true }` and answer 403 `ADMIN_ONLY` to a member; add every new one to `ADMIN_ONLY_ROUTES` in `auth.route.test.ts` (the test
