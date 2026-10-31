@@ -1,4 +1,4 @@
-import { visibleTo } from '../../lib/catalogueVisibility.ts';
+import { catalogueOf, scopeFilter, type SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import { containsText } from '../../lib/likePatterns.ts';
 import type { Prisma } from '../../generated/prisma/client.ts';
 import { toOrderDirection, toSkipTake } from '../../lib/pagination.ts';
@@ -15,7 +15,7 @@ function categorySelect(userId: number) {
     submittedById: true,
     createdAt: true,
     updatedAt: true,
-    _count: { select: { funkos: { where: visibleTo(userId) } } },
+    _count: { select: { funkos: { where: catalogueOf(userId) } } },
   } as const satisfies Prisma.CategorySelect;
 }
 
@@ -30,21 +30,12 @@ export type CategoryRow = Omit<SelectedCategory, '_count'> & { funkoCount: numbe
 
 export type NewCategory = Pick<Prisma.CategoryUncheckedCreateInput, 'name' | 'status' | 'submittedById'>;
 
-// Where a name must be unique: the approved catalogue (null), or one member's waiting categories.
-export type NameScope = { submittedById: number | null };
-
 function toRow({ _count, ...category }: SelectedCategory): CategoryRow {
   return { ...category, funkoCount: _count.funkos };
 }
 
 function buildListFilter(userId: number, { name }: ListCategoriesQuery): Prisma.CategoryWhereInput {
-  return { AND: [visibleTo(userId), name ? { name: containsText(name) } : {}] };
-}
-
-function nameScopeFilter({ submittedById }: NameScope): Prisma.CategoryWhereInput {
-  if (submittedById === null) return { status: 'APPROVED' };
-
-  return { status: 'WAITING', submittedById };
+  return { AND: [catalogueOf(userId), name ? { name: containsText(name) } : {}] };
 }
 
 // `userId` only decides which funkos the count includes; who may see the row is the service's call.
@@ -60,8 +51,8 @@ export const categoriesRepository = {
   findAccess: async (id: number) =>
     (await prisma.category.findUnique({ where: { id }, select: { status: true, submittedById: true } })) ?? undefined,
 
-  findIdByName: async (name: string, scope: NameScope) =>
-    (await prisma.category.findFirst({ where: { name, ...nameScopeFilter(scope) }, select: ID_SELECT })) ?? undefined,
+  findIdByName: async (name: string, scope: SubmitterScope) =>
+    (await prisma.category.findFirst({ where: { name, ...scopeFilter(scope) }, select: ID_SELECT })) ?? undefined,
 
   list: async (userId: number, query: ListCategoriesQuery) => {
     const where = buildListFilter(userId, query);

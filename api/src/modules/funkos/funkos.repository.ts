@@ -3,7 +3,7 @@ import { allOf, anyOf, inList, numberSortKey, sortDirection } from '../../lib/sq
 import { Prisma } from '../../generated/prisma/client.ts';
 import { toOrderDirection, toSkipTake } from '../../lib/pagination.ts';
 import { deletedIdOrUndefined, ID_SELECT, prisma, reloadIfUpdated } from '../../lib/prisma.ts';
-import { visibleTo } from '../../lib/catalogueVisibility.ts';
+import { catalogueOf, scopeFilter, type SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import { z } from 'zod';
 import {
   SUBMISSION_STATUSES,
@@ -71,10 +71,6 @@ export type FunkoRow = {
 
 // A new row: what the body says, plus where it stands (an admin's is APPROVED, a member's a WAITING submission).
 export type NewFunko = Omit<Prisma.FunkoUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>;
-
-// Where the unique rules (barcode, identity) apply: the approved catalogue (null), or one member's waiting
-// submissions. The partial unique indexes of the submissions migration hold the same scopes.
-export type UniqueScope = { submittedById: number | null };
 
 // The natural key the duplicate guard checks: the columns of `funkos_identity_uidx`.
 export type FunkoIdentity = Pick<FunkoRow, 'categoryId' | 'number' | 'name' | 'isChase' | 'exclusive'>;
@@ -237,10 +233,14 @@ function notInCollections(userId: number, collectionIds: number[]): Prisma.Sql {
   return Prisma.sql`not ${inAnyCollection(userId, collectionIds)}`;
 }
 
-// The catalogue `userId` sees: every approved funko, and what they sent in themselves. Another member's waiting
-// submission never lists, not even for an admin (they review them elsewhere).
-function visibleToFilter(userId: number): Prisma.Sql {
-  return Prisma.sql`(f.status = 'APPROVED'::submission_status or f.submitted_by_id = ${userId})`;
+// The catalogue `userId` browses: every approved funko, and their own waiting submissions (catalogueOf() in
+// lib/catalogueVisibility.ts, in SQL). Another member's waiting submission never lists, not even for an admin
+// (they review them elsewhere).
+function catalogueFilter(userId: number): Prisma.Sql {
+  return Prisma.sql`(
+    f.status = 'APPROVED'::submission_status
+    or (f.status = 'WAITING'::submission_status and f.submitted_by_id = ${userId})
+  )`;
 }
 
 // Each named param narrows one field; every word of `q` must match somewhere. All of it is ANDed. The collection
@@ -249,7 +249,7 @@ function buildListFilter(userId: number, query: ListFunkosQuery): Prisma.Sql {
   const wordFilters = splitSearchWords(query.q).map((word) => wordFilter(userId, word));
 
   return allOf([
-    visibleToFilter(userId),
+    catalogueFilter(userId),
     ...wordFilters,
     query.name ? ilikeContains(Prisma.sql`f.name`, query.name) : undefined,
     query.number ? Prisma.sql`f.number = ${query.number.replace(LEADING_HASH, '')}` : undefined,
@@ -303,12 +303,6 @@ function buildOrderBy(query: ListFunkosQuery): Prisma.Sql {
   ]);
 }
 
-function uniqueScopeFilter({ submittedById }: UniqueScope): Prisma.FunkoWhereInput {
-  if (submittedById === null) return { status: 'APPROVED' };
-
-  return { status: 'WAITING', submittedById };
-}
-
 const SUBMISSION_SORT_MAP: Record<SubmissionSortField, keyof Prisma.FunkoOrderByWithRelationInput> = {
   NAME: 'name',
   CREATION_DATE: 'createdAt',
@@ -350,14 +344,13 @@ export const funkosRepository = {
 
   // The catalogue's funko with this barcode first, else `userId`'s own submission of it.
   findByBarcode: async (userId: number, barcode: string): Promise<FunkoRow | undefined> =>
-    (await findRow({ barcode, status: 'APPROVED' })) ?? findRow({ barcode, ...visibleTo(userId) }),
+    (await findRow({ barcode, status: 'APPROVED' })) ?? findRow({ barcode, ...catalogueOf(userId) }),
 
-  findIdByBarcode: async (barcode: string, scope: UniqueScope) =>
-    (await prisma.funko.findFirst({ where: { barcode, ...uniqueScopeFilter(scope) }, select: ID_SELECT })) ?? undefined,
+  findIdByBarcode: async (barcode: string, scope: SubmitterScope) =>
+    (await prisma.funko.findFirst({ where: { barcode, ...scopeFilter(scope) }, select: ID_SELECT })) ?? undefined,
 
-  findIdByIdentity: async (identity: FunkoIdentity, scope: UniqueScope) =>
-    (await prisma.funko.findFirst({ where: { ...identity, ...uniqueScopeFilter(scope) }, select: ID_SELECT })) ??
-    undefined,
+  findIdByIdentity: async (identity: FunkoIdentity, scope: SubmitterScope) =>
+    (await prisma.funko.findFirst({ where: { ...identity, ...scopeFilter(scope) }, select: ID_SELECT })) ?? undefined,
 
   // What one user sent in, with an optional status.
   listSubmissions: async (

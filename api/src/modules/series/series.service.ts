@@ -1,12 +1,13 @@
 import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
+import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
 import type { SubmissionStatus } from '../submissions/submissions.type.ts';
-import { seriesRepository, type SeriesRow, type NameScope } from './series.repository.ts';
+import { seriesRepository, type SeriesRow } from './series.repository.ts';
 import type {
-  SeriesListResponse,
-  SeriesResponse,
   CreateSeries,
   ListSeriesQuery,
+  SeriesListResponse,
+  SeriesResponse,
   UpdateSeries,
 } from './series.schema.ts';
 
@@ -34,15 +35,19 @@ function canSee(user: SignedInUser, series: SeriesAccess): boolean {
 }
 
 // A member's new series waits with their submission; an admin's joins the catalogue at once.
-function scopeOf(user: SignedInUser): NameScope {
+function scopeOf(user: SignedInUser): SubmitterScope {
   return { submittedById: user.isAdmin ? null : user.userId };
 }
 
-// A member typing a name the catalogue already has gets a 409 pointing at it, so the form can pick that one. The
-// database refuses a second one in the same scope (the partial unique indexes) with a plain 409.
-async function assertNameFree(name: string, scope: NameScope): Promise<void> {
-  const isMemberScope = scope.submittedById !== null;
-  const inCatalogue = isMemberScope ? await seriesRepository.findIdByName(name, { submittedById: null }) : undefined;
+// A member typing a name the catalogue already has gets a 409 pointing at it, so the form can pick that one. An
+// admin's duplicate, or a member's second waiting one of the same name, the database refuses (the partial unique
+// indexes) with a plain 409.
+async function assertNotInCatalogueForMember(name: string, scope: SubmitterScope): Promise<void> {
+  const isAdminScope = scope.submittedById === null;
+
+  if (isAdminScope) return;
+
+  const inCatalogue = await seriesRepository.findIdByName(name, { submittedById: null });
 
   if (inCatalogue) throw new ConflictError('This series is already in the catalogue', inCatalogue.id);
 }
@@ -65,7 +70,7 @@ export async function addSeries(user: SignedInUser, data: CreateSeries): Promise
   const scope = scopeOf(user);
   const status: SubmissionStatus = scope.submittedById === null ? 'APPROVED' : 'WAITING';
 
-  await assertNameFree(data.name, scope);
+  await assertNotInCatalogueForMember(data.name, scope);
 
   const row = await seriesRepository.create(user.userId, { ...data, status, submittedById: scope.submittedById });
 
