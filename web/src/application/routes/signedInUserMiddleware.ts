@@ -39,9 +39,13 @@ async function loadSignedInUser(request: Request): Promise<AuthUserApiModel> {
 }
 
 // The app shell's gate: every app page needs a signed-in user. A first-run app goes to the setup page, a visitor
-// without a session to the login page; otherwise the user goes into the router context for the loaders below.
+// without a session to the login page, a user signed in with a temporary password to "choose your password" (the
+// API refuses everything else until then); otherwise the user goes into the router context for the loaders below.
 export const signedInUserMiddleware: MiddlewareFunction = async ({ request, context }) => {
   knownUser ??= await loadSignedInUser(request);
+
+  // eslint-disable-next-line @typescript-eslint/only-throw-error -- a redirect ends a middleware (see above)
+  if (knownUser.mustChangePassword) throw redirect(AUTH_ROUTES_PATHS.SET_PASSWORD);
 
   context.set(signedInUserContext, knownUser);
 };

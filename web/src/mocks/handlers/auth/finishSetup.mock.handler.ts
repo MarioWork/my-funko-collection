@@ -44,6 +44,7 @@ export default (baseUrl: string) => [
       username: null,
       role: UserRoleUtil.ADMIN,
       password: null,
+      mustChangePassword: false,
       isSignInRecent: true,
       passkeys: [
         { id: response.id, name: passkeyName ?? FIRST_PASSKEY_NAME, isSynced: true, createdAt, lastUsedAt: createdAt },

@@ -23,7 +23,7 @@ const HANDLER_BY_VERB: Record<AdminOnlyVerb, HttpRequestHandler> = {
 };
 
 // The same routes, in the same order, as ADMIN_ONLY_ROUTES in api/src/modules/auth/auth.route.test.ts: catalogue
-// writes (categories, series, funkos and their images) and the images lists. Keep the two in step.
+// writes (categories, series, funkos and their images), the images lists and the users. Keep the two in step.
 const ADMIN_ONLY_ROUTES: AdminOnlyRoute[] = [
   { method: HttpVerbsUtil.POST, path: '/categories' },
   { method: HttpVerbsUtil.PATCH, path: '/categories/:categoryId' },
@@ -44,6 +44,8 @@ const ADMIN_ONLY_ROUTES: AdminOnlyRoute[] = [
   { method: HttpVerbsUtil.GET, path: '/export/images.csv' },
   { method: HttpVerbsUtil.GET, path: '/export/images.json' },
   { method: HttpVerbsUtil.GET, path: '/export/images.xlsx' },
+  { method: HttpVerbsUtil.GET, path: '/users' },
+  { method: HttpVerbsUtil.POST, path: '/users' },
 ];
 
 async function refuseMember() {

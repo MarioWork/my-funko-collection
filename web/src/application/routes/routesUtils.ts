@@ -80,16 +80,24 @@ export const IMAGE_ROUTES_PATHS = {
   BASE: '/images',
 };
 
+// Admins only: every user, and the dialog that creates one.
+export const USER_ROUTES_PATHS = {
+  BASE: '/users',
+  ADD: 'add',
+};
+
 export const TAG_ROUTES_PATHS = {
   BASE: '/tags',
   ADD: 'add',
   update: (tagId?: string) => (tagId ? `/tags/${tagId}` : '/tags/:tagId'),
 };
 
-// Sign-in and first run render outside the app shell; the rest are action-only routes behind Settings → Security.
+// Sign-in, first run and choosing your own password (after signing in with a temporary one) render outside the app
+// shell; the rest are action-only routes behind Settings → Security.
 export const AUTH_ROUTES_PATHS = {
   LOGIN: '/login',
   SETUP: '/setup',
+  SET_PASSWORD: '/set-password',
   SIGN_OUT: '/sign-out',
   SIGN_OUT_EVERYWHERE: '/sign-out-everywhere',
   PASSKEYS: '/settings/passkeys',
