@@ -8,6 +8,12 @@ import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
 
 const ADMIN_ONLY_MESSAGE = 'Only an admin can change a funko in the catalogue';
 
+type BarcodeCandidate = MockSubmissionColumns & { barcode: string | null };
+type ReferenceCandidate = MockSubmissionColumns & { categoryId: number; seriesId: number | null };
+
+// The funko a write may change, or the response the API gives instead.
+type EditableFunkoLookup = { funko: MockFunkoRow } | { refusal: Response };
+
 // The fields that make two funkos the same one, as the API's unique index has them.
 type FunkoIdentity = Pick<MockFunkoRow, 'categoryId' | 'number' | 'name' | 'isChase' | 'exclusive'>;
 
@@ -35,10 +41,7 @@ function inScopes(funko: MockFunkoRow, candidate: MockSubmissionColumns): boolea
 }
 
 // Another funko with the same barcode in the candidate's scopes; `selfId` leaves out the funko being edited.
-export function findBarcodeTwin(
-  candidate: MockSubmissionColumns & { barcode: string | null },
-  selfId?: number,
-): MockFunkoRow | undefined {
+export function findBarcodeTwin(candidate: BarcodeCandidate, selfId?: number): MockFunkoRow | undefined {
   if (!candidate.barcode) return undefined;
 
   return mockStore.funkos.find(
@@ -47,9 +50,7 @@ export function findBarcodeTwin(
 }
 
 // Why this funko may not use the body's category or series (a 400, as the API answers), or undefined.
-export function referenceRefusal(
-  candidate: MockSubmissionColumns & { categoryId: number; seriesId: number | null },
-): Response | undefined {
+export function referenceRefusal(candidate: ReferenceCandidate): Response | undefined {
   const category = mockStore.categories.find((row) => row.id === candidate.categoryId);
 
   if (!category || !isUsableByMockFunko(category, candidate)) {
@@ -68,7 +69,7 @@ export function referenceRefusal(
 
 // The funko a write aims at, or the answer the API gives instead: 404 when the user cannot see it, 403 ADMIN_ONLY
 // when they see it but may not change it (only their own waiting submission, unless they are an admin).
-export function findEditableFunko(funkoId: string): { funko: MockFunkoRow } | { refusal: Response } {
+export function findEditableFunko(funkoId: string): EditableFunkoLookup {
   const funko = mockStore.funkos.find((candidate) => String(candidate.id) === funkoId);
 
   if (!funko || !canSeeMockRow(funko)) return { refusal: notFound('Funko', funkoId) };

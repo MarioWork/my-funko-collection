@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import type { FunkoDetailApiModel } from '@app-types/models';
 import { FUNKO_TYPE_LABELS, SubmissionStatusUtil } from '@app-types/utility';
 import SubmissionStatusBadge from '@components/SubmissionStatusBadge';
+import { isOwnWaitingSubmission } from '@utils/funkoAccessUtils';
 import { Badge } from '@components/ui/badge';
 import { Separator } from '@components/ui/separator';
 import { formatDateTime } from '@utils/dateUtils';
@@ -93,7 +94,7 @@ const SUBMISSION_NOTE = 'Only you see it until an admin approves it.';
 // The funko at a glance, in one tile: name and actions, then the catalog facts. A submission says where it stands.
 function FunkoSummary({ funko, actions }: Props) {
   const isSubmission = funko.status !== SubmissionStatusUtil.APPROVED;
-  const isOwnWaiting = funko.isSubmittedByMe && funko.status === SubmissionStatusUtil.WAITING;
+  const isOwnWaiting = isOwnWaitingSubmission(funko);
 
   return (
     <section aria-labelledby={TITLE_ID} className="flex flex-col gap-4 rounded-xl border bg-card p-4">
