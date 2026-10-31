@@ -389,6 +389,10 @@ export const funkosRepository = {
   // Every user's items of the funko, for the delete guard: a funko in anyone's collection is protected.
   countItems: (funkoId: number): Promise<number> => prisma.collectionItem.count({ where: { funkoId } }),
 
+  // The funko's items in collections that are not `userId`'s: told apart in the 409, never named.
+  countOtherUsersItems: (userId: number, funkoId: number): Promise<number> =>
+    prisma.collectionItem.count({ where: { funkoId, collection: { userId: { not: userId } } } }),
+
   create: async (data: CreateFunko): Promise<FunkoRow> =>
     toRow(await prisma.funko.create({ data, select: FUNKO_SELECT })),
 

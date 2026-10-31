@@ -268,14 +268,14 @@ const funkoRows = await prisma.funko.createManyAndReturn({
 const funkoIds = new Map(funkoRows.filter((row) => !row.isChase).map((row) => [row.name, row.id]));
 
 // The first user owns the example items. With nobody set up yet, a user with no way to sign in is made for them.
-const owner =
+const seedUser =
   (await prisma.user.findFirst({ orderBy: { id: 'asc' }, select: { id: true } })) ??
   (await prisma.user.create({
     data: { name: SEED_USER_NAME, webauthnUserId: randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url') },
     select: { id: true },
   }));
 
-const collectionRows = await prisma.collection.findMany({ where: { userId: owner.id }, select: NAME_SELECT });
+const collectionRows = await prisma.collection.findMany({ where: { userId: seedUser.id }, select: NAME_SELECT });
 const collectionIds = new Map(collectionRows.map((row) => [row.name, row.id]));
 
 for (const name of REFERENCE_COLLECTION_NAMES) {
