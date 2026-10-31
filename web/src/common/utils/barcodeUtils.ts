@@ -1,13 +1,14 @@
 const UPC_A_LENGTH = 12;
 const DIGITS_ONLY = /^\d+$/;
 
-// UPC-A is EAN-13 with a leading zero; the API stores whatever was typed, so the app normalises before it asks.
+// A UPC-A code (12 digits, what US boxes carry) is the EAN-13 code with a leading zero. Scanners report one or the
+// other depending on the symbology they picked, so every barcode is stored and looked up in the 13-digit form.
 export function normaliseBarcode(raw: string): string {
-  const digits = raw.trim();
+  const trimmed = raw.trim();
 
-  if (!DIGITS_ONLY.test(digits)) return digits;
+  if (!DIGITS_ONLY.test(trimmed)) return trimmed;
 
-  return digits.length === UPC_A_LENGTH ? `0${digits}` : digits;
+  return trimmed.length === UPC_A_LENGTH ? `0${trimmed}` : trimmed;
 }
 
 export function isCameraAvailable(): boolean {

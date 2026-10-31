@@ -1,20 +1,20 @@
-import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { SERIES_SORT_FIELDS, series } from '../../db/schema/series.ts';
+import { IdParamSchema } from '../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { ContainsQuerySchema } from '../../lib/queryParams.ts';
 
 export const SERIES_NAME_MAX_LENGTH = 100;
 
+export const SERIES_SORT_FIELDS = ['NAME', 'CREATION_DATE'] as const;
+export type SeriesSortField = (typeof SERIES_SORT_FIELDS)[number];
+
 export const SeriesParamsSchema = z.object({
-  seriesId: z.coerce.number().int().positive(),
+  seriesId: IdParamSchema,
 });
 
-const SeriesInsertSchema = createInsertSchema(series, {
-  name: (schema) => schema.trim().min(1).max(SERIES_NAME_MAX_LENGTH),
-}).omit({ id: true, createdAt: true, updatedAt: true });
-
-export const CreateSeriesSchema = z.strictObject(SeriesInsertSchema.shape);
+export const CreateSeriesSchema = z.strictObject({
+  name: z.string().trim().min(1).max(SERIES_NAME_MAX_LENGTH),
+});
 
 export const UpdateSeriesSchema = CreateSeriesSchema.partial();
 

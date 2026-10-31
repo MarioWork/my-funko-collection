@@ -2,7 +2,9 @@ import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { badRequest, conflict, created, notFound, toItemModel } from '@mocks/mockResponses';
-import { mockStore, nextId, nowIso, type MockItemRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockItemRow } from '@mocks/mockStore.type';
+import { nextId, nowIso } from '@mocks/mockStoreUtils';
 import type { CreateCollectionItem } from '@services/collectionItemService/collectionItemService.type';
 import { DEFAULT_CURRENCY } from '@utils/moneyUtils';
 

@@ -4,7 +4,8 @@ import {
   createAuthenticationResponseMockModel,
   createRegistrationResponseMockModel,
 } from '@mocks/handlers/auth/models/passkeyResponseMockModel.mock';
-import { MOCK_SETUP_CODE, mockStore, setMockAuthState } from '@mocks/mockStore';
+import { MOCK_SETUP_CODE } from '@mocks/mockAuth';
+import { mockStore, setMockAuthState } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
 import { UNAUTHORIZED_ERROR_CODE } from '@api/axiosActions';
 import authService, { AuthApiErrorCodes } from './authService';

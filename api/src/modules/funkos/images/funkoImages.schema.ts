@@ -1,15 +1,16 @@
 import { z } from 'zod';
+import { IdParamSchema, IdSchema } from '../../../lib/ids.ts';
 import { FunkoImageResponseSchema } from './funkoImages.type.ts';
 
 export const ROTATION_DEGREES = [90, 180, 270] as const;
 
 // Mounted under /funkos/:funkoId/images.
 export const FunkoImagesParamsSchema = z.object({
-  funkoId: z.coerce.number().int().positive(),
+  funkoId: IdParamSchema,
 });
 
 export const FunkoImageParamsSchema = FunkoImagesParamsSchema.extend({
-  imageId: z.coerce.number().int().positive(),
+  imageId: IdParamSchema,
 });
 
 export const ImageFromUrlSchema = z.strictObject({
@@ -17,7 +18,7 @@ export const ImageFromUrlSchema = z.strictObject({
 });
 
 export const ReorderImagesSchema = z.strictObject({
-  imageIds: z.array(z.number().int().positive()).min(1),
+  imageIds: z.array(IdSchema).min(1),
 });
 
 export const RotateImageSchema = z.strictObject({

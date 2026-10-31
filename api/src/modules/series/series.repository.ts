@@ -1,72 +1,74 @@
-import { and, asc, count, desc, eq, type SQL } from 'drizzle-orm';
-import { db, type DbExecutor } from '../../db/client.ts';
-import { likeContains } from '../../db/like.ts';
-import { funkos } from '../../db/schema/funkos.ts';
-import { series, type SeriesSortField } from '../../db/schema/series.ts';
-import { toLimitOffset } from '../../lib/pagination.ts';
-import type { CreateSeries, ListSeriesQuery, UpdateSeries } from './series.schema.ts';
+import { containsText } from '../../lib/likePatterns.ts';
+import type { Prisma } from '../../generated/prisma/client.ts';
+import { toOrderDirection, toSkipTake } from '../../lib/pagination.ts';
+import { deletedIdOrUndefined, prisma, reloadIfUpdated } from '../../lib/prisma.ts';
+import type { SeriesSortField, CreateSeries, ListSeriesQuery, UpdateSeries } from './series.schema.ts';
 
-const SERIES_COLUMNS = {
-  id: series.id,
-  name: series.name,
-  createdAt: series.createdAt,
-  updatedAt: series.updatedAt,
-} as const;
+// The funko count comes along, so a series with no funkos still lists with 0.
+const SERIES_SELECT = {
+  id: true,
+  name: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { funkos: true } },
+} as const satisfies Prisma.SeriesSelect;
 
-const SORT_FIELD_MAP: Record<SeriesSortField, typeof series.name | typeof series.createdAt> = {
-  NAME: series.name,
-  CREATION_DATE: series.createdAt,
+const SORT_FIELD_MAP: Record<SeriesSortField, keyof Prisma.SeriesOrderByWithRelationInput> = {
+  NAME: 'name',
+  CREATION_DATE: 'createdAt',
 };
 
-function buildListFilter({ name }: ListSeriesQuery): SQL | undefined {
-  const nameFilter = name ? likeContains(series.name, name) : undefined;
+type SelectedSeries = Prisma.SeriesGetPayload<{ select: typeof SERIES_SELECT }>;
 
-  return and(nameFilter);
+export type SeriesRow = Omit<SelectedSeries, '_count'> & { funkoCount: number };
+
+function toRow({ _count, ...series }: SelectedSeries): SeriesRow {
+  return { ...series, funkoCount: _count.funkos };
 }
 
-// The count comes from a left join + group by, so a series with no funkos still lists with 0.
-function selectWithCount(executor: DbExecutor) {
-  return executor
-    .select({ ...SERIES_COLUMNS, funkoCount: count(funkos.id) })
-    .from(series)
-    .leftJoin(funkos, eq(funkos.seriesId, series.id))
-    .groupBy(series.id);
+function buildListFilter({ name }: ListSeriesQuery): Prisma.SeriesWhereInput {
+  return name ? { name: containsText(name) } : {};
+}
+
+async function findById(id: number): Promise<SeriesRow | undefined> {
+  const series = await prisma.series.findUnique({ where: { id }, select: SERIES_SELECT });
+
+  return series ? toRow(series) : undefined;
 }
 
 export const seriesRepository = {
-  findById: (id: number, executor: DbExecutor = db): Promise<SeriesRow | undefined> =>
-    selectWithCount(executor).where(eq(series.id, id)).get(),
+  findById,
 
   list: async (query: ListSeriesQuery) => {
-    const filter = buildListFilter(query);
-    const direction = query.direction === 'DESC' ? desc : asc;
-    const sortColumn = SORT_FIELD_MAP[query.sorting_fields];
-    const { limit, offset } = toLimitOffset(query);
+    const where = buildListFilter(query);
+    const direction = toOrderDirection(query.direction);
+    const sortField = SORT_FIELD_MAP[query.sorting_fields];
 
-    const [data, totalResultNumber] = await Promise.all([
-      selectWithCount(db).where(filter).orderBy(direction(sortColumn), asc(series.id)).limit(limit).offset(offset),
-      db.$count(series, filter),
+    const [rows, totalResultNumber] = await prisma.$transaction([
+      prisma.series.findMany({
+        where,
+        select: SERIES_SELECT,
+        orderBy: [{ [sortField]: direction }, { id: 'asc' }],
+        ...toSkipTake(query),
+      }),
+      prisma.series.count({ where }),
     ]);
 
-    return { data, totalResultNumber };
+    return { data: rows.map(toRow), totalResultNumber };
   },
 
-  create: async (data: CreateSeries, executor: DbExecutor = db): Promise<SeriesRow> => {
-    const inserted = await executor.insert(series).values(data).returning(SERIES_COLUMNS).get();
+  create: async (data: CreateSeries): Promise<SeriesRow> =>
+    toRow(await prisma.series.create({ data, select: SERIES_SELECT })),
 
-    return { ...inserted, funkoCount: 0 };
+  update: async (id: number, data: UpdateSeries): Promise<SeriesRow | undefined> => {
+    const write = await prisma.series.updateMany({ where: { id }, data });
+
+    return reloadIfUpdated(write, () => findById(id));
   },
 
-  update: async (id: number, data: UpdateSeries, executor: DbExecutor = db): Promise<SeriesRow | undefined> => {
-    const updated = await executor.update(series).set(data).where(eq(series.id, id)).returning({ id: series.id }).get();
+  delete: async (id: number): Promise<{ id: number } | undefined> => {
+    const write = await prisma.series.deleteMany({ where: { id } });
 
-    if (!updated) return undefined;
-
-    return selectWithCount(executor).where(eq(series.id, id)).get();
+    return deletedIdOrUndefined(id, write);
   },
-
-  delete: (id: number, executor: DbExecutor = db): Promise<{ id: number } | undefined> =>
-    executor.delete(series).where(eq(series.id, id)).returning({ id: series.id }).get(),
 };
-
-export type SeriesRow = Awaited<ReturnType<typeof selectWithCount>>[number];

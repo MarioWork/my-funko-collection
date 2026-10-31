@@ -2,7 +2,9 @@ import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import writeExcelFile from 'write-excel-file/browser';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { mockStore, type MockImageRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import { nowIso } from '@mocks/mockStoreUtils';
+import type { MockImageRow } from '@mocks/mockStore.type';
 import { MAIN_POSITION } from '@mocks/handlers/image/imageMockUtils';
 import {
   attachment,
@@ -69,7 +71,7 @@ export default (baseUrl: string) => [
     await delay(MOCK_DELAY);
 
     return HttpResponse.json(
-      { exportedAt: new Date().toISOString(), images: mockStore.images.map(toImageExport) },
+      { exportedAt: nowIso(), images: mockStore.images.map(toImageExport) },
       { headers: { 'content-disposition': attachment(`${FILE_BASE}.json`) } },
     );
   }),

@@ -6,7 +6,8 @@ export default defineConfig({
     environment: 'node',
     restoreMocks: true,
     include: ['src/**/*.test.ts'],
-    // Loads .env.test before any test imports config/env.ts; DATABASE_URL=:memory: gives each worker its own db.
+    // One migrated template database per run; setupTests.ts loads .env.test and gives each test file its own copy.
+    globalSetup: ['src/testGlobalSetup.ts'],
     setupFiles: ['src/setupTests.ts'],
   },
 });

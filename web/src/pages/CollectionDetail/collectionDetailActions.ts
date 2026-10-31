@@ -1,5 +1,4 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { ValidationError } from 'yup';
 import type { CollectionItemApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import collectionItemService from '@services/collectionItemService/collectionItemService';
@@ -10,19 +9,16 @@ import {
   type MoveCollectionItem,
 } from '@services/collectionItemService/collectionItemService.type';
 import { parseFormData } from '@utils/formDataUtils';
+import { failWhenInvalid } from '@utils/actionUtils';
 
 export const moveItemAction = async ({ request, params }: ActionFunctionArgs): Promise<JSONResponseUtil> => {
   const data = parseFormData<MoveCollectionItem>(await request.formData());
 
-  try {
+  return failWhenInvalid(async () => {
     const valid = await MoveCollectionItemSchema.validate(data);
 
-    return await collectionItemService.moveCollectionItem(Number(params.collectionId), Number(params.itemId), valid);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return collectionItemService.moveCollectionItem(Number(params.collectionId), Number(params.itemId), valid);
+  });
 };
 
 export const deleteItemAction = async ({ params }: ActionFunctionArgs): Promise<JSONResponseUtil> =>
@@ -38,13 +34,9 @@ export const restoreItemAction = async ({
 }: ActionFunctionArgs): Promise<JSONResponseUtil<CollectionItemApiModel>> => {
   const { item } = parseFormData<RestoreItemFormData>(await request.formData());
 
-  try {
+  return failWhenInvalid(async () => {
     const valid = await CreateCollectionItemSchema.validate(item);
 
-    return await collectionItemService.addCollectionItem(Number(params.collectionId), valid);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return collectionItemService.addCollectionItem(Number(params.collectionId), valid);
+  });
 };

@@ -12,16 +12,16 @@ import type {
 } from '@app-types/models';
 import { HttpResponse } from 'msw/http';
 import { toPrimaryImage } from './mockImageUtils';
-import {
-  mockStore,
-  type MockCategoryRow,
-  type MockSeriesRow,
-  type MockCollectionRow,
-  type MockFunkoRow,
-  type MockItemRow,
-  type MockNamedRow,
-  type MockTagRow,
-} from './mockStore';
+import { mockStore } from './mockStore';
+import type {
+  MockCategoryRow,
+  MockSeriesRow,
+  MockCollectionRow,
+  MockFunkoRow,
+  MockItemRow,
+  MockNamedRow,
+  MockTagRow,
+} from './mockStore.type';
 
 // Whatever HttpResponse.json accepts; msw/http does not export the type by name.
 type MockJsonBody = Parameters<typeof HttpResponse.json>[0];

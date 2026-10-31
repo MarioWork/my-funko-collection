@@ -1,39 +1,48 @@
-import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { ITEM_CONDITIONS, ITEM_SORT_FIELDS, collectionItems } from '../../../db/schema/collectionItems.ts';
+import { IdParamSchema, IdSchema } from '../../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../../lib/pagination.ts';
 import { ContainsQuerySchema, IdListQuerySchema, IsoDateSchema } from '../../../lib/queryParams.ts';
 import { FunkoSummarySchema } from '../../funkos/funkos.type.ts';
+import { ITEM_CONDITIONS } from './collectionItems.type.ts';
 
 export const ITEM_NOTES_MAX_LENGTH = 2000;
 export const MAX_QUANTITY = 1000;
 export const CURRENCY_LENGTH = 3;
 export const MAX_TAGS_PER_ITEM = 20;
+// The price column is a Postgres integer: 21 million in cents is far past any funko, and the cap keeps a typo a 400.
+export const MAX_PRICE_CENTS = 2_147_483_647;
+
+export const ITEM_SORT_FIELDS = [
+  'NAME',
+  'NUMBER',
+  'CREATION_DATE',
+  'UPDATE_DATE',
+  'PURCHASE_DATE',
+  'PURCHASE_PRICE',
+] as const;
+export type ItemSortField = (typeof ITEM_SORT_FIELDS)[number];
 
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;
 
 // Mounted under /collections/:collectionId/items.
 export const CollectionItemsParamsSchema = z.object({
-  collectionId: z.coerce.number().int().positive(),
+  collectionId: IdParamSchema,
 });
 
 export const CollectionItemParamsSchema = CollectionItemsParamsSchema.extend({
-  itemId: z.coerce.number().int().positive(),
+  itemId: IdParamSchema,
 });
 
-const TagIdsSchema = z.array(z.number().int().positive()).max(MAX_TAGS_PER_ITEM);
-
-const ItemInsertSchema = createInsertSchema(collectionItems, {
-  funkoId: (schema) => schema.int().positive(),
-  quantity: (schema) => schema.int().min(1).max(MAX_QUANTITY),
-  purchasePriceCents: (schema) => schema.int().min(0),
-  purchaseCurrency: (schema) => schema.length(CURRENCY_LENGTH).regex(CURRENCY_PATTERN),
-  purchasedAt: () => IsoDateSchema,
-  notes: (schema) => schema.trim().max(ITEM_NOTES_MAX_LENGTH),
-}).omit({ id: true, collectionId: true, createdAt: true, updatedAt: true });
+const TagIdsSchema = z.array(IdSchema).max(MAX_TAGS_PER_ITEM);
 
 export const CreateCollectionItemSchema = z.strictObject({
-  ...ItemInsertSchema.shape,
+  funkoId: IdSchema,
+  quantity: z.number().int().min(1).max(MAX_QUANTITY).optional(),
+  condition: z.enum(ITEM_CONDITIONS).nullable().optional(),
+  purchasePriceCents: z.number().int().min(0).max(MAX_PRICE_CENTS).nullable().optional(),
+  purchaseCurrency: z.string().length(CURRENCY_LENGTH).regex(CURRENCY_PATTERN).optional(),
+  purchasedAt: IsoDateSchema.nullable().optional(),
+  notes: z.string().trim().max(ITEM_NOTES_MAX_LENGTH).nullable().optional(),
   tagIds: TagIdsSchema.optional(),
 });
 
@@ -41,7 +50,7 @@ export const CreateCollectionItemSchema = z.strictObject({
 export const UpdateCollectionItemSchema = CreateCollectionItemSchema.omit({ funkoId: true }).partial();
 
 export const MoveCollectionItemSchema = z.strictObject({
-  toCollectionId: z.number().int().positive(),
+  toCollectionId: IdSchema,
 });
 
 export const ListCollectionItemsQuerySchema = PaginationQuerySchema.extend({

@@ -1,5 +1,5 @@
 import { buildApp, type App } from '../../../app.ts';
-import { prepareTestDb, resetTestDb } from '../../../db/testDb.ts';
+import { resetTestDb } from '../../../testDb.ts';
 import {
   funkoFolderExists,
   readStoredFileMetadata,
@@ -28,7 +28,6 @@ let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {
@@ -59,7 +58,7 @@ async function dimensionsOf(url: string): Promise<{ width: number; height: numbe
 }
 
 describe('POST /funkos/:funkoId/images', () => {
-  it('stores three capped WebP variants and a tiny placeholder when a large photo is uploaded', async () => {
+  it('stores three capped WebP sizes and a tiny placeholder when a large photo is uploaded', async () => {
     const funko = await createFunko();
 
     const response = await upload(funko.id, [await makeImage({ width: 4000, height: 3000, format: 'jpeg' })]);
@@ -74,7 +73,7 @@ describe('POST /funkos/:funkoId/images', () => {
     expect(image?.placeholder.length).toBeLessThan(MAX_PLACEHOLDER_BYTES);
   });
 
-  it('keeps the original size and drops the metadata when the input is smaller than every variant', async () => {
+  it('keeps the original size and drops the metadata when the input is smaller than every size', async () => {
     const funko = await createFunko();
 
     const response = await upload(funko.id, [await makeImage({ width: 300, height: 200 })]);
@@ -161,7 +160,7 @@ describe('POST /funkos/:funkoId/images', () => {
 });
 
 describe('GET /uploads/:path', () => {
-  it('serves the variant with a private one-year immutable cache header when the file exists', async () => {
+  it('serves the file with a private one-year immutable cache header when the file exists', async () => {
     const funko = await createFunko();
     const [image] = (await upload(funko.id, [await makeImage()])).json<ImageBody[]>();
 

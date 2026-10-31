@@ -24,14 +24,20 @@ export function useSuggestions(query: string) {
 
     if (!isQueryLongEnough) return undefined;
 
-    suggestService
-      .getSuggestions(debounced)
-      .then((suggestions) => {
-        if (!isStale) setAnswer({ query: debounced, suggestions });
-      })
-      .catch(() => {
-        if (!isStale) setAnswer({ query: debounced, suggestions: null });
-      });
+    // A failed lookup is an answer too (no suggestions), so the field stops loading.
+    async function fetchSuggestions() {
+      let suggestions: SuggestApiModel | null = null;
+
+      try {
+        suggestions = await suggestService.getSuggestions(debounced);
+      } catch {
+        suggestions = null;
+      }
+
+      if (!isStale) setAnswer({ query: debounced, suggestions });
+    }
+
+    void fetchSuggestions();
 
     return () => {
       isStale = true;

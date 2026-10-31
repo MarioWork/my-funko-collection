@@ -2,7 +2,8 @@
 import { FunkoMatchFieldUtil } from '@app-types/utility';
 import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
 import { idList, isTrueParam } from '@mocks/mockListUtils';
-import { mockStore, type MockFunkoRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockFunkoRow } from '@mocks/mockStore.type';
 
 const LEADING_HASH = /^#/;
 const WHITESPACE = /\s+/;

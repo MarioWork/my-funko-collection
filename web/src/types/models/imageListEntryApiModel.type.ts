@@ -12,7 +12,7 @@ export interface ImageListEntryApiModel {
   height: number | null;
   sizeBytes: number;
   // How many of the three stored sizes are on disk (3 when all is well).
-  variantCount: number;
+  sizeCount: number;
   isMain: boolean;
   createdAt: string;
   url: string | null;

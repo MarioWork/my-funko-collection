@@ -1,5 +1,6 @@
 import type { ImageListEntryApiModel } from '@app-types/models';
-import { mockStore, type MockImageRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockImageRow } from '@mocks/mockStore.type';
 import { looseImageMock } from './models/imageMockModel.mock';
 
 const STORED_SIZES = 3;
@@ -16,7 +17,7 @@ function toListEntry(image: MockImageRow): ImageListEntryApiModel {
     width: image.width,
     height: image.height,
     sizeBytes: image.sizeBytes,
-    variantCount: STORED_SIZES,
+    sizeCount: STORED_SIZES,
     isMain: image.position === MAIN_POSITION,
     createdAt: image.createdAt,
     url: image.url,

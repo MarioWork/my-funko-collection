@@ -14,7 +14,7 @@ type Props = {
 const SWIPE_THRESHOLD_PX = 48;
 
 // Full-screen photo viewer: arrows and keys to move, swipe on touch, Escape or the X to close, focus trapped
-// by the dialog. The large variant loads here and nowhere else.
+// by the dialog. The large size loads here and nowhere else.
 function Lightbox({ images, openIndex, title, onClose }: Props) {
   const [index, setIndex] = useState(0);
   const [openedAt, setOpenedAt] = useState<number | null>(null);

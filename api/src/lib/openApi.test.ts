@@ -1,11 +1,9 @@
 import { buildApp, type App } from '../app.ts';
-import { prepareTestDb } from '../db/testDb.ts';
 
 let app: App;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {

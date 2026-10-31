@@ -1,5 +1,5 @@
 import { buildApp, type App } from '../../app.ts';
-import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
+import { resetTestDb } from '../../testDb.ts';
 import { funkoFolderExists } from '../../lib/imageStorage.ts';
 import {
   createCategory,
@@ -30,7 +30,6 @@ let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {
@@ -48,7 +47,7 @@ function names(body: ListBody): string[] {
 
 async function seedCatalog() {
   const marvel = await createCategory('Pop! Marvel');
-  const starWars = await createCategory('Star Wars');
+  const starWars = await createCategory('Pop! Star Wars');
   const spiderMan = await createFunko({ name: 'Spider-Man', number: '03', categoryId: marvel.id, barcode: BARCODE });
   const thanos = await createFunko({ name: 'Thanos', number: '78', categoryId: marvel.id });
   const thanosChase = await createFunko({ name: 'Thanos', number: '78', categoryId: marvel.id, isChase: true });
@@ -193,6 +192,17 @@ describe('GET /funkos', () => {
     const response = await api.inject({ method: 'GET', url: URL, query: { sorting_fields: 'NUMBER' } });
 
     expect(names(response.json<ListBody>())).toEqual(['Two', 'Nine', 'Ten']);
+  });
+
+  it('sorts a number with no digits first when sorting by NUMBER and a box says "SE"', async () => {
+    const category = await createCategory();
+    await createFunko({ name: 'Two', number: '2', categoryId: category.id });
+    await createFunko({ name: 'Special', number: 'SE', categoryId: category.id });
+
+    const response = await api.inject({ method: 'GET', url: URL, query: { sorting_fields: 'NUMBER' } });
+
+    expect(response.statusCode).toBe(200);
+    expect(names(response.json<ListBody>())).toEqual(['Special', 'Two']);
   });
 
   it('puts an exact name match first when q is set', async () => {

@@ -1,0 +1,293 @@
+// The database: PostgreSQL. Models are PascalCase, tables and columns snake_case through @@map / @map.
+// Rules Prisma cannot express (check constraints, the one-default-collection index) are in the migration SQL.
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  runtime                = "nodejs"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum FunkoType {
+  POP
+  POP_DELUXE
+  POP_RIDES
+  POP_MOMENT
+  POP_TOWN
+  POP_ALBUM
+  POP_JUMBO
+  POP_KEYCHAIN
+  SODA
+  BITTY_POP
+  MYSTERY_MINI
+  OTHER
+
+  @@map("funko_type")
+}
+
+enum ItemCondition {
+  MINT_IN_BOX
+  BOX_DAMAGED
+  OUT_OF_BOX
+
+  @@map("item_condition")
+}
+
+enum AuthChallengePurpose {
+  SETUP
+  SIGN_IN
+  ADD_PASSKEY
+
+  @@map("auth_challenge_purpose")
+}
+
+// A Funko line as printed on the box: "Pop! Marvel", "Pop! Television", "Pop! Star Wars".
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique(map: "categories_name_uidx")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  funkos Funko[]
+
+  @@index([createdAt], map: "categories_created_at_idx")
+  @@map("categories")
+}
+
+// The show, film or game a figure comes from: "Daredevil: Born Again", "The Mandalorian". Optional on a funko.
+model Series {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique(map: "series_name_uidx")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  funkos Funko[]
+
+  @@index([createdAt], map: "series_created_at_idx")
+  @@map("series")
+}
+
+// One figure in the catalog. Numbers repeat across lines, and the same number exists as a normal, a chase and a
+// sticker exclusive, so the natural key is (category, number, name, isChase, exclusive).
+model Funko {
+  id         Int       @id @default(autoincrement())
+  name       String
+  // Text on purpose: boxes carry "01", "1300" and "SE".
+  number     String
+  type       FunkoType @default(POP)
+  categoryId Int       @map("category_id")
+  // Optional: the series it belongs to. Deleting the series clears it here.
+  seriesId   Int?      @map("series_id")
+  isChase    Boolean   @default(false) @map("is_chase")
+  // "SDCC 2024", "Hot Topic"; empty string means a regular release (not null, so it can be part of a unique index).
+  exclusive  String    @default("")
+  // The UPC/EAN printed on the box, when known, in its 13-digit form. Many funkos may have none.
+  barcode    String?   @unique(map: "funkos_barcode_uidx")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  category        Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  series          Series?          @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  images          FunkoImage[]
+  collectionItems CollectionItem[]
+
+  @@unique([categoryId, number, name, isChase, exclusive], map: "funkos_identity_uidx")
+  @@index([categoryId], map: "funkos_category_id_idx")
+  @@index([seriesId], map: "funkos_series_id_idx")
+  @@index([name], map: "funkos_name_idx")
+  @@index([createdAt], map: "funkos_created_at_idx")
+  @@map("funkos")
+}
+
+// One uploaded photo. The three WebP sizes on disk share `fileKey`: `<key>.webp`, `<key>.md.webp`, `<key>.sm.webp`.
+model FunkoImage {
+  id          Int      @id @default(autoincrement())
+  funkoId     Int      @map("funko_id")
+  fileKey     String   @unique(map: "funko_images_file_key_uidx") @map("file_key")
+  // Dimensions of the large size.
+  width       Int
+  height      Int
+  // Sum of the three files.
+  sizeBytes   Int      @map("size_bytes")
+  // sha256 of the uploaded bytes, hex: the same photo twice on one funko is refused.
+  contentHash String   @map("content_hash")
+  // A tiny base64 WebP data URI shown while the real file loads.
+  placeholder String
+  position    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  funko Funko @relation(fields: [funkoId], references: [id], onDelete: Cascade)
+
+  @@unique([funkoId, contentHash], map: "funko_images_funko_id_content_hash_uidx")
+  @@index([funkoId, position], map: "funko_images_funko_id_position_idx")
+  @@map("funko_images")
+}
+
+// One of the user's own lists: "Owned", "Wishlist", "For sale". Exactly one is the default (a partial unique
+// index in the migration, which Prisma cannot declare).
+model Collection {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique(map: "collections_name_uidx")
+  notes     String?
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  items CollectionItem[]
+
+  @@index([createdAt], map: "collections_created_at_idx")
+  @@map("collections")
+}
+
+// One funko inside one collection. Doubles are `quantity`, not a second row.
+model CollectionItem {
+  id                 Int            @id @default(autoincrement())
+  collectionId       Int            @map("collection_id")
+  funkoId            Int            @map("funko_id")
+  quantity           Int            @default(1)
+  // Nullable: a wishlist row has no box yet.
+  condition          ItemCondition?
+  // Cents, never a float.
+  purchasePriceCents Int?           @map("purchase_price_cents")
+  purchaseCurrency   String         @default("EUR") @map("purchase_currency")
+  // ISO date `YYYY-MM-DD`: a calendar day, not an instant. Text compares and sorts like the date it is.
+  purchasedAt        String?        @map("purchased_at")
+  notes              String?
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  collection Collection          @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  funko      Funko               @relation(fields: [funkoId], references: [id], onDelete: Restrict)
+  itemTags   CollectionItemTag[]
+
+  @@unique([collectionId, funkoId], map: "collection_items_collection_id_funko_id_uidx")
+  @@index([funkoId], map: "collection_items_funko_id_idx")
+  @@index([createdAt], map: "collection_items_created_at_idx")
+  @@map("collection_items")
+}
+
+// A free label on a collection item. First use: the storage box ("Box 3").
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique(map: "tags_name_uidx")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  itemTags CollectionItemTag[]
+
+  @@index([createdAt], map: "tags_created_at_idx")
+  @@map("tags")
+}
+
+// Junction: many tags per item, many items per tag.
+model CollectionItemTag {
+  collectionItemId Int      @map("collection_item_id")
+  tagId            Int      @map("tag_id")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  item CollectionItem @relation(fields: [collectionItemId], references: [id], onDelete: Cascade)
+  tag  Tag            @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([collectionItemId, tagId], map: "collection_item_tags_pk")
+  @@index([tagId], map: "collection_item_tags_tag_id_idx")
+  @@map("collection_item_tags")
+}
+
+// The one person who signs in. A table (not a setting) so passkeys and sessions have something to point at.
+model User {
+  id             Int      @id @default(autoincrement())
+  name           String
+  // The random WebAuthn user handle (base64url), stored in every passkey made for this user. Never the row id.
+  webauthnUserId String   @unique(map: "users_webauthn_user_id_uidx") @map("webauthn_user_id")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  passkeys Passkey[]
+  sessions Session[]
+
+  @@map("users")
+}
+
+// One passkey. Only its public key lives here; the private key never leaves the person's device or passkey manager.
+model Passkey {
+  id           Int       @id @default(autoincrement())
+  // The credential id the authenticator chose (base64url): what the browser names it by, and the API's id for it.
+  credentialId String    @unique(map: "passkeys_credential_id_uidx") @map("credential_id")
+  userId       Int       @map("user_id")
+  name         String
+  publicKey    Bytes     @map("public_key")
+  // The signature counter the authenticator reported last; a lower one later means a cloned key.
+  counter      Int
+  // How the browser can reach it ("internal", "hybrid", "usb"...).
+  transports   String[]
+  // Backed up by a passkey manager (iCloud Keychain, Bitwarden...), so it survives losing one device.
+  isSynced     Boolean   @map("is_synced")
+  lastUsedAt   DateTime? @map("last_used_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions Session[]
+
+  @@index([userId], map: "passkeys_user_id_idx")
+  @@map("passkeys")
+}
+
+// One signed-in browser. The cookie holds a random token; only its SHA-256 is stored, so a leaked database copy
+// cannot be turned back into a working cookie.
+model Session {
+  id         Int      @id @default(autoincrement())
+  tokenHash  String   @unique(map: "sessions_token_hash_uidx") @map("token_hash")
+  userId     Int      @map("user_id")
+  // The passkey that opened it: removing a passkey ends every session it opened.
+  passkeyId  Int      @map("passkey_id")
+  // When the passkey was used for it: the absolute lifetime and "signed in recently" are measured from here.
+  signedInAt DateTime @map("signed_in_at") @db.Timestamptz(3)
+  // Moved forward at most once an hour while the session is used; the idle timeout is measured from here.
+  lastSeenAt DateTime @map("last_seen_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passkey Passkey @relation(fields: [passkeyId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "sessions_user_id_idx")
+  @@index([passkeyId], map: "sessions_passkey_id_idx")
+  @@index([lastSeenAt], map: "sessions_last_seen_at_idx")
+  @@map("sessions")
+}
+
+// A random value handed to the browser for one passkey ceremony. Used once, then deleted; it expires in minutes.
+model AuthChallenge {
+  id             Int                  @id @default(autoincrement())
+  challenge      String               @unique(map: "auth_challenges_challenge_uidx")
+  purpose        AuthChallengePurpose
+  // SETUP only: the WebAuthn user handle the new passkey is made for, kept until the user row exists.
+  webauthnUserId String?              @map("webauthn_user_id")
+  expiresAt      DateTime             @map("expires_at") @db.Timestamptz(3)
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([expiresAt], map: "auth_challenges_expires_at_idx")
+  @@map("auth_challenges")
+}
+
+// The one-time code that lets the first passkey be made, printed in the server log. Only its SHA-256 is kept, and
+// only while nobody has set the app up yet.
+model SetupCode {
+  id        Int      @id @default(autoincrement())
+  codeHash  String   @unique(map: "setup_codes_code_hash_uidx") @map("code_hash")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("setup_codes")
+}

@@ -3,7 +3,8 @@ import { renderRoutes, screen, userEvent } from '@test-utils';
 import { AuthStateUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS, BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { createRegistrationResponseMockModel } from '@mocks/handlers/auth/models/passkeyResponseMockModel.mock';
-import { MOCK_SETUP_CODE, mockStore, setMockAuthState } from '@mocks/mockStore';
+import { MOCK_SETUP_CODE } from '@mocks/mockAuth';
+import { mockStore, setMockAuthState } from '@mocks/mockStore';
 
 vi.mock('@simplewebauthn/browser', () => ({
   browserSupportsWebAuthn: vi.fn(() => true),

@@ -1,5 +1,5 @@
 import { buildApp, type App } from '../../app.ts';
-import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
+import { resetTestDb } from '../../testDb.ts';
 import { copyFunkoFile, funkoFolderExists, listFunkoFolder } from '../../lib/imageStorage.ts';
 import {
   createFunko,
@@ -13,14 +13,13 @@ import { deleteOrphanImageFiles } from './images.service.ts';
 
 const LOOSE_FILE_NAME = 'leftover.webp';
 const STRAY_FILE_NAME = 'upload.tmp';
-const VARIANTS_PER_IMAGE = 3;
+const SIZES_PER_IMAGE = 3;
 
 let app: App;
 let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {
@@ -47,7 +46,7 @@ async function firstLargeFile(funkoId: number): Promise<string> {
 }
 
 describe('deleteOrphanImageFiles', () => {
-  it('removes only the files no image row points at and keeps every variant of a used image', async () => {
+  it("removes only the stray files and keeps every size when a used image's folder holds copies no row points at", async () => {
     const groot = await createFunko({ name: 'Groot' });
     await uploadImage(groot.id);
     const largeFile = await firstLargeFile(groot.id);
@@ -57,10 +56,10 @@ describe('deleteOrphanImageFiles', () => {
     const removed = await deleteOrphanImageFiles();
 
     expect(removed).toBe(2);
-    expect(await listFunkoFolder(groot.id)).toHaveLength(VARIANTS_PER_IMAGE);
+    expect(await listFunkoFolder(groot.id)).toHaveLength(SIZES_PER_IMAGE);
   });
 
-  it('removes the folder of a funko whose image rows are all gone', async () => {
+  it("removes a funko's whole folder when all its image rows are gone", async () => {
     const groot = await createFunko({ name: 'Groot' });
     const eleven = await createFunko({ name: 'Eleven' });
     await uploadImage(groot.id);
@@ -69,7 +68,7 @@ describe('deleteOrphanImageFiles', () => {
 
     const removed = await deleteOrphanImageFiles();
 
-    expect(removed).toBe(VARIANTS_PER_IMAGE);
+    expect(removed).toBe(SIZES_PER_IMAGE);
     expect(await funkoFolderExists(eleven.id)).toBe(false);
     expect(await funkoFolderExists(groot.id)).toBe(true);
   });

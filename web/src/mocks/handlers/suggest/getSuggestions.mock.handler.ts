@@ -4,7 +4,8 @@ import type { SuggestApiModel } from '@app-types/models';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { filterFunkos, relevance } from '@mocks/handlers/funko/funkoSearchUtils';
 import { toFunkoSummary } from '@mocks/mockResponses';
-import { mockStore, type MockNamedRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockNamedRow } from '@mocks/mockStore.type';
 import { SUGGEST_QUERY_PARAM } from '@services/suggestService/suggestService';
 import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
 

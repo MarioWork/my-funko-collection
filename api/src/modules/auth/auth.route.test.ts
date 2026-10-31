@@ -1,5 +1,5 @@
 import { buildApp, type App } from '../../app.ts';
-import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
+import { resetTestDb } from '../../testDb.ts';
 import { SESSION_COOKIE_NAME } from '../../lib/sessionCookie.ts';
 import { createTag, signIn } from '../../testFixtures.ts';
 import type { AuthenticationOptionsResponse, RegistrationOptionsResponse } from './auth.schema.ts';
@@ -89,7 +89,6 @@ function verifySignIn(response: unknown, cookies: Record<string, string> = {}) {
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {

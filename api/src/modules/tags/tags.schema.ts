@@ -1,22 +1,22 @@
-import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { TAG_SORT_FIELDS, tags } from '../../db/schema/tags.ts';
+import { IdParamSchema } from '../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { ContainsQuerySchema } from '../../lib/queryParams.ts';
 
 export const TAG_NAME_MAX_LENGTH = 100;
 export const TAG_NOTES_MAX_LENGTH = 500;
 
+export const TAG_SORT_FIELDS = ['NAME', 'CREATION_DATE'] as const;
+export type TagSortField = (typeof TAG_SORT_FIELDS)[number];
+
 export const TagParamsSchema = z.object({
-  tagId: z.coerce.number().int().positive(),
+  tagId: IdParamSchema,
 });
 
-const TagInsertSchema = createInsertSchema(tags, {
-  name: (schema) => schema.trim().min(1).max(TAG_NAME_MAX_LENGTH),
-  notes: (schema) => schema.trim().max(TAG_NOTES_MAX_LENGTH),
-}).omit({ id: true, createdAt: true, updatedAt: true });
-
-export const CreateTagSchema = z.strictObject(TagInsertSchema.shape);
+export const CreateTagSchema = z.strictObject({
+  name: z.string().trim().min(1).max(TAG_NAME_MAX_LENGTH),
+  notes: z.string().trim().max(TAG_NOTES_MAX_LENGTH).nullable().optional(),
+});
 
 export const UpdateTagSchema = CreateTagSchema.partial();
 

@@ -30,7 +30,7 @@ export const ImageListEntrySchema = z
     // All of its stored sizes together.
     sizeBytes: z.number().int(),
     // How many of the three sizes are on disk (3 when all is well).
-    variantCount: z.number().int(),
+    sizeCount: z.number().int(),
     // Its funko's main image (the first one).
     isMain: z.boolean(),
     // Rows: when it was uploaded. Loose files: when the file was last written.

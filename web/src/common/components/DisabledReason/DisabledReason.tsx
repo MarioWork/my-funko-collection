@@ -3,13 +3,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip'
 
 type DisableableControl = ReactElement<{ focusableWhenDisabled?: boolean; 'aria-describedby'?: string }>;
 
+type DisabledReasonMode = 'button' | 'wrapper';
+
 type Props = {
   // Why the control is disabled. Pass it only while it is disabled; without one the control renders untouched.
   reason: string | undefined;
   // "button": a Base UI Button (the shadcn Button and IconButton). It stays hoverable and focusable while disabled,
   // so the tooltip opens on hover and on keyboard focus. "wrapper": anything else (menu item, switch, native
   // control); a span around it carries the tooltip on hover.
-  mode?: 'button' | 'wrapper';
+  mode?: DisabledReasonMode;
   // Wrapper mode only: how the span sits in its layout ("block" for a menu item, "flex w-full" for a full-width box).
   wrapperClassName?: string;
   children: DisableableControl;

@@ -1,5 +1,4 @@
 import { redirect, type ActionFunctionArgs } from 'react-router';
-import { ValidationError } from 'yup';
 import { withFreshSignIn } from '@api/passkeyFlows';
 import type { PasskeyApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
@@ -9,6 +8,7 @@ import { CreatePasskeySchema } from '@services/authService/authService.type';
 import { parseFormData } from '@utils/formDataUtils';
 import { createPasskey } from '@utils/passkeyUtils';
 import { addPasskeyFormSchema, type AddPasskeyFormData, type DeletePasskeyFormData } from './settingsUtils';
+import { failWhenInvalid } from '@utils/actionUtils';
 
 // Settings → Security. The passkey actions run their browser ceremony here too, started by the dialog's submit.
 
@@ -31,15 +31,11 @@ async function registerPasskey(name: string): Promise<JSONResponseUtil<PasskeyAp
 export const addPasskeyAction = async ({ request }: ActionFunctionArgs): Promise<JSONResponseUtil<PasskeyApiModel>> => {
   const { passkey, isReauth } = parseFormData<AddPasskeyFormData>(await request.formData());
 
-  try {
+  return failWhenInvalid(async () => {
     const { name } = await addPasskeyFormSchema.validate(passkey);
 
-    return await withFreshSignIn(isReauth === true, () => registerPasskey(name));
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return withFreshSignIn(isReauth === true, () => registerPasskey(name));
+  });
 };
 
 export const deletePasskeyAction = async ({ request, params }: ActionFunctionArgs): Promise<JSONResponseUtil> => {

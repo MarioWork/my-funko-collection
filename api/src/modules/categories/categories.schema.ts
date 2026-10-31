@@ -1,20 +1,20 @@
-import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { CATEGORY_SORT_FIELDS, categories } from '../../db/schema/categories.ts';
+import { IdParamSchema } from '../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { ContainsQuerySchema } from '../../lib/queryParams.ts';
 
 export const CATEGORY_NAME_MAX_LENGTH = 100;
 
+export const CATEGORY_SORT_FIELDS = ['NAME', 'CREATION_DATE'] as const;
+export type CategorySortField = (typeof CATEGORY_SORT_FIELDS)[number];
+
 export const CategoryParamsSchema = z.object({
-  categoryId: z.coerce.number().int().positive(),
+  categoryId: IdParamSchema,
 });
 
-const CategoryInsertSchema = createInsertSchema(categories, {
-  name: (schema) => schema.trim().min(1).max(CATEGORY_NAME_MAX_LENGTH),
-}).omit({ id: true, createdAt: true, updatedAt: true });
-
-export const CreateCategorySchema = z.strictObject(CategoryInsertSchema.shape);
+export const CreateCategorySchema = z.strictObject({
+  name: z.string().trim().min(1).max(CATEGORY_NAME_MAX_LENGTH),
+});
 
 export const UpdateCategorySchema = CreateCategorySchema.partial();
 

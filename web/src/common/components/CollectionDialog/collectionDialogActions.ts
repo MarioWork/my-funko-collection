@@ -1,5 +1,4 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { ValidationError } from 'yup';
 import type { CollectionApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import collectionService from '@services/collectionService/collectionService';
@@ -9,6 +8,7 @@ import {
   type CreateCollection,
 } from '@services/collectionService/collectionService.type';
 import { parseFormData } from '@utils/formDataUtils';
+import { failWhenInvalid } from '@utils/actionUtils';
 
 type CollectionFormData = { collection: CreateCollection };
 
@@ -19,19 +19,15 @@ export const saveCollectionAction = async ({
 }: ActionFunctionArgs): Promise<JSONResponseUtil<CollectionApiModel>> => {
   const { collection } = parseFormData<CollectionFormData>(await request.formData());
 
-  try {
+  return failWhenInvalid(async () => {
     if (params.collectionId) {
       const valid = await UpdateCollectionSchema.validate(collection);
 
-      return await collectionService.updateCollection(Number(params.collectionId), valid);
+      return collectionService.updateCollection(Number(params.collectionId), valid);
     }
 
     const valid = await CreateCollectionSchema.validate(collection);
 
-    return await collectionService.addCollection(valid);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return collectionService.addCollection(valid);
+  });
 };

@@ -1,84 +1,79 @@
-import { asc } from 'drizzle-orm';
-import { db } from '../../db/client.ts';
-import { categories } from '../../db/schema/categories.ts';
-import { collectionItems } from '../../db/schema/collectionItems.ts';
-import { collectionItemTags } from '../../db/schema/collectionItemTags.ts';
-import { collections } from '../../db/schema/collections.ts';
-import { funkoImages } from '../../db/schema/funkoImages.ts';
-import { funkos } from '../../db/schema/funkos.ts';
-import { series } from '../../db/schema/series.ts';
-import { tags } from '../../db/schema/tags.ts';
+import type { Prisma } from '../../generated/prisma/client.ts';
+import { prisma } from '../../lib/prisma.ts';
+
+const NAME_SELECT = { id: true, name: true } as const;
+
+const FUNKO_SELECT = {
+  id: true,
+  name: true,
+  number: true,
+  type: true,
+  categoryId: true,
+  seriesId: true,
+  isChase: true,
+  exclusive: true,
+  barcode: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Prisma.FunkoSelect;
+
+const IMAGE_SELECT = {
+  id: true,
+  funkoId: true,
+  fileKey: true,
+  position: true,
+} as const satisfies Prisma.FunkoImageSelect;
+
+const COLLECTION_SELECT = {
+  id: true,
+  name: true,
+  notes: true,
+  isDefault: true,
+} as const satisfies Prisma.CollectionSelect;
+
+const TAG_SELECT = { id: true, name: true, notes: true } as const satisfies Prisma.TagSelect;
+
+const ITEM_SELECT = {
+  id: true,
+  collectionId: true,
+  funkoId: true,
+  quantity: true,
+  condition: true,
+  purchasePriceCents: true,
+  purchaseCurrency: true,
+  purchasedAt: true,
+  notes: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Prisma.CollectionItemSelect;
+
+const ITEM_TAG_SELECT = { collectionItemId: true, tagId: true } as const satisfies Prisma.CollectionItemTagSelect;
+
+const BY_ID = { id: 'asc' } as const;
 
 // Whole tables, explicit columns, ordered by id so two exports of the same data are byte-identical.
 export const exportRepository = {
-  categories: () =>
-    db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.id)),
+  categories: () => prisma.category.findMany({ select: NAME_SELECT, orderBy: BY_ID }),
 
-  series: () => db.select({ id: series.id, name: series.name }).from(series).orderBy(asc(series.id)),
+  series: () => prisma.series.findMany({ select: NAME_SELECT, orderBy: BY_ID }),
 
-  funkos: () =>
-    db
-      .select({
-        id: funkos.id,
-        name: funkos.name,
-        number: funkos.number,
-        type: funkos.type,
-        categoryId: funkos.categoryId,
-        seriesId: funkos.seriesId,
-        isChase: funkos.isChase,
-        exclusive: funkos.exclusive,
-        barcode: funkos.barcode,
-        createdAt: funkos.createdAt,
-        updatedAt: funkos.updatedAt,
-      })
-      .from(funkos)
-      .orderBy(asc(funkos.id)),
+  funkos: () => prisma.funko.findMany({ select: FUNKO_SELECT, orderBy: BY_ID }),
 
   images: () =>
-    db
-      .select({
-        id: funkoImages.id,
-        funkoId: funkoImages.funkoId,
-        fileKey: funkoImages.fileKey,
-        position: funkoImages.position,
-      })
-      .from(funkoImages)
-      .orderBy(asc(funkoImages.funkoId), asc(funkoImages.position)),
+    prisma.funkoImage.findMany({ select: IMAGE_SELECT, orderBy: [{ funkoId: 'asc' }, { position: 'asc' }] }),
 
-  collections: () =>
-    db
-      .select({
-        id: collections.id,
-        name: collections.name,
-        notes: collections.notes,
-        isDefault: collections.isDefault,
-      })
-      .from(collections)
-      .orderBy(asc(collections.id)),
+  collections: () => prisma.collection.findMany({ select: COLLECTION_SELECT, orderBy: BY_ID }),
 
-  tags: () => db.select({ id: tags.id, name: tags.name, notes: tags.notes }).from(tags).orderBy(asc(tags.id)),
+  tags: () => prisma.tag.findMany({ select: TAG_SELECT, orderBy: BY_ID }),
 
-  items: () =>
-    db
-      .select({
-        id: collectionItems.id,
-        collectionId: collectionItems.collectionId,
-        funkoId: collectionItems.funkoId,
-        quantity: collectionItems.quantity,
-        condition: collectionItems.condition,
-        purchasePriceCents: collectionItems.purchasePriceCents,
-        purchaseCurrency: collectionItems.purchaseCurrency,
-        purchasedAt: collectionItems.purchasedAt,
-        notes: collectionItems.notes,
-        createdAt: collectionItems.createdAt,
-        updatedAt: collectionItems.updatedAt,
-      })
-      .from(collectionItems)
-      .orderBy(asc(collectionItems.id)),
+  items: () => prisma.collectionItem.findMany({ select: ITEM_SELECT, orderBy: BY_ID }),
 
-  itemTags: () =>
-    db
-      .select({ itemId: collectionItemTags.collectionItemId, tagId: collectionItemTags.tagId })
-      .from(collectionItemTags)
-      .orderBy(asc(collectionItemTags.collectionItemId), asc(collectionItemTags.tagId)),
+  itemTags: async () => {
+    const rows = await prisma.collectionItemTag.findMany({
+      select: ITEM_TAG_SELECT,
+      orderBy: [{ collectionItemId: 'asc' }, { tagId: 'asc' }],
+    });
+
+    return rows.map(({ collectionItemId, tagId }) => ({ itemId: collectionItemId, tagId }));
+  },
 };

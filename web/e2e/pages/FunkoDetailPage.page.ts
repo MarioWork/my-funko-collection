@@ -4,12 +4,20 @@ type ConfirmDeleteOptions = { alsoRemoveFromCollections: boolean };
 
 export class FunkoDetailPage {
   readonly title: Locator;
+  // The delete confirmation, once openDeleteDialog() has opened it.
+  readonly deleteDialog: Locator;
 
   private readonly page: Page;
 
   constructor(page: Page) {
     this.page = page;
     this.title = page.getByRole('heading', { level: 1 });
+    this.deleteDialog = page.getByRole('alertdialog');
+  }
+
+  // The dialog's "Also remove it from <collection>" checkbox, shown while the funko is in a collection.
+  removeFromCollectionCheckbox(collectionName: string): Locator {
+    return this.deleteDialog.getByRole('checkbox', { name: `Also remove it from ${collectionName}` });
   }
 
   // The funko's own ⋯ menu; each collection row has one too ("Actions for Owned").
@@ -22,10 +30,9 @@ export class FunkoDetailPage {
   }
 
   async confirmDelete({ alsoRemoveFromCollections }: ConfirmDeleteOptions) {
-    const dialog = this.page.getByRole('alertdialog');
+    if (alsoRemoveFromCollections)
+      await this.deleteDialog.getByRole('checkbox', { name: /^Also remove it from / }).check();
 
-    if (alsoRemoveFromCollections) await dialog.getByRole('checkbox', { name: /^Also remove it from / }).check();
-
-    await dialog.getByRole('button', { name: 'Delete' }).click();
+    await this.deleteDialog.getByRole('button', { name: 'Delete' }).click();
   }
 }

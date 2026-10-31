@@ -1,28 +1,14 @@
 // Row factories for tests. Each test creates its own data through these; nothing is shared between tests.
 import type { InjectOptions, LightMyRequestResponse } from 'fastify';
 import { randomBytes } from 'node:crypto';
-import { eq } from 'drizzle-orm';
 import type { App } from './app.ts';
-import { db } from './db/client.ts';
-import {
-  categories,
-  collectionItems,
-  collectionItemTags,
-  collections,
-  funkoImages,
-  funkos,
-  passkeys,
-  series,
-  sessions,
-  tags,
-  users,
-  type FunkoType,
-  type ItemCondition,
-} from './db/schema/index.ts';
 import { normaliseBarcode } from './lib/barcode.ts';
 import { generateImage, type GeneratedImageOptions } from './lib/imageStorage.ts';
+import { prisma } from './lib/prisma.ts';
 import { createSecureToken, hashSecureToken } from './lib/secureToken.ts';
 import { SESSION_COOKIE_NAME } from './lib/sessionCookie.ts';
+import type { ItemCondition } from './modules/collections/items/collectionItems.type.ts';
+import type { FunkoType } from './modules/funkos/funkos.type.ts';
 
 let sequence = 0;
 
@@ -33,11 +19,11 @@ function nextName(prefix: string): string {
 }
 
 export async function createCategory(name = nextName('Category')): Promise<{ id: number; name: string }> {
-  return db.insert(categories).values({ name }).returning({ id: categories.id, name: categories.name }).get();
+  return prisma.category.create({ data: { name }, select: { id: true, name: true } });
 }
 
 export async function createSeries(name = nextName('Series')): Promise<{ id: number; name: string }> {
-  return db.insert(series).values({ name }).returning({ id: series.id, name: series.name }).get();
+  return prisma.series.create({ data: { name }, select: { id: true, name: true } });
 }
 
 type FunkoOverrides = {
@@ -56,9 +42,8 @@ export async function createFunko(
 ): Promise<{ id: number; name: string; categoryId: number; seriesId: number | null }> {
   const categoryId = overrides.categoryId ?? (await createCategory()).id;
 
-  return db
-    .insert(funkos)
-    .values({
+  return prisma.funko.create({
+    data: {
       name: overrides.name ?? nextName('Funko'),
       number: overrides.number ?? String(sequence),
       categoryId,
@@ -68,27 +53,26 @@ export async function createFunko(
       exclusive: overrides.exclusive ?? '',
       // Stored the way the service stores it, so lookups by either barcode form find the row.
       barcode: overrides.barcode ? normaliseBarcode(overrides.barcode) : null,
-    })
-    .returning({ id: funkos.id, name: funkos.name, categoryId: funkos.categoryId, seriesId: funkos.seriesId })
-    .get();
+    },
+    select: { id: true, name: true, categoryId: true, seriesId: true },
+  });
 }
 
 export async function createCollection(
   overrides: { name?: string; isDefault?: boolean; notes?: string | null } = {},
 ): Promise<{ id: number; name: string }> {
-  return db
-    .insert(collections)
-    .values({
+  return prisma.collection.create({
+    data: {
       name: overrides.name ?? nextName('Collection'),
       isDefault: overrides.isDefault ?? false,
       notes: overrides.notes ?? null,
-    })
-    .returning({ id: collections.id, name: collections.name })
-    .get();
+    },
+    select: { id: true, name: true },
+  });
 }
 
 export async function createTag(name = nextName('Tag')): Promise<{ id: number; name: string }> {
-  return db.insert(tags).values({ name }).returning({ id: tags.id, name: tags.name }).get();
+  return prisma.tag.create({ data: { name }, select: { id: true, name: true } });
 }
 
 type ItemOverrides = {
@@ -105,9 +89,8 @@ export async function createItem(
   funkoId: number,
   overrides: ItemOverrides = {},
 ): Promise<{ id: number }> {
-  const item = await db
-    .insert(collectionItems)
-    .values({
+  const item = await prisma.collectionItem.create({
+    data: {
       collectionId,
       funkoId,
       quantity: overrides.quantity ?? 1,
@@ -115,13 +98,13 @@ export async function createItem(
       purchasePriceCents: overrides.purchasePriceCents ?? null,
       purchasedAt: overrides.purchasedAt ?? null,
       notes: overrides.notes ?? null,
-    })
-    .returning({ id: collectionItems.id })
-    .get();
+    },
+    select: { id: true },
+  });
   const tagIds = overrides.tagIds ?? [];
 
   if (tagIds.length > 0) {
-    await db.insert(collectionItemTags).values(tagIds.map((tagId) => ({ collectionItemId: item.id, tagId })));
+    await prisma.collectionItemTag.createMany({ data: tagIds.map((tagId) => ({ collectionItemId: item.id, tagId })) });
   }
 
   return item;
@@ -134,7 +117,7 @@ const DEFAULT_IMAGE_HEIGHT = 48;
 
 // Drops a funko's image rows but leaves their files on disk: the state a crash between the two would leave.
 export async function forgetImageRows(funkoId: number): Promise<void> {
-  await db.delete(funkoImages).where(eq(funkoImages.funkoId, funkoId));
+  await prisma.funkoImage.deleteMany({ where: { funkoId } });
 }
 
 // A generated image; `noise: true` makes it incompressible, for size-limit tests.
@@ -163,22 +146,20 @@ export type SignedInClient = {
 
 // The test user, made once per database: the app has one user at most.
 async function findOrCreateTestUser(): Promise<{ id: number }> {
-  const existing = await db.select({ id: users.id }).from(users).limit(1).get();
+  const existing = await prisma.user.findFirst({ select: { id: true } });
 
   if (existing) return existing;
 
-  return db
-    .insert(users)
-    .values({ name: TEST_USER_NAME, webauthnUserId: randomBytes(RANDOM_ID_BYTES).toString('base64url') })
-    .returning({ id: users.id })
-    .get();
+  return prisma.user.create({
+    data: { name: TEST_USER_NAME, webauthnUserId: randomBytes(RANDOM_ID_BYTES).toString('base64url') },
+    select: { id: true },
+  });
 }
 
 // A passkey row with a made-up key: enough for sessions to point at, it can't sign anything.
 export async function createPasskeyRow(userId: number, name = nextName('Passkey')): Promise<{ id: number }> {
-  return db
-    .insert(passkeys)
-    .values({
+  return prisma.passkey.create({
+    data: {
       credentialId: randomBytes(RANDOM_ID_BYTES).toString('base64url'),
       userId,
       name,
@@ -186,9 +167,9 @@ export async function createPasskeyRow(userId: number, name = nextName('Passkey'
       counter: 0,
       transports: ['internal'],
       isSynced: true,
-    })
-    .returning({ id: passkeys.id })
-    .get();
+    },
+    select: { id: true },
+  });
 }
 
 // A user with a live session, straight in the database (no passkey ceremony): `inject` sends its cookie.
@@ -203,9 +184,9 @@ export async function signIn(
   const signedInAt = options.signedInAt ?? new Date();
   const lastSeenAt = options.lastSeenAt ?? signedInAt;
 
-  await db
-    .insert(sessions)
-    .values({ tokenHash: hashSecureToken(token), userId: user.id, passkeyId: passkey.id, signedInAt, lastSeenAt });
+  await prisma.session.create({
+    data: { tokenHash: hashSecureToken(token), userId: user.id, passkeyId: passkey.id, signedInAt, lastSeenAt },
+  });
 
   return {
     userId: user.id,

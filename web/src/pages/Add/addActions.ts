@@ -1,5 +1,4 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { ValidationError } from 'yup';
 import type { FunkoApiModel } from '@app-types/models';
 import { DEFAULT_FIRST_PAGE, type JSONResponseUtil } from '@app-types/utility';
 import collectionItemService, { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
@@ -12,6 +11,7 @@ import { parseFormData } from '@utils/formDataUtils';
 import { newItemPayload } from '@utils/newItemUtils';
 import { PHOTO_FIELD } from '@utils/pendingPhotoUtils';
 import { AddIntentUtil, collectionIdSchema, incrementSchema, type AddItem, type AddResult } from './addUtils';
+import { failWhenInvalid } from '@utils/actionUtils';
 
 type CreateFormData = {
   intent: typeof AddIntentUtil.CREATE;
@@ -147,13 +147,9 @@ export const addFunkoAction = async ({ request }: ActionFunctionArgs): Promise<A
   const photos = formData.getAll(PHOTO_FIELD).filter((value): value is File => value instanceof File);
   const data = parseFormData<CreateFormData | IncrementFormData>(formData);
 
-  try {
-    if (data.intent === AddIntentUtil.INCREMENT) return await incrementInDestination(data);
+  return failWhenInvalid(async () => {
+    if (data.intent === AddIntentUtil.INCREMENT) return incrementInDestination(data);
 
-    return await createAndFile(data, photos);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return createAndFile(data, photos);
+  });
 };

@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { FUNKO_TYPES } from '../../db/schema/funkos.ts';
-import { ITEM_CONDITIONS } from '../../db/schema/collectionItems.ts';
+import { IdParamSchema } from '../../lib/ids.ts';
+import { ITEM_CONDITIONS } from '../collections/items/collectionItems.type.ts';
+import { FUNKO_TYPES } from '../funkos/funkos.type.ts';
 import { BooleanQuerySchema } from '../../lib/queryParams.ts';
 
 const ExportCategorySchema = z.object({ id: z.number().int(), name: z.string() });
@@ -60,7 +61,7 @@ export const ExportResponseSchema = z
   })
   .meta({ id: 'Export' });
 
-const OptionalIdSchema = z.coerce.number().int().positive().optional();
+const OptionalIdSchema = IdParamSchema.optional();
 
 // One filter at most: the funkos of one category, series, collection or tag, or one funko. None: every funko.
 export const ExportFunkosQuerySchema = z
