@@ -17,6 +17,8 @@ export const ListImagesQuerySchema = PaginationQuerySchema.extend({
 
 const ImageFunkoSchema = z.object({ id: z.number().int(), name: z.string(), number: z.string() });
 
+const ImageUploaderSchema = z.object({ id: z.number().int(), name: z.string() });
+
 export const ImageListEntrySchema = z
   .object({
     // "<folder>/<fileKey>": unique for rows and loose files alike.
@@ -35,6 +37,8 @@ export const ImageListEntrySchema = z
     isMain: z.boolean(),
     // Rows: when it was uploaded. Loose files: when the file was last written.
     createdAt: z.iso.datetime(),
+    // Who uploaded it. Null for a loose file, and for a row whose uploader was deleted (a removed user).
+    uploadedBy: ImageUploaderSchema.nullable(),
     url: z.string().nullable(),
     mediumUrl: z.string().nullable(),
     smallUrl: z.string().nullable(),

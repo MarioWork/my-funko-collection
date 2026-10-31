@@ -326,7 +326,7 @@ for (const [index, row] of funkoRows.entries()) {
     const hue = (index * HUE_STEP + position * (HUE_MAX / IMAGES_PER_FUNKO)) % HUE_MAX;
     const stored = await processImage(row.id, await seedImage(hue));
 
-    await prisma.funkoImage.create({ data: { funkoId: row.id, position, ...stored } });
+    await prisma.funkoImage.create({ data: { funkoId: row.id, uploadedById: seedUser.id, position, ...stored } });
     imageCount += 1;
   }
 }

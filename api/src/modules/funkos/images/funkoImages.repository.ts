@@ -4,6 +4,7 @@ import { ID_SELECT, prisma } from '../../../lib/prisma.ts';
 const IMAGE_SELECT = {
   id: true,
   funkoId: true,
+  uploadedById: true,
   fileKey: true,
   width: true,
   height: true,
