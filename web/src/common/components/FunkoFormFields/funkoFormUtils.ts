@@ -1,6 +1,6 @@
 import { boolean, object, string, type InferType } from 'yup';
-import type { FunkoApiModel } from '@app-types/models';
-import { FunkoTypeUtil } from '@app-types/utility';
+import type { CategoryApiModel, FunkoApiModel } from '@app-types/models';
+import { FunkoTypeUtil, SubmissionStatusUtil } from '@app-types/utility';
 import type { CreateFunko } from '@services/funkoService/funkoService.type';
 import {
   FUNKO_CATEGORY_REQUIRED_MESSAGE,
@@ -10,6 +10,11 @@ import {
   funkoNumberSchema,
   funkoTypeSchema,
 } from '@utils/funkoUtils';
+
+// A category or series the member typed in with a submission says so in the dropdown: nobody else sees it yet.
+export function referenceOptionLabel({ name, status }: Pick<CategoryApiModel, 'name' | 'status'>): string {
+  return status === SubmissionStatusUtil.WAITING ? `${name} (waiting for review)` : name;
+}
 
 // Form values are strings as inputs produce them; `toPayload` turns them into the service's shape.
 export const funkoFormSchema = object({

@@ -1,8 +1,8 @@
 import { defineNetworkFixture, type NetworkFixture, type NetworkFixtureOptions } from '@msw/playwright';
 import { test as base, expect } from '@playwright/test';
-import { AuthStateUtil } from '@app-types/utility';
+import { AuthStateUtil, UserRoleUtil } from '@app-types/utility';
 import { getHandlers } from '@mocks/handlers';
-import { resetMockStore, setMockAuthState } from '@mocks/mockStore';
+import { resetMockStore, setMockAuthState, setMockUserRole } from '@mocks/mockStore';
 import { BASE_URL } from '../playwright.config';
 
 // The app calls the API on its own origin (VITE_BASE_API_URL='/api'), so the mocks listen on the dev server's URL.
@@ -12,6 +12,8 @@ type Fixtures = {
   handlers: NetworkFixtureOptions['handlers'];
   // Where the mocks start: signed in (the default, so most tests skip the login), signed out, or before setup.
   authState: AuthStateUtil;
+  // Who is signed in: the admin (the default) or a member (`test.use({ userRole: UserRoleUtil.MEMBER })`).
+  userRole: UserRoleUtil;
   network: NetworkFixture;
   // Chrome's virtual authenticator (a platform passkey with user verification that always passes), so the app's
   // real WebAuthn calls run against the mocks. Opt in by naming it in a test.
@@ -32,10 +34,12 @@ const VIRTUAL_AUTHENTICATOR_OPTIONS = {
 export const test = base.extend<Fixtures>({
   handlers: [getHandlers(BASE_API_URL), { option: true }],
   authState: [AuthStateUtil.SIGNED_IN, { option: true }],
+  userRole: [UserRoleUtil.ADMIN, { option: true }],
   network: [
-    async ({ context, handlers, authState }, use) => {
+    async ({ context, handlers, authState, userRole }, use) => {
       resetMockStore();
       setMockAuthState(authState);
+      setMockUserRole(userRole);
 
       const network = defineNetworkFixture({ context, handlers });
 

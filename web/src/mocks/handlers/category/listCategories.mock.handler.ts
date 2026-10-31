@@ -5,7 +5,7 @@ import type { ResponseWithPaginationUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { paginateMockList } from '@mocks/mockListUtils';
 import { toCategoryModel } from '@mocks/mockResponses';
-import { mockStore } from '@mocks/mockStore';
+import { catalogueCategories } from '@mocks/mockCatalogueUtils';
 import { CategoryApiSearchFields, CategoryApiSortingFields } from '@services/categoryService/categoryService';
 
 export default (baseUrl: string) => [
@@ -15,7 +15,7 @@ export default (baseUrl: string) => [
       await delay(MOCK_DELAY);
 
       return HttpResponse.json(
-        paginateMockList(request, mockStore.categories.map(toCategoryModel), {
+        paginateMockList(request, catalogueCategories().map(toCategoryModel), {
           filters: { [CategoryApiSearchFields.NAME]: (category) => category.name },
           sorts: {
             [CategoryApiSortingFields.NAME]: (category) => category.name,

@@ -3,7 +3,6 @@ import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import EmptyState from '@components/EmptyState';
 import LinkButton from '@components/LinkButton';
 import { Button } from '@components/ui/button';
-import { useIsAdmin } from '@hooks/useIsAdmin';
 
 type Props = {
   isFiltered: boolean;
@@ -11,13 +10,10 @@ type Props = {
 };
 
 const EMPTY_TITLE = 'No funkos yet';
-const ADMIN_EMPTY_DESCRIPTION = 'Scan a box or type the first one in.';
-const MEMBER_EMPTY_DESCRIPTION = 'An admin adds the funkos; they show up here.';
+const EMPTY_DESCRIPTION = 'Scan a box or type the first one in.';
 
 // Two empty states that must not look alike: a fresh catalog, and a search that found nothing.
 function FunkoListEmpty({ isFiltered, onClearFilters }: Props) {
-  const isAdmin = useIsAdmin();
-
   if (isFiltered) {
     return (
       <EmptyState
@@ -38,13 +34,9 @@ function FunkoListEmpty({ isFiltered, onClearFilters }: Props) {
     );
   }
 
-  // Only an admin adds funkos, so a member's empty catalogue has nothing to start.
-  if (!isAdmin) {
-    return <EmptyState pose="waiting" title={EMPTY_TITLE} description={MEMBER_EMPTY_DESCRIPTION} />;
-  }
-
+  // Anyone may start it: an admin's funko joins the catalogue, a member's waits for an admin.
   return (
-    <EmptyState pose="waiting" title={EMPTY_TITLE} description={ADMIN_EMPTY_DESCRIPTION}>
+    <EmptyState pose="waiting" title={EMPTY_TITLE} description={EMPTY_DESCRIPTION}>
       <LinkButton to={ADD_ROUTES_PATHS.BASE}>
         <ScanBarcode data-icon="inline-start" aria-hidden="true" />
         Scan

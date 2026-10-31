@@ -1,29 +1,20 @@
 import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { badRequest, conflict, created, toFunkoModel } from '@mocks/mockResponses';
+import { newMockSubmissionColumns } from '@mocks/mockCatalogueUtils';
+import { conflict, created, toFunkoModel } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow } from '@mocks/mockStore.type';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
 import type { CreateFunko } from '@services/funkoService/funkoService.type';
-import { findDuplicate } from './funkoMockUtils';
+import { findBarcodeTwin, findDuplicate, referenceRefusal } from './funkoMockUtils';
 
+// An admin's new funko joins the catalogue; a member's is a waiting submission only they see.
 export default (baseUrl: string) => [
   http.post(`${baseUrl}/funkos`, async ({ request }) => {
     await delay(MOCK_DELAY);
 
     const body = (await request.json()) as CreateFunko;
-    const categoryExists = mockStore.categories.some((category) => category.id === body.categoryId);
-
-    if (!categoryExists) return badRequest(`Category ${body.categoryId} does not exist`);
-
-    const isSeriesMissing =
-      body.seriesId !== null &&
-      body.seriesId !== undefined &&
-      !mockStore.series.some((series) => series.id === body.seriesId);
-
-    if (isSeriesMissing) return badRequest(`Series ${body.seriesId} does not exist`);
-
     const row: MockFunkoRow = {
       id: nextId(mockStore.funkos),
       name: body.name,
@@ -34,14 +25,19 @@ export default (baseUrl: string) => [
       isChase: body.isChase,
       exclusive: body.exclusive,
       barcode: body.barcode ?? null,
+      ...newMockSubmissionColumns(),
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };
+    const refusal = referenceRefusal(row);
+
+    if (refusal) return refusal;
+
     const duplicate = findDuplicate(row);
 
     if (duplicate) return conflict('This funko already exists', duplicate.id);
 
-    const sameBarcode = row.barcode ? mockStore.funkos.find((funko) => funko.barcode === row.barcode) : undefined;
+    const sameBarcode = findBarcodeTwin(row);
 
     if (sameBarcode) return conflict('This barcode belongs to another funko', sameBarcode.id);
 

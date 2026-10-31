@@ -17,7 +17,7 @@ import {
 } from '@components/ui/dropdown-menu';
 import exportService from '@services/exportService/exportService';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
-import { useIsAdmin } from '@hooks/useIsAdmin';
+import { useCanEditFunko } from '@hooks/useCanEditFunko';
 import { useFunkoMemberships } from '../hooks/useFunkoMemberships';
 
 type Props = {
@@ -97,14 +97,14 @@ function DeleteGroup({ onDelete }: DeleteGroupProps) {
 }
 
 // The open ⋯ menu: Edit, Lists (every collection), Export, then Delete on its own. Edit and Delete change the shared
-// catalogue, so only an admin gets them; a member keeps Lists and Export.
+// catalogue, so only an admin gets them, and a member on their own waiting submission; anyone keeps Lists and Export.
 function FunkoActionsMenuContent({ funko, collections, items, onDelete }: Props) {
-  const isAdmin = useIsAdmin();
+  const canEdit = useCanEditFunko(funko);
 
   return (
     <DropdownMenuContent align="end">
       <DropdownMenuGroup>
-        {isAdmin ? (
+        {canEdit ? (
           <DropdownMenuItem render={<Link viewTransition to={FUNKO_ROUTES_PATHS.edit(String(funko.id))} />}>
             <Pencil aria-hidden="true" />
             Edit
@@ -113,7 +113,7 @@ function FunkoActionsMenuContent({ funko, collections, items, onDelete }: Props)
         <ListsSubmenu funko={funko} collections={collections} items={items} />
         <ExportSubmenu funko={funko} />
       </DropdownMenuGroup>
-      {isAdmin ? <DeleteGroup onDelete={onDelete} /> : null}
+      {canEdit ? <DeleteGroup onDelete={onDelete} /> : null}
     </DropdownMenuContent>
   );
 }

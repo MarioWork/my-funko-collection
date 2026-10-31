@@ -80,6 +80,11 @@ export const IMAGE_ROUTES_PATHS = {
   BASE: '/images',
 };
 
+// What the signed-in member sent in: their submissions, each with its state.
+export const SUBMISSION_ROUTES_PATHS = {
+  BASE: '/submissions',
+};
+
 // Admins only: every user, the dialog that creates one, and the one that manages one (role, a new temporary
 // password, delete).
 export const USER_ROUTES_PATHS = {

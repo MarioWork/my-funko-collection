@@ -1,7 +1,8 @@
 import { renderRoutes, screen, userEvent } from '@test-utils';
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { mockStore } from '@mocks/mockStore';
+import { MOCK_USER_ID } from '@mocks/mockAuth';
+import { addMockSubmission, mockStore } from '@mocks/mockStore';
 import { nextId } from '@mocks/mockStoreUtils';
 import { FUNKO_PAGE_SIZE } from './funkoListUtils';
 
@@ -49,4 +50,13 @@ it('starts over from the first page when the search changes', async () => {
   // A new list from page 1: the appended second page of the old one is gone.
   expect(await screen.findByText('All 2 funkos')).toBeVisible();
   expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
+});
+
+it('lists the signed-in user’s own waiting submission and never another member’s', async () => {
+  addMockSubmission({ name: 'Hulk Mine' });
+  addMockSubmission({ name: 'Hulk Theirs', submittedById: MOCK_USER_ID + 2 });
+  renderRoutes(funkoRoutes, { initialEntries: [`${FUNKO_ROUTES_PATHS.BASE}?q=${EXTRA_FUNKO_NAME}`] });
+
+  expect(await screen.findByText('Hulk Mine')).toBeVisible();
+  expect(screen.queryByText('Hulk Theirs')).not.toBeInTheDocument();
 });

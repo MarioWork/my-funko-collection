@@ -145,12 +145,24 @@ describe('saving without a photo', () => {
   });
 });
 
-it('tells a member that only an admin adds new funkos instead of showing the form', async () => {
+it('gives a member the New funko form and says it waits for an admin', async () => {
   setMockUserRole(UserRoleUtil.MEMBER);
   renderAddForm();
 
-  expect(await screen.findByRole('heading', { level: 1, name: 'Not in the catalogue' })).toBeVisible();
-  expect(screen.getByRole('status')).toHaveTextContent(/Only an admin can add a new funko/);
-  expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Scan another' })).toBeVisible();
+  expect(await screen.findByRole('heading', { level: 1, name: 'New funko' })).toBeVisible();
+  expect(screen.getByText(/It waits for an admin to approve it; only you see it until then/)).toBeVisible();
+  expect(screen.getByLabelText('Name')).toBeVisible();
+});
+
+it('marks a category a member typed in as waiting for review in the dropdown', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  renderAddForm();
+
+  await userEvent.click(await screen.findByRole('button', { name: 'New category' }));
+  await userEvent.type(screen.getByRole('textbox', { name: 'New category' }), 'Pop! Rocks');
+  await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+  const categorySelect = screen.getByRole('combobox', { name: 'Category' });
+
+  await waitFor(() => expect(categorySelect).toHaveDisplayValue('Pop! Rocks (waiting for review)'));
 });

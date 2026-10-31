@@ -3,7 +3,7 @@ import {
   ADMIN_GROUP_LABEL,
   ADMIN_ITEMS,
   APP_NAME,
-  MANAGE_ITEMS,
+  manageItemsFor,
   NAVIGATION_ITEMS,
   SETTINGS_ITEM,
   type NavigationItem,
@@ -68,7 +68,7 @@ function AdminGroup({ pathname }: AdminGroupProps) {
   );
 }
 
-// Desktop navigation: the four destinations, the manage pages, the Admin group (admins only), then Settings and
+// Desktop navigation: the four destinations, the manage pages (and a member's Submissions), the Admin group (admins only), then Settings and
 // the theme toggle in the footer. Adding lives in the page headers (Funkos, a collection, Home), not here. Collapses to icons from its edge (SidebarEdgeToggle), never hides; the edge is not draggable.
 function AppSidebar() {
   const { pathname } = useLocation();
@@ -95,7 +95,7 @@ function AppSidebar() {
         </SidebarMenu>
         <SidebarSeparator />
         <SidebarMenu className="gap-2 p-2 group-data-[collapsible=icon]:items-center">
-          {MANAGE_ITEMS.map((item) => (
+          {manageItemsFor(isAdmin).map((item) => (
             <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} />
           ))}
         </SidebarMenu>

@@ -3,11 +3,15 @@ import { deferred, renderRoutes, screen, userEvent, waitFor, within } from '@tes
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { UserRoleUtil } from '@app-types/utility';
-import { mockStore, setMockUserRole } from '@mocks/mockStore';
+import RouteError from '@pages/Error/RouteError';
+import { MOCK_USER_ID } from '@mocks/mockAuth';
+import { addMockSubmission, mockStore, setMockUserRole } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
 import { SERVER_ERROR_STATUS } from '@utils/httpStatusUtils';
 
 const WISHLIST_NAME = 'Wishlist';
+// A member other than the signed-in mock user.
+const OTHER_MEMBER_ID = MOCK_USER_ID + 2;
 
 // A funko the seed does not have on the Wishlist yet.
 function funkoOffTheWishlist() {
@@ -122,4 +126,29 @@ it('offers a member Lists and Export but no Edit or Delete in the actions menu',
   expect(screen.getByRole('menuitem', { name: 'Export' })).toBeVisible();
   expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
   expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
+});
+
+it('offers a member Edit and Delete, and says it is waiting, on their own waiting submission', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  const submission = addMockSubmission({ name: 'My Sent-in Funko' });
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(submission.id))] });
+
+  expect(await screen.findByText('Waiting')).toBeVisible();
+  expect(screen.getByText('Only you see it until an admin approves it.')).toBeVisible();
+
+  await userEvent.click(screen.getByRole('button', { name: `Actions for ${submission.name}` }));
+
+  expect(await screen.findByRole('menuitem', { name: 'Edit' })).toBeVisible();
+  expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeVisible();
+});
+
+it('shows the error page, never the funko, when a member opens another member’s waiting submission', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  const othersSubmission = addMockSubmission({ name: 'Their Funko', submittedById: OTHER_MEMBER_ID });
+  renderRoutes([{ errorElement: <RouteError />, children: funkoRoutes }], {
+    initialEntries: [FUNKO_ROUTES_PATHS.detail(String(othersSubmission.id))],
+  });
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Something went wrong' })).toBeVisible();
+  expect(screen.queryByText('Their Funko')).not.toBeInTheDocument();
 });
