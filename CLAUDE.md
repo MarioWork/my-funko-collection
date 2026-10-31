@@ -69,9 +69,10 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   those controls with `useIsAdmin()` (admin-only pages call `assertAdmin()` in their loader), and the mocks refuse
   them in `requireAdmin.mock.handler.ts`; keep the three in step.
 - Submissions (issue #9, `docs/adr/0001-shared-catalogue-own-collections.md`): a member's new funko, category or
-  series is `WAITING` with `submitted_by_id`, seen only by its sender in lists, search, suggestions, the barcode
-  lookup, counts and exports (`lib/catalogueVisibility.ts`; the raw funko list inlines the same rule); an admin's is
-  `APPROVED`. Creating them, and the funko and funko-image writes, are open to members: the services decide
+  series is `WAITING` with `submitted_by_id`; an admin's is `APPROVED`. The catalogue a user browses (lists, search,
+  suggestions, counts, barcode lookup, adding to a collection) is approved rows plus their own waiting ones
+  (`catalogueOf()` in `lib/catalogueVisibility.ts`; the raw funko list writes it in SQL); by id and in the export they
+  also see their own rejected or merged ones. Creating them, and the funko and funko-image writes, are open to members: the services decide
   (`funkos/funkos.access.ts`: an admin changes any funko, a member only their own waiting one, else 404 / 403
   `ADMIN_ONLY`). Those routes are `SUBMISSION_ROUTES` in `auth.route.test.ts`, which fails on a catalogue write in
   neither list. Barcode, identity and name uniqueness hold in the approved catalogue and within one member's waiting

@@ -76,7 +76,10 @@ BEGIN
     AND c."status" <> 'APPROVED'
     AND NOT EXISTS (SELECT 1 FROM "funkos" f WHERE f."category_id" = c."id");
 
-  DELETE FROM "series" s WHERE s."submitted_by_id" = OLD."id" AND s."status" <> 'APPROVED';
+  DELETE FROM "series" s
+  WHERE s."submitted_by_id" = OLD."id"
+    AND s."status" <> 'APPROVED'
+    AND NOT EXISTS (SELECT 1 FROM "funkos" f WHERE f."series_id" = s."id");
 
   RETURN OLD;
 END;

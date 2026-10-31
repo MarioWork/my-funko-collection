@@ -156,20 +156,19 @@ describe('POST /funkos', () => {
   });
 });
 
-describe('GET /categories and GET /series', () => {
-  it('hides a member’s new category and series from everyone else until approval', async () => {
+describe('GET /categories', () => {
+  it('lists a member’s new category only for that member when it waits for approval', async () => {
     await createCategory('Pop! Approved');
     await createCategory('Pop! Waiting', { status: 'WAITING', submittedById: member.userId });
-    await createSeries('Waiting Show', { status: 'WAITING', submittedById: member.userId });
 
     expect(await namesListed(member, '/categories')).toEqual(['Pop! Approved', 'Pop! Waiting']);
     expect(await namesListed(otherMember, '/categories')).toEqual(['Pop! Approved']);
     expect(await namesListed(admin, '/categories')).toEqual(['Pop! Approved']);
-    expect(await namesListed(member, '/series')).toEqual(['Waiting Show']);
-    expect(await namesListed(otherMember, '/series')).toEqual([]);
   });
+});
 
-  it('returns 404 for another member’s waiting category when a member asks for it', async () => {
+describe('GET /categories/:categoryId', () => {
+  it('returns 404 when a member asks for another member’s waiting category', async () => {
     const waiting = await createCategory('Pop! Waiting', { status: 'WAITING', submittedById: member.userId });
 
     const response = await otherMember.inject({ method: 'GET', url: `/categories/${waiting.id}` });
@@ -188,36 +187,63 @@ describe('GET /categories and GET /series', () => {
   });
 });
 
-describe('GET /funkos, /funkos/:id, /funkos/by-barcode and /suggest', () => {
-  it('hides another member’s waiting submission from search, suggestions, the barcode lookup and its page', async () => {
-    const waiting = await createFunko({
-      name: 'Secret Thanos',
-      barcode: BARCODE,
-      status: 'WAITING',
-      submittedById: member.userId,
-    });
+describe('GET /series', () => {
+  it('lists a member’s new series only for that member when it waits for approval', async () => {
+    await createSeries('Waiting Show', { status: 'WAITING', submittedById: member.userId });
 
-    const search = await otherMember.inject({ method: 'GET', url: '/funkos?q=thanos' });
-    const suggest = await otherMember.inject({ method: 'GET', url: '/suggest?q=thanos' });
-    const barcode = await otherMember.inject({ method: 'GET', url: `/funkos/by-barcode/${BARCODE}` });
-    const detail = await otherMember.inject({ method: 'GET', url: `/funkos/${waiting.id}` });
+    expect(await namesListed(member, '/series')).toEqual(['Waiting Show']);
+    expect(await namesListed(otherMember, '/series')).toEqual([]);
+  });
+});
 
-    expect(search.json<ListBody<unknown>>().totalResultNumber).toBe(0);
-    expect(suggest.json<{ funkos: unknown[] }>().funkos).toEqual([]);
-    expect(barcode.statusCode).toBe(404);
-    expect(detail.statusCode).toBe(404);
+describe('GET /funkos', () => {
+  it('finds a waiting submission for its sender only when the search matches it', async () => {
+    await createFunko({ name: 'Secret Thanos', status: 'WAITING', submittedById: member.userId });
+
+    const ownSearch = await member.inject({ method: 'GET', url: '/funkos?q=thanos' });
+    const otherSearch = await otherMember.inject({ method: 'GET', url: '/funkos?q=thanos' });
+
+    expect(ownSearch.json<ListBody<FunkoBody>>().data.map(({ name }) => name)).toEqual(['Secret Thanos']);
+    expect(otherSearch.json<ListBody<unknown>>().totalResultNumber).toBe(0);
   });
 
-  it('finds the sender’s own waiting submission in search, suggestions and the barcode lookup', async () => {
+  it('leaves out the sender’s rejected and merged submissions when they are no longer waiting', async () => {
+    await createFunko({ name: 'Rejected Thanos', status: 'REJECTED', submittedById: member.userId });
+    await createFunko({ name: 'Merged Thanos', status: 'MERGED', submittedById: member.userId });
+
+    const response = await member.inject({ method: 'GET', url: '/funkos?q=thanos' });
+
+    expect(response.json<ListBody<unknown>>().totalResultNumber).toBe(0);
+  });
+});
+
+describe('GET /suggest', () => {
+  it('suggests a waiting submission to its sender only when the query matches it', async () => {
+    await createFunko({ name: 'Secret Thanos', status: 'WAITING', submittedById: member.userId });
+
+    const own = await member.inject({ method: 'GET', url: '/suggest?q=thanos' });
+    const other = await otherMember.inject({ method: 'GET', url: '/suggest?q=thanos' });
+
+    expect(own.json<{ funkos: { name: string }[] }>().funkos.map(({ name }) => name)).toEqual(['Secret Thanos']);
+    expect(other.json<{ funkos: unknown[] }>().funkos).toEqual([]);
+  });
+});
+
+describe('GET /funkos/by-barcode/:barcode', () => {
+  it('finds the sender’s own waiting submission when they scan its box', async () => {
     await createFunko({ name: 'Secret Thanos', barcode: BARCODE, status: 'WAITING', submittedById: member.userId });
 
-    const search = await member.inject({ method: 'GET', url: '/funkos?q=thanos' });
-    const suggest = await member.inject({ method: 'GET', url: '/suggest?q=thanos' });
-    const barcode = await member.inject({ method: 'GET', url: `/funkos/by-barcode/${UPC_BARCODE}` });
+    const response = await member.inject({ method: 'GET', url: `/funkos/by-barcode/${UPC_BARCODE}` });
 
-    expect(search.json<ListBody<FunkoBody>>().data.map(({ name }) => name)).toEqual(['Secret Thanos']);
-    expect(suggest.json<{ funkos: { name: string }[] }>().funkos.map(({ name }) => name)).toEqual(['Secret Thanos']);
-    expect(barcode.json()).toMatchObject({ name: 'Secret Thanos', status: 'WAITING', isSubmittedByMe: true });
+    expect(response.json()).toMatchObject({ name: 'Secret Thanos', status: 'WAITING', isSubmittedByMe: true });
+  });
+
+  it('returns 404 when another member scans a box only someone’s waiting submission has', async () => {
+    await createFunko({ barcode: BARCODE, status: 'WAITING', submittedById: member.userId });
+
+    const response = await otherMember.inject({ method: 'GET', url: `/funkos/by-barcode/${BARCODE}` });
+
+    expect(response.statusCode).toBe(404);
   });
 
   it('answers the catalogue funko when a barcode is both approved and waiting with the caller', async () => {
@@ -227,6 +253,16 @@ describe('GET /funkos, /funkos/:id, /funkos/by-barcode and /suggest', () => {
     const response = await member.inject({ method: 'GET', url: `/funkos/by-barcode/${BARCODE}` });
 
     expect(response.json()).toMatchObject({ name: 'Catalogue', status: 'APPROVED' });
+  });
+});
+
+describe('GET /funkos/:funkoId', () => {
+  it('returns 404 when a member opens another member’s waiting submission', async () => {
+    const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
+
+    const response = await otherMember.inject({ method: 'GET', url: `/funkos/${waiting.id}` });
+
+    expect(response.statusCode).toBe(404);
   });
 
   it('lets an admin open a member’s waiting submission when they know its id', async () => {
@@ -267,20 +303,14 @@ describe('POST /collections/:id/items', () => {
   });
 });
 
-describe('PATCH /funkos/:funkoId and its images', () => {
-  it('saves the sender’s change and photo when the submission is still waiting', async () => {
+describe('PATCH /funkos/:funkoId', () => {
+  it('saves the sender’s change when the submission is still waiting', async () => {
     const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
 
-    const edit = await member.inject({ method: 'PATCH', url: `/funkos/${waiting.id}`, payload: { name: 'Fixed' } });
-    const upload = await member.inject({
-      method: 'POST',
-      url: `/funkos/${waiting.id}/images`,
-      payload: toFormData([{ buffer: await makeImage() }]),
-    });
+    const response = await member.inject({ method: 'PATCH', url: `/funkos/${waiting.id}`, payload: { name: 'Fixed' } });
 
-    expect(edit.statusCode).toBe(200);
-    expect(edit.json()).toMatchObject({ name: 'Fixed', status: 'WAITING' });
-    expect(upload.statusCode).toBe(201);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ name: 'Fixed', status: 'WAITING' });
   });
 
   it('returns 404 when another member tries to change someone’s waiting submission', async () => {
@@ -309,6 +339,20 @@ describe('PATCH /funkos/:funkoId and its images', () => {
   });
 });
 
+describe('POST /funkos/:funkoId/images', () => {
+  it('stores the sender’s photo when the submission is still waiting', async () => {
+    const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
+
+    const response = await member.inject({
+      method: 'POST',
+      url: `/funkos/${waiting.id}/images`,
+      payload: toFormData([{ buffer: await makeImage() }]),
+    });
+
+    expect(response.statusCode).toBe(201);
+  });
+});
+
 describe('DELETE /funkos/:funkoId', () => {
   it('withdraws the sender’s waiting submission when they delete it', async () => {
     const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
@@ -320,7 +364,7 @@ describe('DELETE /funkos/:funkoId', () => {
 });
 
 describe('GET /submissions', () => {
-  it('lists what the member sent in, newest first, with each state, and nobody else’s', async () => {
+  it('lists what the member sent in, newest first, with each state, when others sent some in too', async () => {
     await createFunko({ name: 'Older', status: 'APPROVED', submittedById: member.userId });
     await createFunko({ name: 'Newer', status: 'WAITING', submittedById: member.userId });
     await createFunko({ name: 'Theirs', status: 'WAITING', submittedById: otherMember.userId });
@@ -351,8 +395,9 @@ describe('GET /submissions', () => {
   });
 });
 
-describe('deleting a user', () => {
-  it('removes their submissions that never joined the catalogue and keeps the approved ones', async () => {
+// No route deletes a user yet (issue #7): the database trigger decides, whatever code deletes the row.
+describe('DELETE FROM users (trigger)', () => {
+  it('removes their never-approved submissions and keeps the approved ones when a user is deleted', async () => {
     const sender = await createUser('Leaving member');
     const waitingCategory = await createCategory('Pop! Theirs', { status: 'WAITING', submittedById: sender.id });
     const waiting = await createFunko({ categoryId: waitingCategory.id, status: 'WAITING', submittedById: sender.id });

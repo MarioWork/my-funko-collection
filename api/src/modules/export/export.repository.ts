@@ -1,5 +1,5 @@
 import type { Prisma } from '../../generated/prisma/client.ts';
-import { visibleTo } from '../../lib/catalogueVisibility.ts';
+import { sentInOrApproved } from '../../lib/catalogueVisibility.ts';
 import { prisma } from '../../lib/prisma.ts';
 
 const NAME_SELECT = { id: true, name: true } as const;
@@ -57,15 +57,17 @@ const BY_ID = { id: 'asc' } as const;
 // and the tags on them are only `userId`'s own.
 export const exportRepository = {
   categories: (userId: number) =>
-    prisma.category.findMany({ where: visibleTo(userId), select: NAME_SELECT, orderBy: BY_ID }),
+    prisma.category.findMany({ where: sentInOrApproved(userId), select: NAME_SELECT, orderBy: BY_ID }),
 
-  series: (userId: number) => prisma.series.findMany({ where: visibleTo(userId), select: NAME_SELECT, orderBy: BY_ID }),
+  series: (userId: number) =>
+    prisma.series.findMany({ where: sentInOrApproved(userId), select: NAME_SELECT, orderBy: BY_ID }),
 
-  funkos: (userId: number) => prisma.funko.findMany({ where: visibleTo(userId), select: FUNKO_SELECT, orderBy: BY_ID }),
+  funkos: (userId: number) =>
+    prisma.funko.findMany({ where: sentInOrApproved(userId), select: FUNKO_SELECT, orderBy: BY_ID }),
 
   images: (userId: number) =>
     prisma.funkoImage.findMany({
-      where: { funko: visibleTo(userId) },
+      where: { funko: sentInOrApproved(userId) },
       select: IMAGE_SELECT,
       orderBy: [{ funkoId: 'asc' }, { position: 'asc' }],
     }),
