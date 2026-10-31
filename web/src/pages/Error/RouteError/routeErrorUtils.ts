@@ -1,16 +1,8 @@
 import { isRouteErrorResponse } from 'react-router';
-
-export type ErrorKind = 'notFound' | 'adminOnly' | 'broken';
-
-export type ErrorCopy = {
-  // The storage-box label on the figure, as a tag reads "Box 3".
-  label: string;
-  title: string;
-  description: string;
-};
+import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
+import type { ErrorCopy, ErrorKind } from './routeError.type';
 
 const NOT_FOUND_STATUS = 404;
-const FORBIDDEN_STATUS = 403;
 
 export const ERROR_COPY: Record<ErrorKind, ErrorCopy> = {
   notFound: {

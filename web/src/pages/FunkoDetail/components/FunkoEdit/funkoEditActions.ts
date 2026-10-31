@@ -9,6 +9,7 @@ import { parseFormData } from '@utils/formDataUtils';
 import { newItemPayload } from '@utils/newItemUtils';
 import { FUNKO_ITEMS_PAGE_SIZE } from '../../funkoDetailUtils';
 import { failWhenInvalid } from '@utils/actionUtils';
+import { assertAdmin } from '@utils/adminRouteUtils';
 
 type EditFunkoFormData = { funko: UpdateFunko; collectionIds: number[] };
 
@@ -36,10 +37,14 @@ async function syncCollections(funkoId: number, collectionIds: number[]): Promis
 }
 
 // PATCH /funkos/:funkoId, then the collection changes. Photos are not part of it: they change right away in the form.
+// Admins only, like its loader: a fetcher submission runs the action without the loader.
 export const editFunkoAction = async ({
   request,
   params,
+  context,
 }: ActionFunctionArgs): Promise<JSONResponseUtil<FunkoApiModel>> => {
+  assertAdmin(context);
+
   const funkoId = Number(params.funkoId);
   const { funko, collectionIds } = parseFormData<EditFunkoFormData>(await request.formData());
 

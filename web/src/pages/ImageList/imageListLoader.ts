@@ -16,8 +16,8 @@ const SEARCH_FIELDS = Object.values(ImageApiSearchFields);
 
 // Reads the list state from the URL (view, search, filter, sort, page) and loads that page: of images, or of
 // funko groups when the list is grouped by funko.
-export async function loader({ request }: LoaderFunctionArgs) {
-  await assertAdmin();
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  assertAdmin(context);
 
   const searchParams = new URL(request.url).searchParams;
   const sortParam = searchParams.get(ApiUrlParamsUtil.sorting_fields) ?? '';

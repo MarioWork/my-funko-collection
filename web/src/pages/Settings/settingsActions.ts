@@ -3,6 +3,7 @@ import { withFreshSignIn } from '@api/passkeyFlows';
 import type { AuthSessionApiModel, PasskeyApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { forgetSignedInUser } from '@application/routes/signedInUserMiddleware';
 import authService from '@services/authService/authService';
 import { CreatePasskeySchema, SetPasswordSchema } from '@services/authService/authService.type';
 import { parseFormData } from '@utils/formDataUtils';
@@ -57,7 +58,12 @@ export const setPasswordAction = async ({
   return failWhenInvalid(async () => {
     const fields = await SetPasswordSchema.validate(credentials);
 
-    return withFreshSignIn(isReauth === true, () => authService.setPassword(fields));
+    const result = await withFreshSignIn(isReauth === true, () => authService.setPassword(fields));
+
+    // The user now has a username: the shell asks for it again when it revalidates.
+    if (result.success) forgetSignedInUser();
+
+    return result;
   });
 };
 
@@ -67,6 +73,8 @@ export const signOutAction = async (): Promise<JSONResponseUtil | Response> => {
 
   if (!result.success) return result;
 
+  forgetSignedInUser();
+
   return redirect(AUTH_ROUTES_PATHS.LOGIN);
 };
 
@@ -74,6 +82,8 @@ export const signOutEverywhereAction = async (): Promise<JSONResponseUtil | Resp
   const result = await authService.logoutEverywhere();
 
   if (!result.success) return result;
+
+  forgetSignedInUser();
 
   return redirect(AUTH_ROUTES_PATHS.LOGIN);
 };

@@ -56,7 +56,9 @@ function CurrentStep({ flow, destinationState, collections }: CurrentStepProps) 
     );
   }
 
-  if (step === AddStepUtil.FORM && !isAdmin) {
+  const isMemberForm = step === AddStepUtil.FORM && !isAdmin;
+
+  if (isMemberForm) {
     return <AdminOnlyNotice barcode={flow.formBarcode} onScanAnother={flow.scanAnother} />;
   }
 

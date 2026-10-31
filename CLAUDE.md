@@ -116,6 +116,10 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   two ramps: warm grey (stone) for everything, one teal accent from the logo for buttons, links, focus and selection.
   No `dark:` colour overrides, no hex in a component.
 - Every write is a React Router action through `useFetcher`; `fetcher.submit` returns a promise, so `void` it.
+- The signed-in user lives in React Router middleware (decided 2026-10-31 by Mario): the shell route's
+  `signedInUserMiddleware` (`src/application/routes/`) asks `/auth/status` once, keeps it until sign-out, a 401 or
+  a password save, and puts it in the router `context`. Loaders and actions read `context.get(signedInUserContext)`
+  (`assertAdmin(context)`); components use `useSignedInUser` / `useIsAdmin`. Never call `getStatus()` again.
 - Two reads call a service outside a loader, on purpose (kept 2026-10-23): the scanner's barcode lookup in
   `pages/Add/hooks/useAddFlow.ts` (reads `error.response` to tell "not found" from a failure) and the type-ahead in
   `common/hookUtils/useSuggestions.ts` (an effect, debounced). Do not add a third without asking.

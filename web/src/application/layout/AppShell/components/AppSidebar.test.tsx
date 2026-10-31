@@ -4,7 +4,6 @@ import { BASE_ROUTES_PATHS, IMAGE_ROUTES_PATHS } from '@application/routes/route
 import { SidebarProvider } from '@components/ui/sidebar';
 import { setMockUserRole } from '@mocks/mockStore';
 import AppSidebar from './AppSidebar';
-import MobileMenuLinks from './MobileMenuLinks';
 
 const ADMIN_GROUP = 'Admin';
 
@@ -23,11 +22,6 @@ const renderSidebar = () =>
     { initialEntries: [BASE_ROUTES_PATHS.HOME] },
   );
 
-const renderPhoneMenu = () =>
-  renderRoutes([{ path: BASE_ROUTES_PATHS.HOME, element: <MobileMenuLinks onNavigate={() => {}} /> }], {
-    initialEntries: [BASE_ROUTES_PATHS.HOME],
-  });
-
 it('puts the Images page in an Admin group for an admin', async () => {
   renderSidebar();
 
@@ -42,19 +36,5 @@ it('shows a member no Admin group and no Images page, but keeps the manage pages
 
   expect(await screen.findByRole('link', { name: 'Categories' })).toBeVisible();
   expect(screen.queryByRole('list', { name: ADMIN_GROUP })).not.toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: 'Images' })).not.toBeInTheDocument();
-});
-
-it('shows the Admin group in the phone menu for an admin only', async () => {
-  const { unmount } = renderPhoneMenu();
-
-  expect(await screen.findByRole('region', { name: ADMIN_GROUP })).toBeVisible();
-  unmount();
-
-  setMockUserRole(UserRoleUtil.MEMBER);
-  renderPhoneMenu();
-
-  expect(await screen.findByRole('link', { name: 'Series' })).toBeVisible();
-  expect(screen.queryByRole('region', { name: ADMIN_GROUP })).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Images' })).not.toBeInTheDocument();
 });

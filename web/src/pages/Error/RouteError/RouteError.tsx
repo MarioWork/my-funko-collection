@@ -7,7 +7,8 @@ import FunkoFigureArt from '@components/FunkoFigureArt';
 import LinkButton from '@components/LinkButton';
 import { Badge } from '@components/ui/badge';
 import { Button } from '@components/ui/button';
-import { ERROR_COPY, errorKindOf, type ErrorCopy, type ErrorKind } from './routeErrorUtils';
+import type { ErrorCopy, ErrorKind } from './routeError.type';
+import { ERROR_COPY, errorKindOf } from './routeErrorUtils';
 
 type ErrorFigureProps = {
   label: string;

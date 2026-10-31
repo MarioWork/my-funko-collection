@@ -10,6 +10,7 @@ type Props = {
   onClearFilters: () => void;
 };
 
+const EMPTY_TITLE = 'No funkos yet';
 const MEMBER_EMPTY_DESCRIPTION = 'An admin adds the funkos; they show up here.';
 
 // Two empty states that must not look alike: a fresh catalog, and a search that found nothing.
@@ -38,11 +39,11 @@ function FunkoListEmpty({ isFiltered, onClearFilters }: Props) {
 
   // Only an admin adds funkos, so a member's empty catalogue has nothing to start.
   if (!isAdmin) {
-    return <EmptyState pose="waiting" title="No funkos yet" description={MEMBER_EMPTY_DESCRIPTION} />;
+    return <EmptyState pose="waiting" title={EMPTY_TITLE} description={MEMBER_EMPTY_DESCRIPTION} />;
   }
 
   return (
-    <EmptyState pose="waiting" title="No funkos yet" description="Scan a box or type the first one in.">
+    <EmptyState pose="waiting" title={EMPTY_TITLE} description="Scan a box or type the first one in.">
       <LinkButton to={ADD_ROUTES_PATHS.BASE}>
         <ScanBarcode data-icon="inline-start" aria-hidden="true" />
         Scan

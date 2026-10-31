@@ -8,8 +8,8 @@ import { FUNKO_ITEMS_PAGE_SIZE } from '../../funkoDetailUtils';
 
 // The funko with its photos, the form's options (categories, collections, tags) and the collections it is in now.
 // Admins only: a member never edits the catalogue.
-export async function loader({ params }: LoaderFunctionArgs) {
-  await assertAdmin();
+export async function loader({ params, context }: LoaderFunctionArgs) {
+  assertAdmin(context);
 
   const funkoId = Number(params.funkoId);
   const pagination = { page: DEFAULT_FIRST_PAGE, size: FUNKO_ITEMS_PAGE_SIZE };

@@ -9,9 +9,11 @@ import {
   type RenderOptions,
 } from '@testing-library/react';
 import userEventBase from '@testing-library/user-event';
-import { createMemoryRouter, type RouteObject } from 'react-router';
+import { createMemoryRouter, type MiddlewareFunction, type RouteObject } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
+import { loader as appShellLoader } from '@application/layout/AppShell/appShellLoader';
 import { APP_SHELL_ROUTE_ID } from '@application/routes/routesUtils';
+import { signedInUserContext } from '@application/routes/signedInUserMiddleware';
 import { mockUserOf } from '@mocks/handlers/auth/authMockUtils';
 import { mockStore } from '@mocks/mockStore';
 
@@ -54,11 +56,17 @@ function withFreshLazy(routes: RouteObject[]): RouteObject[] {
   });
 }
 
-// A stand-in for the app shell around the pages under test: it holds the signed-in user (useSignedInUser,
-// useIsAdmin) the way the real shell's loader does, read from the mock store at load time. An admin unless the
-// test called setMockUserRole().
+// Stands in for the shell's signedInUserMiddleware: the mock store's user, whatever the sign-in state, so a page
+// outside the real shell (Login, Setup) renders without being sent away.
+const mockSignedInUserMiddleware: MiddlewareFunction = ({ context }) => {
+  context.set(signedInUserContext, mockUserOf(mockStore.auth));
+};
+
+// A stand-in for the app shell around the pages under test: it puts the signed-in user in the router context
+// (assertAdmin) and runs the real shell loader (useSignedInUser, useIsAdmin), read from the mock store at load
+// time. An admin unless the test called setMockUserRole().
 export function shellRoute(children: RouteObject[]): RouteObject {
-  return { id: APP_SHELL_ROUTE_ID, loader: () => ({ user: mockUserOf(mockStore.auth) }), children };
+  return { id: APP_SHELL_ROUTE_ID, middleware: [mockSignedInUserMiddleware], loader: appShellLoader, children };
 }
 
 function hasShellRoute(routes: RouteObject[]): boolean {

@@ -1,36 +1,61 @@
-import { http } from 'msw/http';
+import { http, type HttpRequestHandler } from 'msw/http';
 import { delay } from 'msw/utils/delay';
-import { UserRoleUtil } from '@app-types/utility';
+import { HttpVerbsUtil, UserRoleUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { errorResponse, FORBIDDEN_STATUS } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 
-const READ_METHOD = 'GET';
-// Every write under these is a catalogue write: funkos (and their images), categories, series.
-const CATALOGUE_PATH_PATTERN = /\/(funkos|categories|series)(\/|$)/;
-// The images lists and their export: read-only, but admin-only too.
-const IMAGES_PATH_PATTERN = /\/(images(\/groups)?|export\/images\.\w+)$/;
+type AdminOnlyVerb =
+  typeof HttpVerbsUtil.GET | typeof HttpVerbsUtil.POST | typeof HttpVerbsUtil.PATCH | typeof HttpVerbsUtil.DELETE;
 
-function isAdminOnly(request: Request): boolean {
-  const { pathname } = new URL(request.url);
-  const isRead = request.method === READ_METHOD;
-  const isCatalogueWrite = !isRead && CATALOGUE_PATH_PATTERN.test(pathname);
-  const isImagesRead = isRead && IMAGES_PATH_PATTERN.test(pathname);
+type AdminOnlyRoute = {
+  method: AdminOnlyVerb;
+  path: string;
+};
 
-  return isCatalogueWrite || isImagesRead;
+const HANDLER_BY_VERB: Record<AdminOnlyVerb, HttpRequestHandler> = {
+  [HttpVerbsUtil.GET]: http.get,
+  [HttpVerbsUtil.POST]: http.post,
+  [HttpVerbsUtil.PATCH]: http.patch,
+  [HttpVerbsUtil.DELETE]: http.delete,
+};
+
+// The same routes, in the same order, as ADMIN_ONLY_ROUTES in api/src/modules/auth/auth.route.test.ts: catalogue
+// writes (categories, series, funkos and their images) and the images lists. Keep the two in step.
+const ADMIN_ONLY_ROUTES: AdminOnlyRoute[] = [
+  { method: HttpVerbsUtil.POST, path: '/categories' },
+  { method: HttpVerbsUtil.PATCH, path: '/categories/:categoryId' },
+  { method: HttpVerbsUtil.DELETE, path: '/categories/:categoryId' },
+  { method: HttpVerbsUtil.POST, path: '/series' },
+  { method: HttpVerbsUtil.PATCH, path: '/series/:seriesId' },
+  { method: HttpVerbsUtil.DELETE, path: '/series/:seriesId' },
+  { method: HttpVerbsUtil.POST, path: '/funkos' },
+  { method: HttpVerbsUtil.PATCH, path: '/funkos/:funkoId' },
+  { method: HttpVerbsUtil.DELETE, path: '/funkos/:funkoId' },
+  { method: HttpVerbsUtil.POST, path: '/funkos/:funkoId/images' },
+  { method: HttpVerbsUtil.POST, path: '/funkos/:funkoId/images/from-url' },
+  { method: HttpVerbsUtil.PATCH, path: '/funkos/:funkoId/images/order' },
+  { method: HttpVerbsUtil.POST, path: '/funkos/:funkoId/images/:imageId/rotate' },
+  { method: HttpVerbsUtil.DELETE, path: '/funkos/:funkoId/images/:imageId' },
+  { method: HttpVerbsUtil.GET, path: '/images' },
+  { method: HttpVerbsUtil.GET, path: '/images/groups' },
+  { method: HttpVerbsUtil.GET, path: '/export/images.csv' },
+  { method: HttpVerbsUtil.GET, path: '/export/images.json' },
+  { method: HttpVerbsUtil.GET, path: '/export/images.xlsx' },
+];
+
+async function refuseMember() {
+  const isAdmin = mockStore.auth.role === UserRoleUtil.ADMIN;
+
+  if (isAdmin) return undefined;
+
+  await delay(MOCK_DELAY);
+
+  return errorResponse(FORBIDDEN_STATUS, AuthApiErrorCodes.ADMIN_ONLY, 'Only an admin can do this');
 }
 
-// Registered right after the session check: a member gets 403 ADMIN_ONLY on the routes the API keeps for admins
-// (its auth.route.test.ts ADMIN_ONLY_ROUTES). Otherwise it returns nothing and MSW moves on to the route's handler.
-export default (baseUrl: string) => [
-  http.all(`${baseUrl}/*`, async ({ request }) => {
-    const isAdmin = mockStore.auth.role === UserRoleUtil.ADMIN;
-
-    if (isAdmin || !isAdminOnly(request)) return undefined;
-
-    await delay(MOCK_DELAY);
-
-    return errorResponse(FORBIDDEN_STATUS, AuthApiErrorCodes.ADMIN_ONLY, 'Only an admin can do this');
-  }),
-];
+// Registered right after the session check: a member gets 403 ADMIN_ONLY on each admin-only route. An admin gets
+// nothing back here, and MSW moves on to the route's own handler.
+export default (baseUrl: string) =>
+  ADMIN_ONLY_ROUTES.map(({ method, path }) => HANDLER_BY_VERB[method](`${baseUrl}${path}`, refuseMember));

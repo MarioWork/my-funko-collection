@@ -9,6 +9,7 @@ import { useActionToast } from '@hooks/useActionToast';
 import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import ManageForm, { type ManageEntityFormData, type ManageFormValues } from '@components/ManageForm';
 import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
+import { useManageListContext } from '../hooks/useManageListContext';
 import type { ManageRow } from '../types';
 import ManageRowEditButtons from './ManageRowEditButtons';
 import { cn } from '@utils/classNameUtils';
@@ -19,7 +20,6 @@ type Props = {
   rowPath: string;
   hasNotes: boolean;
   noun: string;
-  canEdit: boolean;
 };
 
 const SUCCESS_MESSAGE_MAP: Record<string, (name: string) => string> = {
@@ -27,9 +27,10 @@ const SUCCESS_MESSAGE_MAP: Record<string, (name: string) => string> = {
   [HttpVerbsUtil.DELETE]: (name) => `Deleted ${name}`,
 };
 
-// View mode: name, notes, what it is attached to, export its funkos, rename and delete (only when `canEdit`).
-// Rename swaps the row for the inline form.
-function ManageRowItem({ row, rowPath, hasNotes, noun, canEdit }: Props) {
+// View mode: name, notes, what it is attached to, export its funkos, rename and delete (only when the list's
+// context says `canEdit`). Rename swaps the row for the inline form.
+function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
+  const { canEdit } = useManageListContext();
   const fetcher = useFetcher<JSONResponseUtil>();
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);

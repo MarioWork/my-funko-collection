@@ -4,7 +4,7 @@ import type { ExportListKindUtil } from '@app-types/utility';
 import AddFab from '@components/AddFab';
 import LinkButton from '@components/LinkButton';
 import ListExportMenu from '@components/ListExportMenu';
-import ManageList, { type ManageRow } from '@components/ManageList';
+import ManageList, { ManageListContext, type ManageRow } from '@components/ManageList';
 import PageHeader from '@components/PageHeader';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import { reasonWhen } from '@utils/disabledReasonUtils';
@@ -76,15 +76,16 @@ function ManageListPage({
           />
         }
       />
-      <ManageList
-        rows={rows}
-        noun={noun}
-        hasNotes={hasNotes}
-        rowPath={rowPath}
-        emptyTitle={emptyTitle}
-        emptyDescription={emptyDescription}
-        canEdit={canEdit}
-      />
+      <ManageListContext value={{ canEdit }}>
+        <ManageList
+          rows={rows}
+          noun={noun}
+          hasNotes={hasNotes}
+          rowPath={rowPath}
+          emptyTitle={emptyTitle}
+          emptyDescription={emptyDescription}
+        />
+      </ManageListContext>
       {canEdit ? <AddFab to={addPath} label={addLabel} /> : null}
       {canEdit ? <Outlet /> : null}
     </div>
