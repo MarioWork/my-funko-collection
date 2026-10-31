@@ -6,6 +6,8 @@ import { mockDate, mockEnv } from './mockStoreUtils';
 // The first-run code the mocks accept, as the server would print it in /setup?code=...
 export const MOCK_SETUP_CODE = 'funko-first-run';
 const MOCK_USER_NAME = 'Mario';
+// The one mock user's id: what the images they upload record as their uploader.
+export const MOCK_USER_ID = 1;
 
 const SEED_PASSKEYS: MockPasskeyRow[] = [
   {

@@ -31,3 +31,24 @@ it('saves a view picked on the page as this device’s default', async () => {
 
   expect(window.localStorage.getItem(IMAGE_VIEW_STORAGE_KEY)).toBe(ImageViewUtil.IMAGES);
 });
+
+it('shows who uploaded each image, and a removed user for an uploader who was deleted', async () => {
+  window.localStorage.setItem(IMAGE_VIEW_STORAGE_KEY, ImageViewUtil.IMAGES);
+  renderPage();
+
+  await screen.findByRole('button', { name: 'View: All images' });
+
+  expect(screen.getByRole('columnheader', { name: 'Uploaded by' })).toBeVisible();
+  expect(screen.getAllByRole('cell', { name: 'Mario' }).length).toBeGreaterThan(0);
+  expect(screen.getAllByRole('cell', { name: 'Removed user' })).toHaveLength(2);
+});
+
+it('names the uploader and the upload time in the preview', async () => {
+  window.localStorage.setItem(IMAGE_VIEW_STORAGE_KEY, ImageViewUtil.IMAGES);
+  renderPage();
+
+  const [kratosImage] = await screen.findAllByRole('button', { name: /^Preview Kratos #25/ });
+  await userEvent.click(kratosImage ?? document.body);
+
+  expect(await screen.findByText(/Uploaded by a removed user on /)).toBeVisible();
+});

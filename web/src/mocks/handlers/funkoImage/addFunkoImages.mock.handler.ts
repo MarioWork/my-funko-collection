@@ -2,7 +2,8 @@ import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from '@mocks/mockImageUtils';
-import { badRequest, created, notFound } from '@mocks/mockResponses';
+import { MOCK_USER_ID } from '@mocks/mockAuth';
+import { badRequest, created, notFound, toFunkoImageModel } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockImageRow } from '@mocks/mockStore.type';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
@@ -19,6 +20,7 @@ function storeImage(funkoId: number, label: string): MockImageRow {
     position: siblings.length,
     sizeBytes: MOCK_IMAGE_SIZE_BYTES,
     createdAt: nowIso(),
+    uploadedById: MOCK_USER_ID,
     ...createMockImageUrls(label, id),
   };
 
@@ -26,8 +28,6 @@ function storeImage(funkoId: number, label: string): MockImageRow {
 
   return row;
 }
-
-const withoutFunkoId = ({ funkoId: _funkoId, ...image }: MockImageRow) => image;
 
 export default (baseUrl: string) => [
   http.post(`${baseUrl}/funkos/:funkoId/images`, async ({ params, request }) => {
@@ -44,6 +44,6 @@ export default (baseUrl: string) => [
 
     const stored = files.map((file) => storeImage(funko.id, file.name.replace(FILE_EXTENSION, '') || funko.name));
 
-    return created(stored.map(withoutFunkoId));
+    return created(stored.map(toFunkoImageModel));
   }),
 ];
