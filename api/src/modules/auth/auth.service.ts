@@ -495,8 +495,8 @@ export async function addPasswordSession(
 
 // Replacing a temporary password with itself is not replacing it.
 async function assertNotTemporaryPassword(userId: number, password: string): Promise<void> {
-  const holder = await authRepository.findPasswordHolder(userId);
-  const temporaryHash = holder?.passwordHash;
+  const user = await authRepository.findPasswordUserById(userId);
+  const temporaryHash = user?.passwordHash;
 
   if (!temporaryHash) return;
 

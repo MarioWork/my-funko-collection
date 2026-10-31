@@ -39,6 +39,9 @@ export const passwordSchema = string()
   .required('Type your password')
   .max(PASSWORD_MAX_LENGTH, `Keep it to ${PASSWORD_MAX_LENGTH} characters or fewer`);
 
+// Under every "new password" field.
+export const NEW_PASSWORD_HINT = `At least ${PASSWORD_MIN_LENGTH} characters. A few words in a row is easy to remember and hard to guess.`;
+
 export const newPasswordSchema = passwordSchema.min(
   PASSWORD_MIN_LENGTH,
   `Use at least ${PASSWORD_MIN_LENGTH} characters. A few words in a row works well.`,
