@@ -15,6 +15,7 @@ const URL = '/images';
 const LOOSE_FILE_NAME = 'leftover.webp';
 const UPLOADER_NAME = 'Bea';
 
+type Uploader = { id: number; name: string };
 type ImageEntry = {
   key: string;
   id: number | null;
@@ -24,7 +25,7 @@ type ImageEntry = {
   sizeBytes: number;
   sizeCount: number;
   width: number | null;
-  uploadedBy: { id: number; name: string } | null;
+  uploadedBy: Uploader | null;
   createdAt: string;
 };
 type ListBody = { data: ImageEntry[]; totalResultNumber: number };
@@ -169,6 +170,7 @@ describe('GET /images', () => {
     await deleteUser(uploader.id);
 
     const response = await api.inject({ method: 'GET', url: URL });
+
     const body = response.json<ListBody>();
     expect(body.totalResultNumber).toBe(1);
     expect(body.data[0]).toMatchObject({ funko: { name: 'Eleven' }, uploadedBy: null });
