@@ -64,8 +64,8 @@ describe('GET /collections', () => {
   });
 });
 
-describe('/collections/:collectionId', () => {
-  it('returns 404 for another user’s collection on read, rename and delete, and leaves it as it was', async () => {
+describe('GET|PATCH|DELETE /collections/:collectionId', () => {
+  it('returns 404 and leaves the collection as it was when another user reads, renames or deletes it', async () => {
     const url = `/collections/${theirCollection.id}`;
 
     const read = await me.inject({ method: 'GET', url });
@@ -79,8 +79,10 @@ describe('/collections/:collectionId', () => {
     const stillTheirs = await them.inject({ method: 'GET', url });
     expect(stillTheirs.json()).toMatchObject({ name: 'For sale', isDefault: false, itemCount: 1 });
   });
+});
 
-  it('creates a collection whose name another user already has, and moves only the user’s own default', async () => {
+describe('POST /collections', () => {
+  it('creates the collection and moves only the user’s own default when another user already has that name', async () => {
     const created = await me.inject({
       method: 'POST',
       url: '/collections',
@@ -97,8 +99,8 @@ describe('/collections/:collectionId', () => {
   });
 });
 
-describe('/collections/:collectionId/items', () => {
-  it('returns 404 for every item route inside another user’s collection', async () => {
+describe('GET|POST|PATCH|DELETE /collections/:collectionId/items/*', () => {
+  it('returns 404 on every item route when the collection is another user’s', async () => {
     const itemsUrl = `/collections/${theirCollection.id}/items`;
     const itemUrl = `${itemsUrl}/${theirItemId}`;
     const myOwnedId = await defaultCollectionId(me.userId);
@@ -166,7 +168,9 @@ describe('GET /funkos', () => {
     expect(inNone.json<Page<Named>>().data.map(({ name }) => name)).toEqual(['Kratos']);
     expect(byTheirId.json()).toMatchObject({ data: [], totalResultNumber: 0 });
   });
+});
 
+describe('DELETE /funkos/:funkoId', () => {
   it('names only the user’s own collections when a funko another user has cannot be deleted', async () => {
     const response = await me.inject({ method: 'DELETE', url: `/funkos/${funkoId}` });
 

@@ -31,12 +31,14 @@ CREATE UNIQUE INDEX "collections_user_id_is_default_uidx" ON "collections"("user
 
 -- Every user has "Owned" (the default) and "Wishlist" from the moment they exist, whichever code makes the user:
 -- the first setup, the seed, the tests, later the admin's Users page. Kept by hand (Prisma does not know triggers).
+-- Each insert skips a collection the user already has.
 CREATE FUNCTION "add_default_collections"() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   INSERT INTO "collections" ("user_id", "name", "notes", "is_default")
   VALUES
     (NEW."id", 'Owned', 'Everything on the shelves and in the boxes', true),
-    (NEW."id", 'Wishlist', 'Next buys', false);
+    (NEW."id", 'Wishlist', 'Next buys', false)
+  ON CONFLICT ("user_id", "name") DO NOTHING;
 
   RETURN NEW;
 END;
