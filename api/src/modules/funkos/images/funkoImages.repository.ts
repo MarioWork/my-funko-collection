@@ -1,92 +1,88 @@
-import { and, asc, eq, max, count } from 'drizzle-orm';
-import { db, type DbExecutor } from '../../../db/client.ts';
-import { funkoImages, type FunkoImage, type NewFunkoImage } from '../../../db/schema/funkoImages.ts';
+import type { FunkoImage, Prisma } from '../../../generated/prisma/client.ts';
+import { ID_SELECT, prisma } from '../../../lib/prisma.ts';
 
-const IMAGE_COLUMNS = {
-  id: funkoImages.id,
-  funkoId: funkoImages.funkoId,
-  fileKey: funkoImages.fileKey,
-  width: funkoImages.width,
-  height: funkoImages.height,
-  sizeBytes: funkoImages.sizeBytes,
-  contentHash: funkoImages.contentHash,
-  placeholder: funkoImages.placeholder,
-  position: funkoImages.position,
-  createdAt: funkoImages.createdAt,
-  updatedAt: funkoImages.updatedAt,
-} as const;
+const IMAGE_SELECT = {
+  id: true,
+  funkoId: true,
+  fileKey: true,
+  width: true,
+  height: true,
+  sizeBytes: true,
+  contentHash: true,
+  placeholder: true,
+  position: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Prisma.FunkoImageSelect;
 
-// IMAGE_COLUMNS is every column, so a selected row is the table's own row type.
+const FILE_KEY_SELECT = { fileKey: true } as const;
+
+// IMAGE_SELECT is every column, so a selected row is the model's own type.
 export type FunkoImageRow = FunkoImage;
+
+export type NewFunkoImage = Omit<Prisma.FunkoImageUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>;
 
 export type StoredFileUpdate = Pick<
   FunkoImage,
   'fileKey' | 'width' | 'height' | 'sizeBytes' | 'contentHash' | 'placeholder'
 >;
 
+const POSITION_ORDER = [
+  { position: 'asc' },
+  { id: 'asc' },
+] as const satisfies Prisma.FunkoImageOrderByWithRelationInput[];
+
 export const funkoImagesRepository = {
-  listByFunko: (funkoId: number, executor: DbExecutor = db): Promise<FunkoImage[]> =>
-    executor
-      .select(IMAGE_COLUMNS)
-      .from(funkoImages)
-      .where(eq(funkoImages.funkoId, funkoId))
-      .orderBy(asc(funkoImages.position), asc(funkoImages.id)),
+  // The parent funko's 404, checked here so this sub-resource never imports the parent's service back.
+  funkoExists: async (funkoId: number): Promise<boolean> => (await prisma.funko.count({ where: { id: funkoId } })) > 0,
 
-  findById: (funkoId: number, imageId: number, executor: DbExecutor = db): Promise<FunkoImage | undefined> =>
-    executor
-      .select(IMAGE_COLUMNS)
-      .from(funkoImages)
-      .where(and(eq(funkoImages.funkoId, funkoId), eq(funkoImages.id, imageId)))
-      .get(),
+  listByFunko: (funkoId: number): Promise<FunkoImage[]> =>
+    prisma.funkoImage.findMany({ where: { funkoId }, select: IMAGE_SELECT, orderBy: [...POSITION_ORDER] }),
 
-  findIdByHash: (funkoId: number, contentHash: string, executor: DbExecutor = db) =>
-    executor
-      .select({ id: funkoImages.id })
-      .from(funkoImages)
-      .where(and(eq(funkoImages.funkoId, funkoId), eq(funkoImages.contentHash, contentHash)))
-      .get(),
+  findById: async (funkoId: number, imageId: number): Promise<FunkoImage | undefined> =>
+    (await prisma.funkoImage.findFirst({ where: { funkoId, id: imageId }, select: IMAGE_SELECT })) ?? undefined,
 
-  countByFunko: async (funkoId: number, executor: DbExecutor = db): Promise<number> => {
-    const row = await executor
-      .select({ total: count() })
-      .from(funkoImages)
-      .where(eq(funkoImages.funkoId, funkoId))
-      .get();
+  findIdByHash: async (funkoId: number, contentHash: string) =>
+    (await prisma.funkoImage.findFirst({ where: { funkoId, contentHash }, select: ID_SELECT })) ?? undefined,
 
-    return row?.total ?? 0;
+  countByFunko: (funkoId: number): Promise<number> => prisma.funkoImage.count({ where: { funkoId } }),
+
+  nextPosition: async (funkoId: number): Promise<number> => {
+    const totals = await prisma.funkoImage.aggregate({ where: { funkoId }, _max: { position: true } });
+
+    return (totals._max.position ?? -1) + 1;
   },
 
-  nextPosition: async (funkoId: number, executor: DbExecutor = db): Promise<number> => {
-    const row = await executor
-      .select({ highest: max(funkoImages.position) })
-      .from(funkoImages)
-      .where(eq(funkoImages.funkoId, funkoId))
-      .get();
+  create: (data: NewFunkoImage): Promise<FunkoImage> => prisma.funkoImage.create({ data, select: IMAGE_SELECT }),
 
-    return (row?.highest ?? -1) + 1;
+  replaceFile: async (imageId: number, data: StoredFileUpdate): Promise<FunkoImage | undefined> => {
+    const [updated] = await prisma.funkoImage.updateManyAndReturn({
+      where: { id: imageId },
+      data,
+      select: IMAGE_SELECT,
+    });
+
+    return updated;
   },
-
-  create: (data: NewFunkoImage, executor: DbExecutor = db): Promise<FunkoImage> =>
-    executor.insert(funkoImages).values(data).returning(IMAGE_COLUMNS).get(),
-
-  replaceFile: (imageId: number, data: StoredFileUpdate, executor: DbExecutor = db): Promise<FunkoImage | undefined> =>
-    executor.update(funkoImages).set(data).where(eq(funkoImages.id, imageId)).returning(IMAGE_COLUMNS).get(),
 
   // Positions follow the order of `imageIds`; runs in one transaction so a half-applied order never shows.
-  setPositions: (funkoId: number, imageIds: number[]): Promise<void> =>
-    db.transaction(async (tx) => {
-      for (const [position, imageId] of imageIds.entries()) {
-        await tx
-          .update(funkoImages)
-          .set({ position })
-          .where(and(eq(funkoImages.funkoId, funkoId), eq(funkoImages.id, imageId)));
-      }
-    }),
+  setPositions: async (funkoId: number, imageIds: number[]): Promise<void> => {
+    await prisma.$transaction(
+      imageIds.map((imageId, position) =>
+        prisma.funkoImage.updateMany({ where: { funkoId, id: imageId }, data: { position } }),
+      ),
+    );
+  },
 
-  delete: (funkoId: number, imageId: number, executor: DbExecutor = db): Promise<{ fileKey: string } | undefined> =>
-    executor
-      .delete(funkoImages)
-      .where(and(eq(funkoImages.funkoId, funkoId), eq(funkoImages.id, imageId)))
-      .returning({ fileKey: funkoImages.fileKey })
-      .get(),
+  // Read and delete in one transaction, so the file key returned is the one of the row that went.
+  delete: (funkoId: number, imageId: number): Promise<{ fileKey: string } | undefined> =>
+    prisma.$transaction(async (tx) => {
+      const image = await tx.funkoImage.findFirst({ where: { funkoId, id: imageId }, select: FILE_KEY_SELECT });
+
+      if (!image) return undefined;
+
+      await tx.funkoImage.delete({ where: { id: imageId } });
+
+      return image;
+    }),
 };

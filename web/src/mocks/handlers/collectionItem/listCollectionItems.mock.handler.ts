@@ -5,7 +5,8 @@ import type { ResponseWithPaginationUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { idList, paginateMockList } from '@mocks/mockListUtils';
 import { notFound, toItemModel } from '@mocks/mockResponses';
-import { mockStore, type MockItemRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockItemRow } from '@mocks/mockStore.type';
 import { ItemApiSearchFields, ItemApiSortingFields } from '@services/collectionItemService/collectionItemService';
 
 function listItems(request: Request, rows: MockItemRow[]): ResponseWithPaginationUtil<CollectionItemApiModel> {

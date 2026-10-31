@@ -1,5 +1,5 @@
 import { buildApp, type App } from '../../../app.ts';
-import { prepareTestDb, resetTestDb } from '../../../db/testDb.ts';
+import { resetTestDb } from '../../../testDb.ts';
 import {
   createCategory,
   createCollection,
@@ -13,6 +13,8 @@ import {
 
 const MISSING_ID = 999;
 const INVALID_ID = 'abc';
+// One past the largest Postgres integer, the type of the price column.
+const PRICE_PAST_INTEGER_RANGE = 2_147_483_648;
 
 type ItemBody = {
   id: number;
@@ -33,7 +35,6 @@ let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {
@@ -250,6 +251,19 @@ describe('POST /collections/:collectionId/items', () => {
       notes: 'Birthday gift',
       tags: [{ name: 'Box 3' }, { name: 'Shelf' }],
     });
+  });
+
+  it('returns 400 with VALIDATION_ERROR when the price is past the integer range', async () => {
+    const { owned, spiderMan } = await seed();
+
+    const response = await api.inject({
+      method: 'POST',
+      url: itemsUrl(owned.id),
+      payload: { funkoId: spiderMan.id, purchasePriceCents: PRICE_PAST_INTEGER_RANGE },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
   it('returns 409 with the existing item id when the funko is already in the collection', async () => {

@@ -1,3 +1,6 @@
 # Runtime data of the home server deployment (database + images); back it up, never commit it.
 /data/
 .DS_Store
+
+# The compose password (POSTGRES_PASSWORD): a secret, never committed
+.env

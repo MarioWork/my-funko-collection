@@ -1,9 +1,8 @@
-import { sql } from 'drizzle-orm';
-import { db } from '../../db/client.ts';
+import { prisma } from '../../lib/prisma.ts';
 
 export const healthRepository = {
   // The readiness probe's one query.
   ping: async (): Promise<void> => {
-    await db.run(sql`select 1`);
+    await prisma.$queryRaw`select 1`;
   },
 };

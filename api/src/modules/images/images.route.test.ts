@@ -1,5 +1,5 @@
 import { buildApp, type App } from '../../app.ts';
-import { prepareTestDb, resetTestDb } from '../../db/testDb.ts';
+import { resetTestDb } from '../../testDb.ts';
 import { copyFunkoFile, listFunkoFolder } from '../../lib/imageStorage.ts';
 import { createFunko, makeImage, type SignedInClient, signIn, toFormData } from '../../testFixtures.ts';
 
@@ -13,7 +13,7 @@ type ImageEntry = {
   fileName: string;
   isMain: boolean;
   sizeBytes: number;
-  variantCount: number;
+  sizeCount: number;
   width: number | null;
 };
 type ListBody = { data: ImageEntry[]; totalResultNumber: number };
@@ -31,7 +31,6 @@ let api: SignedInClient;
 
 beforeAll(async () => {
   app = await buildApp();
-  await prepareTestDb();
 });
 
 afterAll(async () => {
@@ -77,7 +76,7 @@ describe('GET /images', () => {
     expect(body.totalResultNumber).toBe(4);
     const loose = body.data.filter((entry) => entry.funko === null);
     expect(loose).toHaveLength(1);
-    expect(loose[0]).toMatchObject({ id: null, fileName: LOOSE_FILE_NAME, variantCount: 1, isMain: false });
+    expect(loose[0]).toMatchObject({ id: null, fileName: LOOSE_FILE_NAME, sizeCount: 1, isMain: false });
     expect(loose[0]?.width).toBeGreaterThan(0);
     const mains = body.data.filter((entry) => entry.isMain).map((entry) => entry.funko?.name);
     expect(mains.sort()).toEqual(['Eleven', 'Groot']);

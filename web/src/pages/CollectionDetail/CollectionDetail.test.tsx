@@ -2,7 +2,8 @@ import { render, renderRoutes, screen, userEvent, waitFor } from '@test-utils';
 import { collectionRoutes } from '@application/routes/featureRoutes/collectionRoutes';
 import { COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { Toaster } from '@components/ui/toast';
-import { mockStore, type MockItemRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockItemRow } from '@mocks/mockStore.type';
 
 // The fields Undo must bring back; ids and dates are the server's to set again.
 function savedFields({

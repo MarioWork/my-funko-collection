@@ -1,4 +1,4 @@
-import { getErrorLogFields } from '../../db/errors.ts';
+import { getErrorLogFields } from '../../lib/databaseErrors.ts';
 import { ServiceUnavailableError } from '../../lib/httpErrors.ts';
 import { logger } from '../../lib/logger.ts';
 import { healthRepository } from './health.repository.ts';

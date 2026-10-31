@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { mockStore } from '@mocks/mockStore';
+import { nowIso } from '@mocks/mockStoreUtils';
 import { attachment, CSV_CONTENT_TYPE, CSV_LINE_BREAK } from './funkosExportMockUtils';
 
 const FULL_EXPORT_FILE_NAME = 'my-funko-collection.json';
@@ -16,7 +17,7 @@ export default (baseUrl: string) => [
 
     return HttpResponse.json(
       {
-        exportedAt: new Date().toISOString(),
+        exportedAt: nowIso(),
         categories: mockStore.categories.map(({ id, name }) => ({ id, name })),
         funkos: mockStore.funkos,
         collections: mockStore.collections,

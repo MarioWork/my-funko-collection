@@ -1,4 +1,5 @@
-import { mockStore, type MockFunkoRow } from '@mocks/mockStore';
+import { mockStore } from '@mocks/mockStore';
+import type { MockFunkoRow } from '@mocks/mockStore.type';
 
 // The fields that make two funkos the same one, as the API's unique index has them.
 type FunkoIdentity = Pick<MockFunkoRow, 'categoryId' | 'number' | 'name' | 'isChase' | 'exclusive'>;

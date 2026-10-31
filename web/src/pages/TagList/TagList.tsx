@@ -1,17 +1,10 @@
-import { Tag } from 'lucide-react';
-import { PAGE_ICONS } from '@utils/navigationUtils';
-import { Outlet, useLoaderData } from 'react-router';
+import { useLoaderData } from 'react-router';
 import type { TagApiModel } from '@app-types/models';
-import { TAG_ROUTES_PATHS } from '@application/routes/routesUtils';
-import AddFab from '@components/AddFab';
-import LinkButton from '@components/LinkButton';
-import ManageList from '@components/ManageList';
-import type { ManageRow } from '@components/ManageList';
-import ListExportMenu from '@components/ListExportMenu';
-import PageHeader from '@components/PageHeader';
 import { ExportFunkosScopeUtil, ExportListKindUtil, type LoaderDataUtil } from '@app-types/utility';
-import { useMobileChildPage } from '@hooks/useMobileChildPage';
-import { reasonWhen } from '@utils/disabledReasonUtils';
+import { TAG_ROUTES_PATHS } from '@application/routes/routesUtils';
+import type { ManageRow } from '@components/ManageList';
+import ManageListPage from '@components/ManageListPage';
+import { PAGE_ICONS } from '@utils/navigationUtils';
 import type { loader } from './tagListLoader';
 
 // The row's meta line for one that nothing uses yet.
@@ -35,43 +28,23 @@ function toRow(tag: TagApiModel): ManageRow {
 }
 
 function TagList() {
-  const childPage = useMobileChildPage();
   const { tags } = useLoaderData<LoaderDataUtil<typeof loader>>();
 
-  // On phones the New tag form is its own page.
-  if (childPage) return childPage;
-
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader
-        icon={PAGE_ICONS.TAGS}
-        title="Tags"
-        description="Labels on your items: which box, which shelf, anything you like. Deleting one only removes the label."
-        actions={
-          <LinkButton to={TAG_ROUTES_PATHS.ADD} aria-label="New tag" className="hidden lg:inline-flex">
-            <Tag data-icon="inline-start" aria-hidden="true" />
-            New
-          </LinkButton>
-        }
-        iconActions={
-          <ListExportMenu
-            kind={ExportListKindUtil.TAGS}
-            noun="tags"
-            disabledReason={reasonWhen(tags.length === 0, 'No tags to export yet.')}
-          />
-        }
-      />
-      <ManageList
-        rows={tags.map(toRow)}
-        noun="tag"
-        hasNotes
-        rowPath={TAG_ROUTES_PATHS.update}
-        emptyTitle="No tags yet"
-        emptyDescription="Add the first one, like Box 1 or Display shelf."
-      />
-      <AddFab to={TAG_ROUTES_PATHS.ADD} label="New tag" />
-      <Outlet />
-    </div>
+    <ManageListPage
+      icon={PAGE_ICONS.TAGS}
+      title="Tags"
+      description="Labels on your items: which box, which shelf, anything you like. Deleting one only removes the label."
+      noun="tag"
+      pluralNoun="tags"
+      exportKind={ExportListKindUtil.TAGS}
+      rows={tags.map(toRow)}
+      hasNotes
+      rowPath={TAG_ROUTES_PATHS.update}
+      addPath={TAG_ROUTES_PATHS.ADD}
+      emptyTitle="No tags yet"
+      emptyDescription="Add the first one, like Box 1 or Display shelf."
+    />
   );
 }
 

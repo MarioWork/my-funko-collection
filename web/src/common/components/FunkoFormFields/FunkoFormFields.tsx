@@ -17,13 +17,17 @@ type Props = {
   barcodeAddon?: React.ReactNode;
 };
 
+type TextFieldName = 'name' | 'number' | 'exclusive';
+
+type TextFieldInputMode = 'numeric' | 'text';
+
 type TextFieldProps = {
   control: Control<FunkoFormValues>;
-  name: 'name' | 'number' | 'exclusive';
+  name: TextFieldName;
   id: string;
   label: string;
   placeholder?: string;
-  inputMode?: 'numeric' | 'text';
+  inputMode?: TextFieldInputMode;
 };
 
 function TextField({ control, name, id, label, placeholder, inputMode }: TextFieldProps) {

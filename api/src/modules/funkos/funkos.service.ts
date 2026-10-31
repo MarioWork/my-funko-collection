@@ -1,28 +1,23 @@
 import { normaliseBarcode } from '../../lib/barcode.ts';
-import { InternalError } from '../../lib/errors.ts';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
-import { removeFunkoFolder, variantUrl } from '../../lib/imageStorage.ts';
+import { removeFunkoFolder, sizeUrl } from '../../lib/imageStorage.ts';
 import { logger } from '../../lib/logger.ts';
 import { getCategory } from '../categories/categories.service.ts';
 import { getSeries } from '../series/series.service.ts';
-// funkoImages.service imports getFunkoSummary back from here. The cycle is safe: both sides only call each other
-// inside functions, never while the modules load.
 import { getImages } from './images/funkoImages.service.ts';
 import {
   funkosRepository,
-  splitSearchWords,
   type CollectionSummaryRow,
   type FunkoIdentity,
   type FunkoRow,
+  type ListedFunkoRow,
   type PrimaryImageRow,
-  type TagNameRow,
 } from './funkos.repository.ts';
 import type {
   CreateFunko,
   DeleteFunkoQuery,
   FunkoDetailResponse,
   FunkoListResponse,
-  FunkoMatchField,
   FunkoResponse,
   ListFunkosQuery,
   UpdateFunko,
@@ -30,24 +25,22 @@ import type {
 import type { FunkoSummary, PrimaryImageSummary } from './funkos.type.ts';
 
 const ENTITY = 'Funko';
-const LEADING_HASH = /^#/;
 
 const log = logger.child({ module: 'funkos' });
 
 type FunkoExtras = {
   primaryImage: PrimaryImageRow | undefined;
   collections: CollectionSummaryRow[];
-  tagNames: string[];
 };
 
-const EMPTY_EXTRAS: FunkoExtras = { primaryImage: undefined, collections: [], tagNames: [] };
+const EMPTY_EXTRAS: FunkoExtras = { primaryImage: undefined, collections: [] };
 
 function toPrimaryImage(row: PrimaryImageRow | undefined): PrimaryImageSummary | null {
   if (!row) return null;
 
   return {
-    smallUrl: variantUrl(row.funkoId, row.fileKey, 'small'),
-    mediumUrl: variantUrl(row.funkoId, row.fileKey, 'medium'),
+    smallUrl: sizeUrl(row.funkoId, row.fileKey, 'small'),
+    mediumUrl: sizeUrl(row.funkoId, row.fileKey, 'medium'),
     placeholder: row.placeholder,
     width: row.width,
     height: row.height,
@@ -102,33 +95,9 @@ function toSummary(row: FunkoRow, primaryImage: PrimaryImageRow | undefined): Fu
   };
 }
 
-function includes(haystack: string | null, needle: string): boolean {
-  return haystack !== null && haystack.toLowerCase().includes(needle.toLowerCase());
-}
-
-// Mirrors the repository's word filter, on the page rows only, so the UI can say "matched by tag".
-function matchedFields(row: FunkoRow, extras: FunkoExtras, words: string[]): FunkoMatchField[] {
-  const matched = new Set<FunkoMatchField>();
-
-  for (const word of words) {
-    const numberWord = word.replace(LEADING_HASH, '');
-
-    if (String(row.id) === word) matched.add('ID');
-    if (includes(row.name, word)) matched.add('NAME');
-    if (numberWord.length > 0 && includes(row.number, numberWord)) matched.add('NUMBER');
-    if (includes(row.barcode, word)) matched.add('BARCODE');
-    if (includes(row.exclusive, word)) matched.add('EXCLUSIVE');
-    if (includes(row.categoryName, word)) matched.add('CATEGORY');
-    if (includes(row.seriesName, word)) matched.add('SERIES');
-    if (extras.tagNames.some((name) => includes(name, word))) matched.add('TAG');
-    if (extras.collections.some((collection) => includes(collection.name, word))) matched.add('COLLECTION');
-  }
-
-  return [...matched];
-}
-
-function toResponse(row: FunkoRow, extras: FunkoExtras, words: string[]): FunkoResponse {
-  const matchedOn = words.length > 0 ? matchedFields(row, extras, words) : undefined;
+// `matchedOn` is only there for a list with a search (see ListedFunkoRow).
+function toResponse(row: FunkoRow | ListedFunkoRow, extras: FunkoExtras): FunkoResponse {
+  const matchedOn = 'matchedOn' in row ? (row.matchedOn ?? undefined) : undefined;
 
   return {
     ...toSummary(row, extras.primaryImage),
@@ -139,13 +108,12 @@ function toResponse(row: FunkoRow, extras: FunkoExtras, words: string[]): FunkoR
   };
 }
 
-// Three page-wide queries instead of three per row.
-async function loadExtras(rows: FunkoRow[], withTags: boolean): Promise<Map<number, FunkoExtras>> {
+// Two page-wide queries instead of two per row.
+async function loadExtras(rows: FunkoRow[]): Promise<Map<number, FunkoExtras>> {
   const ids = rows.map((row) => row.id);
-  const [primaryImages, collectionsByFunko, tagsByFunko] = await Promise.all([
+  const [primaryImages, collectionsByFunko] = await Promise.all([
     funkosRepository.primaryImagesByFunkoIds(ids),
     funkosRepository.collectionsByFunkoIds(ids),
-    withTags ? funkosRepository.tagNamesByFunkoIds(ids) : Promise.resolve(new Map<number, TagNameRow[]>()),
   ]);
 
   return new Map(
@@ -154,20 +122,19 @@ async function loadExtras(rows: FunkoRow[], withTags: boolean): Promise<Map<numb
       {
         primaryImage: primaryImages.get(id),
         collections: collectionsByFunko.get(id) ?? [],
-        tagNames: (tagsByFunko.get(id) ?? []).map((tag) => tag.name),
       },
     ]),
   );
 }
 
-async function toResponses(rows: FunkoRow[], words: string[]): Promise<FunkoResponse[]> {
-  const extras = await loadExtras(rows, words.length > 0);
+async function toResponses(rows: (FunkoRow | ListedFunkoRow)[]): Promise<FunkoResponse[]> {
+  const extras = await loadExtras(rows);
 
-  return rows.map((row) => toResponse(row, extras.get(row.id) ?? EMPTY_EXTRAS, words));
+  return rows.map((row) => toResponse(row, extras.get(row.id) ?? EMPTY_EXTRAS));
 }
 
 async function toSingleResponse(row: FunkoRow): Promise<FunkoResponse> {
-  const [response] = await toResponses([row], []);
+  const [response] = await toResponses([row]);
 
   if (!response) throw new NotFoundError(ENTITY, row.id);
 
@@ -203,7 +170,7 @@ async function assertUnique(
 export async function getFunkos(query: ListFunkosQuery): Promise<FunkoListResponse> {
   const normalisedQuery = query.barcode ? { ...query, barcode: normaliseBarcode(query.barcode) } : query;
   const { data, totalResultNumber } = await funkosRepository.list(normalisedQuery);
-  const responses = await toResponses(data, splitSearchWords(query.q));
+  const responses = await toResponses(data);
 
   return { data: responses, totalResultNumber, currentPage: query.page };
 }
@@ -241,8 +208,6 @@ export async function addFunko(input: CreateFunko): Promise<FunkoResponse> {
   await assertUnique(identity, data.barcode);
 
   const row = await funkosRepository.create(data);
-
-  if (!row) throw new InternalError('The funko was not found right after its insert');
 
   log.info({ funkoId: row.id }, 'funko created');
 
@@ -313,7 +278,7 @@ export async function getFunkoSummaries(ids: number[]): Promise<Map<number, Funk
   return new Map(rows.map((row) => [row.id, toSummary(row, primaryImages.get(row.id))]));
 }
 
-// For other modules (collection items, the funko's images): one summary, or NotFoundError.
+// For other modules (collection items): one summary, or NotFoundError.
 export async function getFunkoSummary(id: number): Promise<FunkoSummary> {
   const summaries = await getFunkoSummaries([id]);
   const summary = summaries.get(id);

@@ -3,29 +3,28 @@ import { BadRequestError, ConflictError, NotFoundError } from '../../../lib/http
 import {
   hashImage,
   processImage,
-  readLargeVariant,
+  readLargeFile,
   removeImageFiles,
   rotateBuffer,
-  variantUrl,
+  sizeUrl,
 } from '../../../lib/imageStorage.ts';
 import { logger } from '../../../lib/logger.ts';
 import { fetchRemoteFile } from '../../../lib/remoteFetch.ts';
-// The parent's service, for the funko's 404 (see the cycle note in funkos.service.ts).
-import { getFunkoSummary } from '../funkos.service.ts';
 import { funkoImagesRepository, type FunkoImageRow } from './funkoImages.repository.ts';
 import type { ReorderImages, RotateImage } from './funkoImages.schema.ts';
 import type { FunkoImageResponse } from './funkoImages.type.ts';
 
 const ENTITY = 'Image';
+const PARENT_ENTITY = 'Funko';
 
 const log = logger.child({ module: 'funkoImages' });
 
 export function toImageResponse(row: FunkoImageRow): FunkoImageResponse {
   return {
     id: row.id,
-    url: variantUrl(row.funkoId, row.fileKey, 'large'),
-    mediumUrl: variantUrl(row.funkoId, row.fileKey, 'medium'),
-    smallUrl: variantUrl(row.funkoId, row.fileKey, 'small'),
+    url: sizeUrl(row.funkoId, row.fileKey, 'large'),
+    mediumUrl: sizeUrl(row.funkoId, row.fileKey, 'medium'),
+    smallUrl: sizeUrl(row.funkoId, row.fileKey, 'small'),
     placeholder: row.placeholder,
     width: row.width,
     height: row.height,
@@ -50,7 +49,9 @@ async function assertNotDuplicate(funkoId: number, contentHash: string): Promise
 
 // The funko must exist: NotFoundError (404) otherwise.
 async function assertFunkoExists(funkoId: number): Promise<void> {
-  await getFunkoSummary(funkoId);
+  const exists = await funkoImagesRepository.funkoExists(funkoId);
+
+  if (!exists) throw new NotFoundError(PARENT_ENTITY, funkoId);
 }
 
 async function storeOne(funkoId: number, buffer: Buffer): Promise<FunkoImageRow> {
@@ -123,7 +124,7 @@ export async function reorderImages(funkoId: number, { imageIds }: ReorderImages
   return getImages(funkoId);
 }
 
-// Rotating writes fresh files under a new key: variant URLs are cached forever, so a changed image needs a new URL.
+// Rotating writes fresh files under a new key: size URLs are cached forever, so a changed image needs a new URL.
 export async function rotateImage(
   funkoId: number,
   imageId: number,
@@ -133,7 +134,7 @@ export async function rotateImage(
 
   if (!image) throw new NotFoundError(ENTITY, imageId);
 
-  const rotated = await rotateBuffer(await readLargeVariant(funkoId, image.fileKey), degrees);
+  const rotated = await rotateBuffer(await readLargeFile(funkoId, image.fileKey), degrees);
   const stored = await processImage(funkoId, rotated);
   const updated = await funkoImagesRepository.replaceFile(imageId, stored);
 

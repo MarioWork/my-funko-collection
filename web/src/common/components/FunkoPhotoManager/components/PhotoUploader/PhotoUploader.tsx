@@ -21,7 +21,7 @@ type Props = {
 const UPLOAD_FAILED_MESSAGE = 'The upload failed. Please try again.';
 
 // Pick photos, see previews, upload in one batch. Photos are resized on the phone first; the server makes the three
-// variants. Owns its fetcher, as a writing component should.
+// sizes. Owns its fetcher, as a writing component should.
 function PhotoUploader({ actionPath, onUploaded }: Props) {
   const fetcher = useFetcher<JSONResponseUtil<unknown[]>>();
   const [pending, setPending] = useState<PendingPhoto[]>([]);

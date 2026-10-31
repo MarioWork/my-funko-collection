@@ -1,3 +1,4 @@
+import { nowIso } from '@mocks/mockStoreUtils';
 import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
@@ -25,7 +26,7 @@ export default (baseUrl: string) => [
     }
 
     return HttpResponse.json(
-      { exportedAt: new Date().toISOString(), scope: scoped.scope, funkos: [...byFunko.values()] },
+      { exportedAt: nowIso(), scope: scoped.scope, funkos: [...byFunko.values()] },
       { headers: { 'content-disposition': attachment(`${scoped.fileBase}.json`) } },
     );
   }),

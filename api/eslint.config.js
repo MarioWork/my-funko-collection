@@ -4,7 +4,7 @@ import prettier from 'eslint-config-prettier/flat';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig([
-  { ignores: ['dist/**', 'coverage/**', 'node_modules/**', '.yarn/**', 'drizzle/**', 'data/**'] },
+  { ignores: ['dist/**', 'coverage/**', 'node_modules/**', '.yarn/**', 'src/generated/**', 'data/**'] },
   js.configs.recommended,
   // Type-aware rules (no-floating-promises, no-misused-promises, ...) need a TS project for every linted file.
   tseslint.configs.recommendedTypeChecked,

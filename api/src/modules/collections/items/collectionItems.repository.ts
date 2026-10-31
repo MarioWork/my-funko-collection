@@ -1,118 +1,142 @@
-import { and, asc, count, desc, eq, exists, gte, inArray, lte, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
-import { db, type DbExecutor } from '../../../db/client.ts';
-import { likeContains } from '../../../db/like.ts';
-import { collectionItems, type ItemSortField, type NewCollectionItem } from '../../../db/schema/collectionItems.ts';
-import { collectionItemTags } from '../../../db/schema/collectionItemTags.ts';
-import { collections } from '../../../db/schema/collections.ts';
-import { funkos } from '../../../db/schema/funkos.ts';
-import { tags, type Tag } from '../../../db/schema/tags.ts';
-import { toLimitOffset } from '../../../lib/pagination.ts';
-import type { ListAllItemsQuery, UpdateCollectionItem } from './collectionItems.schema.ts';
+import { ilikeContains } from '../../../lib/likePatterns.ts';
+import { allOf, inList, numberSortKey, sortDirection } from '../../../lib/sqlFragments.ts';
+import { Prisma } from '../../../generated/prisma/client.ts';
+import { toSkipTake } from '../../../lib/pagination.ts';
+import { deletedIdOrUndefined, ID_SELECT, prisma, reloadIfUpdated, type DbExecutor } from '../../../lib/prisma.ts';
+import type { ItemSortField, ListAllItemsQuery, UpdateCollectionItem } from './collectionItems.schema.ts';
+import type { ItemCondition } from './collectionItems.type.ts';
 
-const ITEM_COLUMNS = {
-  id: collectionItems.id,
-  collectionId: collectionItems.collectionId,
-  collectionName: collections.name,
-  funkoId: collectionItems.funkoId,
-  quantity: collectionItems.quantity,
-  condition: collectionItems.condition,
-  purchasePriceCents: collectionItems.purchasePriceCents,
-  purchaseCurrency: collectionItems.purchaseCurrency,
-  purchasedAt: collectionItems.purchasedAt,
-  notes: collectionItems.notes,
-  createdAt: collectionItems.createdAt,
-  updatedAt: collectionItems.updatedAt,
-} as const;
+const ITEM_SELECT = {
+  id: true,
+  collectionId: true,
+  collection: { select: { name: true } },
+  funkoId: true,
+  quantity: true,
+  condition: true,
+  purchasePriceCents: true,
+  purchaseCurrency: true,
+  purchasedAt: true,
+  notes: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Prisma.CollectionItemSelect;
 
-const SORT_FIELD_MAP: Record<ItemSortField, SQLWrapper> = {
-  NAME: funkos.name,
-  NUMBER: sql`cast(${funkos.number} as integer)`,
-  CREATION_DATE: collectionItems.createdAt,
-  UPDATE_DATE: collectionItems.updatedAt,
-  PURCHASE_DATE: collectionItems.purchasedAt,
-  PURCHASE_PRICE: collectionItems.purchasePriceCents,
+const ITEM_TAG_SELECT = {
+  collectionItemId: true,
+  tag: { select: { id: true, name: true } },
+} as const satisfies Prisma.CollectionItemTagSelect;
+
+export type ItemRow = {
+  id: number;
+  collectionId: number;
+  collectionName: string;
+  funkoId: number;
+  quantity: number;
+  condition: ItemCondition | null;
+  purchasePriceCents: number | null;
+  purchaseCurrency: string;
+  purchasedAt: string | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
-function hasAnyTag(tagIds: number[]): SQL {
-  return exists(
-    db
-      .select({ one: sql`1` })
-      .from(collectionItemTags)
-      .where(
-        and(eq(collectionItemTags.collectionItemId, collectionItems.id), inArray(collectionItemTags.tagId, tagIds)),
-      ),
-  );
+export type TagRow = { id: number; name: string };
+
+type ItemInsert = Omit<Prisma.CollectionItemUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt' | 'itemTags'>;
+type ItemUpdate = Omit<UpdateCollectionItem, 'tagIds'>;
+
+type CountRow = { total: number };
+
+// The list is raw SQL: Prisma cannot sort by a funko number's numeric value. `i` is the item, `f` its funko.
+const SORT_FIELD_MAP: Record<ItemSortField, Prisma.Sql> = {
+  NAME: Prisma.sql`f.name`,
+  NUMBER: numberSortKey(Prisma.sql`f.number`),
+  CREATION_DATE: Prisma.sql`i.created_at`,
+  UPDATE_DATE: Prisma.sql`i.updated_at`,
+  PURCHASE_DATE: Prisma.sql`i.purchased_at`,
+  PURCHASE_PRICE: Prisma.sql`i.purchase_price_cents`,
+};
+
+function hasAnyTag(tagIds: number[]): Prisma.Sql {
+  return Prisma.sql`exists (
+    select 1 from collection_item_tags t where t.collection_item_id = i.id and ${inList(Prisma.sql`t.tag_id`, tagIds)}
+  )`;
 }
 
-function buildListFilter(query: ListAllItemsQuery): SQL | undefined {
-  const collectionFilter = query.collectionId ? inArray(collectionItems.collectionId, query.collectionId) : undefined;
-  const nameFilter = query.name ? likeContains(funkos.name, query.name) : undefined;
-  const funkoFilter = query.funkoId ? inArray(collectionItems.funkoId, query.funkoId) : undefined;
-  const tagFilter = query.tagId ? hasAnyTag(query.tagId) : undefined;
-  const categoryFilter = query.categoryId ? inArray(funkos.categoryId, query.categoryId) : undefined;
-  const seriesFilter = query.seriesId ? inArray(funkos.seriesId, query.seriesId) : undefined;
-  const conditionFilter = query.condition ? eq(collectionItems.condition, query.condition) : undefined;
-  const fromFilter = query.purchasedFrom ? gte(collectionItems.purchasedAt, query.purchasedFrom) : undefined;
-  const toFilter = query.purchasedTo ? lte(collectionItems.purchasedAt, query.purchasedTo) : undefined;
-
-  return and(
-    collectionFilter,
-    nameFilter,
-    funkoFilter,
-    tagFilter,
-    categoryFilter,
-    seriesFilter,
-    conditionFilter,
-    fromFilter,
-    toFilter,
-  );
+function buildListFilter(query: ListAllItemsQuery): Prisma.Sql {
+  return allOf([
+    query.collectionId ? inList(Prisma.sql`i.collection_id`, query.collectionId) : undefined,
+    query.name ? ilikeContains(Prisma.sql`f.name`, query.name) : undefined,
+    query.funkoId ? inList(Prisma.sql`i.funko_id`, query.funkoId) : undefined,
+    query.tagId ? hasAnyTag(query.tagId) : undefined,
+    query.categoryId ? inList(Prisma.sql`f.category_id`, query.categoryId) : undefined,
+    query.seriesId ? inList(Prisma.sql`f.series_id`, query.seriesId) : undefined,
+    query.condition ? Prisma.sql`i.condition = ${query.condition}::item_condition` : undefined,
+    query.purchasedFrom ? Prisma.sql`i.purchased_at >= ${query.purchasedFrom}` : undefined,
+    query.purchasedTo ? Prisma.sql`i.purchased_at <= ${query.purchasedTo}` : undefined,
+  ]);
 }
 
-function selectItems(executor: DbExecutor) {
-  return executor
-    .select(ITEM_COLUMNS)
-    .from(collectionItems)
-    .innerJoin(collections, eq(collections.id, collectionItems.collectionId))
-    .innerJoin(funkos, eq(funkos.id, collectionItems.funkoId));
+function toRow({ collection, ...item }: Prisma.CollectionItemGetPayload<{ select: typeof ITEM_SELECT }>): ItemRow {
+  return { ...item, collectionName: collection.name };
+}
+
+async function findRow(where: Prisma.CollectionItemWhereInput, executor: DbExecutor): Promise<ItemRow | undefined> {
+  const item = await executor.collectionItem.findFirst({ where, select: ITEM_SELECT });
+
+  return item ? toRow(item) : undefined;
 }
 
 async function replaceTags(executor: DbExecutor, itemId: number, tagIds: number[]): Promise<void> {
-  await executor.delete(collectionItemTags).where(eq(collectionItemTags.collectionItemId, itemId));
+  await executor.collectionItemTag.deleteMany({ where: { collectionItemId: itemId } });
 
   if (tagIds.length === 0) return;
 
-  await executor.insert(collectionItemTags).values(tagIds.map((tagId) => ({ collectionItemId: itemId, tagId })));
+  await executor.collectionItemTag.createMany({ data: tagIds.map((tagId) => ({ collectionItemId: itemId, tagId })) });
 }
 
-type ItemInsert = Omit<NewCollectionItem, 'id' | 'createdAt' | 'updatedAt'>;
-type ItemUpdate = Omit<UpdateCollectionItem, 'tagIds'>;
-
 export const collectionItemsRepository = {
-  findById: (collectionId: number, itemId: number, executor: DbExecutor = db): Promise<ItemRow | undefined> =>
-    selectItems(executor)
-      .where(and(eq(collectionItems.collectionId, collectionId), eq(collectionItems.id, itemId)))
-      .get(),
+  findById: (collectionId: number, itemId: number): Promise<ItemRow | undefined> =>
+    findRow({ collectionId, id: itemId }, prisma),
 
-  findIdByFunko: (collectionId: number, funkoId: number, executor: DbExecutor = db) =>
-    executor
-      .select({ id: collectionItems.id })
-      .from(collectionItems)
-      .where(and(eq(collectionItems.collectionId, collectionId), eq(collectionItems.funkoId, funkoId)))
-      .get(),
+  findIdByFunko: async (collectionId: number, funkoId: number) =>
+    (await prisma.collectionItem.findUnique({
+      where: { collectionId_funkoId: { collectionId, funkoId } },
+      select: ID_SELECT,
+    })) ?? undefined,
 
   list: async (query: ListAllItemsQuery) => {
     const filter = buildListFilter(query);
-    const direction = query.direction === 'DESC' ? desc : asc;
     const sortColumn = SORT_FIELD_MAP[query.sorting_fields];
-    const { limit, offset } = toLimitOffset(query);
+    const { skip, take } = toSkipTake(query);
 
-    const [data, totals] = await Promise.all([
-      selectItems(db).where(filter).orderBy(direction(sortColumn), asc(collectionItems.id)).limit(limit).offset(offset),
-      db
-        .select({ total: count() })
-        .from(collectionItems)
-        .innerJoin(funkos, eq(funkos.id, collectionItems.funkoId))
-        .where(filter),
+    const [data, totals] = await prisma.$transaction([
+      prisma.$queryRaw<ItemRow[]>`
+        select
+          i.id,
+          i.collection_id as "collectionId",
+          c.name as "collectionName",
+          i.funko_id as "funkoId",
+          i.quantity,
+          i.condition::text as condition,
+          i.purchase_price_cents as "purchasePriceCents",
+          i.purchase_currency as "purchaseCurrency",
+          i.purchased_at as "purchasedAt",
+          i.notes,
+          i.created_at as "createdAt",
+          i.updated_at as "updatedAt"
+        from collection_items i
+        join collections c on c.id = i.collection_id
+        join funkos f on f.id = i.funko_id
+        where ${filter}
+        order by ${sortColumn} ${sortDirection(query.direction)}, i.id asc
+        limit ${take} offset ${skip}`,
+      prisma.$queryRaw<CountRow[]>`
+        select count(*)::int as total
+        from collection_items i
+        join funkos f on f.id = i.funko_id
+        where ${filter}`,
     ]);
 
     return { data, totalResultNumber: totals[0]?.total ?? 0 };
@@ -121,82 +145,63 @@ export const collectionItemsRepository = {
   tagsByItemIds: async (itemIds: number[]): Promise<Map<number, TagRow[]>> => {
     if (itemIds.length === 0) return new Map();
 
-    const rows = await db
-      .select({ itemId: collectionItemTags.collectionItemId, id: tags.id, name: tags.name })
-      .from(collectionItemTags)
-      .innerJoin(tags, eq(tags.id, collectionItemTags.tagId))
-      .where(inArray(collectionItemTags.collectionItemId, itemIds))
-      .orderBy(asc(tags.name));
+    const rows = await prisma.collectionItemTag.findMany({
+      where: { collectionItemId: { in: itemIds } },
+      select: ITEM_TAG_SELECT,
+      orderBy: { tag: { name: 'asc' } },
+    });
     const grouped = new Map<number, TagRow[]>();
 
     for (const row of rows) {
-      const bucket = grouped.get(row.itemId) ?? [];
+      const bucket = grouped.get(row.collectionItemId) ?? [];
 
-      bucket.push({ id: row.id, name: row.name });
-      grouped.set(row.itemId, bucket);
+      bucket.push(row.tag);
+      grouped.set(row.collectionItemId, bucket);
     }
 
     return grouped;
   },
 
-  countExistingTags: async (tagIds: number[], executor: DbExecutor = db): Promise<number> => {
-    if (tagIds.length === 0) return 0;
-
-    const row = await executor.select({ total: count() }).from(tags).where(inArray(tags.id, tagIds)).get();
-
-    return row?.total ?? 0;
-  },
+  countExistingTags: (tagIds: number[]): Promise<number> =>
+    tagIds.length === 0 ? Promise.resolve(0) : prisma.tag.count({ where: { id: { in: tagIds } } }),
 
   // Row and tags in one transaction: an item never appears with half its tags.
   create: (data: ItemInsert, tagIds: number[]): Promise<ItemRow | undefined> =>
-    db.transaction(async (tx) => {
-      const inserted = await tx.insert(collectionItems).values(data).returning({ id: collectionItems.id }).get();
+    prisma.$transaction(async (tx) => {
+      const created = await tx.collectionItem.create({ data, select: ID_SELECT });
 
-      await replaceTags(tx, inserted.id, tagIds);
+      await replaceTags(tx, created.id, tagIds);
 
-      return selectItems(tx).where(eq(collectionItems.id, inserted.id)).get();
+      return findRow({ id: created.id }, tx);
     }),
 
   update: (itemId: number, data: ItemUpdate, tagIds: number[] | undefined): Promise<ItemRow | undefined> =>
-    db.transaction(async (tx) => {
+    prisma.$transaction(async (tx) => {
       const hasFieldChanges = Object.keys(data).length > 0;
 
       if (hasFieldChanges) {
-        const updated = await tx
-          .update(collectionItems)
-          .set(data)
-          .where(eq(collectionItems.id, itemId))
-          .returning({ id: collectionItems.id })
-          .get();
+        const { count } = await tx.collectionItem.updateMany({ where: { id: itemId }, data });
 
-        if (!updated) return undefined;
+        if (count === 0) return undefined;
       }
 
       if (tagIds) await replaceTags(tx, itemId, tagIds);
 
-      return selectItems(tx).where(eq(collectionItems.id, itemId)).get();
+      return findRow({ id: itemId }, tx);
     }),
 
-  move: async (itemId: number, toCollectionId: number, executor: DbExecutor = db): Promise<ItemRow | undefined> => {
-    const updated = await executor
-      .update(collectionItems)
-      .set({ collectionId: toCollectionId })
-      .where(eq(collectionItems.id, itemId))
-      .returning({ id: collectionItems.id })
-      .get();
+  move: async (itemId: number, toCollectionId: number): Promise<ItemRow | undefined> => {
+    const write = await prisma.collectionItem.updateMany({
+      where: { id: itemId },
+      data: { collectionId: toCollectionId },
+    });
 
-    if (!updated) return undefined;
-
-    return selectItems(executor).where(eq(collectionItems.id, itemId)).get();
+    return reloadIfUpdated(write, () => findRow({ id: itemId }, prisma));
   },
 
-  delete: (collectionId: number, itemId: number, executor: DbExecutor = db): Promise<{ id: number } | undefined> =>
-    executor
-      .delete(collectionItems)
-      .where(and(eq(collectionItems.collectionId, collectionId), eq(collectionItems.id, itemId)))
-      .returning({ id: collectionItems.id })
-      .get(),
-};
+  delete: async (collectionId: number, itemId: number): Promise<{ id: number } | undefined> => {
+    const write = await prisma.collectionItem.deleteMany({ where: { collectionId, id: itemId } });
 
-export type ItemRow = Awaited<ReturnType<typeof selectItems>>[number];
-export type TagRow = Pick<Tag, 'id' | 'name'>;
+    return deletedIdOrUndefined(itemId, write);
+  },
+};

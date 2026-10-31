@@ -5,7 +5,7 @@ import { formatBytes } from '@utils/byteUtils';
 import { cn } from '@utils/classNameUtils';
 import { formatDateTime } from '@utils/dateUtils';
 import { FADE_IN_CLASS } from '@utils/motionUtils';
-import { COMPLETE_VARIANT_COUNT, imageDimensions, imageTitle } from '../imageListUtils';
+import { COMPLETE_SIZE_COUNT, imageDimensions, imageTitle } from '../imageListUtils';
 
 type Props = {
   image: ImageListEntryApiModel;
@@ -21,7 +21,7 @@ type BadgesProps = {
 // What is worth a second look, in words (never colour alone): the funko's main image, a file no funko uses,
 // stored sizes gone missing.
 function ImageBadges({ image }: BadgesProps) {
-  const isMissingSizes = image.variantCount < COMPLETE_VARIANT_COUNT;
+  const isMissingSizes = image.sizeCount < COMPLETE_SIZE_COUNT;
 
   return (
     <>
@@ -29,7 +29,7 @@ function ImageBadges({ image }: BadgesProps) {
       {image.funko ? null : <Badge variant="outline">Not being used</Badge>}
       {isMissingSizes ? (
         <Badge variant="outline">
-          {image.variantCount} of {COMPLETE_VARIANT_COUNT} sizes
+          {image.sizeCount} of {COMPLETE_SIZE_COUNT} sizes
         </Badge>
       ) : null}
     </>

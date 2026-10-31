@@ -1,11 +1,11 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { ValidationError } from 'yup';
 import type { CategoryApiModel } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import type { ManageEntityFormData } from '@components/ManageForm';
 import categoryService from '@services/categoryService/categoryService';
 import { UpdateCategorySchema } from '@services/categoryService/categoryService.type';
 import { parseFormData } from '@utils/formDataUtils';
+import { actionForVerbs, failWhenInvalid, type VerbActionMap } from '@utils/actionUtils';
 
 const updateCategoryAction = async ({
   request,
@@ -13,32 +13,20 @@ const updateCategoryAction = async ({
 }: ActionFunctionArgs): Promise<JSONResponseUtil<CategoryApiModel>> => {
   const { entity } = parseFormData<ManageEntityFormData>(await request.formData());
 
-  try {
+  return failWhenInvalid(async () => {
     const valid = await UpdateCategorySchema.validate({ name: entity.name });
 
-    return await categoryService.updateCategory(Number(params.categoryId), valid);
-  } catch (error) {
-    if (error instanceof ValidationError) return { success: false };
-
-    throw error;
-  }
+    return categoryService.updateCategory(Number(params.categoryId), valid);
+  });
 };
 
 const deleteCategoryAction = async ({ params }: ActionFunctionArgs): Promise<JSONResponseUtil> =>
   categoryService.deleteCategory(Number(params.categoryId));
 
-type VerbAction = (args: ActionFunctionArgs) => Promise<JSONResponseUtil>;
-
-const CATEGORY_ACTION_MAP: Record<string, VerbAction> = {
+const CATEGORY_ACTION_MAP: VerbActionMap = {
   [HttpVerbsUtil.PATCH]: updateCategoryAction,
   [HttpVerbsUtil.DELETE]: deleteCategoryAction,
 };
 
 // One path, two verbs: PATCH renames, DELETE removes.
-export const categoryAction = async (args: ActionFunctionArgs): Promise<JSONResponseUtil> => {
-  const handler = CATEGORY_ACTION_MAP[args.request.method];
-
-  if (!handler) return { success: false };
-
-  return handler(args);
-};
+export const categoryAction = actionForVerbs(CATEGORY_ACTION_MAP);

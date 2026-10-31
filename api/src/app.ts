@@ -29,7 +29,7 @@ import { imagesRoutes } from './modules/images/images.route.ts';
 import { seriesRoutes } from './modules/series/series.route.ts';
 import { tagsRoutes } from './modules/tags/tags.route.ts';
 import { authPlugin } from './plugins/auth.plugin.ts';
-import { dbPlugin } from './plugins/db.plugin.ts';
+import { prismaPlugin } from './plugins/prisma.plugin.ts';
 import { uploadsPlugin } from './plugins/uploads.plugin.ts';
 
 const BODY_LIMIT_BYTES = 1_048_576;
@@ -86,7 +86,7 @@ export async function buildApp() {
   if (env.NODE_ENV !== 'production') {
     await app.register(swaggerUi, { routePrefix: DOCS_ROUTE_PREFIX });
   }
-  await app.register(dbPlugin);
+  await app.register(prismaPlugin);
   await app.register(authPlugin);
   await app.register(uploadsPlugin);
 

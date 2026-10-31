@@ -12,9 +12,9 @@
     "src/setupTests.ts",
     "src/testFixtures.ts",
     "src/testXlsx.ts",
-    "src/db/testDb.ts",
-    "src/db/seed.ts",
-    "src/cli/pruneImages.ts",
+    "src/testDb.ts",
+    "src/testDatabases.ts",
+    "src/testGlobalSetup.ts",
     "src/modules/auth/TestPasskey.ts"
   ]
 }

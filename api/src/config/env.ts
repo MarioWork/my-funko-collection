@@ -11,19 +11,12 @@ const DEFAULT_IMAGE_SMALL_PX = 480;
 const DEFAULT_APP_ORIGIN = 'http://localhost:5173';
 const HTTPS_PROTOCOL = 'https:';
 
-const booleanFromString = z
-  .enum(['true', 'false'])
-  .default('false')
-  .transform((value) => value === 'true');
-
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   PORT: z.coerce.number().int().min(0).max(65535).default(3000),
-  // A libsql URL: `file:./data/app.db` for a local database, `:memory:` under test.
-  DATABASE_URL: z.string().min(1),
-  // Apply pending migrations before listening. On in the container, off in dev (where `yarn db:migrate` is explicit).
-  MIGRATE_ON_START: booleanFromString,
+  // A PostgreSQL URL: postgresql://user:password@host:5432/database.
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   // How many reverse proxies sit in front of the API: 1 behind Caddy, 0 when it is reached directly. Fastify then
   // reads the client address from X-Forwarded-For, so rate limits count each device instead of the proxy.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
@@ -46,7 +39,7 @@ const EnvSchema = z.object({
   UPLOADS_DIR: z.string().min(1).default(DEFAULT_UPLOADS_DIR),
   MAX_IMAGE_BYTES: z.coerce.number().int().positive().default(DEFAULT_MAX_IMAGE_BYTES),
   MAX_IMAGES_PER_FUNKO: z.coerce.number().int().positive().default(DEFAULT_MAX_IMAGES_PER_FUNKO),
-  // Longest side of each generated variant, in pixels.
+  // Longest side of each generated size, in pixels.
   IMAGE_LARGE_PX: z.coerce.number().int().positive().default(DEFAULT_IMAGE_LARGE_PX),
   IMAGE_MEDIUM_PX: z.coerce.number().int().positive().default(DEFAULT_IMAGE_MEDIUM_PX),
   IMAGE_SMALL_PX: z.coerce.number().int().positive().default(DEFAULT_IMAGE_SMALL_PX),

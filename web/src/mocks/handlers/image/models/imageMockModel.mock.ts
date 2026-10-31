@@ -15,7 +15,7 @@ export const looseImageMock: ImageListEntryApiModel = {
   smallUrl: null,
   placeholder: null,
   sizeBytes: LOOSE_FILE_SIZE_BYTES,
-  variantCount: 1,
+  sizeCount: 1,
   isMain: false,
   createdAt: '2024-01-15T10:00:00.000Z',
 };

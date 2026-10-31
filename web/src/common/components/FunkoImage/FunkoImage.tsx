@@ -4,13 +4,15 @@ import { cn } from '@utils/classNameUtils';
 import { MEDIUM_IMAGE_WIDTH_PX, SMALL_IMAGE_WIDTH_PX } from '@utils/imageSizeUtils';
 import FunkoFigureArt from '@components/FunkoFigureArt';
 
+type ImageFit = 'cover' | 'contain';
+
 type Props = {
   image: PrimaryImageApiModel | null;
   alt: string;
-  // The CSS width the image will occupy, so the browser picks the right variant for the screen density.
+  // The CSS width the image will occupy, so the browser picks the right size for the screen density.
   sizes: string;
   // Grid tiles crop to 3:4; the detail page shows the whole photo.
-  fit?: 'cover' | 'contain';
+  fit?: ImageFit;
   isPriority?: boolean;
   className?: string;
 };
@@ -19,11 +21,11 @@ type LoadedImageProps = {
   image: PrimaryImageApiModel;
   alt: string;
   sizes: string;
-  fit: 'cover' | 'contain';
+  fit: ImageFit;
   isPriority: boolean;
 };
 
-const FIT_CLASS_MAP: Record<LoadedImageProps['fit'], string> = {
+const FIT_CLASS_MAP: Record<ImageFit, string> = {
   cover: 'object-cover',
   contain: 'object-contain',
 };
@@ -58,7 +60,7 @@ function LoadedImage({ image, alt, sizes, fit, isPriority }: LoadedImageProps) {
   );
 }
 
-// srcset over the API's three variants, the blur placeholder behind it until the real file fades in, explicit
+// srcset over the API's three sizes, the blur placeholder behind it until the real file fades in, explicit
 // dimensions so nothing jumps. Keyed by the file, so switching to another image (the gallery) fades in again.
 // Dark mode dims white box backgrounds slightly and adds a hairline ring.
 function FunkoImage({ image, alt, sizes, fit = 'cover', isPriority = false, className }: Props) {

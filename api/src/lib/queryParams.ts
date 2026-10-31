@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_ID } from './ids.ts';
 
 const LIST_SEPARATOR = ',';
 
@@ -10,9 +11,9 @@ export const IdListQuerySchema = z
   .transform((value, context) => {
     const parts = value.split(LIST_SEPARATOR).map((part) => part.trim());
     const ids = parts.map(Number);
-    const isEveryPositiveInt = ids.every((id) => Number.isInteger(id) && id > 0);
+    const isEveryId = ids.every((id) => Number.isInteger(id) && id > 0 && id <= MAX_ID);
 
-    if (!isEveryPositiveInt) {
+    if (!isEveryId) {
       context.addIssue({ code: 'custom', message: 'Expected a comma-separated list of positive integers' });
 
       return z.NEVER;

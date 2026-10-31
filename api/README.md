@@ -1,37 +1,47 @@
 # My Funko Collection — API
 
-Fastify 5 + zod 4 + Drizzle on SQLite, Node 24, TypeScript. Stores the catalog, the collections and their items,
+Fastify 5 + zod 4 + Prisma 7 on PostgreSQL, Node 26, TypeScript. Stores the catalog, the collections and their items,
 the tags, and the uploaded photos (three WebP sizes each). Built from `node-fastify-template`.
 
 ## Run
 
 ```bash
 corepack enable          # once per machine
-yarn install
+yarn install             # also generates the Prisma client (src/generated/, git-ignored)
 cp .env.example .env     # defaults are fine for local work
-yarn db:migrate          # creates ./data/app.db
+yarn db:migrate          # creates the tables in DATABASE_URL's database
 yarn db:seed             # optional: example data with placeholder images
 yarn dev                 # http://localhost:3000, OpenAPI UI at /docs
 ```
 
 `yarn typecheck && yarn lint && yarn test` is the definition of green.
 
+It needs a PostgreSQL 18 server on `localhost:5432` with a `funko` role that may create databases. How to get one
+on macOS, Linux or Windows (Docker or a local install): the root [README](../README.md#run-it-locally-development).
+`yarn test` says so when it is not running. With Homebrew, `yarn postgres:start` / `yarn postgres:stop` turn it on
+and off.
+
+The tests make their own databases on that server (`funko_test_*`, dropped after the run): one migrated template,
+then a copy of it per test file, so files run in parallel without seeing each other's rows.
+
 ## Scripts
 
-| Script              | Does                                                                       |
-| ------------------- | -------------------------------------------------------------------------- |
-| `yarn dev`          | Runs `src/server.ts` with `--watch` and `.env`                             |
-| `yarn build`        | Compiles to `dist/` (`tsconfig.build.json`)                                |
-| `yarn start`        | Runs `dist/server.js`                                                      |
-| `yarn typecheck`    | `tsc --noEmit`                                                             |
-| `yarn lint`         | ESLint + Prettier check                                                    |
-| `yarn test`         | Vitest: in-memory SQLite and a temp uploads folder per test file           |
-| `yarn db:generate`  | New migration after a schema change: `--name=<change>` (commit `drizzle/`) |
-| `yarn db:migrate`   | Applies pending migrations                                                 |
-| `yarn db:seed`      | Example categories, series, funkos, collections, items, tags, images       |
-| `yarn db:studio`    | Drizzle Studio                                                             |
-| `yarn images:prune` | Deletes image files no row references                                      |
-| `yarn auth:reset`   | Locked out: removes every passkey and sign-in, prints a new setup link     |
+| Script                                       | Does                                                                                            |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `yarn dev`                                   | Runs `src/server.ts` with `--watch` and `.env`                                                  |
+| `yarn build`                                 | Compiles to `dist/` (`tsconfig.build.json`)                                                     |
+| `yarn start`                                 | Runs `dist/server.js`                                                                           |
+| `yarn typecheck`                             | `tsc --noEmit`                                                                                  |
+| `yarn lint`                                  | ESLint + Prettier check                                                                         |
+| `yarn test`                                  | Vitest: its own Postgres database and temp uploads folder per test file                         |
+| `yarn db:migrate`                            | Applies pending migrations; after a schema edit, `--name=<change>` makes one (commit `prisma/`) |
+| `yarn db:deploy`                             | Applies pending migrations, never makes one (what the container runs)                           |
+| `yarn db:generate`                           | Regenerates the Prisma client (`yarn install` already does)                                     |
+| `yarn postgres:start` / `yarn postgres:stop` | Turns the local Postgres (Homebrew) on or off; it never starts at login                         |
+| `yarn db:seed`                               | Example categories, series, funkos, collections, items, tags, images                            |
+| `yarn db:studio`                             | Prisma Studio                                                                                   |
+| `yarn images:prune`                          | Deletes image files no row references                                                           |
+| `yarn auth:reset`                            | Locked out: removes every passkey and sign-in, prints a new setup link                          |
 
 ## Environment
 
@@ -42,26 +52,25 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 | `NODE_ENV`             | `development`           | `development`, `test` or `production`                                                     |
 | `LOG_LEVEL`            | `info`                  | pino level                                                                                |
 | `PORT`                 | `3000`                  |                                                                                           |
-| `DATABASE_URL`         | (required)              | libsql URL: `file:./data/app.db`, `:memory:` under test                                   |
-| `MIGRATE_ON_START`     | `false`                 | Apply migrations before listening (on in the container)                                   |
+| `DATABASE_URL`         | (required)              | PostgreSQL URL: `postgresql://funko:funko@localhost:5432/funko_dev`                       |
 | `APP_ORIGIN`           | `http://localhost:5173` | The address the app is opened at; https in production. Passkeys are tied to its host name |
 | `TRUST_PROXY_HOPS`     | `0`                     | Proxies in front (1 behind Caddy), for the real client IP                                 |
 | `CORS_ORIGINS`         | (none)                  | Browser origins, comma-separated, never `*`; empty = off                                  |
 | `UPLOADS_DIR`          | `./data/uploads`        | Where image files live (the Docker volume mounts over it)                                 |
 | `MAX_IMAGE_BYTES`      | `5242880`               | Per uploaded file                                                                         |
 | `MAX_IMAGES_PER_FUNKO` | `10`                    |                                                                                           |
-| `IMAGE_LARGE_PX`       | `2000`                  | Longest side of the `lg` variant                                                          |
-| `IMAGE_MEDIUM_PX`      | `1200`                  | `md` variant                                                                              |
-| `IMAGE_SMALL_PX`       | `480`                   | `sm` variant (grid thumbnails; kept this large on purpose)                                |
+| `IMAGE_LARGE_PX`       | `2000`                  | Longest side of the `lg` size                                                             |
+| `IMAGE_MEDIUM_PX`      | `1200`                  | `md` size                                                                                 |
+| `IMAGE_SMALL_PX`       | `480`                   | `sm` size (grid thumbnails; kept this large on purpose)                                   |
 
 ## Data model
 
 | Table                  | What                                                                               |
 | ---------------------- | ---------------------------------------------------------------------------------- |
-| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Star Wars"                     |
+| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"                |
 | `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"                |
 | `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode      |
-| `funko_images`         | A photo of a funko: position, size, three WebP variants + blur placeholder         |
+| `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder       |
 | `collections`          | One of the user's own lists: "Owned" (exactly one is the default), "Wishlist"      |
 | `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes     |
 | `collection_item_tags` | Item ↔ tag                                                                         |
@@ -130,7 +139,7 @@ Text filters are case-insensitive "contains"; id filters take a comma-separated 
 | `POST /funkos`                                                     | 409 with `existingId` when the same funko or barcode already exists                                                                                                                                                                                                                                                                                                                                               |
 | `PATCH /funkos/:id`                                                |                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `DELETE /funkos/:id`                                               | 409 while it sits in a collection; `?force=true` removes it from all                                                                                                                                                                                                                                                                                                                                              |
-| `POST /funkos/:id/images`                                          | Multipart, field `file` (several allowed); makes the three variants                                                                                                                                                                                                                                                                                                                                               |
+| `POST /funkos/:id/images`                                          | Multipart, field `file` (several allowed); makes the three sizes                                                                                                                                                                                                                                                                                                                                                  |
 | `POST /funkos/:id/images/from-url`                                 | `{ url }`: downloads a public image and stores it                                                                                                                                                                                                                                                                                                                                                                 |
 | `PATCH /funkos/:id/images/order`                                   | `{ imageIds }`: the first one is the primary                                                                                                                                                                                                                                                                                                                                                                      |
 | `POST /funkos/:id/images/:imageId/rotate`                          | `{ degrees: 90 \| 180 \| 270 }` clockwise; the image gets new URLs                                                                                                                                                                                                                                                                                                                                                |
@@ -192,7 +201,7 @@ One envelope: `{ code, message, issues?, existingId? }`.
 `data/uploads/funkos/<funkoId>/<uuid>.{lg,md,sm}.webp` (2000 / 1200 / 480 px long edge, EXIF orientation applied,
 metadata stripped) plus a tiny blurred data URI kept in the database as `placeholder`. A response carries
 `url` (large), `mediumUrl`, `smallUrl` under `/uploads/...`, plus `width`, `height`, `sizeBytes` and `position`. Deleting a funko deletes its folder; `yarn images:prune` cleans up
-anything a crash left behind.
+anything a crash left behind (in the container: `docker compose exec api node dist/cli/pruneImages.js`).
 
 ## Layout
 
@@ -201,16 +210,30 @@ src/
   app.ts, server.ts       build the Fastify app; start it and shut down cleanly
   config/env.ts           the only reader of process.env
   cli/                    one-off scripts (images:prune, auth:reset)
-  db/                     client, schema/, relations, migrations runner, seed
-  lib/                    errors, error handler, pagination, query params, image storage, remote fetch, barcode
+  generated/prisma/       the Prisma client (generated, git-ignored)
+  lib/                    Prisma client, database errors, LIKE patterns and SQL fragments, error handler,
+                          pagination, ids, query params, image storage, remote fetch, barcode
   modules/<resource>/     <resource>.route.ts, .schema.ts, .service.ts, .repository.ts, .route.test.ts
-  plugins/                db, auth (the sign-in check) and uploads (multipart in, static files out)
-drizzle/                  SQL migrations (committed)
+  plugins/                prisma, auth (the sign-in check) and uploads (multipart in, static files out)
+prisma/
+  schema.prisma           the models
+  migrations/             SQL migrations (committed; the first one adds the rules Prisma cannot declare)
+  seed.ts                 example data (yarn db:seed)
 ```
+
+Test helpers sit at the top of `src/`: `setupTests.ts` and `testGlobalSetup.ts` (the test databases, through
+`testDatabases.ts`), `testDb.ts` (`resetTestDb()`) and `testFixtures.ts` (row factories, `signIn`).
+
+Three queries are raw SQL (`$queryRaw`), because Prisma's query API cannot express them: `GET /funkos` (sorted by
+relevance, and numbers as numbers: 2 before 10), `GET /collections/items` (numbers too) and the collection totals
+(price × quantity). Everything else goes through Prisma's query API.
 
 Rules that keep it tidy: no `.then()` chains, no cross-module `.repository.ts` imports (go through the other
 module's service), multi-step writes run in one transaction, every route is covered by an `app.inject()` test.
 
 ## Docker
 
-`Dockerfile` is a two-stage build (`node:24-slim`); the runtime runs as `node`, reads `/app/data` and listens on 3000. The root `compose.yaml` runs it behind Caddy and keeps `./data` on the host.
+`Dockerfile` builds two images from one build stage (`node:24-slim`, both run as `node`): `migrate` holds the Prisma
+CLI and the migrations and runs `prisma migrate deploy` once; `runtime` (the default) holds `dist/` and production
+dependencies and listens on 3000. The root `compose.yaml` starts `db` (postgres:18), then `migrate`, then the api
+once `migrate` has exited cleanly, behind Caddy, and keeps `./data` on the host.
