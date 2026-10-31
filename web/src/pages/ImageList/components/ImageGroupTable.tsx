@@ -60,6 +60,7 @@ function GroupRow({ group, isExpanded, onToggle }: GroupRowProps) {
       <TableCell className="hidden whitespace-nowrap tabular-nums @3xl:table-cell">
         {formatDateTime(group.newestCreatedAt)}
       </TableCell>
+      <TableCell className="hidden @3xl:table-cell" />
     </TableRow>
   );
 }

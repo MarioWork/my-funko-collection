@@ -33,7 +33,8 @@ export type MockFunkoRow = {
   createdAt: string;
   updatedAt: string;
 };
-export type MockImageRow = FunkoImageApiModel & { funkoId: number };
+// `uploadedById`: the user who uploaded it, null once that user is deleted (the API clears it, keeping the image).
+export type MockImageRow = FunkoImageApiModel & { funkoId: number; uploadedById: number | null };
 export type MockItemRow = {
   id: number;
   collectionId: number;

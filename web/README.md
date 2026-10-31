@@ -111,7 +111,7 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 | `/items`                            | Every item across collections (filter by tag to find a box)                                              |
 | `/search`                           | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                            |
 | `/categories`, `/tags`, `/settings` | Manage pages, theme, default collection, "Adding to" defaults, exports                                   |
-| `/images`                           | Admin group, admins only: every stored image, loose files included                                       |
+| `/images`                           | Admin group, admins only: every stored image, loose files included, with who uploaded it and when        |
 | `/settings` → Security              | Passkeys (add, remove), sign out, sign out everywhere                                                    |
 | `/login`                            | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                   |
 | `/setup?code=...`                   | First run: your name and the first passkey, from the link in the log                                     |

@@ -26,6 +26,8 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - No external Funko APIs at runtime. Entry is manual; photos are the user's own. Do not propose catalog lookups.
 - Images are stored on disk under `data/uploads/funkos/<id>/`: the user uploads one photo, the server makes three
   WebP sizes (2000 / 1200 / 480 px) plus a blur placeholder. Keep them sharp; never shrink below these sizes.
+  Each image records who uploaded it (`uploaded_by_id`); deleting that user clears it ("Removed user" on the Images
+  page) and never deletes the image.
 - One search endpoint: `GET /funkos?q=` searches every field, named params narrow one field. No separate `/search`.
 - `DELETE /funkos/:id` answers 409 while the funko is in a collection; `?force=true` removes it from all of them.
 - Deleting a tag only removes the label from items. Deleting a collection removes its items, never the funkos.

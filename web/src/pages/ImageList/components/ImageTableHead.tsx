@@ -6,7 +6,7 @@ type Props = {
   firstLabel: string;
 };
 
-// The columns both views share; dimensions and date appear as the pane widens.
+// The columns both views share; dimensions, date and uploader appear as the pane widens.
 function ImageTableHead({ firstLabel }: Props) {
   return (
     <TableHeader>
@@ -15,6 +15,7 @@ function ImageTableHead({ firstLabel }: Props) {
         <TableHead className="hidden @3xl:table-cell">Dimensions</TableHead>
         <TableHead>Size</TableHead>
         <TableHead className="hidden @3xl:table-cell">Added</TableHead>
+        <TableHead className="hidden @3xl:table-cell">Uploaded by</TableHead>
       </TableRow>
     </TableHeader>
   );
