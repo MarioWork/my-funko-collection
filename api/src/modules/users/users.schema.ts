@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IdParamSchema } from '../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { USER_ROLES, UsernameSchema } from '../auth/auth.type.ts';
 
@@ -19,6 +20,21 @@ export const CreateUserSchema = z.strictObject({
   role: z.enum(USER_ROLES),
 });
 
+export const UserParamsSchema = z.object({
+  userId: IdParamSchema,
+});
+
+// The only thing an admin changes on an existing user is their role.
+export const UpdateUserSchema = z.strictObject({
+  role: z.enum(USER_ROLES),
+});
+
+// A user with no username yet (signed in with a passkey only, or after yarn auth:reset) needs one to use the
+// temporary password: the admin picks it here. A user who has one keeps it unless a new one is given.
+export const NewTemporaryPasswordSchema = z.strictObject({
+  username: UsernameSchema.optional(),
+});
+
 export const ListUsersQuerySchema = PaginationQuerySchema.extend({
   sorting_fields: z.enum(USER_SORT_FIELDS).default('USERNAME'),
 });
@@ -32,19 +48,24 @@ export const UserResponseSchema = z
     state: z.enum(USER_STATES),
     // When the temporary password stops working, while the user has one.
     temporaryPasswordExpiresAt: z.iso.datetime().nullable(),
+    // The only admin left: they can't be made a member or deleted, so there is always at least one.
+    isLastAdmin: z.boolean(),
     createdAt: z.iso.datetime(),
   })
   .meta({ id: 'User' });
 
 export const UserListResponseSchema = paginatedResponseSchema(UserResponseSchema);
 
-// The only answer that ever carries the temporary password: the admin copies it now or never.
-export const CreatedUserResponseSchema = z
+// The only answers that ever carry a temporary password (a new user, or a new temporary password for a user who
+// forgot theirs): the admin copies it now or never.
+export const UserWithTemporaryPasswordResponseSchema = z
   .object({ user: UserResponseSchema, temporaryPassword: z.string() })
-  .meta({ id: 'CreatedUser' });
+  .meta({ id: 'UserWithTemporaryPassword' });
 
 export type CreateUser = z.infer<typeof CreateUserSchema>;
 export type ListUsersQuery = z.infer<typeof ListUsersQuerySchema>;
 export type UserResponse = z.infer<typeof UserResponseSchema>;
 export type UserListResponse = z.infer<typeof UserListResponseSchema>;
-export type CreatedUserResponse = z.infer<typeof CreatedUserResponseSchema>;
+export type UpdateUser = z.infer<typeof UpdateUserSchema>;
+export type NewTemporaryPassword = z.infer<typeof NewTemporaryPasswordSchema>;
+export type UserWithTemporaryPasswordResponse = z.infer<typeof UserWithTemporaryPasswordResponseSchema>;
