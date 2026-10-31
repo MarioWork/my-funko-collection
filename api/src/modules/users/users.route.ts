@@ -103,7 +103,7 @@ export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: TAGS,
         summary: 'Delete a user with their collections, items and tags; never the last admin (needs a recent sign-in)',
         params: UserParamsSchema,
-        response: { 204: z.undefined(), 404: ErrorResponseSchema, 409: ErrorResponseSchema },
+        response: { 204: z.undefined(), 400: ErrorResponseSchema, 404: ErrorResponseSchema, 409: ErrorResponseSchema },
       },
     },
     async (request, reply) => {

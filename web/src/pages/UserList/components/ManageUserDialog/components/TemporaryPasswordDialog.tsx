@@ -49,7 +49,7 @@ function TemporaryPasswordDialog({ user, onClose }: Props) {
       <UserChangeDialog
         title="New temporary password"
         description={`Give it to ${name}.`}
-        needsReauth={false}
+        isReauthNeeded={false}
         isSaving={false}
         failure={undefined}
         onClose={onClose}
@@ -69,7 +69,7 @@ function TemporaryPasswordDialog({ user, onClose }: Props) {
       title={`Give ${name} a new temporary password?`}
       description={description}
       nextStep={`Then ${name} gets a new temporary password.`}
-      needsReauth={change.needsReauth}
+      isReauthNeeded={change.isReauthNeeded}
       isSaving={change.isSaving}
       failure={isUsernameTaken ? undefined : change.failure}
       onClose={onClose}
@@ -79,7 +79,7 @@ function TemporaryPasswordDialog({ user, onClose }: Props) {
           confirmIcon={<KeyRound data-icon="inline-start" aria-hidden="true" />}
           isDestructive={false}
           isSaving={change.isSaving}
-          needsReauth={change.needsReauth}
+          isReauthNeeded={change.isReauthNeeded}
           formId={needsUsername ? FORM_ID : undefined}
           onConfirm={() => change.submit(HttpVerbsUtil.POST, {})}
         />

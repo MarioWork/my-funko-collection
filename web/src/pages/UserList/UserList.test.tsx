@@ -5,6 +5,7 @@ import { userRoutes } from '@application/routes/featureRoutes/userRoutes';
 import { USER_ROUTES_PATHS } from '@application/routes/routesUtils';
 import RouteError from '@pages/Error/RouteError';
 import { createAuthenticationResponseMockModel } from '@mocks/handlers/auth/models/passkeyResponseMockModel.mock';
+import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { mockStore, setMockUserRole } from '@mocks/mockStore';
 
 vi.mock('@simplewebauthn/browser', () => ({
@@ -88,10 +89,10 @@ it('says on the field when the username is taken', async () => {
 });
 
 describe('managing a user', () => {
-  const MARIO_ID = 1;
-  const LEIA_ID = 2;
-  const LUKE_ID = 3;
-  const HAN_ID = 4;
+  const MARIO_ID = MOCK_USER_ID;
+  const LEIA_ID = MOCK_USER_ID + 1;
+  const LUKE_ID = MOCK_USER_ID + 2;
+  const HAN_ID = MOCK_USER_ID + 3;
 
   const manageUser = (userId: number) => renderUsers(USER_ROUTES_PATHS.manage(String(userId)));
 

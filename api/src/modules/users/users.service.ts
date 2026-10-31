@@ -145,11 +145,9 @@ async function usernameForTemporaryPassword(userId: number, requested: string | 
 
   if (!requested) throw new UsernameRequiredError();
 
-  const username = requested;
+  if (await usersRepository.isUsernameTaken(requested, userId)) throw new ConflictError(USERNAME_TAKEN_MESSAGE);
 
-  if (await usersRepository.isUsernameTaken(username, userId)) throw new ConflictError(USERNAME_TAKEN_MESSAGE);
-
-  return username;
+  return requested;
 }
 
 // An admin gives a user who forgot their password a new temporary password, by the same rules as on create:

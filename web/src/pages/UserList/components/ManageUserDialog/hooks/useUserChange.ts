@@ -12,7 +12,7 @@ type UserChangeState<Data> = {
   fetcher: FetcherWithComponents<JSONResponseUtil<Data>>;
   isSaving: boolean;
   // After a REAUTH_REQUIRED answer the next press confirms with a passkey first.
-  needsReauth: boolean;
+  isReauthNeeded: boolean;
   // The failure to show; the reauth answer shows as the confirm step instead.
   failure: ApiError | undefined;
   // The settled success's answer.
@@ -26,12 +26,12 @@ export function useUserChange<Data = unknown>(userId: UserId): UserChangeState<D
   const isSaving = fetcher.state !== 'idle';
   const settled = isSaving ? undefined : fetcher.data;
   const anyFailure = settled?.success === false ? settled.error : undefined;
-  const needsReauth = useConfirmIdentityStep(anyFailure);
+  const isReauthNeeded = useConfirmIdentityStep(anyFailure);
   const isReauthAnswer = anyFailure?.code === AuthApiErrorCodes.REAUTH_REQUIRED;
   const isDone = settled?.success === true;
 
   const submit = (method: HttpVerbsUtil, user?: ManageUserFormData['user']) => {
-    void fetcher.submit(createFormData({ user, isReauth: needsReauth }), {
+    void fetcher.submit(createFormData({ user, isReauth: isReauthNeeded }), {
       method,
       action: USER_ROUTES_PATHS.manage(String(userId)),
     });
@@ -40,7 +40,7 @@ export function useUserChange<Data = unknown>(userId: UserId): UserChangeState<D
   return {
     fetcher,
     isSaving,
-    needsReauth,
+    isReauthNeeded,
     failure: isReauthAnswer ? undefined : anyFailure,
     result: isDone ? settled.data : undefined,
     submit,

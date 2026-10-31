@@ -1,7 +1,11 @@
+import { MOCK_USER_ID } from '@mocks/mockAuth';
+import { mockTemporaryPasswordFor } from '@mocks/mockUsers';
 import { expect, test } from '../fixtures/app.fixture';
 import { AuthPage } from '../pages/AuthPage.page';
 import { SettingsPage } from '../pages/SettingsPage.page';
 import { UsersPage } from '../pages/UsersPage.page';
+
+const HAN_ID = MOCK_USER_ID + 3;
 
 // han's temporary password expired before he used it (the mock seed): the admin gives him a new one.
 test('an admin gives a user a new temporary password, which signs them in to choose their own', async ({ page }) => {
@@ -12,7 +16,7 @@ test('an admin gives a user a new temporary password, which signs them in to cho
   await users.goto();
   await users.manage('han');
   await users.giveNewTemporaryPassword();
-  await expect(users.temporaryPassword).toHaveValue(/\S{15,}/);
+  await expect(users.temporaryPassword).toHaveValue(mockTemporaryPasswordFor(HAN_ID));
   const temporaryPassword = await users.temporaryPassword.inputValue();
 
   await settings.goto();
@@ -28,14 +32,14 @@ test('an admin makes a member an admin, then deletes another user', async ({ pag
   await users.goto();
   await users.manage('luke');
   await users.makeAdmin();
-  await expect(page.getByRole('button', { name: 'Make member' })).toBeVisible();
+  await expect(users.makeMemberButton).toBeVisible();
 
   await users.goto();
   await users.manage('han');
   await users.deleteUser();
 
   await expect(users.heading).toBeVisible();
-  await expect(page.getByText('3 users')).toBeVisible();
+  await expect(users.userCount(3)).toBeVisible();
   await expect(users.rowOf('han')).toHaveCount(0);
   await expect(users.rowOf('luke')).toContainText('Admin');
 });

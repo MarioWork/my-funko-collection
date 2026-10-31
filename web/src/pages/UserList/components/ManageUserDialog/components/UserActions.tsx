@@ -4,19 +4,7 @@ import type { UserApiModel } from '@app-types/models';
 import DisabledReason from '@components/DisabledReason';
 import { Button } from '@components/ui/button';
 import { reasonWhen } from '@utils/disabledReasonUtils';
-import {
-  LAST_ADMIN_REASON,
-  ROLE_HINTS,
-  USER_CHANGE,
-  makeRoleLabel,
-  otherRoleOf,
-  type UserChange,
-} from '../manageUserDialogUtils';
-
-type Props = {
-  user: UserApiModel;
-  onPick: (change: UserChange) => void;
-};
+import { LAST_ADMIN_REASON, ROLE_HINTS, UserChange, makeRoleLabel, otherRoleOf } from '../manageUserDialogUtils';
 
 type ActionRowProps = {
   heading: string;
@@ -37,11 +25,16 @@ function ActionRow({ heading, hint, children }: ActionRowProps) {
   );
 }
 
+type UserButtonProps = {
+  user: UserApiModel;
+  onPick: (change: UserChange) => void;
+};
+
 // Disabled for the last admin, with the reason on hover, keyboard focus and tap, and read out by screen readers.
-function ChangeRoleButton({ user, onPick }: Props) {
+function ChangeRoleButton({ user, onPick }: UserButtonProps) {
   return (
     <DisabledReason reason={reasonWhen(user.isLastAdmin, LAST_ADMIN_REASON)}>
-      <Button variant="outline" disabled={user.isLastAdmin} onClick={() => onPick(USER_CHANGE.ROLE)}>
+      <Button variant="outline" disabled={user.isLastAdmin} onClick={() => onPick(UserChange.ROLE)}>
         <UserCog data-icon="inline-start" aria-hidden="true" />
         {makeRoleLabel(otherRoleOf(user.role))}
       </Button>
@@ -49,16 +42,21 @@ function ChangeRoleButton({ user, onPick }: Props) {
   );
 }
 
-function DeleteUserButton({ user, onPick }: Props) {
+function DeleteUserButton({ user, onPick }: UserButtonProps) {
   return (
     <DisabledReason reason={reasonWhen(user.isLastAdmin, LAST_ADMIN_REASON)}>
-      <Button variant="destructive" disabled={user.isLastAdmin} onClick={() => onPick(USER_CHANGE.DELETE)}>
+      <Button variant="destructive" disabled={user.isLastAdmin} onClick={() => onPick(UserChange.DELETE)}>
         <Trash2 data-icon="inline-start" aria-hidden="true" />
         Delete user
       </Button>
     </DisabledReason>
   );
 }
+
+type Props = {
+  user: UserApiModel;
+  onPick: (change: UserChange) => void;
+};
 
 // The three changes an admin can make to a user. The last admin can't be made a member or deleted: those two
 // buttons stay, disabled, saying why.
@@ -69,7 +67,7 @@ function UserActions({ user, onPick }: Props) {
         <ChangeRoleButton user={user} onPick={onPick} />
       </ActionRow>
       <ActionRow heading="Password" hint="Forgot it? Give them a new temporary password.">
-        <Button variant="outline" onClick={() => onPick(USER_CHANGE.TEMPORARY_PASSWORD)}>
+        <Button variant="outline" onClick={() => onPick(UserChange.TEMPORARY_PASSWORD)}>
           <KeyRound data-icon="inline-start" aria-hidden="true" />
           New temporary password
         </Button>
