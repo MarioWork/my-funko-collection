@@ -93,7 +93,7 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   list (numeric `number` sort, relevance) and collection totals (price × quantity). DB errors map by Postgres
   SQLSTATE (`lib/databaseErrors.ts`), not Prisma code. Ids are capped at 2^31 − 1 (`lib/ids.ts`). Prisma's
   `contains` does not escape `%`/`_`: always use `containsText()`. Check constraints and the one-default-collection
-  partial index live by hand in the first migration (Prisma ignores them, so `migrate dev` never drops them).
+  partial index live by hand in the migration SQL (Prisma ignores them, so `migrate dev` never drops them).
   Migrations run in their own one-shot `migrate` container before the api (`compose.yaml`), never at app start.
   Prisma refuses `migrate reset` from an AI agent: ask Mario, or have him run it.
 - `src/lib/imageStorage.ts` is the only file that imports `sharp` or touches the uploads folder.

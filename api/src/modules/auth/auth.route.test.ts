@@ -1,7 +1,7 @@
 import { buildApp, type App } from '../../app.ts';
 import { resetTestDb } from '../../testDb.ts';
 import { SESSION_COOKIE_NAME } from '../../lib/sessionCookie.ts';
-import { createTag, signIn } from '../../testFixtures.ts';
+import { createPasskeyRow, createTag, signIn } from '../../testFixtures.ts';
 import type { AuthenticationOptionsResponse, RegistrationOptionsResponse } from './auth.schema.ts';
 import { addSetupCode, deleteSignIns } from './auth.service.ts';
 import { TestPasskey } from './TestPasskey.ts';
@@ -414,6 +414,14 @@ describe('GET /tags', () => {
 
     expect(response.statusCode).toBe(401);
   });
+
+  it('returns 200 when the session was opened by a password, without a passkey', async () => {
+    const api = await signIn(app, { signInMethod: 'PASSWORD' });
+
+    const response = await api.inject({ method: 'GET', url: '/tags' });
+
+    expect(response.statusCode).toBe(200);
+  });
 });
 
 describe('POST /tags', () => {
@@ -609,6 +617,20 @@ describe('DELETE /auth/passkeys/:passkeyId', () => {
       cookies: { [SESSION_COOKIE_NAME]: secondToken },
     });
     expect(secondSession.statusCode).toBe(200);
+  });
+
+  it('returns 204 and keeps the other sessions when the removed passkey did not open them', async () => {
+    const passwordSession = await signIn(app, { signInMethod: 'PASSWORD' });
+    const passkeySession = await signIn(app);
+    const spare = await createPasskeyRow(passwordSession.userId);
+
+    const removed = await passwordSession.inject({ method: 'DELETE', url: `${URL}/passkeys/${spare.credentialId}` });
+
+    const passwordAfter = await passwordSession.inject({ method: 'GET', url: '/tags' });
+    const passkeyAfter = await passkeySession.inject({ method: 'GET', url: '/tags' });
+    expect(removed.statusCode).toBe(204);
+    expect(passwordAfter.statusCode).toBe(200);
+    expect(passkeyAfter.statusCode).toBe(200);
   });
 });
 
