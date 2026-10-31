@@ -10,12 +10,13 @@ import {
 } from '../../../lib/imageStorage.ts';
 import { logger } from '../../../lib/logger.ts';
 import { fetchRemoteFile } from '../../../lib/remoteFetch.ts';
+import type { SignedInUser } from '../../auth/auth.type.ts';
+import { assertCanEditFunko } from '../funkos.access.ts';
 import { funkoImagesRepository, type FunkoImageRow } from './funkoImages.repository.ts';
 import type { ReorderImages, RotateImage } from './funkoImages.schema.ts';
 import type { FunkoImageResponse } from './funkoImages.type.ts';
 
 const ENTITY = 'Image';
-const PARENT_ENTITY = 'Funko';
 
 const log = logger.child({ module: 'funkoImages' });
 
@@ -47,11 +48,10 @@ async function assertNotDuplicate(funkoId: number, contentHash: string): Promise
   if (existing) throw new ConflictError('This image is already on the funko', existing.id);
 }
 
-// The funko must exist: NotFoundError (404) otherwise.
-async function assertFunkoExists(funkoId: number): Promise<void> {
-  const exists = await funkoImagesRepository.funkoExists(funkoId);
-
-  if (!exists) throw new NotFoundError(PARENT_ENTITY, funkoId);
+// The funko must be one `user` may change: any for an admin, their own waiting submission for a member. 404 when
+// they cannot see it, 403 ADMIN_ONLY when they see it but may not change it.
+async function assertCanEditImagesOf(user: SignedInUser, funkoId: number): Promise<void> {
+  assertCanEditFunko(user, funkoId, await funkoImagesRepository.findFunkoAccess(funkoId));
 }
 
 // `userId` is the signed-in user: every image records who uploaded it.
@@ -75,10 +75,10 @@ export async function getImages(funkoId: number): Promise<FunkoImageResponse[]> 
 }
 
 // Files are processed one at a time on purpose: it bounds memory and CPU on the home server.
-export async function addImages(userId: number, funkoId: number, buffers: Buffer[]): Promise<FunkoImageResponse[]> {
+export async function addImages(user: SignedInUser, funkoId: number, buffers: Buffer[]): Promise<FunkoImageResponse[]> {
   if (buffers.length === 0) throw new BadRequestError('Send at least one file in the "file" field');
 
-  await assertFunkoExists(funkoId);
+  await assertCanEditImagesOf(user, funkoId);
   await assertRoomFor(funkoId, buffers.length);
 
   const seenHashes = new Set<string>();
@@ -90,25 +90,29 @@ export async function addImages(userId: number, funkoId: number, buffers: Buffer
     if (seenHashes.has(contentHash)) throw new ConflictError('The same image was sent twice in one request');
 
     seenHashes.add(contentHash);
-    stored.push(await storeOne(userId, funkoId, buffer));
+    stored.push(await storeOne(user.userId, funkoId, buffer));
   }
 
   return stored.map(toImageResponse);
 }
 
-export async function addImageFromUrl(userId: number, funkoId: number, url: string): Promise<FunkoImageResponse> {
-  await assertFunkoExists(funkoId);
+export async function addImageFromUrl(user: SignedInUser, funkoId: number, url: string): Promise<FunkoImageResponse> {
+  await assertCanEditImagesOf(user, funkoId);
   await assertRoomFor(funkoId, 1);
 
   const buffer = await fetchRemoteFile(url, env.MAX_IMAGE_BYTES);
-  const row = await storeOne(userId, funkoId, buffer);
+  const row = await storeOne(user.userId, funkoId, buffer);
 
   return toImageResponse(row);
 }
 
 // The body must list every image of the funko exactly once; the first becomes the primary.
-export async function reorderImages(funkoId: number, { imageIds }: ReorderImages): Promise<FunkoImageResponse[]> {
-  await assertFunkoExists(funkoId);
+export async function reorderImages(
+  user: SignedInUser,
+  funkoId: number,
+  { imageIds }: ReorderImages,
+): Promise<FunkoImageResponse[]> {
+  await assertCanEditImagesOf(user, funkoId);
 
   const current = await funkoImagesRepository.listByFunko(funkoId);
   const currentIds = new Set(current.map((image) => image.id));
@@ -127,10 +131,13 @@ export async function reorderImages(funkoId: number, { imageIds }: ReorderImages
 
 // Rotating writes fresh files under a new key: size URLs are cached forever, so a changed image needs a new URL.
 export async function rotateImage(
+  user: SignedInUser,
   funkoId: number,
   imageId: number,
   { degrees }: RotateImage,
 ): Promise<FunkoImageResponse> {
+  await assertCanEditImagesOf(user, funkoId);
+
   const image = await funkoImagesRepository.findById(funkoId, imageId);
 
   if (!image) throw new NotFoundError(ENTITY, imageId);
@@ -147,7 +154,9 @@ export async function rotateImage(
 }
 
 // Row first (the API stops serving it), files second (best effort).
-export async function deleteImage(funkoId: number, imageId: number): Promise<void> {
+export async function deleteImage(user: SignedInUser, funkoId: number, imageId: number): Promise<void> {
+  await assertCanEditImagesOf(user, funkoId);
+
   const deleted = await funkoImagesRepository.delete(funkoId, imageId);
 
   if (!deleted) throw new NotFoundError(ENTITY, imageId);

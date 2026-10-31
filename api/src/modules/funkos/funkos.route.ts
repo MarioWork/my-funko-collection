@@ -1,7 +1,7 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
-import { signedInUserId } from '../../plugins/auth.plugin.ts';
+import { signedInUser, signedInUserId } from '../../plugins/auth.plugin.ts';
 import {
   BarcodeParamsSchema,
   CreateFunkoSchema,
@@ -57,23 +57,22 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: FunkoDetailResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => getFunko(signedInUserId(request), request.params.funkoId),
+    async (request) => getFunko(signedInUser(request), request.params.funkoId),
   );
 
   app.post(
     '/',
     {
       prefixTrailingSlash: 'no-slash',
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
-        summary: 'Create a funko (409 with existingId when it already exists)',
+        summary: "Create a funko (a member's is a waiting submission; 409 with existingId when it already exists)",
         body: CreateFunkoSchema,
         response: { 201: FunkoResponseSchema, 400: ErrorResponseSchema, 409: ErrorResponseSchema },
       },
     },
     async (request, reply) => {
-      const funko = await addFunko(signedInUserId(request), request.body);
+      const funko = await addFunko(signedInUser(request), request.body);
 
       return reply.code(201).send(funko);
     },
@@ -82,10 +81,9 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
   app.patch(
     '/:funkoId',
     {
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
-        summary: 'Update a funko',
+        summary: 'Update a funko (a member: only their own waiting submission)',
         params: FunkoParamsSchema,
         body: UpdateFunkoSchema,
         response: {
@@ -96,23 +94,23 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => updateFunko(signedInUserId(request), request.params.funkoId, request.body),
+    async (request) => updateFunko(signedInUser(request), request.params.funkoId, request.body),
   );
 
   app.delete(
     '/:funkoId',
     {
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
-        summary: 'Delete a funko and its images (409 while it sits in a collection, unless force=true)',
+        summary:
+          'Delete a funko and its images (409 while it sits in a collection, unless force=true; a member: only their own waiting submission)',
         params: FunkoParamsSchema,
         querystring: DeleteFunkoQuerySchema,
         response: { 204: z.undefined(), 400: ErrorResponseSchema, 404: ErrorResponseSchema, 409: ErrorResponseSchema },
       },
     },
     async (request, reply) => {
-      await deleteFunko(signedInUserId(request), request.params.funkoId, request.query);
+      await deleteFunko(signedInUser(request), request.params.funkoId, request.query);
 
       return reply.code(204).send();
     },

@@ -7,6 +7,12 @@ import { z } from 'zod';
 export const USER_ROLES = ['ADMIN', 'MEMBER'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
+// Who is calling a route, as a service needs it to decide what they may see and change.
+export type SignedInUser = {
+  userId: number;
+  isAdmin: boolean;
+};
+
 const USERNAME_MIN_LENGTH = 3;
 export const USERNAME_MAX_LENGTH = 32;
 

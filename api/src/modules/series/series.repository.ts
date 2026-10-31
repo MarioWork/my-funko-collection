@@ -1,37 +1,55 @@
+import { visibleTo } from '../../lib/catalogueVisibility.ts';
 import { containsText } from '../../lib/likePatterns.ts';
 import type { Prisma } from '../../generated/prisma/client.ts';
 import { toOrderDirection, toSkipTake } from '../../lib/pagination.ts';
-import { deletedIdOrUndefined, prisma, reloadIfUpdated } from '../../lib/prisma.ts';
-import type { SeriesSortField, CreateSeries, ListSeriesQuery, UpdateSeries } from './series.schema.ts';
+import { deletedIdOrUndefined, ID_SELECT, prisma, reloadIfUpdated } from '../../lib/prisma.ts';
+import type { SeriesSortField, ListSeriesQuery, UpdateSeries } from './series.schema.ts';
 
-// The funko count comes along, so a series with no funkos still lists with 0.
-const SERIES_SELECT = {
-  id: true,
-  name: true,
-  createdAt: true,
-  updatedAt: true,
-  _count: { select: { funkos: true } },
-} as const satisfies Prisma.SeriesSelect;
+// The funko count comes along, so a series with no funkos still lists with 0. It counts only the funkos `userId`
+// sees: another member's waiting submission never shows, not even as a number.
+function seriesSelect(userId: number) {
+  return {
+    id: true,
+    name: true,
+    status: true,
+    submittedById: true,
+    createdAt: true,
+    updatedAt: true,
+    _count: { select: { funkos: { where: visibleTo(userId) } } },
+  } as const satisfies Prisma.SeriesSelect;
+}
 
 const SORT_FIELD_MAP: Record<SeriesSortField, keyof Prisma.SeriesOrderByWithRelationInput> = {
   NAME: 'name',
   CREATION_DATE: 'createdAt',
 };
 
-type SelectedSeries = Prisma.SeriesGetPayload<{ select: typeof SERIES_SELECT }>;
+type SelectedSeries = Prisma.SeriesGetPayload<{ select: ReturnType<typeof seriesSelect> }>;
 
 export type SeriesRow = Omit<SelectedSeries, '_count'> & { funkoCount: number };
+
+export type NewSeries = Pick<Prisma.SeriesUncheckedCreateInput, 'name' | 'status' | 'submittedById'>;
+
+// Where a name must be unique: the approved catalogue (null), or one member's waiting series.
+export type NameScope = { submittedById: number | null };
 
 function toRow({ _count, ...series }: SelectedSeries): SeriesRow {
   return { ...series, funkoCount: _count.funkos };
 }
 
-function buildListFilter({ name }: ListSeriesQuery): Prisma.SeriesWhereInput {
-  return name ? { name: containsText(name) } : {};
+function buildListFilter(userId: number, { name }: ListSeriesQuery): Prisma.SeriesWhereInput {
+  return { AND: [visibleTo(userId), name ? { name: containsText(name) } : {}] };
 }
 
-async function findById(id: number): Promise<SeriesRow | undefined> {
-  const series = await prisma.series.findUnique({ where: { id }, select: SERIES_SELECT });
+function nameScopeFilter({ submittedById }: NameScope): Prisma.SeriesWhereInput {
+  if (submittedById === null) return { status: 'APPROVED' };
+
+  return { status: 'WAITING', submittedById };
+}
+
+// `userId` only decides which funkos the count includes; who may see the row is the service's call.
+async function findById(userId: number, id: number): Promise<SeriesRow | undefined> {
+  const series = await prisma.series.findUnique({ where: { id }, select: seriesSelect(userId) });
 
   return series ? toRow(series) : undefined;
 }
@@ -39,15 +57,21 @@ async function findById(id: number): Promise<SeriesRow | undefined> {
 export const seriesRepository = {
   findById,
 
-  list: async (query: ListSeriesQuery) => {
-    const where = buildListFilter(query);
+  findAccess: async (id: number) =>
+    (await prisma.series.findUnique({ where: { id }, select: { status: true, submittedById: true } })) ?? undefined,
+
+  findIdByName: async (name: string, scope: NameScope) =>
+    (await prisma.series.findFirst({ where: { name, ...nameScopeFilter(scope) }, select: ID_SELECT })) ?? undefined,
+
+  list: async (userId: number, query: ListSeriesQuery) => {
+    const where = buildListFilter(userId, query);
     const direction = toOrderDirection(query.direction);
     const sortField = SORT_FIELD_MAP[query.sorting_fields];
 
     const [rows, totalResultNumber] = await prisma.$transaction([
       prisma.series.findMany({
         where,
-        select: SERIES_SELECT,
+        select: seriesSelect(userId),
         orderBy: [{ [sortField]: direction }, { id: 'asc' }],
         ...toSkipTake(query),
       }),
@@ -57,13 +81,13 @@ export const seriesRepository = {
     return { data: rows.map(toRow), totalResultNumber };
   },
 
-  create: async (data: CreateSeries): Promise<SeriesRow> =>
-    toRow(await prisma.series.create({ data, select: SERIES_SELECT })),
+  create: async (userId: number, data: NewSeries): Promise<SeriesRow> =>
+    toRow(await prisma.series.create({ data, select: seriesSelect(userId) })),
 
-  update: async (id: number, data: UpdateSeries): Promise<SeriesRow | undefined> => {
+  update: async (userId: number, id: number, data: UpdateSeries): Promise<SeriesRow | undefined> => {
     const write = await prisma.series.updateMany({ where: { id }, data });
 
-    return reloadIfUpdated(write, () => findById(id));
+    return reloadIfUpdated(write, () => findById(userId, id));
   },
 
   delete: async (id: number): Promise<{ id: number } | undefined> => {

@@ -10,6 +10,7 @@ import { createSecureToken, hashSecureToken } from './lib/secureToken.ts';
 import { SESSION_COOKIE_NAME } from './lib/sessionCookie.ts';
 import type { ItemCondition } from './modules/collections/items/collectionItems.type.ts';
 import type { FunkoType } from './modules/funkos/funkos.type.ts';
+import type { SubmissionStatus } from './modules/submissions/submissions.type.ts';
 
 let sequence = 0;
 
@@ -19,15 +20,27 @@ function nextName(prefix: string): string {
   return `${prefix} ${String(sequence).padStart(3, '0')}`;
 }
 
-export async function createCategory(name = nextName('Category')): Promise<{ id: number; name: string }> {
-  return prisma.category.create({ data: { name }, select: { id: true, name: true } });
+// Where a catalogue row stands: approved with no sender (an admin's) unless a submission is asked for.
+type SubmissionOverrides = {
+  status?: SubmissionStatus;
+  submittedById?: number | null;
+};
+
+export async function createCategory(
+  name = nextName('Category'),
+  submission: SubmissionOverrides = {},
+): Promise<{ id: number; name: string }> {
+  return prisma.category.create({ data: { name, ...submission }, select: { id: true, name: true } });
 }
 
-export async function createSeries(name = nextName('Series')): Promise<{ id: number; name: string }> {
-  return prisma.series.create({ data: { name }, select: { id: true, name: true } });
+export async function createSeries(
+  name = nextName('Series'),
+  submission: SubmissionOverrides = {},
+): Promise<{ id: number; name: string }> {
+  return prisma.series.create({ data: { name, ...submission }, select: { id: true, name: true } });
 }
 
-type FunkoOverrides = {
+type FunkoOverrides = SubmissionOverrides & {
   name?: string;
   number?: string;
   categoryId?: number;
@@ -54,6 +67,8 @@ export async function createFunko(
       exclusive: overrides.exclusive ?? '',
       // Stored the way the service stores it, so lookups by either barcode form find the row.
       barcode: overrides.barcode ? normaliseBarcode(overrides.barcode) : null,
+      status: overrides.status ?? 'APPROVED',
+      submittedById: overrides.submittedById ?? null,
     },
     select: { id: true, name: true, categoryId: true, seriesId: true },
   });

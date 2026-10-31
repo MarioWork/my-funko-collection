@@ -1,5 +1,7 @@
-import { NotFoundError } from '../../lib/httpErrors.ts';
-import { categoriesRepository, type CategoryRow } from './categories.repository.ts';
+import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
+import type { SignedInUser } from '../auth/auth.type.ts';
+import type { SubmissionStatus } from '../submissions/submissions.type.ts';
+import { categoriesRepository, type CategoryRow, type NameScope } from './categories.repository.ts';
 import type {
   CategoryListResponse,
   CategoryResponse,
@@ -10,38 +12,70 @@ import type {
 
 const ENTITY = 'Category';
 
+type CategoryAccess = { status: SubmissionStatus; submittedById: number | null };
+
 function toResponse(row: CategoryRow): CategoryResponse {
   return {
     id: row.id,
     name: row.name,
+    status: row.status,
     funkoCount: row.funkoCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-export async function getCategories(query: ListCategoriesQuery): Promise<CategoryListResponse> {
-  const { data, totalResultNumber } = await categoriesRepository.list(query);
+// An admin sees every category; anyone else the approved ones and the ones they typed in themselves.
+function canSee(user: SignedInUser, category: CategoryAccess): boolean {
+  const isApproved = category.status === 'APPROVED';
+  const isOwn = category.submittedById === user.userId;
+
+  return user.isAdmin || isApproved || isOwn;
+}
+
+// A member's new category waits with their submission; an admin's joins the catalogue at once.
+function scopeOf(user: SignedInUser): NameScope {
+  return { submittedById: user.isAdmin ? null : user.userId };
+}
+
+// A member typing a name the catalogue already has gets a 409 pointing at it, so the form can pick that one. The
+// database refuses a second one in the same scope (the partial unique indexes) with a plain 409.
+async function assertNameFree(name: string, scope: NameScope): Promise<void> {
+  const isMemberScope = scope.submittedById !== null;
+  const inCatalogue = isMemberScope
+    ? await categoriesRepository.findIdByName(name, { submittedById: null })
+    : undefined;
+
+  if (inCatalogue) throw new ConflictError('This category is already in the catalogue', inCatalogue.id);
+}
+
+export async function getCategories(userId: number, query: ListCategoriesQuery): Promise<CategoryListResponse> {
+  const { data, totalResultNumber } = await categoriesRepository.list(userId, query);
 
   return { data: data.map(toResponse), totalResultNumber, currentPage: query.page };
 }
 
-export async function getCategory(id: number): Promise<CategoryResponse> {
-  const row = await categoriesRepository.findById(id);
+export async function getCategory(user: SignedInUser, id: number): Promise<CategoryResponse> {
+  const row = await categoriesRepository.findById(user.userId, id);
 
-  if (!row) throw new NotFoundError(ENTITY, id);
-
-  return toResponse(row);
-}
-
-export async function addCategory(data: CreateCategory): Promise<CategoryResponse> {
-  const row = await categoriesRepository.create(data);
+  if (!row || !canSee(user, row)) throw new NotFoundError(ENTITY, id);
 
   return toResponse(row);
 }
 
-export async function updateCategory(id: number, data: UpdateCategory): Promise<CategoryResponse> {
-  const row = await categoriesRepository.update(id, data);
+export async function addCategory(user: SignedInUser, data: CreateCategory): Promise<CategoryResponse> {
+  const scope = scopeOf(user);
+  const status: SubmissionStatus = scope.submittedById === null ? 'APPROVED' : 'WAITING';
+
+  await assertNameFree(data.name, scope);
+
+  const row = await categoriesRepository.create(user.userId, { ...data, status, submittedById: scope.submittedById });
+
+  return toResponse(row);
+}
+
+export async function updateCategory(user: SignedInUser, id: number, data: UpdateCategory): Promise<CategoryResponse> {
+  const row = await categoriesRepository.update(user.userId, id, data);
 
   if (!row) throw new NotFoundError(ENTITY, id);
 
@@ -53,4 +87,17 @@ export async function deleteCategory(id: number): Promise<void> {
   const deleted = await categoriesRepository.delete(id);
 
   if (!deleted) throw new NotFoundError(ENTITY, id);
+}
+
+// For funkos: whether a funko sent in by `submitterId` may sit in this category. Every funko may use an approved
+// one; a waiting one only its own sender's waiting submissions (null: an approved funko, so approved ones only).
+export async function isUsableCategory(id: number, submitterId: number | null): Promise<boolean> {
+  const access = await categoriesRepository.findAccess(id);
+
+  if (!access) return false;
+
+  const isApproved = access.status === 'APPROVED';
+  const isSendersWaiting = access.status === 'WAITING' && submitterId !== null && access.submittedById === submitterId;
+
+  return isApproved || isSendersWaiting;
 }

@@ -1,12 +1,18 @@
 import { escapeLike, ilikeContains } from '../../lib/likePatterns.ts';
 import { allOf, anyOf, inList, numberSortKey, sortDirection } from '../../lib/sqlFragments.ts';
 import { Prisma } from '../../generated/prisma/client.ts';
-import { toSkipTake } from '../../lib/pagination.ts';
+import { toOrderDirection, toSkipTake } from '../../lib/pagination.ts';
 import { deletedIdOrUndefined, ID_SELECT, prisma, reloadIfUpdated } from '../../lib/prisma.ts';
+import { visibleTo } from '../../lib/catalogueVisibility.ts';
 import { z } from 'zod';
 import {
+  SUBMISSION_STATUSES,
+  type ListSubmissionsQuery,
+  type SubmissionSortField,
+  type SubmissionStatus,
+} from '../submissions/submissions.type.ts';
+import {
   FUNKO_MATCH_FIELDS,
-  type CreateFunko,
   type FunkoMatchField,
   type FunkoSortField,
   type ListFunkosQuery,
@@ -26,6 +32,8 @@ const FUNKO_SELECT = {
   category: { select: { name: true } },
   seriesId: true,
   series: { select: { name: true } },
+  status: true,
+  submittedById: true,
   createdAt: true,
   updatedAt: true,
 } as const satisfies Prisma.FunkoSelect;
@@ -55,9 +63,18 @@ export type FunkoRow = {
   categoryName: string;
   seriesId: number | null;
   seriesName: string | null;
+  status: SubmissionStatus;
+  submittedById: number | null;
   createdAt: Date;
   updatedAt: Date;
 };
+
+// A new row: what the body says, plus where it stands (an admin's is APPROVED, a member's a WAITING submission).
+export type NewFunko = Omit<Prisma.FunkoUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Where the unique rules (barcode, identity) apply: the approved catalogue (null), or one member's waiting
+// submissions. The partial unique indexes of the submissions migration hold the same scopes.
+export type UniqueScope = { submittedById: number | null };
 
 // The natural key the duplicate guard checks: the columns of `funkos_identity_uidx`.
 export type FunkoIdentity = Pick<FunkoRow, 'categoryId' | 'number' | 'name' | 'isChase' | 'exclusive'>;
@@ -80,6 +97,8 @@ const ListedFunkoRowSchema = z.object({
   categoryName: z.string(),
   seriesId: z.number().nullable(),
   seriesName: z.string().nullable(),
+  status: z.enum(SUBMISSION_STATUSES),
+  submittedById: z.number().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
   matchedOn: z.array(z.enum(FUNKO_MATCH_FIELDS)).nullable(),
@@ -218,12 +237,19 @@ function notInCollections(userId: number, collectionIds: number[]): Prisma.Sql {
   return Prisma.sql`not ${inAnyCollection(userId, collectionIds)}`;
 }
 
+// The catalogue `userId` sees: every approved funko, and what they sent in themselves. Another member's waiting
+// submission never lists, not even for an admin (they review them elsewhere).
+function visibleToFilter(userId: number): Prisma.Sql {
+  return Prisma.sql`(f.status = 'APPROVED'::submission_status or f.submitted_by_id = ${userId})`;
+}
+
 // Each named param narrows one field; every word of `q` must match somewhere. All of it is ANDed. The collection
 // and tag filters look only at `userId`'s own items.
 function buildListFilter(userId: number, query: ListFunkosQuery): Prisma.Sql {
   const wordFilters = splitSearchWords(query.q).map((word) => wordFilter(userId, word));
 
   return allOf([
+    visibleToFilter(userId),
     ...wordFilters,
     query.name ? ilikeContains(Prisma.sql`f.name`, query.name) : undefined,
     query.number ? Prisma.sql`f.number = ${query.number.replace(LEADING_HASH, '')}` : undefined,
@@ -277,12 +303,23 @@ function buildOrderBy(query: ListFunkosQuery): Prisma.Sql {
   ]);
 }
 
+function uniqueScopeFilter({ submittedById }: UniqueScope): Prisma.FunkoWhereInput {
+  if (submittedById === null) return { status: 'APPROVED' };
+
+  return { status: 'WAITING', submittedById };
+}
+
+const SUBMISSION_SORT_MAP: Record<SubmissionSortField, keyof Prisma.FunkoOrderByWithRelationInput> = {
+  NAME: 'name',
+  CREATION_DATE: 'createdAt',
+};
+
 function toRow({ category, series, ...funko }: Prisma.FunkoGetPayload<{ select: typeof FUNKO_SELECT }>): FunkoRow {
   return { ...funko, categoryName: category.name, seriesName: series?.name ?? null };
 }
 
-async function findRow(where: Prisma.FunkoWhereUniqueInput): Promise<FunkoRow | undefined> {
-  const funko = await prisma.funko.findUnique({ where, select: FUNKO_SELECT });
+async function findRow(where: Prisma.FunkoWhereInput): Promise<FunkoRow | undefined> {
+  const funko = await prisma.funko.findFirst({ where, select: FUNKO_SELECT, orderBy: { id: 'asc' } });
 
   return funko ? toRow(funko) : undefined;
 }
@@ -311,16 +348,38 @@ export const funkosRepository = {
     return funkos.map(toRow);
   },
 
-  findByBarcode: (barcode: string): Promise<FunkoRow | undefined> => findRow({ barcode }),
+  // The catalogue's funko with this barcode first, else `userId`'s own submission of it.
+  findByBarcode: async (userId: number, barcode: string): Promise<FunkoRow | undefined> =>
+    (await findRow({ barcode, status: 'APPROVED' })) ?? findRow({ barcode, ...visibleTo(userId) }),
 
-  findIdByBarcode: async (barcode: string) =>
-    (await prisma.funko.findUnique({ where: { barcode }, select: ID_SELECT })) ?? undefined,
+  findIdByBarcode: async (barcode: string, scope: UniqueScope) =>
+    (await prisma.funko.findFirst({ where: { barcode, ...uniqueScopeFilter(scope) }, select: ID_SELECT })) ?? undefined,
 
-  findIdByIdentity: async (identity: FunkoIdentity) =>
-    (await prisma.funko.findUnique({
-      where: { categoryId_number_name_isChase_exclusive: identity },
-      select: ID_SELECT,
-    })) ?? undefined,
+  findIdByIdentity: async (identity: FunkoIdentity, scope: UniqueScope) =>
+    (await prisma.funko.findFirst({ where: { ...identity, ...uniqueScopeFilter(scope) }, select: ID_SELECT })) ??
+    undefined,
+
+  // What one user sent in, with an optional status.
+  listSubmissions: async (
+    userId: number,
+    query: ListSubmissionsQuery,
+  ): Promise<{ data: FunkoRow[]; totalResultNumber: number }> => {
+    const where: Prisma.FunkoWhereInput = { submittedById: userId, status: query.status };
+    const sortField = SUBMISSION_SORT_MAP[query.sorting_fields];
+    const direction = toOrderDirection(query.direction);
+
+    const [rows, totalResultNumber] = await prisma.$transaction([
+      prisma.funko.findMany({
+        where,
+        select: FUNKO_SELECT,
+        orderBy: [{ [sortField]: direction }, { id: 'asc' }],
+        ...toSkipTake(query),
+      }),
+      prisma.funko.count({ where }),
+    ]);
+
+    return { data: rows.map(toRow), totalResultNumber };
+  },
 
   list: async (
     userId: number,
@@ -343,6 +402,8 @@ export const funkosRepository = {
           c.name as "categoryName",
           f.series_id as "seriesId",
           s.name as "seriesName",
+          f.status::text as status,
+          f.submitted_by_id as "submittedById",
           f.created_at as "createdAt",
           f.updated_at as "updatedAt",
           ${matchedOnColumn(userId, splitSearchWords(query.q))} as "matchedOn"
@@ -393,8 +454,7 @@ export const funkosRepository = {
   countOtherUsersItems: (userId: number, funkoId: number): Promise<number> =>
     prisma.collectionItem.count({ where: { funkoId, collection: { userId: { not: userId } } } }),
 
-  create: async (data: CreateFunko): Promise<FunkoRow> =>
-    toRow(await prisma.funko.create({ data, select: FUNKO_SELECT })),
+  create: async (data: NewFunko): Promise<FunkoRow> => toRow(await prisma.funko.create({ data, select: FUNKO_SELECT })),
 
   update: async (id: number, data: UpdateFunko): Promise<FunkoRow | undefined> => {
     const write = await prisma.funko.updateMany({ where: { id }, data });

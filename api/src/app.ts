@@ -20,6 +20,7 @@ import { authRoutes } from './modules/auth/auth.route.ts';
 import { healthRoutes } from './modules/health/health.route.ts';
 import { statsRoutes } from './modules/stats/stats.route.ts';
 import { suggestRoutes } from './modules/suggest/suggest.route.ts';
+import { submissionsRoutes } from './modules/submissions/submissions.route.ts';
 import { categoriesRoutes } from './modules/categories/categories.route.ts';
 import { collectionsRoutes } from './modules/collections/collections.route.ts';
 import { allItemsRoutes } from './modules/collections/items/collectionItems.route.ts';
@@ -101,6 +102,7 @@ export async function buildApp() {
   await app.register(tagsRoutes, { prefix: '/tags' });
   await app.register(imagesRoutes, { prefix: '/images' });
   await app.register(suggestRoutes, { prefix: '/suggest' });
+  await app.register(submissionsRoutes, { prefix: '/submissions' });
   await app.register(statsRoutes, { prefix: '/stats' });
   await app.register(exportRoutes, { prefix: '/export' });
   await app.register(usersRoutes, { prefix: '/users' });
