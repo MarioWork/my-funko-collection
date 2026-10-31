@@ -259,6 +259,18 @@ describe('POST /users/:userId/temporary-password', () => {
     expect(response.json<NewTemporaryPassword>().user.username).toBe('luke');
   });
 
+  it('returns 400 and keeps the username when the user already has one and another is given', async () => {
+    const admin = await signIn(app);
+    const luke = await createUser('Luke');
+    await prisma.user.update({ where: { id: luke.id }, data: { username: 'luke' } });
+
+    const response = await newTemporaryPassword(admin, luke.id, { username: 'skywalker' });
+
+    expect(response.statusCode).toBe(400);
+    const row = await prisma.user.findUniqueOrThrow({ where: { id: luke.id }, select: { username: true } });
+    expect(row.username).toBe('luke');
+  });
+
   it('returns 400 USERNAME_REQUIRED when the user has no username and none is given', async () => {
     const admin = await signIn(app);
     const luke = await createUser('Luke');

@@ -17,7 +17,6 @@ type UserChangeState<Data> = {
   failure: ApiError | undefined;
   // The settled success's answer.
   result: Data | undefined;
-  isDone: boolean;
   submit: (method: HttpVerbsUtil, user?: ManageUserFormData['user']) => void;
 };
 
@@ -44,7 +43,6 @@ export function useUserChange<Data = unknown>(userId: UserId): UserChangeState<D
     needsReauth,
     failure: isReauthAnswer ? undefined : anyFailure,
     result: isDone ? settled.data : undefined,
-    isDone,
     submit,
   };
 }

@@ -8,9 +8,7 @@ import { nextId } from '@mocks/mockStoreUtils';
 import { newMockUserRow, toMockUserModel } from '@mocks/mockUsers';
 import type { CreateUser } from '@services/userService/userService.type';
 import { reauthRequiredResponse } from '../auth/authMockUtils';
-import { everyMockUser } from './userMockUtils';
-
-const USERNAME_TAKEN_MESSAGE = 'That username is taken. Pick another one.';
+import { USERNAME_TAKEN_MESSAGE, everyMockUser } from './userMockUtils';
 
 // Like the API: admins only (requireAdmin.mock.handler.ts), a sign-in from the last 10 minutes, a free username.
 // The answer carries the temporary password once; the list never shows it.

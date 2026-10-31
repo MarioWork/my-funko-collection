@@ -26,6 +26,12 @@ export type UserChange = (typeof USER_CHANGE)[keyof typeof USER_CHANGE];
 // Why the last admin's "Make member" and "Delete user" are disabled (docs/GLOSSARY.md: there is always one admin).
 export const LAST_ADMIN_REASON = 'There must always be at least one admin. Make someone else an admin first.';
 
+// What each role may do, in the manage panel and the role change's confirm.
+export const ROLE_HINTS: Record<UserRoleUtil, string> = {
+  [UserRoleUtil.ADMIN]: 'An admin manages users, images and the catalogue.',
+  [UserRoleUtil.MEMBER]: 'A member keeps their own collections and reads the catalogue.',
+};
+
 // What each change does to the user's sign-in, said in every confirm dialog.
 export const SIGNS_OUT_EVERYWHERE = 'They are signed out on every device.';
 

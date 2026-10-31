@@ -4,7 +4,14 @@ import type { UserApiModel } from '@app-types/models';
 import DisabledReason from '@components/DisabledReason';
 import { Button } from '@components/ui/button';
 import { reasonWhen } from '@utils/disabledReasonUtils';
-import { LAST_ADMIN_REASON, USER_CHANGE, makeRoleLabel, otherRoleOf, type UserChange } from '../manageUserDialogUtils';
+import {
+  LAST_ADMIN_REASON,
+  ROLE_HINTS,
+  USER_CHANGE,
+  makeRoleLabel,
+  otherRoleOf,
+  type UserChange,
+} from '../manageUserDialogUtils';
 
 type Props = {
   user: UserApiModel;
@@ -58,7 +65,7 @@ function DeleteUserButton({ user, onPick }: Props) {
 function UserActions({ user, onPick }: Props) {
   return (
     <div className="flex flex-col gap-3">
-      <ActionRow heading="Role" hint="An admin manages users, images and the catalogue.">
+      <ActionRow heading="Role" hint={ROLE_HINTS[user.role]}>
         <ChangeRoleButton user={user} onPick={onPick} />
       </ActionRow>
       <ActionRow heading="Password" hint="Forgot it? Give them a new temporary password.">

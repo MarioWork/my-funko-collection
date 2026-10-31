@@ -39,3 +39,15 @@ test('an admin makes a member an admin, then deletes another user', async ({ pag
   await expect(users.rowOf('han')).toHaveCount(0);
   await expect(users.rowOf('luke')).toContainText('Admin');
 });
+
+// leia is an admin too, so Mario is not the last one: making himself a member ends his own session.
+test('an admin who makes themselves a member is signed out', async ({ page }) => {
+  const auth = new AuthPage(page);
+  const users = new UsersPage(page);
+
+  await users.goto();
+  await users.manage('Mario');
+  await users.makeMember();
+
+  await expect(auth.loginHeading).toBeVisible();
+});

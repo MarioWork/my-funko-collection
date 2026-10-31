@@ -1,13 +1,19 @@
 import { AuthStateUtil, UserRoleUtil } from '@app-types/utility';
 import { MOCK_USER_ID } from '@mocks/mockAuth';
-import { errorResponse } from '@mocks/mockResponses';
+import { errorResponse, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockUserRow } from '@mocks/mockStore.type';
 import { mockUserRowOf } from '@mocks/mockUsers';
 import { UserApiErrorCodes } from '@services/userService/userService';
 import { CONFLICT_STATUS } from '@utils/httpStatusUtils';
+import { reauthRequiredResponse } from '../auth/authMockUtils';
 
 const LAST_ADMIN_MESSAGE = 'There must always be at least one admin. Make someone else an admin first.';
+const USER_ENTITY = 'User';
+
+export const USERNAME_TAKEN_MESSAGE = 'That username is taken. Pick another one.';
+
+type ManagedMockUser = { userId: number; user: MockUserRow };
 
 // Every user, the signed-in one first, as GET /users lists them.
 export function everyMockUser(): MockUserRow[] {
@@ -22,6 +28,21 @@ export function isSignedInMockUser(userId: number): boolean {
 // written to mockStore.auth, never to this copy.
 export function findMockUser(userId: number): MockUserRow | undefined {
   return everyMockUser().find((user) => user.id === userId);
+}
+
+// What every change to one user checks first, like the API: a recent sign-in, then that the user exists. A Response
+// when either fails (answer it), the user otherwise.
+export function readManagedMockUser(userIdParam: unknown): ManagedMockUser | Response {
+  const reauthRequired = reauthRequiredResponse();
+
+  if (reauthRequired) return reauthRequired;
+
+  const userId = Number(userIdParam);
+  const user = findMockUser(userId);
+
+  if (!user) return notFound(USER_ENTITY, userId);
+
+  return { userId, user };
 }
 
 // Another user's stored row, the one a change is written to.
