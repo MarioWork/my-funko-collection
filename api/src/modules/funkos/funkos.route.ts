@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
+import { signedInUserId } from '../../plugins/auth.plugin.ts';
 import {
   BarcodeParamsSchema,
   CreateFunkoSchema,
@@ -30,7 +31,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: FunkoListResponseSchema, 400: ErrorResponseSchema },
       },
     },
-    async (request) => getFunkos(request.query),
+    async (request) => getFunkos(signedInUserId(request), request.query),
   );
 
   app.get(
@@ -43,7 +44,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: FunkoResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => getFunkoByBarcode(request.params.barcode),
+    async (request) => getFunkoByBarcode(signedInUserId(request), request.params.barcode),
   );
 
   app.get(
@@ -56,7 +57,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: FunkoDetailResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => getFunko(request.params.funkoId),
+    async (request) => getFunko(signedInUserId(request), request.params.funkoId),
   );
 
   app.post(
@@ -72,7 +73,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const funko = await addFunko(request.body);
+      const funko = await addFunko(signedInUserId(request), request.body);
 
       return reply.code(201).send(funko);
     },
@@ -95,7 +96,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => updateFunko(request.params.funkoId, request.body),
+    async (request) => updateFunko(signedInUserId(request), request.params.funkoId, request.body),
   );
 
   app.delete(
@@ -111,7 +112,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await deleteFunko(request.params.funkoId, request.query);
+      await deleteFunko(signedInUserId(request), request.params.funkoId, request.query);
 
       return reply.code(204).send();
     },

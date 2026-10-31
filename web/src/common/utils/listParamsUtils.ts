@@ -2,6 +2,10 @@ import { SortingDirectionUtil } from '@app-types/utility';
 
 const DIRECTIONS = new Set<string>(Object.values(SortingDirectionUtil));
 
+// How a yes/no filter is written in the URL and sent to the API (`?hasImages=true`).
+export const TRUE_VALUE = 'true';
+export const FALSE_VALUE = 'false';
+
 // Every search field the URL sets, under its own name. An empty value is left out so it never reaches the wire.
 export function readSearchFields<Field extends string>(
   searchParams: URLSearchParams,

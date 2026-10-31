@@ -51,7 +51,9 @@ const ITEM_TAG_SELECT = { collectionItemId: true, tagId: true } as const satisfi
 
 const BY_ID = { id: 'asc' } as const;
 
-// Whole tables, explicit columns, ordered by id so two exports of the same data are byte-identical.
+// Explicit columns, ordered by id so two exports of the same data are byte-identical. The catalogue (categories,
+// series, funkos, images) is whole; collections, items and their tags are only `userId`'s own. Tags themselves
+// do not belong to a user yet (issue #3), so every tag is in it.
 export const exportRepository = {
   categories: () => prisma.category.findMany({ select: NAME_SELECT, orderBy: BY_ID }),
 
@@ -62,14 +64,17 @@ export const exportRepository = {
   images: () =>
     prisma.funkoImage.findMany({ select: IMAGE_SELECT, orderBy: [{ funkoId: 'asc' }, { position: 'asc' }] }),
 
-  collections: () => prisma.collection.findMany({ select: COLLECTION_SELECT, orderBy: BY_ID }),
+  collections: (userId: number) =>
+    prisma.collection.findMany({ where: { userId }, select: COLLECTION_SELECT, orderBy: BY_ID }),
 
   tags: () => prisma.tag.findMany({ select: TAG_SELECT, orderBy: BY_ID }),
 
-  items: () => prisma.collectionItem.findMany({ select: ITEM_SELECT, orderBy: BY_ID }),
+  items: (userId: number) =>
+    prisma.collectionItem.findMany({ where: { collection: { userId } }, select: ITEM_SELECT, orderBy: BY_ID }),
 
-  itemTags: async () => {
+  itemTags: async (userId: number) => {
     const rows = await prisma.collectionItemTag.findMany({
+      where: { item: { collection: { userId } } },
       select: ITEM_TAG_SELECT,
       orderBy: [{ collectionItemId: 'asc' }, { tagId: 'asc' }],
     });

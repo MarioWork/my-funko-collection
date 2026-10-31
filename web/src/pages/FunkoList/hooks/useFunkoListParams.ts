@@ -5,8 +5,8 @@ import type { FilterChip } from '@components/FilterChips';
 import type { SortOption } from '@components/SortSelect';
 import { useListParams } from '@hooks/useListParams';
 import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
+import { TRUE_VALUE } from '@utils/listParamsUtils';
 import type { loader } from '../funkoListLoader';
-import { TRUE_VALUE } from '../funkoListUtils';
 
 const FILTER_FIELDS = [
   FunkoApiSearchFields.CATEGORY_ID,

@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
+import { signedInUserId } from '../../plugins/auth.plugin.ts';
 import {
   CollectionListResponseSchema,
   CollectionParamsSchema,
@@ -33,7 +34,7 @@ export const collectionsRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: CollectionListResponseSchema, 400: ErrorResponseSchema },
       },
     },
-    async (request) => getCollections(request.query),
+    async (request) => getCollections(signedInUserId(request), request.query),
   );
 
   app.get(
@@ -46,7 +47,7 @@ export const collectionsRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: CollectionResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => getCollection(request.params.collectionId),
+    async (request) => getCollection(signedInUserId(request), request.params.collectionId),
   );
 
   app.post(
@@ -61,7 +62,7 @@ export const collectionsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const collection = await addCollection(request.body);
+      const collection = await addCollection(signedInUserId(request), request.body);
 
       return reply.code(201).send(collection);
     },
@@ -83,7 +84,7 @@ export const collectionsRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => updateCollection(request.params.collectionId, request.body),
+    async (request) => updateCollection(signedInUserId(request), request.params.collectionId, request.body),
   );
 
   app.delete(
@@ -97,7 +98,7 @@ export const collectionsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await deleteCollection(request.params.collectionId);
+      await deleteCollection(signedInUserId(request), request.params.collectionId);
 
       return reply.code(204).send();
     },

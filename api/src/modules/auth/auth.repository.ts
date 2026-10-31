@@ -83,8 +83,10 @@ type UserRow = Prisma.UserGetPayload<{ select: typeof USER_SELECT }>;
 
 type TakenChallenge = { challenge: string; webauthnUserId: string | null };
 
-function countUsers(executor: DbExecutor = prisma): Promise<number> {
-  return executor.user.count();
+// The app is set up once someone can sign in: a user with a passkey or a password. A user row alone is not enough:
+// yarn auth:reset keeps the users (their collections hang off them) and takes away every way in.
+function countUsersWhoCanSignIn(executor: DbExecutor = prisma): Promise<number> {
+  return executor.user.count({ where: { OR: [{ passkeys: { some: {} } }, { passwordHash: { not: null } }] } });
 }
 
 async function deleteSession(tokenHash: string, executor: DbExecutor = prisma): Promise<void> {
@@ -110,13 +112,16 @@ export const authRepository = {
   findUser: async (): Promise<UserRow | undefined> =>
     (await prisma.user.findFirst({ select: USER_SELECT })) ?? undefined,
 
-  countUsers,
+  countUsersWhoCanSignIn,
 
-  // Users cascade to their passkeys and sessions; challenges and setup codes go with them. All or nothing: a reset
+  // Every way in goes: sessions, passkeys, usernames and passwords, challenges and setup codes. The user rows stay,
+  // because their collections and items belong to them (deleting a user deletes those). All or nothing: a reset
   // that fails halfway must not leave, say, the passkeys gone but the old setup code still valid.
-  deleteEverything: async (): Promise<void> => {
+  deleteEverySignIn: async (): Promise<void> => {
     await prisma.$transaction([
-      prisma.user.deleteMany(),
+      prisma.session.deleteMany(),
+      prisma.passkey.deleteMany(),
+      prisma.user.updateMany({ data: { username: null, passwordHash: null } }),
       prisma.authChallenge.deleteMany(),
       prisma.setupCode.deleteMany(),
     ]);
@@ -218,18 +223,25 @@ export const authRepository = {
   },
 
   // First run, all or nothing: the user, their first passkey and session appear together and the setup code goes.
-  // Returns undefined when someone else finished setup first (the user count is checked inside the transaction).
+  // After yarn auth:reset the first user is still there, with their collections: setup gives them back a way in
+  // (the new passkey's user handle, the name typed now) instead of making a second user. A brand-new user gets
+  // their "Owned" and "Wishlist" from the database trigger.
+  // Returns undefined when someone else finished setup first (the count is checked inside the transaction).
   completeSetup: (setup: CompletedSetup): Promise<UserRow | undefined> =>
     prisma.$transaction(async (tx) => {
-      // Two setups racing would both count 0 users under Postgres's default isolation. The lock makes the second
-      // wait for the first to commit, then it counts 1 and stops. It ends with the transaction.
-      await tx.$executeRaw`lock table users in share row exclusive mode`;
+      // Two setups racing would both count 0 under Postgres's default isolation. The lock makes the second wait
+      // for the first to commit, then it counts 1 and stops. It ends with the transaction. Passkeys are locked
+      // too: the count reads them, and the first setup inserts one.
+      await tx.$executeRaw`lock table users, passkeys in share row exclusive mode`;
 
-      const isAlreadySetUp = (await countUsers(tx)) > 0;
+      const isAlreadySetUp = (await countUsersWhoCanSignIn(tx)) > 0;
 
       if (isAlreadySetUp) return undefined;
 
-      const user = await tx.user.create({ data: setup.user, select: USER_SELECT });
+      const firstUser = await tx.user.findFirst({ orderBy: { id: 'asc' }, select: ID_SELECT });
+      const user = firstUser
+        ? await tx.user.update({ where: { id: firstUser.id }, data: setup.user, select: USER_SELECT })
+        : await tx.user.create({ data: setup.user, select: USER_SELECT });
       const passkey = await tx.passkey.create({ data: { ...setup.passkey, userId: user.id }, select: ID_SELECT });
 
       await tx.session.create({

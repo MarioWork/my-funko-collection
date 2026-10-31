@@ -29,8 +29,16 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - One search endpoint: `GET /funkos?q=` searches every field, named params narrow one field. No separate `/search`.
 - `DELETE /funkos/:id` answers 409 while the funko is in a collection; `?force=true` removes it from all of them.
 - Deleting a tag only removes the label from items. Deleting a collection removes its items, never the funkos.
-- "Owned" (the default) and "Wishlist" always exist from the first start: reference data in the custom migration
-  `api/prisma/migrations/*_default_collections/`, not the seed. Each insert skips one that is already there.
+- Collections and items belong to one user (`docs/adr/0001-shared-catalogue-own-collections.md`); the catalogue is
+  shared. Every collection/item read and write takes the signed-in user's id (`signedInUserId(request)` from
+  `auth.plugin.ts`, passed route → service → repository) and another user's id answers 404. So do the funko filters
+  and search that look at collections or items, a funko's `collections`, suggestions, stats and exports.
+- Every user has their own "Owned" (the default) and "Wishlist" from the moment the user row exists: reference data
+  from the custom migration `api/prisma/migrations/*_default_collections/` (claimed by the first user) plus a trigger
+  in `*_collections_per_user/` for every new user, not the seed or app code. Each insert skips one that is already
+  there (`ON CONFLICT DO NOTHING`). Names are unique per user; one default per user (a partial index).
+  `yarn auth:reset` keeps the users (deleting one deletes their collections); the next setup gives the first user a
+  new passkey and makes them an admin.
 - Sign-in is a passkey or a username + password (`docs/adr/0002-passwords-next-to-passkeys.md`, `api/README.md`
   "Sign-in"). Passwords: 15+ characters, the built-in list `api/assets/common-passwords.txt` refused, argon2id via
   Node's `crypto.argon2` (`api/src/lib/passwordHash.ts`), rate limited, never a lockout. Every API
@@ -76,7 +84,7 @@ yarn typecheck && yarn lint && yarn test   # the definition of green
 yarn db:migrate     # prisma migrate dev: apply, or --name=<change> after a schema edit (commit prisma/)
 yarn db:seed        # example data with placeholder images
 yarn images:prune   # delete image files no row references
-yarn auth:reset      # locked out: remove every passkey and session, print a new setup link
+yarn auth:reset      # locked out: remove every passkey, password and session (users stay), print a new setup link
 ```
 
 Inside `web/`:
@@ -101,8 +109,9 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   `lib/sqlFragments.ts`, and test/seed code. Three queries are `$queryRaw` because Prisma can't express them: the funko list, the item
   list (numeric `number` sort, relevance) and collection totals (price × quantity). DB errors map by Postgres
   SQLSTATE (`lib/databaseErrors.ts`), not Prisma code. Ids are capped at 2^31 − 1 (`lib/ids.ts`). Prisma's
-  `contains` does not escape `%`/`_`: always use `containsText()`. Check constraints and the one-default-collection
-  partial index live by hand in the migration SQL (Prisma ignores them, so `migrate dev` never drops them).
+  `contains` does not escape `%`/`_`: always use `containsText()`. Check constraints, the one-default-per-user
+  partial index and the default-collections trigger live by hand in the migration SQL (Prisma ignores them, so
+  `migrate dev` never drops them).
   Migrations run in their own one-shot `migrate` container before the api (`compose.yaml`), never at app start.
   Prisma refuses `migrate reset` from an AI agent: ask Mario, or have him run it.
 - `src/lib/imageStorage.ts` is the only file that imports `sharp` or touches the uploads folder.

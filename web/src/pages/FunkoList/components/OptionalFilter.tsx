@@ -1,5 +1,5 @@
 import SelectFilter, { type FilterOption } from '@components/SelectFilter';
-import { FALSE_VALUE } from '../funkoListUtils';
+import { FALSE_VALUE } from '@utils/listParamsUtils';
 import type { FunkoFilterField, FunkoFilterUpdates } from '../hooks/useFunkoListParams';
 
 type Props = {

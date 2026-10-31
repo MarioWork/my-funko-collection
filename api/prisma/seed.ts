@@ -1,4 +1,5 @@
 // Development data. Run with: yarn db:seed
+import { randomBytes } from 'node:crypto';
 import { env } from '../src/config/env.ts';
 import { clearUploads, generateImage, processImage } from '../src/lib/imageStorage.ts';
 import { logger } from '../src/lib/logger.ts';
@@ -28,9 +29,12 @@ type SeedItem = {
 
 const CATEGORY_NAMES = ['Pop! Marvel', 'Pop! Television', 'Pop! Star Wars', 'Pop! Animation', 'Pop! Games'];
 const SERIES_NAMES = ['Daredevil: Born Again', 'The Mandalorian', 'Stranger Things'];
-// "Owned" and "Wishlist" are reference data from the default_collections migration: the seed keeps them and only
-// fills them.
+// Every user has "Owned" and "Wishlist" from the moment they exist (a trigger in the collections_per_user
+// migration): the seed keeps them and only fills the first user's.
 const REFERENCE_COLLECTION_NAMES = ['Owned', 'Wishlist'];
+// Who owns the example items when nobody is set up yet. No password or passkey: the first setup signs in as them.
+const SEED_USER_NAME = 'Collector';
+const WEBAUTHN_USER_ID_BYTES = 32;
 const TAG_NAMES = ['Box 1', 'Box 2', 'Display shelf'];
 
 // Example catalog rows; numbers are illustrative, not a price guide.
@@ -211,8 +215,8 @@ if (env.NODE_ENV === 'production') {
   throw new Error('Refusing to seed a production database');
 }
 
-// One delete per table, children first, and the uploads folder with them. Sign-in data and the reference collections
-// are left alone.
+// One delete per table, children first, and the uploads folder with them. Users, sign-in data and every user's
+// reference collections are left alone.
 await prisma.$transaction([
   prisma.collectionItemTag.deleteMany(),
   prisma.collectionItem.deleteMany(),
@@ -263,7 +267,20 @@ const funkoRows = await prisma.funko.createManyAndReturn({
 // Items reference the regular (non-chase) figure by name.
 const funkoIds = new Map(funkoRows.filter((row) => !row.isChase).map((row) => [row.name, row.id]));
 
-const collectionRows = await prisma.collection.findMany({ select: NAME_SELECT });
+// The first user owns the example items. With nobody set up yet, a user with no way to sign in is made for them:
+// an admin, since the first setup signs in as them, like the user the collections_per_user migration makes.
+const seedUser =
+  (await prisma.user.findFirst({ orderBy: { id: 'asc' }, select: { id: true } })) ??
+  (await prisma.user.create({
+    data: {
+      name: SEED_USER_NAME,
+      role: 'ADMIN',
+      webauthnUserId: randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url'),
+    },
+    select: { id: true },
+  }));
+
+const collectionRows = await prisma.collection.findMany({ where: { userId: seedUser.id }, select: NAME_SELECT });
 const collectionIds = new Map(collectionRows.map((row) => [row.name, row.id]));
 
 for (const name of REFERENCE_COLLECTION_NAMES) {

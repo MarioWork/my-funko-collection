@@ -2,6 +2,7 @@ import type { CollectionApiModel } from '@app-types/models';
 import { SortingDirectionUtil } from '@app-types/utility';
 import type { SortField } from '@components/SortSelect';
 import { FunkoApiSearchFields, FunkoApiSortingFields } from '@services/funkoService/funkoService';
+import { FALSE_VALUE, TRUE_VALUE } from '@utils/listParamsUtils';
 import { ALPHABETICAL_LABELS, DATE_LABELS, NUMERIC_LABELS } from '@utils/sortUtils';
 import type { FunkoFilterField } from './hooks/useFunkoListParams';
 
@@ -49,9 +50,6 @@ export type QuickFilter = {
   field: FunkoFilterField;
   value: string;
 };
-
-export const TRUE_VALUE = 'true';
-export const FALSE_VALUE = 'false';
 
 // One chip per collection ("Owned", "Wishlist"), then chase and the funkos still missing a photo.
 export function buildQuickFilters(collections: CollectionApiModel[]): QuickFilter[] {

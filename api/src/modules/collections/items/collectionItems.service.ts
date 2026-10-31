@@ -57,9 +57,10 @@ async function toSingleResponse(row: ItemRow | undefined, id: number): Promise<C
   return response;
 }
 
-// Both answer NotFoundError (404) through the other module's get when the id does not exist.
-async function assertCollectionExists(collectionId: number): Promise<void> {
-  await getCollection(collectionId);
+// Both answer NotFoundError (404) through the other module's get when the id does not exist. The collection one
+// answers it as well for another user's collection: every item route works inside the signed-in user's own.
+async function assertCollectionExists(userId: number, collectionId: number): Promise<void> {
+  await getCollection(userId, collectionId);
 }
 
 async function assertFunkoExists(funkoId: number): Promise<void> {
@@ -81,32 +82,48 @@ async function assertNotAlreadyInCollection(collectionId: number, funkoId: numbe
   if (existing) throw new ConflictError('This funko is already in the collection', existing.id);
 }
 
+// The signed-in user's item, or NotFoundError: one in another user's collection is not found either.
+async function findOwnItem(userId: number, collectionId: number, itemId: number): Promise<ItemRow> {
+  const current = await collectionItemsRepository.findById(userId, collectionId, itemId);
+
+  if (!current) throw new NotFoundError(ENTITY, itemId);
+
+  return current;
+}
+
 export async function getCollectionItems(
+  userId: number,
   collectionId: number,
   query: ListCollectionItemsQuery,
 ): Promise<CollectionItemListResponse> {
-  await assertCollectionExists(collectionId);
+  await assertCollectionExists(userId, collectionId);
 
-  return getAllItems({ ...query, collectionId: [collectionId] });
+  return getAllItems(userId, { ...query, collectionId: [collectionId] });
 }
 
-export async function getAllItems(query: ListAllItemsQuery): Promise<CollectionItemListResponse> {
-  const { data, totalResultNumber } = await collectionItemsRepository.list(query);
+// Only the signed-in user's items: a collectionId of another user's narrows the list to nothing.
+export async function getAllItems(userId: number, query: ListAllItemsQuery): Promise<CollectionItemListResponse> {
+  const { data, totalResultNumber } = await collectionItemsRepository.list(userId, query);
 
   return { data: await toResponses(data), totalResultNumber, currentPage: query.page };
 }
 
-export async function getCollectionItem(collectionId: number, itemId: number): Promise<CollectionItemResponse> {
-  const row = await collectionItemsRepository.findById(collectionId, itemId);
+export async function getCollectionItem(
+  userId: number,
+  collectionId: number,
+  itemId: number,
+): Promise<CollectionItemResponse> {
+  const row = await collectionItemsRepository.findById(userId, collectionId, itemId);
 
   return toSingleResponse(row, itemId);
 }
 
 export async function addCollectionItem(
+  userId: number,
   collectionId: number,
   { tagIds, ...data }: CreateCollectionItem,
 ): Promise<CollectionItemResponse> {
-  await assertCollectionExists(collectionId);
+  await assertCollectionExists(userId, collectionId);
   await assertFunkoExists(data.funkoId);
   await assertTagsExist(tagIds);
   await assertNotAlreadyInCollection(collectionId, data.funkoId);
@@ -120,42 +137,41 @@ export async function addCollectionItem(
 
 // `tagIds` replaces the whole set; leaving it out keeps the tags as they are.
 export async function updateCollectionItem(
+  userId: number,
   collectionId: number,
   itemId: number,
   { tagIds, ...data }: UpdateCollectionItem,
 ): Promise<CollectionItemResponse> {
-  const current = await collectionItemsRepository.findById(collectionId, itemId);
-
-  if (!current) throw new NotFoundError(ENTITY, itemId);
-
+  await findOwnItem(userId, collectionId, itemId);
   await assertTagsExist(tagIds);
 
-  const row = await collectionItemsRepository.update(itemId, data, tagIds ? [...new Set(tagIds)] : undefined);
+  const row = await collectionItemsRepository.update(userId, itemId, data, tagIds ? [...new Set(tagIds)] : undefined);
 
   return toSingleResponse(row, itemId);
 }
 
-// Wishlist → Owned: the row changes collection and keeps its tags, notes and purchase data.
+// Wishlist → Owned: the row changes collection and keeps its tags, notes and purchase data. Both collections must
+// be the signed-in user's.
 export async function moveCollectionItem(
+  userId: number,
   collectionId: number,
   itemId: number,
   { toCollectionId }: MoveCollectionItem,
 ): Promise<CollectionItemResponse> {
-  const current = await collectionItemsRepository.findById(collectionId, itemId);
+  const current = await findOwnItem(userId, collectionId, itemId);
 
-  if (!current) throw new NotFoundError(ENTITY, itemId);
   if (toCollectionId === collectionId) throw new BadRequestError('The item is already in that collection');
 
-  await assertCollectionExists(toCollectionId);
+  await assertCollectionExists(userId, toCollectionId);
   await assertNotAlreadyInCollection(toCollectionId, current.funkoId);
 
-  const row = await collectionItemsRepository.move(itemId, toCollectionId);
+  const row = await collectionItemsRepository.move(userId, itemId, toCollectionId);
 
   return toSingleResponse(row, itemId);
 }
 
-export async function deleteCollectionItem(collectionId: number, itemId: number): Promise<void> {
-  const deleted = await collectionItemsRepository.delete(collectionId, itemId);
+export async function deleteCollectionItem(userId: number, collectionId: number, itemId: number): Promise<void> {
+  const deleted = await collectionItemsRepository.delete(userId, collectionId, itemId);
 
   if (!deleted) throw new NotFoundError(ENTITY, itemId);
 }

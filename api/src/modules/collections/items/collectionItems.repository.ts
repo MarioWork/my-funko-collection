@@ -64,8 +64,10 @@ function hasAnyTag(tagIds: number[]): Prisma.Sql {
   )`;
 }
 
-function buildListFilter(query: ListAllItemsQuery): Prisma.Sql {
+// `c` is the item's collection: only the user's own collections count.
+function buildListFilter(userId: number, query: ListAllItemsQuery): Prisma.Sql {
   return allOf([
+    Prisma.sql`c.user_id = ${userId}`,
     query.collectionId ? inList(Prisma.sql`i.collection_id`, query.collectionId) : undefined,
     query.name ? ilikeContains(Prisma.sql`f.name`, query.name) : undefined,
     query.funkoId ? inList(Prisma.sql`i.funko_id`, query.funkoId) : undefined,
@@ -97,8 +99,9 @@ async function replaceTags(executor: DbExecutor, itemId: number, tagIds: number[
 }
 
 export const collectionItemsRepository = {
-  findById: (collectionId: number, itemId: number): Promise<ItemRow | undefined> =>
-    findRow({ collectionId, id: itemId }, prisma),
+  // The user is part of every lookup and write by id: an item in another user's collection is not found.
+  findById: (userId: number, collectionId: number, itemId: number): Promise<ItemRow | undefined> =>
+    findRow({ collectionId, id: itemId, collection: { userId } }, prisma),
 
   findIdByFunko: async (collectionId: number, funkoId: number) =>
     (await prisma.collectionItem.findUnique({
@@ -106,8 +109,8 @@ export const collectionItemsRepository = {
       select: ID_SELECT,
     })) ?? undefined,
 
-  list: async (query: ListAllItemsQuery) => {
-    const filter = buildListFilter(query);
+  list: async (userId: number, query: ListAllItemsQuery) => {
+    const filter = buildListFilter(userId, query);
     const sortColumn = SORT_FIELD_MAP[query.sorting_fields];
     const { skip, take } = toSkipTake(query);
 
@@ -135,6 +138,7 @@ export const collectionItemsRepository = {
       prisma.$queryRaw<CountRow[]>`
         select count(*)::int as total
         from collection_items i
+        join collections c on c.id = i.collection_id
         join funkos f on f.id = i.funko_id
         where ${filter}`,
     ]);
@@ -175,32 +179,39 @@ export const collectionItemsRepository = {
       return findRow({ id: created.id }, tx);
     }),
 
-  update: (itemId: number, data: ItemUpdate, tagIds: number[] | undefined): Promise<ItemRow | undefined> =>
+  update: (
+    userId: number,
+    itemId: number,
+    data: ItemUpdate,
+    tagIds: number[] | undefined,
+  ): Promise<ItemRow | undefined> =>
     prisma.$transaction(async (tx) => {
+      const ownItem = { id: itemId, collection: { userId } };
+      const current = await findRow(ownItem, tx);
+
+      if (!current) return undefined;
+
       const hasFieldChanges = Object.keys(data).length > 0;
 
-      if (hasFieldChanges) {
-        const { count } = await tx.collectionItem.updateMany({ where: { id: itemId }, data });
-
-        if (count === 0) return undefined;
-      }
-
+      if (hasFieldChanges) await tx.collectionItem.updateMany({ where: ownItem, data });
       if (tagIds) await replaceTags(tx, itemId, tagIds);
 
-      return findRow({ id: itemId }, tx);
+      return findRow(ownItem, tx);
     }),
 
-  move: async (itemId: number, toCollectionId: number): Promise<ItemRow | undefined> => {
+  move: async (userId: number, itemId: number, toCollectionId: number): Promise<ItemRow | undefined> => {
     const write = await prisma.collectionItem.updateMany({
-      where: { id: itemId },
+      where: { id: itemId, collection: { userId } },
       data: { collectionId: toCollectionId },
     });
 
     return reloadIfUpdated(write, () => findRow({ id: itemId }, prisma));
   },
 
-  delete: async (collectionId: number, itemId: number): Promise<{ id: number } | undefined> => {
-    const write = await prisma.collectionItem.deleteMany({ where: { collectionId, id: itemId } });
+  delete: async (userId: number, collectionId: number, itemId: number): Promise<{ id: number } | undefined> => {
+    const write = await prisma.collectionItem.deleteMany({
+      where: { collectionId, id: itemId, collection: { userId } },
+    });
 
     return deletedIdOrUndefined(itemId, write);
   },

@@ -147,18 +147,24 @@ model FunkoImage {
   @@map("funko_images")
 }
 
-// One of the user's own lists: "Owned", "Wishlist", "For sale". Exactly one is the default (a partial unique
-// index in the migration, which Prisma cannot declare).
+// One of a user's own lists: "Owned", "Wishlist", "For sale". Only that user sees it. Each user has exactly one
+// default (a partial unique index in the migration, which Prisma cannot declare). A trigger in the migration gives
+// every new user their "Owned" (the default) and "Wishlist", whichever code makes the user.
 model Collection {
   id        Int      @id @default(autoincrement())
-  name      String   @unique(map: "collections_name_uidx")
+  // The user it belongs to. Deleting the user deletes their collections, and with them their items.
+  userId    Int      @map("user_id")
+  // Unique per user: two users may each have a "Wishlist".
+  name      String
   notes     String?
   isDefault Boolean  @default(false) @map("is_default")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   items CollectionItem[]
 
+  @@unique([userId, name], map: "collections_user_id_name_uidx")
   @@index([createdAt], map: "collections_created_at_idx")
   @@map("collections")
 }
@@ -233,8 +239,9 @@ model User {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  passkeys Passkey[]
-  sessions Session[]
+  passkeys    Passkey[]
+  sessions    Session[]
+  collections Collection[]
 
   @@map("users")
 }

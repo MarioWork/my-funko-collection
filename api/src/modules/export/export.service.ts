@@ -35,8 +35,8 @@ const IMAGES_FILE_BASE = 'my-funko-collection-images';
 
 export type ExportFile<Content> = { fileName: string; content: Content };
 
-export async function getExport(): Promise<ExportResponse> {
-  const data = await loadEverything();
+export async function getExport(userId: number): Promise<ExportResponse> {
+  const data = await loadEverything(userId);
   const imagesByFunko = groupBy(data.images, (image) => image.funkoId);
   const tagIdsByItem = groupBy(data.itemTags, (itemTag) => itemTag.itemId);
 
@@ -66,8 +66,8 @@ export async function getExport(): Promise<ExportResponse> {
 }
 
 // One line per collection item, readable in any spreadsheet.
-export async function getItemsCsv(): Promise<string> {
-  const data = await loadEverything();
+export async function getItemsCsv(userId: number): Promise<string> {
+  const data = await loadEverything(userId);
   const lookups = buildLookups(data);
   const funkosById = new Map(data.funkos.map((funko) => [funko.id, funko]));
 
@@ -82,8 +82,8 @@ export async function getItemsCsv(): Promise<string> {
 
 // --- The funkos of one category, series, collection or tag --------------------------------------------------------
 
-async function getScopedLines(query: ExportFunkosQuery) {
-  const data = await loadEverything();
+async function getScopedLines(userId: number, query: ExportFunkosQuery) {
+  const data = await loadEverything(userId);
   const lookups = buildLookups(data);
   const scope = toFunkosCsvScope(query, data, lookups);
 
@@ -99,22 +99,25 @@ async function loadSheetImages(funkoId: number, lookups: Lookups): Promise<Sheet
   return jpegs.filter((jpeg) => jpeg !== undefined);
 }
 
-export async function getFunkosCsv(query: ExportFunkosQuery): Promise<ExportFile<string>> {
-  const { scope, lines } = await getScopedLines(query);
+export async function getFunkosCsv(userId: number, query: ExportFunkosQuery): Promise<ExportFile<string>> {
+  const { scope, lines } = await getScopedLines(userId, query);
 
   return { fileName: `${scope.fileBase}.csv`, content: toCsv(lines) };
 }
 
 // A single funko's spreadsheet also carries its images, on a sheet of their own; a bigger scope only links them.
-export async function getFunkosSpreadsheet(query: ExportFunkosQuery): Promise<ExportFile<Buffer>> {
-  const { scope, lines, lookups } = await getScopedLines(query);
+export async function getFunkosSpreadsheet(userId: number, query: ExportFunkosQuery): Promise<ExportFile<Buffer>> {
+  const { scope, lines, lookups } = await getScopedLines(userId, query);
   const images = query.funkoId === undefined ? [] : await loadSheetImages(query.funkoId, lookups);
 
   return { fileName: `${scope.fileBase}.xlsx`, content: await toSpreadsheet(lines, images) };
 }
 
-export async function getFunkosJson(query: ExportFunkosQuery): Promise<ExportFile<FunkosExportResponse>> {
-  const { scope, lines } = await getScopedLines(query);
+export async function getFunkosJson(
+  userId: number,
+  query: ExportFunkosQuery,
+): Promise<ExportFile<FunkosExportResponse>> {
+  const { scope, lines } = await getScopedLines(userId, query);
   const content = { exportedAt: new Date().toISOString(), scope: scope.label, funkos: toFunkoTree(lines) };
 
   return { fileName: `${scope.fileBase}.json`, content };
@@ -126,8 +129,8 @@ function listFileBase(kind: ExportListKind, includeFunkos: boolean): string {
   return `${LIST_FILE_PREFIX}-${kind}${includeFunkos ? WITH_FUNKOS_SUFFIX : ''}`;
 }
 
-async function getListData(kind: ExportListKind) {
-  const data = await loadEverything();
+async function getListData(userId: number, kind: ExportListKind) {
+  const data = await loadEverything(userId);
   const lookups = buildLookups(data);
   const entries = toListEntries(kind, data, lookups);
   const linesOf = (entry: (typeof entries)[number]) => collectEntryLines(kind, entry, data, lookups);
@@ -151,10 +154,11 @@ function uniqueLines(lineGroups: FunkoExportLine[][]): FunkoExportLine[] {
 
 // CSV holds one table: the list itself, or (with funkos) the funkos of every entry, each line once.
 export async function getListCsv(
+  userId: number,
   kind: ExportListKind,
   { includeFunkos }: ExportListQuery,
 ): Promise<ExportFile<string>> {
-  const { entries, linesOf } = await getListData(kind);
+  const { entries, linesOf } = await getListData(userId, kind);
   const content = includeFunkos ? toCsv(uniqueLines(entries.map(linesOf))) : toListCsv(kind, entries);
 
   return { fileName: `${listFileBase(kind, includeFunkos)}.csv`, content };
@@ -163,10 +167,11 @@ export async function getListCsv(
 // A spreadsheet: the list as a table or, with funkos, one sheet where each entry folds open onto its funkos (an
 // item with two tags sits under both).
 export async function getListSpreadsheet(
+  userId: number,
   kind: ExportListKind,
   { includeFunkos }: ExportListQuery,
 ): Promise<ExportFile<Buffer>> {
-  const { entries, linesOf } = await getListData(kind);
+  const { entries, linesOf } = await getListData(userId, kind);
   const groups = includeFunkos ? entries.map((entry) => ({ entry, lines: linesOf(entry) })) : null;
 
   return {
@@ -177,10 +182,11 @@ export async function getListSpreadsheet(
 
 // JSON nests: each entry carries its own funkos (an item with two tags appears under both).
 export async function getListJson(
+  userId: number,
   kind: ExportListKind,
   { includeFunkos }: ExportListQuery,
 ): Promise<ExportFile<ListExportResponse>> {
-  const { entries, linesOf } = await getListData(kind);
+  const { entries, linesOf } = await getListData(userId, kind);
   const content = {
     exportedAt: new Date().toISOString(),
     kind,

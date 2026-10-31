@@ -116,37 +116,36 @@ function seriesNameMatches(text: string): Prisma.Sql {
   )`;
 }
 
+// The catalogue is shared, collections are not: every filter that looks at items sees only the signed-in user's.
+// This is the `from` of those subqueries: their items `mi`, each with its collection `mc`.
+function ownItems(userId: number): Prisma.Sql {
+  return Prisma.sql`collection_items mi join collections mc on mc.id = mi.collection_id and mc.user_id = ${userId}`;
+}
+
 // `condition` may use `mt` (the tag) and `mit` (the item-tag link).
-function tagMatches(condition: Prisma.Sql): Prisma.Sql {
+function tagMatches(userId: number, condition: Prisma.Sql): Prisma.Sql {
   return Prisma.sql`exists (
     select 1
-    from collection_item_tags mit
-    join collection_items mi on mi.id = mit.collection_item_id
+    from ${ownItems(userId)}
+    join collection_item_tags mit on mit.collection_item_id = mi.id
     join tags mt on mt.id = mit.tag_id
     where mi.funko_id = f.id and ${condition}
   )`;
 }
 
 // `condition` may use `mc` (the collection) and `mi` (the item).
-function collectionMatches(condition: Prisma.Sql): Prisma.Sql {
-  return Prisma.sql`exists (
-    select 1
-    from collection_items mi
-    join collections mc on mc.id = mi.collection_id
-    where mi.funko_id = f.id and ${condition}
-  )`;
+function collectionMatches(userId: number, condition: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`exists (select 1 from ${ownItems(userId)} where mi.funko_id = f.id and ${condition})`;
 }
 
-function inAnyCollection(collectionIds: number[]): Prisma.Sql {
-  return Prisma.sql`exists (
-    select 1 from collection_items mi where mi.funko_id = f.id and ${inList(Prisma.sql`mi.collection_id`, collectionIds)}
-  )`;
+function inAnyCollection(userId: number, collectionIds: number[]): Prisma.Sql {
+  return collectionMatches(userId, inList(Prisma.sql`mi.collection_id`, collectionIds));
 }
 
 type FieldConditions = Record<FunkoMatchField, Prisma.Sql | undefined>;
 
 // What one free-text word means for each field: the single place a search field is defined.
-function wordConditions(word: string): FieldConditions {
+function wordConditions(userId: number, word: string): FieldConditions {
   const isNumeric = ONLY_DIGITS.test(word);
   const numberWord = word.replace(LEADING_HASH, '');
 
@@ -158,21 +157,21 @@ function wordConditions(word: string): FieldConditions {
     EXCLUSIVE: ilikeContains(Prisma.sql`f.exclusive`, word),
     CATEGORY: categoryNameMatches(word),
     SERIES: seriesNameMatches(word),
-    TAG: tagMatches(ilikeContains(Prisma.sql`mt.name`, word)),
-    COLLECTION: collectionMatches(ilikeContains(Prisma.sql`mc.name`, word)),
+    TAG: tagMatches(userId, ilikeContains(Prisma.sql`mt.name`, word)),
+    COLLECTION: collectionMatches(userId, ilikeContains(Prisma.sql`mc.name`, word)),
   };
 }
 
 // One free-text word must hit at least one field.
-function wordFilter(word: string): Prisma.Sql {
-  return anyOf(Object.values(wordConditions(word)));
+function wordFilter(userId: number, word: string): Prisma.Sql {
+  return anyOf(Object.values(wordConditions(userId, word)));
 }
 
 // The fields any of the words hit, in FUNKO_MATCH_FIELDS order; null when there are no words.
-function matchedOnColumn(words: string[]): Prisma.Sql {
+function matchedOnColumn(userId: number, words: string[]): Prisma.Sql {
   if (words.length === 0) return Prisma.sql`null::text[]`;
 
-  const conditionsPerWord = words.map(wordConditions);
+  const conditionsPerWord = words.map((word) => wordConditions(userId, word));
   const fieldCases = FUNKO_MATCH_FIELDS.map((field) => {
     const anyWordHits = anyOf(conditionsPerWord.map((conditions) => conditions[field]));
 
@@ -192,8 +191,8 @@ function existsOrNot(isPresent: boolean, subquery: Prisma.Sql): Prisma.Sql {
   return isPresent ? Prisma.sql`exists (${subquery})` : Prisma.sql`not exists (${subquery})`;
 }
 
-function hasCollectionsFilterFor(hasCollections: boolean): Prisma.Sql {
-  return existsOrNot(hasCollections, Prisma.sql`select 1 from collection_items mi where mi.funko_id = f.id`);
+function hasCollectionsFilterFor(userId: number, hasCollections: boolean): Prisma.Sql {
+  return existsOrNot(hasCollections, Prisma.sql`select 1 from ${ownItems(userId)} where mi.funko_id = f.id`);
 }
 
 function hasSeriesFilterFor(hasSeries: boolean): Prisma.Sql {
@@ -201,12 +200,12 @@ function hasSeriesFilterFor(hasSeries: boolean): Prisma.Sql {
 }
 
 // A tag sits on an item, so "has tags" means any of the funko's items carries one.
-function hasTagsFilterFor(hasTags: boolean): Prisma.Sql {
+function hasTagsFilterFor(userId: number, hasTags: boolean): Prisma.Sql {
   return existsOrNot(
     hasTags,
     Prisma.sql`select 1
-      from collection_item_tags mit
-      join collection_items mi on mi.id = mit.collection_item_id
+      from ${ownItems(userId)}
+      join collection_item_tags mit on mit.collection_item_id = mi.id
       where mi.funko_id = f.id`,
   );
 }
@@ -215,15 +214,14 @@ function hasImagesFilterFor(hasImages: boolean): Prisma.Sql {
   return existsOrNot(hasImages, Prisma.sql`select 1 from funko_images mf where mf.funko_id = f.id`);
 }
 
-function notInCollections(collectionIds: number[]): Prisma.Sql {
-  return Prisma.sql`not exists (
-    select 1 from collection_items mi where mi.funko_id = f.id and ${inList(Prisma.sql`mi.collection_id`, collectionIds)}
-  )`;
+function notInCollections(userId: number, collectionIds: number[]): Prisma.Sql {
+  return Prisma.sql`not ${inAnyCollection(userId, collectionIds)}`;
 }
 
-// Each named param narrows one field; every word of `q` must match somewhere. All of it is ANDed.
-function buildListFilter(query: ListFunkosQuery): Prisma.Sql {
-  const wordFilters = splitSearchWords(query.q).map(wordFilter);
+// Each named param narrows one field; every word of `q` must match somewhere. All of it is ANDed. The collection
+// and tag filters look only at `userId`'s own items.
+function buildListFilter(userId: number, query: ListFunkosQuery): Prisma.Sql {
+  const wordFilters = splitSearchWords(query.q).map((word) => wordFilter(userId, word));
 
   return allOf([
     ...wordFilters,
@@ -237,14 +235,14 @@ function buildListFilter(query: ListFunkosQuery): Prisma.Sql {
     query.category ? categoryNameMatches(query.category) : undefined,
     query.seriesId ? inList(Prisma.sql`f.series_id`, query.seriesId) : undefined,
     query.series ? seriesNameMatches(query.series) : undefined,
-    query.tagId ? tagMatches(inList(Prisma.sql`mit.tag_id`, query.tagId)) : undefined,
-    query.tag ? tagMatches(ilikeContains(Prisma.sql`mt.name`, query.tag)) : undefined,
-    query.collectionId ? inAnyCollection(query.collectionId) : undefined,
-    query.collection ? collectionMatches(ilikeContains(Prisma.sql`mc.name`, query.collection)) : undefined,
-    query.notInCollectionId ? notInCollections(query.notInCollectionId) : undefined,
-    query.hasCollections === undefined ? undefined : hasCollectionsFilterFor(query.hasCollections),
+    query.tagId ? tagMatches(userId, inList(Prisma.sql`mit.tag_id`, query.tagId)) : undefined,
+    query.tag ? tagMatches(userId, ilikeContains(Prisma.sql`mt.name`, query.tag)) : undefined,
+    query.collectionId ? inAnyCollection(userId, query.collectionId) : undefined,
+    query.collection ? collectionMatches(userId, ilikeContains(Prisma.sql`mc.name`, query.collection)) : undefined,
+    query.notInCollectionId ? notInCollections(userId, query.notInCollectionId) : undefined,
+    query.hasCollections === undefined ? undefined : hasCollectionsFilterFor(userId, query.hasCollections),
     query.hasSeries === undefined ? undefined : hasSeriesFilterFor(query.hasSeries),
-    query.hasTags === undefined ? undefined : hasTagsFilterFor(query.hasTags),
+    query.hasTags === undefined ? undefined : hasTagsFilterFor(userId, query.hasTags),
     query.hasImages === undefined ? undefined : hasImagesFilterFor(query.hasImages),
   ]);
 }
@@ -324,8 +322,11 @@ export const funkosRepository = {
       select: ID_SELECT,
     })) ?? undefined,
 
-  list: async (query: ListFunkosQuery): Promise<{ data: ListedFunkoRow[]; totalResultNumber: number }> => {
-    const filter = buildListFilter(query);
+  list: async (
+    userId: number,
+    query: ListFunkosQuery,
+  ): Promise<{ data: ListedFunkoRow[]; totalResultNumber: number }> => {
+    const filter = buildListFilter(userId, query);
     const { skip, take } = toSkipTake(query);
 
     const [rows, totals] = await prisma.$transaction([
@@ -344,7 +345,7 @@ export const funkosRepository = {
           s.name as "seriesName",
           f.created_at as "createdAt",
           f.updated_at as "updatedAt",
-          ${matchedOnColumn(splitSearchWords(query.q))} as "matchedOn"
+          ${matchedOnColumn(userId, splitSearchWords(query.q))} as "matchedOn"
         from funkos f
         join categories c on c.id = f.category_id
         left join series s on s.id = f.series_id
@@ -372,17 +373,25 @@ export const funkosRepository = {
     return new Map([...grouped].flatMap(([funkoId, rows]) => (rows[0] ? [[funkoId, rows[0]]] : [])));
   },
 
-  collectionsByFunkoIds: async (funkoIds: number[]): Promise<Map<number, CollectionSummaryRow[]>> => {
+  // Which of the user's own collections each funko is in; other users' collections never show.
+  collectionsByFunkoIds: async (userId: number, funkoIds: number[]): Promise<Map<number, CollectionSummaryRow[]>> => {
     if (funkoIds.length === 0) return new Map();
 
     const items = await prisma.collectionItem.findMany({
-      where: { funkoId: { in: funkoIds } },
+      where: { funkoId: { in: funkoIds }, collection: { userId } },
       select: FUNKO_COLLECTION_SELECT,
       orderBy: { collection: { name: 'asc' } },
     });
 
     return groupByFunkoId(items.map(({ funkoId, collection }) => ({ funkoId, ...collection })));
   },
+
+  // Every user's items of the funko, for the delete guard: a funko in anyone's collection is protected.
+  countItems: (funkoId: number): Promise<number> => prisma.collectionItem.count({ where: { funkoId } }),
+
+  // The funko's items in collections that are not `userId`'s: told apart in the 409, never named.
+  countOtherUsersItems: (userId: number, funkoId: number): Promise<number> =>
+    prisma.collectionItem.count({ where: { funkoId, collection: { userId: { not: userId } } } }),
 
   create: async (data: CreateFunko): Promise<FunkoRow> =>
     toRow(await prisma.funko.create({ data, select: FUNKO_SELECT })),
