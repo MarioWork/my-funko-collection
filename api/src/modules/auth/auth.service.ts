@@ -374,16 +374,19 @@ export async function addSession({ response }: SignInVerify, previous: AuthSessi
   const failure = new UnauthorizedError(SIGN_IN_FAILED_MESSAGE, 'SIGN_IN_FAILED');
   const challenge = await takeSignedChallenge(response.response.clientDataJSON, 'SIGN_IN');
   const passkey = await authRepository.findPasskey(response.id);
-  const user = await authRepository.findUser();
 
-  if (!challenge || !passkey || !user) throw failure;
+  if (!challenge || !passkey) throw failure;
 
-  // The passkey row decides whose it is; the browser's userHandle is not signed and may be left out.
-  const isOwnersPasskey = passkey.userId === user.id;
+  // The passkey row decides whose it is (an admin's or a member's); the browser's userHandle is not signed and may
+  // be left out, but when it is sent it must be that user's.
+  const user = await authRepository.findUserById(passkey.userId);
+
+  if (!user) throw failure;
+
   const isOtherUsersHandle =
     response.response.userHandle !== undefined && response.response.userHandle !== user.webauthnUserId;
 
-  if (!isOwnersPasskey || isOtherUsersHandle) throw failure;
+  if (isOtherUsersHandle) throw failure;
 
   const authentication = await verifySignedAnswer(response, challenge.challenge, passkey, failure);
 
@@ -482,7 +485,7 @@ export async function getPasskeys(session: AuthSession): Promise<PasskeyListResp
 export async function getAddPasskeyOptions(session: AuthSession): Promise<RegistrationOptionsResponse> {
   assertRecentSignIn(session);
 
-  const user = await authRepository.findUser();
+  const user = await authRepository.findUserById(session.userId);
 
   if (!user) throw new UnauthorizedError('Sign in first');
 

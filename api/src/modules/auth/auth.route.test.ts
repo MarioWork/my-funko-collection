@@ -759,6 +759,15 @@ describe('DELETE /auth/passkeys/:passkeyId', () => {
 });
 
 describe('POST /auth/passkeys/options', () => {
+  it('returns options for the signed-in user when a member adds a passkey', async () => {
+    const member = await signIn(app, { role: 'MEMBER' });
+
+    const options = await member.inject({ method: 'POST', url: `${URL}/passkeys/options` });
+
+    expect(options.statusCode).toBe(200);
+    expect(options.json()).toMatchObject({ user: { name: 'Member' } });
+  });
+
   it('returns 403 REAUTH_REQUIRED when adding a passkey from a sign-in older than 10 minutes', async () => {
     const api = await signIn(app, { signedInAt: new Date(Date.now() - 11 * MINUTE_MS) });
 

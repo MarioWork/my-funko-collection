@@ -108,9 +108,8 @@ async function findPasskey(credentialId: string) {
 }
 
 export const authRepository = {
-  // There is one user at most; the app is single-person by design.
-  findUser: async (): Promise<UserRow | undefined> =>
-    (await prisma.user.findFirst({ select: USER_SELECT })) ?? undefined,
+  findUserById: async (id: number): Promise<UserRow | undefined> =>
+    (await prisma.user.findUnique({ where: { id }, select: USER_SELECT })) ?? undefined,
 
   countUsersWhoCanSignIn,
 
