@@ -3,6 +3,7 @@ import { SortingDirectionUtil } from '@app-types/utility';
 import type { FilterOption } from '@components/SelectFilter';
 import type { SortField } from '@components/SortSelect';
 import { ImageApiSortingFields } from '@services/imageService/imageService';
+import { FALSE_VALUE, TRUE_VALUE } from '@utils/listParamsUtils';
 import { ALPHABETICAL_LABELS, DATE_LABELS, SIZE_LABELS } from '@utils/sortUtils';
 
 export const IMAGE_PAGE_SIZE = '50';
@@ -38,9 +39,6 @@ export const IMAGE_SORT_FIELDS: SortField[] = [
     directionLabels: ALPHABETICAL_LABELS,
   },
 ];
-
-const TRUE_VALUE = 'true';
-const FALSE_VALUE = 'false';
 
 export const HAS_FUNKO_OPTIONS: FilterOption[] = [
   { value: TRUE_VALUE, label: 'Being used' },
