@@ -19,8 +19,8 @@ const STATE_VARIANT_MAP: Record<UserStateUtil, BadgeVariant> = {
 
 // How the user can sign in today; a temporary password says until when it works.
 function UserStateBadge({ user }: Props) {
-  const isWaiting = user.state === UserStateUtil.TEMPORARY_PASSWORD;
-  const expiresAt = isWaiting ? user.temporaryPasswordExpiresAt : null;
+  const hasLiveTemporaryPassword = user.state === UserStateUtil.TEMPORARY_PASSWORD;
+  const expiresAt = hasLiveTemporaryPassword ? user.temporaryPasswordExpiresAt : null;
 
   return (
     <div className="flex flex-col items-start gap-1">

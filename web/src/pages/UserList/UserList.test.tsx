@@ -19,7 +19,7 @@ const routes = [{ errorElement: <RouteError />, children: userRoutes }];
 const renderUsers = (path: string = USER_ROUTES_PATHS.BASE) => renderRoutes(routes, { initialEntries: [path] });
 
 function rowOf(username: string): HTMLElement {
-  const row = screen.getByRole('cell', { name: username }).closest('tr');
+  const row = screen.getAllByRole('row').find((candidate) => within(candidate).queryByRole('cell', { name: username }));
 
   if (!row) throw new Error(`No row for ${username}`);
 

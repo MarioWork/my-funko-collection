@@ -11,7 +11,7 @@ import { Field, FieldGroup, FieldLabel } from '@components/ui/field';
 import { Input } from '@components/ui/input';
 import { Spinner } from '@components/ui/spinner';
 import { useFormCompat } from '@hooks/useFormCompat';
-import { PASSWORD_MIN_LENGTH } from '@utils/authUtils';
+import { NEW_PASSWORD_HINT } from '@utils/authUtils';
 import { authFailureMessage } from '@utils/authMessageUtils';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 import { createFormData } from '@utils/formDataUtils';
@@ -29,7 +29,6 @@ type Props = {
 };
 
 const FORM_ID = 'set-own-password';
-const PASSWORD_HINT = `At least ${PASSWORD_MIN_LENGTH} characters. A few words in a row is easy to remember and hard to guess.`;
 
 // "username" and "new-password" fields, so a password manager offers to make one and saves it with the username.
 // The API's refusals of the password itself (too common, the temporary one again) show on its field.
@@ -72,7 +71,7 @@ function SetOwnPasswordForm({ username }: Props) {
           label="New password"
           type="password"
           autoComplete="new-password"
-          description={PASSWORD_HINT}
+          description={NEW_PASSWORD_HINT}
           serverError={passwordError}
           isPlainText
         />
