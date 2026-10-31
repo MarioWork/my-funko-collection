@@ -2,6 +2,7 @@ import { normaliseBarcode } from '../../lib/barcode.ts';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
 import { removeFunkoFolder, sizeUrl } from '../../lib/imageStorage.ts';
 import { logger } from '../../lib/logger.ts';
+import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
 import { isUsableCategory } from '../categories/categories.service.ts';
 import { isUsableSeries } from '../series/series.service.ts';
@@ -11,7 +12,7 @@ import type {
   SubmissionResponse,
   SubmissionStatus,
 } from '../submissions/submissions.type.ts';
-import { assertCanEditFunko, canSeeFunko } from './funkos.access.ts';
+import { assertCanEditFunko, canSeeFunko, isInCatalogueOf } from './funkos.access.ts';
 import { getImages } from './images/funkoImages.service.ts';
 import {
   funkosRepository,
@@ -20,7 +21,6 @@ import {
   type FunkoRow,
   type ListedFunkoRow,
   type PrimaryImageRow,
-  type UniqueScope,
 } from './funkos.repository.ts';
 import type {
   CreateFunko,
@@ -161,12 +161,12 @@ function withNormalisedBarcode<Data extends { barcode?: string | null }>(data: D
   return { ...data, barcode: normaliseBarcode(data.barcode) };
 }
 
-const CATALOGUE_SCOPE: UniqueScope = { submittedById: null };
+const CATALOGUE_SCOPE: SubmitterScope = { submittedById: null };
 
 // The duplicate guard within one scope: same (category, number, name, chase, exclusive) or same barcode answers 409
 // with the existing id.
 async function assertUniqueIn(
-  scope: UniqueScope,
+  scope: SubmitterScope,
   identity: FunkoIdentity,
   barcode: string | null | undefined,
   selfId?: number,
@@ -330,13 +330,12 @@ export async function getFunkoSummaries(ids: number[]): Promise<Map<number, Funk
   return new Map(rows.map((row) => [row.id, toSummary(row, primaryImages.get(row.id))]));
 }
 
-// For other modules (collection items): one summary of a funko `userId` sees in the catalogue (approved, or sent
-// in by them), or NotFoundError.
+// For other modules (collection items): one summary of a funko in the catalogue `userId` browses (approved, or
+// their own waiting submission), or NotFoundError.
 export async function getFunkoSummary(userId: number, id: number): Promise<FunkoSummary> {
   const row = await funkosRepository.findById(id);
-  const isVisible = row !== undefined && canSeeFunko({ userId, isAdmin: false }, row);
 
-  if (!row || !isVisible) throw new NotFoundError(ENTITY, id);
+  if (!row || !isInCatalogueOf(userId, row)) throw new NotFoundError(ENTITY, id);
 
   const primaryImages = await funkosRepository.primaryImagesByFunkoIds([id]);
 

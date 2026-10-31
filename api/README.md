@@ -161,25 +161,27 @@ Interactive docs with every schema: `GET /docs` (dev only). Auth: `GET /auth/sta
 Text filters are case-insensitive "contains"; id filters take a comma-separated list.
 
 The catalogue (categories, series, funkos, images) is shared; collections, items and tags belong to one user
-(`docs/adr/0001-shared-catalogue-own-collections.md`).
-
-**Submissions.** An admin's new funko, category or series is `APPROVED` at once. A member's is `WAITING`, with
-`submitted_by_id` set: only that member sees it, in every list, search, suggestion, barcode lookup, count and
-export (`lib/catalogueVisibility.ts`; an admin opens one by id but never sees it listed), and they can put it in
-their own collections, edit it, add or change its images and delete it while it waits. A funko may use the approved
-categories and series, and a waiting one also its sender's own waiting ones (400 otherwise). The unique rules
-(barcode, identity, category and series names) hold in the approved catalogue and within one member's waiting
-ones, never across them (partial unique indexes in the `submissions` migration): two members may wait on the same
-box, and an admin may add one a member waits on. A member's funko, category or series that the catalogue already
-has answers 409 with its `existingId`. `GET /submissions` lists what the signed-in user sent in, whatever became of
-it. Deleting a user deletes what they sent in that never joined the catalogue (their items of it too; a trigger in
-the migration) and clears `submitted_by_id` on the approved ones. Approving, rejecting and merging are not built
-yet (issue #10). Every collection, item and tag route, the funko filters and
+(`docs/adr/0001-shared-catalogue-own-collections.md`). Every collection, item and tag route, the funko filters and
 search that look at collections or tags, the `collections` on a funko, suggestions, stats and exports see only the
 signed-in user's own; another user's collection, item or tag id answers 404. An item takes only the user's own tags:
 `tagIds` naming another user's tag (or one that does not exist) answers 404. A database trigger gives every new user
 their own "Owned" (the default) and "Wishlist", whatever code makes the user. The `tags_per_user` migration gave the
 tags already there to the first user; another user whose items carried one got their own copy of it.
+
+**Submissions.** An admin's new funko, category or series is `APPROVED` at once. A member's is `WAITING`, with
+`submitted_by_id` set, and only that member sees it (`lib/catalogueVisibility.ts`): the catalogue a user browses
+(lists, search, suggestions, counts, the barcode lookup, adding to a collection) is the approved rows plus their own
+waiting ones; by id they also open their own rejected or merged ones, and the export carries those too, so their
+items still name their funko. An admin opens any submission by id but never sees another's listed. While it waits,
+the member can put it in their own collections, edit it, add or change its images and delete it. A funko may use
+the approved categories and series, and a waiting one also its sender's own waiting ones (400 otherwise). The
+unique rules (barcode, identity, category and series names) hold in the approved catalogue and within one member's
+waiting ones, never across them (partial unique indexes in the `submissions` migration): two members may wait on
+the same box, and an admin may add one a member waits on. A member's funko, category or series that the catalogue
+already has answers 409 with its `existingId`. `GET /submissions` lists what the signed-in user sent in, whatever
+became of it. Deleting a user deletes what they sent in that never joined the catalogue (their items of it too; a
+trigger in the migration) and clears `submitted_by_id` on the approved ones. Approving, rejecting and merging are
+not built yet (issue #10).
 
 | Method and path                                                    | What                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

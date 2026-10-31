@@ -16,7 +16,17 @@ export function isSubmittedBy(user: SignedInUser, funko: FunkoAccess): boolean {
   return funko.submittedById === user.userId;
 }
 
-// Everyone sees the catalogue, a sender their own submissions, an admin everything.
+// The catalogue `userId` browses (and may add to a collection): approved, or their own waiting submission. Mirrors
+// catalogueOf() in lib/catalogueVisibility.ts.
+export function isInCatalogueOf(userId: number, funko: FunkoAccess): boolean {
+  const isApproved = funko.status === 'APPROVED';
+  const isOwnWaiting = funko.status === 'WAITING' && funko.submittedById === userId;
+
+  return isApproved || isOwnWaiting;
+}
+
+// Opened by id: everyone sees the catalogue, a sender their own submissions whatever became of them, an admin
+// everything.
 export function canSeeFunko(user: SignedInUser, funko: FunkoAccess): boolean {
   const isApproved = funko.status === 'APPROVED';
 

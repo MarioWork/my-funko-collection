@@ -1,7 +1,8 @@
 import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
+import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
 import type { SubmissionStatus } from '../submissions/submissions.type.ts';
-import { categoriesRepository, type CategoryRow, type NameScope } from './categories.repository.ts';
+import { categoriesRepository, type CategoryRow } from './categories.repository.ts';
 import type {
   CategoryListResponse,
   CategoryResponse,
@@ -34,17 +35,19 @@ function canSee(user: SignedInUser, category: CategoryAccess): boolean {
 }
 
 // A member's new category waits with their submission; an admin's joins the catalogue at once.
-function scopeOf(user: SignedInUser): NameScope {
+function scopeOf(user: SignedInUser): SubmitterScope {
   return { submittedById: user.isAdmin ? null : user.userId };
 }
 
-// A member typing a name the catalogue already has gets a 409 pointing at it, so the form can pick that one. The
-// database refuses a second one in the same scope (the partial unique indexes) with a plain 409.
-async function assertNameFree(name: string, scope: NameScope): Promise<void> {
-  const isMemberScope = scope.submittedById !== null;
-  const inCatalogue = isMemberScope
-    ? await categoriesRepository.findIdByName(name, { submittedById: null })
-    : undefined;
+// A member typing a name the catalogue already has gets a 409 pointing at it, so the form can pick that one. An
+// admin's duplicate, or a member's second waiting one of the same name, the database refuses (the partial unique
+// indexes) with a plain 409.
+async function assertNotInCatalogueForMember(name: string, scope: SubmitterScope): Promise<void> {
+  const isAdminScope = scope.submittedById === null;
+
+  if (isAdminScope) return;
+
+  const inCatalogue = await categoriesRepository.findIdByName(name, { submittedById: null });
 
   if (inCatalogue) throw new ConflictError('This category is already in the catalogue', inCatalogue.id);
 }
@@ -67,7 +70,7 @@ export async function addCategory(user: SignedInUser, data: CreateCategory): Pro
   const scope = scopeOf(user);
   const status: SubmissionStatus = scope.submittedById === null ? 'APPROVED' : 'WAITING';
 
-  await assertNameFree(data.name, scope);
+  await assertNotInCatalogueForMember(data.name, scope);
 
   const row = await categoriesRepository.create(user.userId, { ...data, status, submittedById: scope.submittedById });
 
