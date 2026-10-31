@@ -5,7 +5,7 @@ import { CATEGORY_ROUTES_PATHS } from '@application/routes/routesUtils';
 import CreateNamedButton from '@components/CreateNamedButton';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@components/ui/field';
 import { NativeSelect, NativeSelectOption } from '@components/ui/native-select';
-import type { FunkoFormValues } from '../funkoFormUtils';
+import { referenceOptionLabel, type FunkoFormValues } from '../funkoFormUtils';
 
 type Props = {
   control: Control<FunkoFormValues>;
@@ -33,7 +33,7 @@ function FunkoCategoryField({ control, categories, id }: Props) {
               <NativeSelectOption value="">Pick a line…</NativeSelectOption>
               {categories.map((category) => (
                 <NativeSelectOption key={category.id} value={String(category.id)}>
-                  {category.name}
+                  {referenceOptionLabel(category)}
                 </NativeSelectOption>
               ))}
             </NativeSelect>

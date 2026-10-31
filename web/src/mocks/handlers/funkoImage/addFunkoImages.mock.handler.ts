@@ -3,7 +3,8 @@ import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from '@mocks/mockImageUtils';
 import { MOCK_USER_ID } from '@mocks/mockAuth';
-import { badRequest, created, notFound, toFunkoImageModel } from '@mocks/mockResponses';
+import { badRequest, created, toFunkoImageModel } from '@mocks/mockResponses';
+import { findEditableFunko } from '@mocks/handlers/funko/funkoMockUtils';
 import { mockStore } from '@mocks/mockStore';
 import type { MockImageRow } from '@mocks/mockStore.type';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
@@ -33,9 +34,11 @@ export default (baseUrl: string) => [
   http.post(`${baseUrl}/funkos/:funkoId/images`, async ({ params, request }) => {
     await delay(MOCK_DELAY);
 
-    const funko = mockStore.funkos.find((candidate) => String(candidate.id) === params.funkoId);
+    const target = findEditableFunko(String(params.funkoId));
 
-    if (!funko) return notFound('Funko', String(params.funkoId));
+    if ('refusal' in target) return target.refusal;
+
+    const funko = target.funko;
 
     const form = await request.formData();
     const files = form.getAll(IMAGE_FILE_FIELD).filter((value): value is File => value instanceof File);

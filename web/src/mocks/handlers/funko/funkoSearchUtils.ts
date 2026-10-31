@@ -2,6 +2,7 @@
 import { FunkoMatchFieldUtil } from '@app-types/utility';
 import { FunkoApiSearchFields } from '@services/funkoService/funkoService';
 import { idList, isTrueParam } from '@mocks/mockListUtils';
+import { catalogueFunkos } from '@mocks/mockCatalogueUtils';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow } from '@mocks/mockStore.type';
 
@@ -99,7 +100,7 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
   const hasTags = params.get(FunkoApiSearchFields.HAS_TAGS);
   const hasImages = params.get(FunkoApiSearchFields.HAS_IMAGES);
 
-  return mockStore.funkos.filter((row) => {
+  return catalogueFunkos().filter((row) => {
     const items = itemsOf(row.id);
     const rowTagIds = new Set(items.flatMap((item) => item.tagIds));
     const rowCollectionIds = new Set(items.map((item) => item.collectionId));

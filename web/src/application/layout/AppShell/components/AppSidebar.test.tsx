@@ -1,6 +1,11 @@
 import { renderRoutes, screen, within } from '@test-utils';
 import { UserRoleUtil } from '@app-types/utility';
-import { BASE_ROUTES_PATHS, IMAGE_ROUTES_PATHS, USER_ROUTES_PATHS } from '@application/routes/routesUtils';
+import {
+  BASE_ROUTES_PATHS,
+  IMAGE_ROUTES_PATHS,
+  SUBMISSION_ROUTES_PATHS,
+  USER_ROUTES_PATHS,
+} from '@application/routes/routesUtils';
 import { SidebarProvider } from '@components/ui/sidebar';
 import { setMockUserRole } from '@mocks/mockStore';
 import AppSidebar from './AppSidebar';
@@ -39,4 +44,21 @@ it('shows a member no Admin group and no Users or Images page, but keeps the man
   expect(screen.queryByRole('list', { name: ADMIN_GROUP })).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Images' })).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Users' })).not.toBeInTheDocument();
+});
+
+it('gives a member a Submissions page beside the manage pages', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  renderSidebar();
+
+  expect(await screen.findByRole('link', { name: 'Submissions' })).toHaveAttribute(
+    'href',
+    SUBMISSION_ROUTES_PATHS.BASE,
+  );
+});
+
+it('gives an admin no Submissions page: their new funkos join the catalogue at once', async () => {
+  renderSidebar();
+
+  expect(await screen.findByRole('link', { name: 'Categories' })).toBeVisible();
+  expect(screen.queryByRole('link', { name: 'Submissions' })).not.toBeInTheDocument();
 });

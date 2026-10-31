@@ -6,7 +6,7 @@ import Lightbox from '@components/Lightbox';
 import PhotoThumbnail from '@components/PhotoThumbnail';
 import { reasonWhen } from '@utils/disabledReasonUtils';
 import ImageDownloadButton from '@components/ImageDownloadButton';
-import { useIsAdmin } from '@hooks/useIsAdmin';
+import { useCanEditFunko } from '@hooks/useCanEditFunko';
 
 type Props = {
   funko: FunkoDetailApiModel;
@@ -17,18 +17,18 @@ type FrameProps = {
   hero: FunkoImageApiModel | undefined;
   heroIndex: number;
   imageCount: number;
+  canEdit: boolean;
   onOpen: () => void;
 };
 
 const HERO_SIZES = '(min-width: 1024px) 480px, 100vw';
 const NO_PHOTO_REASON = 'No image yet. Use Edit to add one.';
-// A member has no Edit: only an admin adds images to the catalogue.
+// Without Edit (a catalogue funko, for a member): only an admin adds images to it.
 const MEMBER_NO_PHOTO_REASON = 'No image yet. An admin can add one.';
 const MAIN_PHOTO_INDEX = 0;
 // The big frame: the shown image, a button that opens it full size, and its download button in the corner.
-function GalleryFrame({ funkoName, hero, heroIndex, imageCount, onOpen }: FrameProps) {
-  const isAdmin = useIsAdmin();
-  const noPhotoReason = isAdmin ? NO_PHOTO_REASON : MEMBER_NO_PHOTO_REASON;
+function GalleryFrame({ funkoName, hero, heroIndex, imageCount, canEdit, onOpen }: FrameProps) {
+  const noPhotoReason = canEdit ? NO_PHOTO_REASON : MEMBER_NO_PHOTO_REASON;
 
   return (
     <div className="relative">
@@ -75,6 +75,7 @@ function FunkoGallery({ funko }: Props) {
   const heroIndex = isShownIndexValid ? shownIndex : MAIN_PHOTO_INDEX;
   const hero = images[heroIndex];
   const hasStrip = images.length > 1;
+  const canEdit = useCanEditFunko(funko);
 
   return (
     <section aria-label="Images" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
@@ -83,6 +84,7 @@ function FunkoGallery({ funko }: Props) {
         hero={hero}
         heroIndex={heroIndex}
         imageCount={images.length}
+        canEdit={canEdit}
         onOpen={() => setOpenIndex(heroIndex)}
       />
       {hasStrip ? (

@@ -4,13 +4,22 @@ import type {
   AuthStateUtil as AuthState,
   FunkoTypeUtil as FunkoType,
   ItemConditionUtil as ItemCondition,
+  SubmissionStatusUtil as SubmissionStatus,
   UserRoleUtil as UserRole,
 } from '@app-types/utility';
 
 export type MockRowWithId = { id: number };
 export type MockNamedRow = { id: number; name: string };
-export type MockCategoryRow = { id: number; name: string; createdAt: string; updatedAt: string };
-export type MockSeriesRow = { id: number; name: string; createdAt: string; updatedAt: string };
+// Where a catalogue row stands, as the API keeps it: APPROVED with no sender (an admin's), or a member's submission.
+// The signed-in mock user is MOCK_USER_ID; any other `submittedById` is another member's, hidden from them.
+export type MockSubmissionColumns = { status: SubmissionStatus; submittedById: number | null };
+export type MockCategoryRow = MockSubmissionColumns & {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+export type MockSeriesRow = MockSubmissionColumns & { id: number; name: string; createdAt: string; updatedAt: string };
 export type MockTagRow = { id: number; name: string; notes: string | null; createdAt: string; updatedAt: string };
 export type MockCollectionRow = {
   id: number;
@@ -20,7 +29,7 @@ export type MockCollectionRow = {
   createdAt: string;
   updatedAt: string;
 };
-export type MockFunkoRow = {
+export type MockFunkoRow = MockSubmissionColumns & {
   id: number;
   name: string;
   number: string;

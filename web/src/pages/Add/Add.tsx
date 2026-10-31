@@ -26,9 +26,9 @@ const STEP_DESCRIPTIONS: Record<AddStepUtil, string> = {
   [AddStepUtil.SAVED]: 'On to the next one.',
 };
 
-// A member never gets the form (only an admin adds funkos): its step shows a notice instead.
-const MEMBER_FORM_TITLE = 'Not in the catalogue';
-const MEMBER_FORM_DESCRIPTION = 'Only an admin adds new funkos.';
+// A member's new funko is a submission: it waits for an admin, and only they see it meanwhile.
+const MEMBER_FORM_DESCRIPTION =
+  'Images, details and the collections it goes in. It waits for an admin to approve it; only you see it until then.';
 
 // Scan-first: viewfinder → found card (+1) or the form with the barcode filled in → saved card → next one.
 // Always a page of its own: /add opens on the scanner, /add/manual on the form. The collections and tags picked
@@ -53,7 +53,7 @@ function Add() {
   }, [flow.step]);
 
   const isMemberForm = !isAdmin && flow.step === AddStepUtil.FORM;
-  const title = isMemberForm ? MEMBER_FORM_TITLE : STEP_TITLES[flow.step];
+  const title = STEP_TITLES[flow.step];
   const description = isMemberForm ? MEMBER_FORM_DESCRIPTION : STEP_DESCRIPTIONS[flow.step];
 
   return (

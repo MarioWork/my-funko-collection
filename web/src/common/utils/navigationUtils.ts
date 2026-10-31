@@ -3,6 +3,7 @@ import {
   FolderHeart,
   House,
   Images,
+  Inbox,
   Library,
   Package,
   Search,
@@ -18,6 +19,7 @@ import {
   FUNKO_ROUTES_PATHS,
   IMAGE_ROUTES_PATHS,
   SERIES_ROUTES_PATHS,
+  SUBMISSION_ROUTES_PATHS,
   TAG_ROUTES_PATHS,
   USER_ROUTES_PATHS,
 } from '@application/routes/routesUtils';
@@ -33,6 +35,7 @@ export const PAGE_ICONS = {
   TAGS: Tag,
   IMAGES: Images,
   USERS: Users,
+  SUBMISSIONS: Inbox,
   SETTINGS: Settings,
 } satisfies Record<string, LucideIcon>;
 
@@ -56,6 +59,21 @@ export const MANAGE_ITEMS: NavigationItem[] = [
   { label: 'Series', to: SERIES_ROUTES_PATHS.BASE, icon: PAGE_ICONS.SERIES },
   { label: 'Tags', to: TAG_ROUTES_PATHS.BASE, icon: PAGE_ICONS.TAGS },
 ];
+
+// A member's own submissions, after the manage pages. An admin's new funkos join the catalogue at once, so an admin
+// has none and never sees it.
+export const SUBMISSIONS_ITEM: NavigationItem = {
+  label: 'Submissions',
+  to: SUBMISSION_ROUTES_PATHS.BASE,
+  icon: PAGE_ICONS.SUBMISSIONS,
+};
+
+// The manage pages, plus Submissions for a member.
+export function manageItemsFor(isAdmin: boolean): NavigationItem[] {
+  if (isAdmin) return MANAGE_ITEMS;
+
+  return [...MANAGE_ITEMS, SUBMISSIONS_ITEM];
+}
 
 // The Admin group: pages only an admin sees (the sidebar on desktop, the phone menu), under ADMIN_GROUP_LABEL.
 export const ADMIN_GROUP_LABEL = 'Admin';
