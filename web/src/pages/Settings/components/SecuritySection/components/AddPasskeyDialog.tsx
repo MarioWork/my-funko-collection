@@ -21,15 +21,11 @@ import { useFormCompat } from '@hooks/useFormCompat';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { authFailureMessage } from '@utils/authMessageUtils';
 import { createFormData } from '@utils/formDataUtils';
-import { useConfirmIdentityStep } from '../../../hooks/useConfirmIdentityStep';
-import {
-  addPasskeyFormSchema,
-  CONFIRM_IDENTITY_COPY,
-  PASSKEY_FAILURE_MESSAGES,
-  type AddPasskeyFormValues,
-} from '../../../settingsUtils';
+import { useConfirmIdentityStep } from '@hooks/useConfirmIdentityStep';
+import ReauthNotice from '@components/ReauthNotice';
+import { CONFIRM_IDENTITY_COPY } from '@utils/reauthUtils';
+import { addPasskeyFormSchema, PASSKEY_FAILURE_MESSAGES, type AddPasskeyFormValues } from '../../../settingsUtils';
 import PasskeyNameField from './PasskeyNameField';
-import ReauthNotice from './ReauthNotice';
 
 type Props = {
   onClose: () => void;

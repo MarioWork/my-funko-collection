@@ -1,5 +1,5 @@
 import InlineAlert from '@components/InlineAlert';
-import { CONFIRM_IDENTITY_COPY } from '../../../settingsUtils';
+import { CONFIRM_IDENTITY_COPY } from '@utils/reauthUtils';
 
 type Props = {
   // What happens once confirmed: "Then your browser asks where to save the new one."

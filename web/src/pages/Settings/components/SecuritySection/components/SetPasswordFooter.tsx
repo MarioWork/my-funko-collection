@@ -3,7 +3,7 @@ import CancelButton from '@components/CancelButton';
 import PasskeyButton from '@components/PasskeyButton';
 import SubmitButton from '@components/SubmitButton';
 import { DialogFooter } from '@components/ui/dialog';
-import { CONFIRM_IDENTITY_COPY } from '../../../settingsUtils';
+import { CONFIRM_IDENTITY_COPY } from '@utils/reauthUtils';
 
 type Props = {
   formId: string;

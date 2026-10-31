@@ -22,14 +22,6 @@ export type SetPasswordFormValues = InferType<typeof setPasswordFormSchema>;
 
 export type SetPasswordFormData = { credentials: SetPasswordFormValues; isReauth?: boolean };
 
-// The shared "confirm it's you" step of changing a passkey or the password.
-export const CONFIRM_IDENTITY_COPY = {
-  TITLE: "Confirm it's you",
-  DESCRIPTION:
-    'Changing how you sign in needs a sign-in from the last 10 minutes. Use any of your passkeys to confirm.',
-  BUTTON: 'Confirm with passkey',
-} as const;
-
 export const LAST_PASSKEY_REASON = 'You need at least one passkey.';
 
 export const PASSWORD_FAILURE_MESSAGES: AuthFailureMessagesUtil = {

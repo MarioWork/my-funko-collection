@@ -15,8 +15,9 @@ import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { authFailureMessage } from '@utils/authMessageUtils';
 import { createFormData } from '@utils/formDataUtils';
-import { useConfirmIdentityStep } from '../../../hooks/useConfirmIdentityStep';
-import { CONFIRM_IDENTITY_COPY, PASSKEY_FAILURE_MESSAGES } from '../../../settingsUtils';
+import { useConfirmIdentityStep } from '@hooks/useConfirmIdentityStep';
+import { CONFIRM_IDENTITY_COPY } from '@utils/reauthUtils';
+import { PASSKEY_FAILURE_MESSAGES } from '../../../settingsUtils';
 import RemovePasskeyFooter from './RemovePasskeyFooter';
 
 type Props = {

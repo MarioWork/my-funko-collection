@@ -11,9 +11,9 @@ import { useFormCompat } from '@hooks/useFormCompat';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { authFailureMessage } from '@utils/authMessageUtils';
 import { createFormData } from '@utils/formDataUtils';
-import { useConfirmIdentityStep } from '../../../hooks/useConfirmIdentityStep';
+import { useConfirmIdentityStep } from '@hooks/useConfirmIdentityStep';
+import ReauthNotice from '@components/ReauthNotice';
 import { PASSWORD_FAILURE_MESSAGES, setPasswordFormSchema, type SetPasswordFormValues } from '../../../settingsUtils';
-import ReauthNotice from './ReauthNotice';
 import SetPasswordFooter from './SetPasswordFooter';
 import SetPasswordFields from './SetPasswordFields';
 
