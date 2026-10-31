@@ -2,7 +2,7 @@ import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../../lib/errorHandler.ts';
-import { signedInUserId } from '../../../plugins/auth.plugin.ts';
+import { signedInUser } from '../../../plugins/auth.plugin.ts';
 import {
   FunkoImageListResponseSchema,
   FunkoImageParamsSchema,
@@ -36,7 +36,6 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
     '/',
     {
       prefixTrailingSlash: 'no-slash',
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Upload one or more photos (multipart, field "file")',
@@ -53,7 +52,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const buffers = await readUploadedFiles(request);
-      const images = await addImages(signedInUserId(request), request.params.funkoId, buffers);
+      const images = await addImages(signedInUser(request), request.params.funkoId, buffers);
 
       return reply.code(201).send(images);
     },
@@ -62,7 +61,6 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/from-url',
     {
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Download an image from a public URL and store it',
@@ -78,7 +76,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const image = await addImageFromUrl(signedInUserId(request), request.params.funkoId, request.body.url);
+      const image = await addImageFromUrl(signedInUser(request), request.params.funkoId, request.body.url);
 
       return reply.code(201).send(image);
     },
@@ -87,7 +85,6 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.patch(
     '/order',
     {
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Reorder the images (first is the primary)',
@@ -96,13 +93,12 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: FunkoImageListResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => reorderImages(request.params.funkoId, request.body),
+    async (request) => reorderImages(signedInUser(request), request.params.funkoId, request.body),
   );
 
   app.post(
     '/:imageId/rotate',
     {
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Rotate an image clockwise; it gets new URLs',
@@ -111,13 +107,12 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: FunkoImageResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => rotateImage(request.params.funkoId, request.params.imageId, request.body),
+    async (request) => rotateImage(signedInUser(request), request.params.funkoId, request.params.imageId, request.body),
   );
 
   app.delete(
     '/:imageId',
     {
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Delete an image',
@@ -126,7 +121,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await deleteImage(request.params.funkoId, request.params.imageId);
+      await deleteImage(signedInUser(request), request.params.funkoId, request.params.imageId);
 
       return reply.code(204).send();
     },

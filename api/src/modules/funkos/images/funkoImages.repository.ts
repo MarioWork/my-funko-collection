@@ -34,8 +34,11 @@ const POSITION_ORDER = [
 ] as const satisfies Prisma.FunkoImageOrderByWithRelationInput[];
 
 export const funkoImagesRepository = {
-  // The parent funko's 404, checked here so this sub-resource never imports the parent's service back.
-  funkoExists: async (funkoId: number): Promise<boolean> => (await prisma.funko.count({ where: { id: funkoId } })) > 0,
+  // Where the parent funko stands and who sent it in, for the 404 / 403 checks, read here so this sub-resource
+  // never imports the parent's service back. Undefined when there is no such funko.
+  findFunkoAccess: async (funkoId: number) =>
+    (await prisma.funko.findUnique({ where: { id: funkoId }, select: { status: true, submittedById: true } })) ??
+    undefined,
 
   listByFunko: (funkoId: number): Promise<FunkoImage[]> =>
     prisma.funkoImage.findMany({ where: { funkoId }, select: IMAGE_SELECT, orderBy: [...POSITION_ORDER] }),

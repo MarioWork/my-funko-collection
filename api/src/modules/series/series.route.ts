@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
+import { signedInUser, signedInUserId } from '../../plugins/auth.plugin.ts';
 import {
   CreateSeriesSchema,
   ListSeriesQuerySchema,
@@ -25,7 +26,7 @@ export const seriesRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: SeriesListResponseSchema, 400: ErrorResponseSchema },
       },
     },
-    async (request) => getSeriesList(request.query),
+    async (request) => getSeriesList(signedInUserId(request), request.query),
   );
 
   app.get(
@@ -38,23 +39,22 @@ export const seriesRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: SeriesResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => getSeries(request.params.seriesId),
+    async (request) => getSeries(signedInUser(request), request.params.seriesId),
   );
 
   app.post(
     '/',
     {
       prefixTrailingSlash: 'no-slash',
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
-        summary: 'Create a series',
+        summary: "Create a series (a member's waits with their submission; 409 with existingId when it exists)",
         body: CreateSeriesSchema,
         response: { 201: SeriesResponseSchema, 400: ErrorResponseSchema, 409: ErrorResponseSchema },
       },
     },
     async (request, reply) => {
-      const created = await addSeries(request.body);
+      const created = await addSeries(signedInUser(request), request.body);
 
       return reply.code(201).send(created);
     },
@@ -77,7 +77,7 @@ export const seriesRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => updateSeries(request.params.seriesId, request.body),
+    async (request) => updateSeries(signedInUser(request), request.params.seriesId, request.body),
   );
 
   app.delete(

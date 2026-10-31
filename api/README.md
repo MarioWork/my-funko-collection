@@ -67,9 +67,9 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 
 | Table                  | What                                                                                                                                              |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"                                                                               |
-| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"                                                                               |
-| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode                                                                     |
+| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"; `status` and `submitted_by_id` like a funko's                                |
+| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"; `status` and `submitted_by_id` like a funko's                                |
+| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode, `status`, and the member who sent it in (`submitted_by_id`)        |
 | `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder, uploader and time                                                   |
 | `collections`          | One user's own list (`user_id`, name unique per user): "Owned" (each user's one default), "Wishlist"                                              |
 | `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                                                                    |
@@ -83,7 +83,8 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 
 Value sets: funko `type` is one of `POP`, `POP_DELUXE`, `POP_RIDES`, `POP_MOMENT`, `POP_TOWN`, `POP_ALBUM`,
 `POP_JUMBO`, `POP_KEYCHAIN`, `SODA`, `BITTY_POP`, `MYSTERY_MINI`, `OTHER`; item `condition` is `MINT_IN_BOX`,
-`BOX_DAMAGED`, `OUT_OF_BOX` or null; user `role` is `ADMIN` or `MEMBER` (the default for a new row).
+`BOX_DAMAGED`, `OUT_OF_BOX` or null; user `role` is `ADMIN` or `MEMBER` (the default for a new row); a funko's,
+category's or series' `status` is `WAITING`, `APPROVED` (the default), `REJECTED` or `MERGED`.
 
 Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A gets a leading zero
 (`src/lib/barcode.ts`), so a scanned code matches a typed one.
@@ -112,10 +113,14 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   Usernames are 3–32 letters, digits, `.`, `-` or `_`, compared lower-case. A wrong username, a wrong password and
   a user with no password all get the same 401 `SIGN_IN_FAILED`, after the same hashing time.
 - **Roles.** A user is an `ADMIN` or a `MEMBER`. Whoever sets the app up is an admin (the migration made the user
-  already there one). Routes with `config: { isAdminOnly: true }` answer 403 `ADMIN_ONLY` to a member: every
-  catalogue write (funkos, categories, series, funko images), the images lists (`GET /images`, `/images/groups`,
-  `/export/images.*`) and the users (`/users` and everything under it). Members read the catalogue and keep their own collections,
-  items and tags.
+  already there one). Routes with `config: { isAdminOnly: true }` answer 403 `ADMIN_ONLY` to a member: changing or
+  deleting a category or series, the images lists (`GET /images`, `/images/groups`, `/export/images.*`) and the
+  users (`/users` and everything under it). Members read the catalogue, keep their own collections, items and tags, and send new
+  funkos in as submissions (below): `POST /funkos`, `/categories` and `/series` are open to them, and so are the
+  funko and funko-image writes, whose services (`funkos.access.ts`) let a member change only their own waiting
+  submission: another member's answers 404, a catalogue funko (or their own once it is no longer waiting) 403
+  `ADMIN_ONLY`. `auth.route.test.ts` keeps both lists (`ADMIN_ONLY_ROUTES`, `SUBMISSION_ROUTES`) and fails when a
+  catalogue write is on neither.
 - **New users.** Only an admin creates a user (`POST /users` with a username and a role), and it needs the admin's
   sign-in from the last 10 minutes. The user is named after the username and gets an app-made temporary password:
   four groups of five characters with no look-alikes (`abcde-fghjk-...`, ~99 bits), never on the common list,
@@ -156,7 +161,20 @@ Interactive docs with every schema: `GET /docs` (dev only). Auth: `GET /auth/sta
 Text filters are case-insensitive "contains"; id filters take a comma-separated list.
 
 The catalogue (categories, series, funkos, images) is shared; collections, items and tags belong to one user
-(`docs/adr/0001-shared-catalogue-own-collections.md`). Every collection, item and tag route, the funko filters and
+(`docs/adr/0001-shared-catalogue-own-collections.md`).
+
+**Submissions.** An admin's new funko, category or series is `APPROVED` at once. A member's is `WAITING`, with
+`submitted_by_id` set: only that member sees it, in every list, search, suggestion, barcode lookup, count and
+export (`lib/catalogueVisibility.ts`; an admin opens one by id but never sees it listed), and they can put it in
+their own collections, edit it, add or change its images and delete it while it waits. A funko may use the approved
+categories and series, and a waiting one also its sender's own waiting ones (400 otherwise). The unique rules
+(barcode, identity, category and series names) hold in the approved catalogue and within one member's waiting
+ones, never across them (partial unique indexes in the `submissions` migration): two members may wait on the same
+box, and an admin may add one a member waits on. A member's funko, category or series that the catalogue already
+has answers 409 with its `existingId`. `GET /submissions` lists what the signed-in user sent in, whatever became of
+it. Deleting a user deletes what they sent in that never joined the catalogue (their items of it too; a trigger in
+the migration) and clears `submitted_by_id` on the approved ones. Approving, rejecting and merging are not built
+yet (issue #10). Every collection, item and tag route, the funko filters and
 search that look at collections or tags, the `collections` on a funko, suggestions, stats and exports see only the
 signed-in user's own; another user's collection, item or tag id answers 404. An item takes only the user's own tags:
 `tagIds` naming another user's tag (or one that does not exist) answers 404. A database trigger gives every new user
@@ -168,19 +186,19 @@ tags already there to the first user; another user whose items carried one got t
 | `GET /health`, `GET /ready`                                        | Liveness, readiness (database reachable)                                                                                                                                                                                                                                                                                                                                                                          |
 | `GET /categories`                                                  | List; `name`; sort `NAME` \| `CREATION_DATE`                                                                                                                                                                                                                                                                                                                                                                      |
 | `GET /categories/:id`                                              |                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `POST /categories`                                                 | `{ name }`                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `POST /categories`                                                 | `{ name }`; a member's waits with their submission; 409 with `existingId` when the name is taken                                                                                                                                                                                                                                                                                                                  |
 | `PATCH /categories/:id`                                            |                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `DELETE /categories/:id`                                           | 409 while funkos still use it                                                                                                                                                                                                                                                                                                                                                                                     |
 | `GET /series`                                                      | List with funko counts; `name`; sort `NAME` \| `CREATION_DATE`                                                                                                                                                                                                                                                                                                                                                    |
 | `GET /series/:id`                                                  |                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `POST /series`                                                     | `{ name }`; 409 when the name is taken                                                                                                                                                                                                                                                                                                                                                                            |
+| `POST /series`                                                     | `{ name }`; a member's waits with their submission; 409 with `existingId` when the name is taken                                                                                                                                                                                                                                                                                                                  |
 | `PATCH /series/:id`                                                |                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `DELETE /series/:id`                                               | Its funkos stay, with `series: null`                                                                                                                                                                                                                                                                                                                                                                              |
 | `GET /funkos`                                                      | List and search: `q` searches every field; named params narrow one (below)                                                                                                                                                                                                                                                                                                                                        |
 | `GET /funkos/by-barcode/:barcode`                                  | For a phone scanner                                                                                                                                                                                                                                                                                                                                                                                               |
 | `GET /funkos/:id`                                                  | With all its images                                                                                                                                                                                                                                                                                                                                                                                               |
-| `POST /funkos`                                                     | 409 with `existingId` when the same funko or barcode already exists                                                                                                                                                                                                                                                                                                                                               |
-| `PATCH /funkos/:id`                                                |                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `POST /funkos`                                                     | An admin's joins the catalogue, a member's is a waiting submission; 409 with `existingId` when the same funko or barcode already exists                                                                                                                                                                                                                                                                           |
+| `PATCH /funkos/:id`                                                | A member: only their own waiting submission (images too)                                                                                                                                                                                                                                                                                                                                                          |
 | `DELETE /funkos/:id`                                               | 409 while it sits in anyone's collection (naming only your own, others as "other users' collections"); `?force=true` removes it from all                                                                                                                                                                                                                                                                          |
 | `POST /funkos/:id/images`                                          | Multipart, field `file` (several allowed); makes the three sizes                                                                                                                                                                                                                                                                                                                                                  |
 | `POST /funkos/:id/images/from-url`                                 | `{ url }`: downloads a public image and stores it                                                                                                                                                                                                                                                                                                                                                                 |
@@ -202,6 +220,7 @@ tags already there to the first user; another user whose items carried one got t
 | `GET /tags`                                                        | The user's own tags with item counts; `name`; sort `NAME` \| `CREATION_DATE`                                                                                                                                                                                                                                                                                                                                      |
 | `GET /tags/:id`, `POST`, `PATCH`, `DELETE`                         | Delete only removes the label from items                                                                                                                                                                                                                                                                                                                                                                          |
 | `GET /suggest?q=`                                                  | Search-bar suggestions: funkos, categories, series, collections, tags at once                                                                                                                                                                                                                                                                                                                                     |
+| `GET /submissions`                                                 | What the signed-in user sent in, each with `status`; `status` narrows it; sort `CREATION_DATE` (default, newest first) / `NAME`                                                                                                                                                                                                                                                                                   |
 | `GET /stats`                                                       | Totals for the home page, for the signed-in user only: the funkos in their collections (count, categories, images and bytes, per category), and each of their collections                                                                                                                                                                                                                                         |
 | `GET /images`                                                      | Every stored image (rows with their funko, uploader and upload time, plus loose files no row uses); `q`, `hasFunko`, sort `SIZE` (default, biggest first) / `CREATION_DATE` / `NAME`                                                                                                                                                                                                                              |
 | `GET /images/groups`                                               | The same, one group per funko with its count and total size (loose files last); same params                                                                                                                                                                                                                                                                                                                       |
@@ -221,7 +240,8 @@ tags already there to the first user; another user whose items carried one got t
 `seriesId`, `series`, `tagId`, `tag`, `collectionId`, `collection`, `notInCollectionId`, `hasCollections`, `hasSeries`, `hasTags`, `hasImages`; sort
 `RELEVANCE` (default with `q`), `NAME`, `NUMBER`, `CREATION_DATE`, `CATEGORY`, `SERIES` (funkos without a series
 come last in both directions). Each hit carries `category`, `series` (or null), `matchedOn` (which fields the search
-hit, `SERIES` among them), `collections` (where it sits, with quantity) and `primaryImage`. A funko body takes an
+hit, `SERIES` among them), `collections` (where it sits, with quantity), `primaryImage`, `status` and
+`isSubmittedByMe`. A funko body takes an
 optional `seriesId` (null or left out means none; null on a `PATCH` clears it; a missing series answers 400).
 
 Item list filters: `name`, `funkoId`, `tagId`, `categoryId`, `seriesId`, `condition`, `purchasedFrom`, `purchasedTo`; sort
@@ -231,24 +251,24 @@ Item list filters: `name`, `funkoId`, `tagId`, `categoryId`, `seriesId`, `condit
 
 One envelope: `{ code, message, issues?, existingId? }`.
 
-| Status | `code`                                                   | When                                                                                |
-| ------ | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 400    | `VALIDATION_ERROR`                                       | Bad body or query; `issues` lists `{ path, message }`                               |
-| 400    | `COMMON_PASSWORD`                                        | The new password is on the common-password list                                     |
-| 400    | `PASSWORD_REUSED`                                        | The new password is the temporary one it should replace                             |
-| 400    | `USERNAME_REQUIRED`                                      | A new temporary password for a user with no username, and none given                |
-| 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                                    |
-| 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                                    |
-| 401    | `TEMPORARY_PASSWORD_EXPIRED`                             | The right temporary password, after its 7 days                                      |
-| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey, password or user change needs a fresh sign-in |
-| 403    | `ADMIN_ONLY`                                             | A member called an admin-only route (catalogue writes, images lists, users)         |
-| 403    | `PASSWORD_CHANGE_REQUIRED`                               | Signed in with a temporary password: replace it first                               |
-| 404    | `NOT_FOUND`                                              |                                                                                     |
-| 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin                      |
-| 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                                      |
-| 409    | `LAST_ADMIN`                                             | The last admin can't be made a member or deleted                                    |
-| 413    | `PAYLOAD_TOO_LARGE`                                      | Image over `MAX_IMAGE_BYTES`                                                        |
-| 429    |                                                          | Rate limit (600 requests a minute per client)                                       |
+| Status | `code`                                                   | When                                                                                             |
+| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 400    | `VALIDATION_ERROR`                                       | Bad body or query; `issues` lists `{ path, message }`                                            |
+| 400    | `COMMON_PASSWORD`                                        | The new password is on the common-password list                                                  |
+| 400    | `PASSWORD_REUSED`                                        | The new password is the temporary one it should replace                                          |
+| 400    | `USERNAME_REQUIRED`                                      | A new temporary password for a user with no username, and none given                             |
+| 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                                                 |
+| 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                                                 |
+| 401    | `TEMPORARY_PASSWORD_EXPIRED`                             | The right temporary password, after its 7 days                                                   |
+| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey, password or user change needs a fresh sign-in              |
+| 403    | `ADMIN_ONLY`                                             | A member called an admin-only route, or changed a funko that is not their own waiting submission |
+| 403    | `PASSWORD_CHANGE_REQUIRED`                               | Signed in with a temporary password: replace it first                                            |
+| 404    | `NOT_FOUND`                                              |                                                                                                  |
+| 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin                                   |
+| 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                                                   |
+| 409    | `LAST_ADMIN`                                             | The last admin can't be made a member or deleted                                                 |
+| 413    | `PAYLOAD_TOO_LARGE`                                      | Image over `MAX_IMAGE_BYTES`                                                                     |
+| 429    |                                                          | Rate limit (600 requests a minute per client)                                                    |
 
 ## Images
 
@@ -270,7 +290,8 @@ src/
   cli/                    one-off scripts (images:prune, auth:reset)
   generated/prisma/       the Prisma client (generated, git-ignored)
   lib/                    Prisma client, database errors, LIKE patterns and SQL fragments, error handler,
-                          pagination, ids, query params, image storage, remote fetch, barcode, password hashing
+                          pagination, ids, query params, image storage, remote fetch, barcode, password hashing,
+                          who sees which catalogue rows (catalogueVisibility)
   modules/<resource>/     <resource>.route.ts, .schema.ts, .service.ts, .repository.ts, .route.test.ts
   plugins/                prisma, auth (the sign-in check) and uploads (multipart in, static files out)
 assets/

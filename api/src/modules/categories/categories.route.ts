@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
+import { signedInUser, signedInUserId } from '../../plugins/auth.plugin.ts';
 import {
   CategoryListResponseSchema,
   CategoryParamsSchema,
@@ -25,7 +26,7 @@ export const categoriesRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: CategoryListResponseSchema, 400: ErrorResponseSchema },
       },
     },
-    async (request) => getCategories(request.query),
+    async (request) => getCategories(signedInUserId(request), request.query),
   );
 
   app.get(
@@ -38,23 +39,22 @@ export const categoriesRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: CategoryResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => getCategory(request.params.categoryId),
+    async (request) => getCategory(signedInUser(request), request.params.categoryId),
   );
 
   app.post(
     '/',
     {
       prefixTrailingSlash: 'no-slash',
-      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
-        summary: 'Create a category',
+        summary: "Create a category (a member's waits with their submission; 409 with existingId when it exists)",
         body: CreateCategorySchema,
         response: { 201: CategoryResponseSchema, 400: ErrorResponseSchema, 409: ErrorResponseSchema },
       },
     },
     async (request, reply) => {
-      const category = await addCategory(request.body);
+      const category = await addCategory(signedInUser(request), request.body);
 
       return reply.code(201).send(category);
     },
@@ -77,7 +77,7 @@ export const categoriesRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => updateCategory(request.params.categoryId, request.body),
+    async (request) => updateCategory(signedInUser(request), request.params.categoryId, request.body),
   );
 
   app.delete(
