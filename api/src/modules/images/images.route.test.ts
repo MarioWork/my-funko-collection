@@ -1,10 +1,19 @@
 import { buildApp, type App } from '../../app.ts';
 import { resetTestDb } from '../../testDb.ts';
 import { copyFunkoFile, listFunkoFolder } from '../../lib/imageStorage.ts';
-import { createFunko, makeImage, type SignedInClient, signIn, toFormData } from '../../testFixtures.ts';
+import {
+  createFunko,
+  createUser,
+  deleteUser,
+  makeImage,
+  type SignedInClient,
+  signIn,
+  toFormData,
+} from '../../testFixtures.ts';
 
 const URL = '/images';
 const LOOSE_FILE_NAME = 'leftover.webp';
+const UPLOADER_NAME = 'Bea';
 
 type ImageEntry = {
   key: string;
@@ -15,6 +24,8 @@ type ImageEntry = {
   sizeBytes: number;
   sizeCount: number;
   width: number | null;
+  uploadedBy: { id: number; name: string } | null;
+  createdAt: string;
 };
 type ListBody = { data: ImageEntry[]; totalResultNumber: number };
 type ImageGroupBody = {
@@ -42,8 +53,8 @@ beforeEach(async () => {
   api = await signIn(app);
 });
 
-async function uploadImage(funkoId: number, width = 64): Promise<void> {
-  await api.inject({
+async function uploadImage(funkoId: number, width = 64, client = api): Promise<void> {
+  await client.inject({
     method: 'POST',
     url: `/funkos/${funkoId}/images`,
     payload: toFormData([{ buffer: await makeImage({ width, noise: true }) }]),
@@ -58,11 +69,21 @@ async function seedImages() {
   await uploadImage(eleven.id, 200);
   await uploadImage(groot.id, 120);
 
-  const grootFiles = await listFunkoFolder(groot.id);
-  const [grootLarge] = grootFiles.filter((file) => !file.includes('.md.') && !file.includes('.sm.'));
-  await copyFunkoFile(groot.id, grootLarge ?? '', LOOSE_FILE_NAME);
+  await copyFirstLargeFile(groot.id);
 
   return { eleven, groot };
+}
+
+// A copy of the funko's first full-size file under a name no row uses: a loose file.
+async function copyFirstLargeFile(funkoId: number): Promise<void> {
+  const files = await listFunkoFolder(funkoId);
+  const [large] = files.filter((file) => !file.includes('.md.') && !file.includes('.sm.'));
+
+  await copyFunkoFile(funkoId, large ?? '', LOOSE_FILE_NAME);
+}
+
+function rowAndLoose(entries: ImageEntry[]): [ImageEntry | undefined, ImageEntry | undefined] {
+  return [entries.find((entry) => entry.id !== null), entries.find((entry) => entry.id === null)];
 }
 
 describe('GET /images', () => {
@@ -121,6 +142,37 @@ describe('GET /images', () => {
     const secondPage = descending.json<ListBody>();
     expect(secondPage.data).toHaveLength(2);
     expect(secondPage.data.map((entry) => entry.sizeBytes)).toEqual(sizes.slice(0, 2).reverse());
+  });
+
+  it('shows who uploaded each image and when, and no uploader on a loose file, when images are listed', async () => {
+    const uploader = await createUser(UPLOADER_NAME, 'ADMIN');
+    const uploaderApi = await signIn(app, { userId: uploader.id });
+    const funko = await createFunko({ name: 'Eleven' });
+    const before = new Date().toISOString();
+    await uploadImage(funko.id, 64, uploaderApi);
+    await copyFirstLargeFile(funko.id);
+
+    const response = await api.inject({ method: 'GET', url: URL });
+
+    const [row, loose] = rowAndLoose(response.json<ListBody>().data);
+    expect(row?.uploadedBy).toEqual({ id: uploader.id, name: UPLOADER_NAME });
+    expect((row?.createdAt ?? '') >= before).toBe(true);
+    expect(loose?.uploadedBy).toBeNull();
+  });
+
+  it('keeps the image with no uploader when the user who uploaded it is deleted', async () => {
+    const uploader = await createUser(UPLOADER_NAME, 'ADMIN');
+    const uploaderApi = await signIn(app, { userId: uploader.id });
+    const funko = await createFunko({ name: 'Eleven' });
+    await uploadImage(funko.id, 64, uploaderApi);
+
+    await deleteUser(uploader.id);
+
+    const response = await api.inject({ method: 'GET', url: URL });
+    const body = response.json<ListBody>();
+    expect(body.totalResultNumber).toBe(1);
+    expect(body.data[0]).toMatchObject({ funko: { name: 'Eleven' }, uploadedBy: null });
+    expect(body.data[0]?.id).not.toBeNull();
   });
 
   it('returns 400 with VALIDATION_ERROR when the sort field is unknown', async () => {

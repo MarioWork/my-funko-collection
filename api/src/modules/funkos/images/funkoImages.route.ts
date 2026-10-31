@@ -2,6 +2,7 @@ import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../../lib/errorHandler.ts';
+import { signedInUserId } from '../../../plugins/auth.plugin.ts';
 import {
   FunkoImageListResponseSchema,
   FunkoImageParamsSchema,
@@ -52,7 +53,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const buffers = await readUploadedFiles(request);
-      const images = await addImages(request.params.funkoId, buffers);
+      const images = await addImages(signedInUserId(request), request.params.funkoId, buffers);
 
       return reply.code(201).send(images);
     },
@@ -77,7 +78,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const image = await addImageFromUrl(request.params.funkoId, request.body.url);
+      const image = await addImageFromUrl(signedInUserId(request), request.params.funkoId, request.body.url);
 
       return reply.code(201).send(image);
     },
