@@ -3,7 +3,7 @@ import LinkButton from '@components/LinkButton';
 import { useIsDesktop } from '@hooks/useIsDesktop';
 import SettingsSection from './SettingsSection';
 
-// The manage pages (categories, tags). On desktop they sit in the sidebar, so this card only shows on phones.
+// The manage pages (categories, series, tags). On desktop they sit in the sidebar, so this card only shows on phones.
 function ConfigurationSection() {
   const isDesktop = useIsDesktop();
 

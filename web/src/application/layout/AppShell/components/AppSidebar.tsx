@@ -1,5 +1,14 @@
 import { Link, NavLink, useLocation } from 'react-router';
-import { APP_NAME, MANAGE_ITEMS, NAVIGATION_ITEMS, SETTINGS_ITEM, type NavigationItem } from '@utils/navigationUtils';
+import {
+  ADMIN_GROUP_LABEL,
+  ADMIN_ITEMS,
+  APP_NAME,
+  MANAGE_ITEMS,
+  NAVIGATION_ITEMS,
+  SETTINGS_ITEM,
+  type NavigationItem,
+} from '@utils/navigationUtils';
+import { useIsAdmin } from '@hooks/useIsAdmin';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AppLogo from '@components/AppLogo';
 import SidebarEdgeToggle from './SidebarEdgeToggle';
@@ -8,6 +17,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -39,10 +50,29 @@ function NavigationEntry({ item: { label, to, icon: Icon }, isActive, size = 'de
   );
 }
 
-// Desktop navigation: the four destinations, the two manage pages, then Settings and the theme toggle in the
-// footer. Adding lives in the page headers (Funkos, a collection, Home), not here. Collapses to icons from its edge (SidebarEdgeToggle), never hides; the edge is not draggable.
+type AdminGroupProps = {
+  pathname: string;
+};
+
+// The admin's own pages, under an "Admin" label. Members never see this group.
+function AdminGroup({ pathname }: AdminGroupProps) {
+  return (
+    <SidebarGroup className="p-0">
+      <SidebarGroupLabel className="px-4">{ADMIN_GROUP_LABEL}</SidebarGroupLabel>
+      <SidebarMenu aria-label={ADMIN_GROUP_LABEL} className="gap-2 p-2 group-data-[collapsible=icon]:items-center">
+        {ADMIN_ITEMS.map((item) => (
+          <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} />
+        ))}
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+}
+
+// Desktop navigation: the four destinations, the manage pages, the Admin group (admins only), then Settings and
+// the theme toggle in the footer. Adding lives in the page headers (Funkos, a collection, Home), not here. Collapses to icons from its edge (SidebarEdgeToggle), never hides; the edge is not draggable.
 function AppSidebar() {
   const { pathname } = useLocation();
+  const isAdmin = useIsAdmin();
 
   return (
     <Sidebar collapsible="icon">
@@ -69,6 +99,7 @@ function AppSidebar() {
             <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} />
           ))}
         </SidebarMenu>
+        {isAdmin ? <AdminGroup pathname={pathname} /> : null}
       </SidebarContent>
       <SidebarFooter className="flex-row items-center justify-between group-data-[collapsible=icon]:flex-col">
         <SidebarMenu className="w-auto">

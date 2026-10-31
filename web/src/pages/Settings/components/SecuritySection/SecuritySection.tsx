@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { PasskeyApiModel } from '@app-types/models';
 import { Separator } from '@components/ui/separator';
-import { useSignedInUser } from './hooks/useSignedInUser';
+import { useSignedInUser } from '@hooks/useSignedInUser';
 import SettingsSection from '../SettingsSection';
 import AddPasskeyDialog from './components/AddPasskeyDialog';
 import PasskeyList from './components/PasskeyList';

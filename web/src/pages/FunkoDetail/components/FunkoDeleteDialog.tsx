@@ -5,6 +5,7 @@ import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import ConfirmDialog from '@components/ConfirmDialog';
 import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 import { createFormData } from '@utils/formDataUtils';
+import { CONFLICT_STATUS } from '@utils/httpStatusUtils';
 
 type Props = {
   funko: FunkoDetailApiModel;
@@ -16,7 +17,6 @@ type Props = {
 // The confirm dialog's answer: whether the extra "also remove it from its collections" box was ticked.
 type ConfirmChoice = { isChecked: boolean };
 
-const CONFLICT_STATUS = 409;
 const STILL_IN_COLLECTION_MESSAGE = 'It is still in a collection: tick the box above to remove it from there as well.';
 
 // What went wrong with the last delete, if it failed: still in a collection (409), or anything else.

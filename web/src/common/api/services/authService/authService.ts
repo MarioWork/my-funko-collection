@@ -3,7 +3,7 @@ import type {
   PublicKeyCredentialRequestOptionsJSON,
 } from '@simplewebauthn/browser';
 import axios from 'axios';
-import { axiosActions } from '@api/axiosActions';
+import { ADMIN_ONLY_ERROR_CODE, axiosActions } from '@api/axiosActions';
 import type {
   AuthSessionApiModel,
   AuthStatusApiModel,
@@ -110,6 +110,7 @@ export const AuthApiErrorCodes = {
   SIGN_IN_FAILED: 'SIGN_IN_FAILED',
   LAST_PASSKEY: 'LAST_PASSKEY',
   REAUTH_REQUIRED: 'REAUTH_REQUIRED',
+  ADMIN_ONLY: ADMIN_ONLY_ERROR_CODE,
   COMMON_PASSWORD: 'COMMON_PASSWORD',
   TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
 } as const;

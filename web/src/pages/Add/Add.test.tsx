@@ -3,6 +3,8 @@ import { addRoutes } from '@application/routes/featureRoutes/addRoutes';
 import { categoryRoutes } from '@application/routes/featureRoutes/categoryRoutes';
 import { tagRoutes } from '@application/routes/featureRoutes/tagRoutes';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { UserRoleUtil } from '@app-types/utility';
+import { setMockUserRole } from '@mocks/mockStore';
 
 const PHOTOS_REQUIRED_MESSAGE = 'Add at least one image';
 const PREVIEW_URL = 'blob:photo-preview';
@@ -141,4 +143,14 @@ describe('saving without a photo', () => {
     expect(first).toHaveTextContent('Main');
     expect(within(first).getByRole('button', { name: 'View back.png' })).toBeVisible();
   });
+});
+
+it('tells a member that only an admin adds new funkos instead of showing the form', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  renderAddForm();
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Not in the catalogue' })).toBeVisible();
+  expect(screen.getByRole('status')).toHaveTextContent(/Only an admin can add a new funko/);
+  expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Scan another' })).toBeVisible();
 });

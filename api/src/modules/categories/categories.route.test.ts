@@ -69,6 +69,16 @@ describe('GET /categories/:categoryId', () => {
     expect(response.json()).toMatchObject({ id: created.id, name: 'Pop! Star Wars', funkoCount: 0 });
   });
 
+  it('returns the category when a member asks for it', async () => {
+    // The catalogue is shared: members read it, only admins change it.
+    const created = await createCategory('Pop! Star Wars');
+    const member = await signIn(app, { role: 'MEMBER' });
+
+    const response = await member.inject({ method: 'GET', url: `${URL}/${created.id}` });
+
+    expect(response.statusCode).toBe(200);
+  });
+
   it('returns 400 when the id is not a positive integer', async () => {
     const response = await api.inject({ method: 'GET', url: `${URL}/${INVALID_ID}` });
 
@@ -106,6 +116,17 @@ describe('POST /categories', () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json()).toMatchObject({ code: 'CONFLICT' });
+  });
+
+  it('returns 403 ADMIN_ONLY and creates nothing when a member sends it', async () => {
+    const member = await signIn(app, { role: 'MEMBER' });
+
+    const response = await member.inject({ method: 'POST', url: URL, payload: { name: 'Pop! Games' } });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({ code: 'ADMIN_ONLY' });
+    const list = await api.inject({ method: 'GET', url: URL });
+    expect(list.json<{ totalResultNumber: number }>().totalResultNumber).toBe(0);
   });
 });
 

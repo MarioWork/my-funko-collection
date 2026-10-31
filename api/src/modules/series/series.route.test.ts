@@ -70,6 +70,16 @@ describe('GET /series/:seriesId', () => {
     expect(response.json()).toMatchObject({ id: created.id, name: 'The Mandalorian', funkoCount: 0 });
   });
 
+  it('returns the series when a member asks for it', async () => {
+    // The catalogue is shared: members read it, only admins change it.
+    const created = await createSeries('The Mandalorian');
+    const member = await signIn(app, { role: 'MEMBER' });
+
+    const response = await member.inject({ method: 'GET', url: `${URL}/${created.id}` });
+
+    expect(response.statusCode).toBe(200);
+  });
+
   it('returns 400 when the id is not a positive integer', async () => {
     const response = await api.inject({ method: 'GET', url: `${URL}/${INVALID_ID}` });
 

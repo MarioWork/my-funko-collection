@@ -9,8 +9,13 @@ import {
   type RenderOptions,
 } from '@testing-library/react';
 import userEventBase from '@testing-library/user-event';
-import { createMemoryRouter, type RouteObject } from 'react-router';
+import { createMemoryRouter, type MiddlewareFunction, type RouteObject } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
+import { loader as appShellLoader } from '@application/layout/AppShell/appShellLoader';
+import { APP_SHELL_ROUTE_ID } from '@application/routes/routesUtils';
+import { signedInUserContext } from '@application/routes/signedInUserMiddleware';
+import { mockUserOf } from '@mocks/handlers/auth/authMockUtils';
+import { mockStore } from '@mocks/mockStore';
 
 const ASYNC_QUERY_TIMEOUT_MS = 5000;
 
@@ -51,10 +56,34 @@ function withFreshLazy(routes: RouteObject[]): RouteObject[] {
   });
 }
 
+// Stands in for the shell's signedInUserMiddleware: the mock store's user, whatever the sign-in state, so a page
+// outside the real shell (Login, Setup) renders without being sent away.
+const mockSignedInUserMiddleware: MiddlewareFunction = ({ context }) => {
+  context.set(signedInUserContext, mockUserOf(mockStore.auth));
+};
+
+// A stand-in for the app shell around the pages under test: it puts the signed-in user in the router context
+// (assertAdmin) and runs the real shell loader (useSignedInUser, useIsAdmin), read from the mock store at load
+// time. An admin unless the test called setMockUserRole().
+export function shellRoute(children: RouteObject[]): RouteObject {
+  return { id: APP_SHELL_ROUTE_ID, middleware: [mockSignedInUserMiddleware], loader: appShellLoader, children };
+}
+
+function hasShellRoute(routes: RouteObject[]): boolean {
+  return routes.some((route) => route.id === APP_SHELL_ROUTE_ID || hasShellRoute(route.children ?? []));
+}
+
+// A table that brings its own shell route (the app's, or shellRoute() placed by the test) keeps it.
+function withShell(routes: RouteObject[]): RouteObject[] {
+  if (hasShellRoute(routes)) return routes;
+
+  return [shellRoute(routes)];
+}
+
 // Real route objects, so a page's loader and action run as they do in the app. The router comes back too, for a
 // test that navigates or reads the current location.
 export function renderRoutes(routes: RouteObject[], { initialEntries = ['/'], ...options }: RenderRoutesOptions = {}) {
-  const router = createMemoryRouter(withFreshLazy(routes), { initialEntries });
+  const router = createMemoryRouter(withShell(withFreshLazy(routes)), { initialEntries });
 
   return { ...render(<RouterProvider router={router} />, options), router };
 }

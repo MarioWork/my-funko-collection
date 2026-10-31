@@ -1,5 +1,5 @@
 // The mock sign-in: the one user, their passkeys, password and which page the app opens on.
-import { AuthStateUtil, type AuthStateUtil as AuthState } from '@app-types/utility';
+import { AuthStateUtil, UserRoleUtil, type AuthStateUtil as AuthState } from '@app-types/utility';
 import type { MockAuth, MockPasskeyRow } from './mockStore.type';
 import { mockDate, mockEnv } from './mockStoreUtils';
 
@@ -43,6 +43,7 @@ export function createMockAuth(state: AuthState): MockAuth {
     state,
     userName: hasUser ? MOCK_USER_NAME : '',
     username: null,
+    role: UserRoleUtil.ADMIN,
     password: null,
     isSignInRecent: true,
     passkeys: hasUser ? SEED_PASSKEYS.map((passkey) => ({ ...passkey })) : [],

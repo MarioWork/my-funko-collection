@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from 'react-router';
 import { ApiUrlParamsUtil, DEFAULT_FIRST_PAGE, ImageViewUtil } from '@app-types/utility';
+import { assertAdmin } from '@utils/adminRouteUtils';
 import imageService, {
   DEFAULT_IMAGE_SORT_DIRECTION,
   DEFAULT_IMAGE_SORT_FIELD,
@@ -15,7 +16,9 @@ const SEARCH_FIELDS = Object.values(ImageApiSearchFields);
 
 // Reads the list state from the URL (view, search, filter, sort, page) and loads that page: of images, or of
 // funko groups when the list is grouped by funko.
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  assertAdmin(context);
+
   const searchParams = new URL(request.url).searchParams;
   const sortParam = searchParams.get(ApiUrlParamsUtil.sorting_fields) ?? '';
   const directionParam = searchParams.get(ApiUrlParamsUtil.sortingDirection) ?? '';

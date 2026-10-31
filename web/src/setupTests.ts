@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import axios from 'axios';
+import { forgetSignedInUser } from '@application/routes/signedInUserMiddleware';
 import { forgetBrowsedLists } from '@hooks/useInfiniteList';
 import { resetMockStore } from './mocks/mockStore';
 import { server, TEST_BASE_API_URL } from './mocks/server';
@@ -50,5 +51,6 @@ afterEach(() => {
   server.resetHandlers();
   resetMockStore();
   forgetBrowsedLists();
+  forgetSignedInUser();
 });
 afterAll(() => server.close());

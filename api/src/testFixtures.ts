@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import type { App } from './app.ts';
 import { normaliseBarcode } from './lib/barcode.ts';
 import { generateImage, type GeneratedImageOptions } from './lib/imageStorage.ts';
-import type { SignInMethod } from './generated/prisma/client.ts';
+import type { SignInMethod, UserRole } from './generated/prisma/client.ts';
 import { prisma } from './lib/prisma.ts';
 import { createSecureToken, hashSecureToken } from './lib/secureToken.ts';
 import { SESSION_COOKIE_NAME } from './lib/sessionCookie.ts';
@@ -59,13 +59,13 @@ export async function createFunko(
   });
 }
 
-// The test user's collection by that name; `userId` makes it another user's. Every user already has "Owned" (the
+// The test admin's collection by that name; `userId` makes it another user's. Every user already has "Owned" (the
 // default) and "Wishlist", so asking for one of those returns it, with the given fields applied. A default one
 // moves the user's default flag here, as the API does, so their one default stays one.
 export async function createCollection(
   overrides: { name?: string; isDefault?: boolean; notes?: string | null; userId?: number } = {},
 ): Promise<{ id: number; name: string }> {
-  const userId = overrides.userId ?? (await findOrCreateTestUser()).id;
+  const userId = overrides.userId ?? (await findOrCreateTestUser('ADMIN')).id;
   const name = overrides.name ?? nextName('Collection');
 
   if (overrides.isDefault) {
@@ -145,7 +145,16 @@ export function toFormData(files: { buffer: Buffer; name?: string; field?: strin
 }
 
 const TEST_USER_NAME = 'Tester';
+const MEMBER_TEST_USER_NAME = 'Member';
 const RANDOM_ID_BYTES = 32;
+
+type SignInOptions = {
+  signedInAt?: Date;
+  lastSeenAt?: Date;
+  signInMethod?: SignInMethod;
+  role?: UserRole;
+  userId?: number;
+};
 
 export type SignedInClient = {
   userId: number;
@@ -154,20 +163,35 @@ export type SignedInClient = {
 };
 
 // A user row with no way to sign in; the database trigger gives them their own "Owned" and "Wishlist".
-export async function createUser(name = nextName('User')): Promise<{ id: number }> {
+// A member unless `role` says otherwise, like a user the admin adds.
+export async function createUser(name = nextName('User'), role: UserRole = 'MEMBER'): Promise<{ id: number }> {
   return prisma.user.create({
-    data: { name, webauthnUserId: randomBytes(RANDOM_ID_BYTES).toString('base64url') },
+    data: { name, role, webauthnUserId: randomBytes(RANDOM_ID_BYTES).toString('base64url') },
     select: { id: true },
   });
 }
 
-// The test user, made once per database: the first user. Other users come from createUser().
-async function findOrCreateTestUser(): Promise<{ id: number }> {
-  const existing = await prisma.user.findFirst({ orderBy: { id: 'asc' }, select: { id: true } });
+// Which row is the test user of each role: the admin is the first admin (the one who set the app up), the
+// member is the one named "Member", so a member made with createUser() is never mistaken for it.
+const TEST_USER_FILTERS: Record<UserRole, { role: UserRole; name?: string }> = {
+  ADMIN: { role: 'ADMIN' },
+  MEMBER: { role: 'MEMBER', name: MEMBER_TEST_USER_NAME },
+};
+
+const TEST_USER_NAMES: Record<UserRole, string> = { ADMIN: TEST_USER_NAME, MEMBER: MEMBER_TEST_USER_NAME };
+
+// The test user of a role, made once per database: one admin, and one member for the admin-only checks.
+// Other users come from createUser().
+async function findOrCreateTestUser(role: UserRole): Promise<{ id: number }> {
+  const existing = await prisma.user.findFirst({
+    where: TEST_USER_FILTERS[role],
+    orderBy: { id: 'asc' },
+    select: { id: true },
+  });
 
   if (existing) return existing;
 
-  return createUser(TEST_USER_NAME);
+  return createUser(TEST_USER_NAMES[role], role);
 }
 
 // The id of a user's default collection ("Owned" unless the test moved it).
@@ -202,12 +226,11 @@ export async function createPasskeyRow(
 // A user with a live session, straight in the database (no passkey ceremony): `inject` sends its cookie.
 // `signedInAt` / `lastSeenAt` backdate the session, for the "signed in recently" and timeout rules.
 // `signInMethod` PASSWORD opens it without a passkey; PASSKEY (the default) makes a passkey row to open it.
-// `userId` signs in as another user (from createUser()) instead of the test user.
-export async function signIn(
-  app: App,
-  options: { signedInAt?: Date; lastSeenAt?: Date; signInMethod?: SignInMethod; userId?: number } = {},
-): Promise<SignedInClient> {
-  const user = options.userId === undefined ? await findOrCreateTestUser() : { id: options.userId };
+// `role` MEMBER signs in as the test member instead of the test admin (the default).
+// `userId` signs in as another user (from createUser()) instead; it wins over `role`.
+export async function signIn(app: App, options: SignInOptions = {}): Promise<SignedInClient> {
+  const user =
+    options.userId === undefined ? await findOrCreateTestUser(options.role ?? 'ADMIN') : { id: options.userId };
   const signInMethod = options.signInMethod ?? 'PASSKEY';
   const passkey = signInMethod === 'PASSKEY' ? await createPasskeyRow(user.id) : undefined;
   const token = createSecureToken();

@@ -2,15 +2,19 @@ import axios from 'axios';
 import { http, HttpResponse } from 'msw/http';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
 import { HttpVerbsUtil } from '@app-types/utility';
-import { axiosActions, isUnauthorizedFailure, UNAUTHORIZED_ERROR_CODE } from './axiosActions';
+import { FORBIDDEN_STATUS, SERVER_ERROR_STATUS, UNAUTHORIZED_STATUS } from '@utils/httpStatusUtils';
+import {
+  ADMIN_ONLY_ERROR_CODE,
+  axiosActions,
+  isAdminOnlyFailure,
+  isUnauthorizedFailure,
+  UNAUTHORIZED_ERROR_CODE,
+} from './axiosActions';
 
 const TEST_PATH = '/actions-test';
 const TEST_URL = `${TEST_BASE_API_URL}${TEST_PATH}`;
 
 type CreatedRecord = { id: number };
-
-const UNAUTHORIZED_STATUS = 401;
-const SERVER_ERROR_STATUS = 500;
 
 describe('axiosActions', () => {
   it('wraps the response data as a success', async () => {
@@ -84,5 +88,42 @@ describe('isUnauthorizedFailure', () => {
   it('is false for a success envelope and for an error that is not a request failure', () => {
     expect(isUnauthorizedFailure({ success: true, data: {} })).toBe(false);
     expect(isUnauthorizedFailure(new TypeError('bug'))).toBe(false);
+  });
+});
+
+describe('isAdminOnlyFailure', () => {
+  function refuseAsAdminOnly() {
+    return HttpResponse.json({ code: ADMIN_ONLY_ERROR_CODE, message: 'Admins only' }, { status: FORBIDDEN_STATUS });
+  }
+
+  it('is true for a read rejected with 403 ADMIN_ONLY', async () => {
+    server.use(http.get(TEST_URL, refuseAsAdminOnly));
+
+    await expect(axios.get(TEST_PATH)).rejects.toSatisfy(isAdminOnlyFailure);
+  });
+
+  it('is true for a write envelope with 403 ADMIN_ONLY', async () => {
+    server.use(http.post(TEST_URL, refuseAsAdminOnly));
+
+    const result = await axiosActions({ url: TEST_PATH, method: HttpVerbsUtil.POST });
+
+    expect(isAdminOnlyFailure(result)).toBe(true);
+  });
+
+  it('is false for a 403 that carries another code', async () => {
+    server.use(
+      http.post(TEST_URL, () =>
+        HttpResponse.json({ code: 'REAUTH_REQUIRED', message: 'Confirm' }, { status: FORBIDDEN_STATUS }),
+      ),
+    );
+
+    const result = await axiosActions({ url: TEST_PATH, method: HttpVerbsUtil.POST });
+
+    expect(isAdminOnlyFailure(result)).toBe(false);
+  });
+
+  it('is false for a success envelope and for an error that is not a request failure', () => {
+    expect(isAdminOnlyFailure({ success: true, data: {} })).toBe(false);
+    expect(isAdminOnlyFailure(new TypeError('bug'))).toBe(false);
   });
 });

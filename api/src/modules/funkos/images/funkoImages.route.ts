@@ -35,6 +35,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
     '/',
     {
       prefixTrailingSlash: 'no-slash',
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Upload one or more photos (multipart, field "file")',
@@ -60,6 +61,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/from-url',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Download an image from a public URL and store it',
@@ -84,6 +86,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.patch(
     '/order',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Reorder the images (first is the primary)',
@@ -98,6 +101,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/:imageId/rotate',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Rotate an image clockwise; it gets new URLs',
@@ -112,6 +116,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.delete(
     '/:imageId',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Delete an image',

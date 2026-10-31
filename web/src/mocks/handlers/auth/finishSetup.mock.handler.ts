@@ -1,15 +1,16 @@
 import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import type { AuthSessionApiModel } from '@app-types/models';
-import { AuthStateUtil } from '@app-types/utility';
+import { AuthStateUtil, UserRoleUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { CONFLICT_STATUS, errorResponse, UNAUTHORIZED_STATUS } from '@mocks/mockResponses';
+import { errorResponse } from '@mocks/mockResponses';
+import { CONFLICT_STATUS, UNAUTHORIZED_STATUS } from '@utils/httpStatusUtils';
 import { MOCK_SETUP_CODE } from '@mocks/mockAuth';
 import { mockStore } from '@mocks/mockStore';
 import { nowIso } from '@mocks/mockStoreUtils';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import type { FinishSetup } from '@services/authService/authService.type';
-import { isCeremonyResponse } from './authMockUtils';
+import { isCeremonyResponse, mockUserOf } from './authMockUtils';
 
 const FIRST_PASSKEY_NAME = 'First passkey';
 
@@ -41,6 +42,7 @@ export default (baseUrl: string) => [
       state: AuthStateUtil.SIGNED_IN,
       userName: name,
       username: null,
+      role: UserRoleUtil.ADMIN,
       password: null,
       isSignInRecent: true,
       passkeys: [
@@ -48,6 +50,6 @@ export default (baseUrl: string) => [
       ],
     };
 
-    return HttpResponse.json<AuthSessionApiModel>({ user: { name, username: null } });
+    return HttpResponse.json<AuthSessionApiModel>({ user: mockUserOf(mockStore.auth) });
   }),
 ];

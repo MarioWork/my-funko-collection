@@ -38,13 +38,20 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   in `*_collections_per_user/` for every new user, not the seed or app code. Each insert skips one that is already
   there (`ON CONFLICT DO NOTHING`). Names are unique per user; one default per user (a partial index).
   `yarn auth:reset` keeps the users (deleting one deletes their collections); the next setup gives the first user a
-  new passkey.
+  new passkey and makes them an admin.
 - Sign-in is a passkey or a username + password (`docs/adr/0002-passwords-next-to-passkeys.md`, `api/README.md`
   "Sign-in"). Passwords: 15+ characters, the built-in list `api/assets/common-passwords.txt` refused, argon2id via
   Node's `crypto.argon2` (`api/src/lib/passwordHash.ts`), rate limited, never a lockout. Every API
   route and `/uploads` file needs a session unless it sets `config: { isPublic: true }`; keep that list tiny, and
   add new public routes to `PUBLIC_ROUTES` in `auth.route.test.ts`. Sessions are server-side rows (SHA-256 of an
   HttpOnly cookie token), never JWTs or localStorage. No TOTP, email or "auth off" switch, not even in dev.
+- Roles: a user is an `ADMIN` or a `MEMBER` (`docs/GLOSSARY.md`); whoever sets the app up is an admin. Catalogue
+  writes (funkos, categories, series, funko images) and the images lists set `config: { isAdminOnly: true }` and
+  answer 403 `ADMIN_ONLY` to a member; add every new one to `ADMIN_ONLY_ROUTES` in `auth.route.test.ts` (the test
+  calls every route as a member). The role check sits next to the sign-in check in `auth.plugin.ts`'s `onRequest`
+  hook, a route-level gate rather than a service check (node-ts-api §9), like the sign-in exception below. The web
+  hides those controls with `useIsAdmin()` (admin-only pages call `assertAdmin()` in their loader), and the mocks
+  refuse them in `requireAdmin.mock.handler.ts`; keep the three in step.
 - Deliberate exceptions to the Node skills for auth (decided 2026-10-23): the check is a global `onRequest` hook in
   `auth.plugin.ts` with server-side cookie sessions, not `@fastify/jwt` + `preHandler: [app.authenticate]`
   (node-ts-api §9); random 256-bit tokens (session, setup code) are stored as plain SHA-256, not argon2 (they can't
@@ -118,6 +125,10 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   two ramps: warm grey (stone) for everything, one teal accent from the logo for buttons, links, focus and selection.
   No `dark:` colour overrides, no hex in a component.
 - Every write is a React Router action through `useFetcher`; `fetcher.submit` returns a promise, so `void` it.
+- The signed-in user lives in React Router middleware (decided 2026-10-31 by Mario): the shell route's
+  `signedInUserMiddleware` (`src/application/routes/`) asks `/auth/status` once, keeps it until sign-out, a 401 or
+  a password save, and puts it in the router `context`. Loaders and actions read `context.get(signedInUserContext)`
+  (`assertAdmin(context)`); components use `useSignedInUser` / `useIsAdmin`. Never call `getStatus()` again.
 - Two reads call a service outside a loader, on purpose (kept 2026-10-23): the scanner's barcode lookup in
   `pages/Add/hooks/useAddFlow.ts` (reads `error.response` to tell "not found" from a failure) and the type-ahead in
   `common/hookUtils/useSuggestions.ts` (an effect, debounced). Do not add a third without asking.

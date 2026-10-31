@@ -7,6 +7,7 @@ import {
   createAuthenticationResponseMockModel,
   createRegistrationResponseMockModel,
 } from '@mocks/handlers/auth/models/passkeyResponseMockModel.mock';
+import { mockUserOf } from '@mocks/handlers/auth/authMockUtils';
 import { mockStore } from '@mocks/mockStore';
 
 vi.mock('@simplewebauthn/browser', () => ({
@@ -19,7 +20,7 @@ vi.mock('@simplewebauthn/browser', () => ({
 const routes = [
   {
     id: APP_SHELL_ROUTE_ID,
-    loader: () => ({ user: { name: 'Mario', username: mockStore.auth.username } }),
+    loader: () => ({ user: mockUserOf(mockStore.auth) }),
     children: [{ path: BASE_ROUTES_PATHS.SETTINGS, lazy: () => import('../../Settings.route') }, ...securityRoutes],
   },
   { path: AUTH_ROUTES_PATHS.LOGIN, element: <h1>Login page</h1> },

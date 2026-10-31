@@ -45,6 +45,7 @@ export const categoriesRoutes: FastifyPluginAsyncZod = async (app) => {
     '/',
     {
       prefixTrailingSlash: 'no-slash',
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Create a category',
@@ -62,6 +63,7 @@ export const categoriesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.patch(
     '/:categoryId',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Update a category',
@@ -81,6 +83,7 @@ export const categoriesRoutes: FastifyPluginAsyncZod = async (app) => {
   app.delete(
     '/:categoryId',
     {
+      config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
         summary: 'Delete a category (409 while funkos still use it)',

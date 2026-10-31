@@ -267,11 +267,16 @@ const funkoRows = await prisma.funko.createManyAndReturn({
 // Items reference the regular (non-chase) figure by name.
 const funkoIds = new Map(funkoRows.filter((row) => !row.isChase).map((row) => [row.name, row.id]));
 
-// The first user owns the example items. With nobody set up yet, a user with no way to sign in is made for them.
+// The first user owns the example items. With nobody set up yet, a user with no way to sign in is made for them:
+// an admin, since the first setup signs in as them, like the user the collections_per_user migration makes.
 const seedUser =
   (await prisma.user.findFirst({ orderBy: { id: 'asc' }, select: { id: true } })) ??
   (await prisma.user.create({
-    data: { name: SEED_USER_NAME, webauthnUserId: randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url') },
+    data: {
+      name: SEED_USER_NAME,
+      role: 'ADMIN',
+      webauthnUserId: randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url'),
+    },
     select: { id: true },
   }));
 

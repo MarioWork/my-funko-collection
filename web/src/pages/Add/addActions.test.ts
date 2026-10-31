@@ -4,6 +4,7 @@ import { FunkoTypeUtil } from '@app-types/utility';
 import { mockStore } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
 import { createFormData } from '@utils/formDataUtils';
+import { SERVER_ERROR_STATUS } from '@utils/httpStatusUtils';
 import { DEFAULT_CURRENCY } from '@utils/moneyUtils';
 import { PHOTO_FIELD } from '@utils/pendingPhotoUtils';
 import { addFunkoAction } from './addActions';
@@ -13,7 +14,6 @@ const NEW_FUNKO_NAME = 'Bulbasaur';
 const OWNED_ID = 1;
 const WISHLIST_ID = 2;
 const PAID_CENTS = 1499;
-const SERVER_ERROR_STATUS = 500;
 
 function failWith500() {
   return HttpResponse.json(

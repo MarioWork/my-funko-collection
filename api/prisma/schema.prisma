@@ -55,6 +55,15 @@ enum SignInMethod {
   @@map("sign_in_method")
 }
 
+// What a user may do. An admin manages the catalogue (funkos, categories, series, images); a member only their own
+// collections, items and tags.
+enum UserRole {
+  ADMIN
+  MEMBER
+
+  @@map("user_role")
+}
+
 // A Funko line as printed on the box: "Pop! Marvel", "Pop! Television", "Pop! Star Wars".
 model Category {
   id        Int      @id @default(autoincrement())
@@ -226,6 +235,7 @@ model User {
   username       String?  @unique(map: "users_username_uidx")
   // An argon2id hash in PHC form ($argon2id$v=19$m=...,t=...,p=...$salt$hash). Never the password itself.
   passwordHash   String?  @map("password_hash")
+  role           UserRole @default(MEMBER)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 

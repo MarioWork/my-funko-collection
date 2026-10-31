@@ -4,6 +4,7 @@ import { COLLECTION_ROUTES_PATHS, IMAGE_ROUTES_PATHS } from '@application/routes
 import StatTile from './StatTile';
 import { formatCents } from '@utils/moneyUtils';
 import { formatBytes } from '@utils/byteUtils';
+import { useIsAdmin } from '@hooks/useIsAdmin';
 import { funkosInOwnCollectionsPath } from '@utils/funkoLinkUtils';
 
 type Props = {
@@ -11,11 +12,12 @@ type Props = {
 };
 
 // Four numbers, all about the signed-in user's own collections: the funkos in them, pieces in the default list,
-// money in it, photos of those funkos.
+// money in it, photos of those funkos (a link to the Images page for an admin only).
 function StatsGrid({ stats }: Props) {
   const defaultCollection = stats.collections.find((collection) => collection.isDefault);
   const ownedLabel = defaultCollection ? `In ${defaultCollection.name}` : 'Owned';
   const ownedPath = defaultCollection ? COLLECTION_ROUTES_PATHS.detail(String(defaultCollection.id)) : undefined;
+  const isAdmin = useIsAdmin();
 
   return (
     <section aria-label="Overview" className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
@@ -45,7 +47,7 @@ function StatsGrid({ stats }: Props) {
         label="Images"
         value={String(stats.imageCount)}
         hint={formatBytes(stats.imageBytes)}
-        to={IMAGE_ROUTES_PATHS.BASE}
+        to={isAdmin ? IMAGE_ROUTES_PATHS.BASE : undefined}
       />
     </section>
   );

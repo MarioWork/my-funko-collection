@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw/http';
-import { AuthStateUtil } from '@app-types/utility';
+import { AuthStateUtil, UserRoleUtil } from '@app-types/utility';
 import {
   createAuthenticationResponseMockModel,
   createRegistrationResponseMockModel,
@@ -14,7 +14,7 @@ describe('getStatus', () => {
   it('returns the signed-in user', async () => {
     expect(await authService.getStatus()).toEqual({
       state: AuthStateUtil.SIGNED_IN,
-      user: { name: 'Mario', username: null },
+      user: { name: 'Mario', username: null, role: UserRoleUtil.ADMIN },
     });
   });
 
@@ -65,10 +65,13 @@ describe('finishSetup', () => {
       passkeyName: 'Pixel',
     });
 
-    expect(result).toEqual({ success: true, data: { user: { name: 'Ana', username: null } } });
+    expect(result).toEqual({
+      success: true,
+      data: { user: { name: 'Ana', username: null, role: UserRoleUtil.ADMIN } },
+    });
     expect(await authService.getStatus()).toEqual({
       state: AuthStateUtil.SIGNED_IN,
-      user: { name: 'Ana', username: null },
+      user: { name: 'Ana', username: null, role: UserRoleUtil.ADMIN },
     });
   });
 
@@ -112,7 +115,10 @@ describe('finishLogin', () => {
 
     const result = await authService.finishLogin({ response: createAuthenticationResponseMockModel() });
 
-    expect(result).toEqual({ success: true, data: { user: { name: 'Mario', username: null } } });
+    expect(result).toEqual({
+      success: true,
+      data: { user: { name: 'Mario', username: null, role: UserRoleUtil.ADMIN } },
+    });
     expect(mockStore.auth.state).toBe(AuthStateUtil.SIGNED_IN);
   });
 
@@ -142,7 +148,10 @@ describe('signInWithPassword', () => {
     const result = await authService.signInWithPassword({ username: 'Mario', password: 'shelves full of tiny heads' });
 
     expect(receivedBody).toEqual({ username: 'Mario', password: 'shelves full of tiny heads' });
-    expect(result).toEqual({ success: true, data: { user: { name: 'Mario', username: 'mario' } } });
+    expect(result).toEqual({
+      success: true,
+      data: { user: { name: 'Mario', username: 'mario', role: UserRoleUtil.ADMIN } },
+    });
   });
 
   it('returns the 401 envelope when the password is wrong', async () => {

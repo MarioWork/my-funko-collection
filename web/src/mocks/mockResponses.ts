@@ -11,6 +11,13 @@ import type {
   TagApiModel,
 } from '@app-types/models';
 import { HttpResponse } from 'msw/http';
+import {
+  BAD_REQUEST_STATUS,
+  CONFLICT_STATUS,
+  CREATED_STATUS,
+  NO_CONTENT_STATUS,
+  NOT_FOUND_STATUS,
+} from '@utils/httpStatusUtils';
 import { toPrimaryImage } from './mockImageUtils';
 import { mockStore } from './mockStore';
 import type {
@@ -25,14 +32,6 @@ import type {
 
 // Whatever HttpResponse.json accepts; msw/http does not export the type by name.
 type MockJsonBody = Parameters<typeof HttpResponse.json>[0];
-
-export const CREATED_STATUS = 201;
-export const NO_CONTENT_STATUS = 204;
-export const BAD_REQUEST_STATUS = 400;
-export const UNAUTHORIZED_STATUS = 401;
-export const FORBIDDEN_STATUS = 403;
-export const NOT_FOUND_STATUS = 404;
-export const CONFLICT_STATUS = 409;
 
 const NOT_FOUND_ERROR_CODE = 'NOT_FOUND';
 const CONFLICT_ERROR_CODE = 'CONFLICT';
