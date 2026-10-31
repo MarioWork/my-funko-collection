@@ -54,6 +54,7 @@ export const HAS_FUNKO_OPTIONS: FilterOption[] = [
 
 const UNKNOWN = '—';
 const REMOVED_USER = 'Removed user';
+const REMOVED_USER_IN_SENTENCE = 'a removed user';
 
 // "Eleven #421", or "No funko" for a loose file.
 export function imageTitle(image: ImageListEntryApiModel): string {
@@ -65,13 +66,19 @@ export function imageDimensions(image: ImageListEntryApiModel): string {
   return image.width && image.height ? `${image.width} × ${image.height}` : UNKNOWN;
 }
 
+// The uploader's name, or the given words once that user was deleted. Loose files are never uploaded: callers
+// check them first.
+function uploaderName(image: ImageListEntryApiModel, removedUserText: string): string {
+  return image.uploadedBy?.name ?? removedUserText;
+}
+
 // Who uploaded it: their name, "Removed user" once that user was deleted, or a dash for a loose file (no upload).
 export function imageUploader(image: ImageListEntryApiModel): string {
   const isLooseFile = image.id === null;
 
   if (isLooseFile) return UNKNOWN;
 
-  return image.uploadedBy?.name ?? REMOVED_USER;
+  return uploaderName(image, REMOVED_USER);
 }
 
 // "Uploaded by Mario on 03/02/2026, 08:30"; a loose file only has the time it was last written.
@@ -81,7 +88,5 @@ export function imageUploadText(image: ImageListEntryApiModel): string {
 
   if (isLooseFile) return dateTime;
 
-  const uploader = image.uploadedBy?.name ?? 'a removed user';
-
-  return `Uploaded by ${uploader} on ${dateTime}`;
+  return `Uploaded by ${uploaderName(image, REMOVED_USER_IN_SENTENCE)} on ${dateTime}`;
 }
