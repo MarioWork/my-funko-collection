@@ -237,7 +237,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Set or change the username and password (needs a recent sign-in; ends other password sessions)',
         body: SetPasswordSchema,
         response: {
-          204: z.undefined(),
+          200: SignedInResponseSchema,
           400: ErrorResponseSchema,
           401: ErrorResponseSchema,
           403: ErrorResponseSchema,
@@ -245,11 +245,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request, reply) => {
-      await setPassword(requireSession(request.session), request.body);
-
-      return reply.code(204).send();
-    },
+    async (request) => setPassword(requireSession(request.session), request.body),
   );
 
   app.get(

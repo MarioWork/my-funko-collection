@@ -1,4 +1,4 @@
-import { object, type InferType } from 'yup';
+import type { InferType } from 'yup';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { PasswordSignInSchema } from '@services/authService/authService.type';
 import type { AuthFailureMessagesUtil } from '@app-types/utility';
@@ -10,10 +10,8 @@ export const LoginIntents = {
 } as const;
 export type LoginIntents = (typeof LoginIntents)[keyof typeof LoginIntents];
 
-export const passwordSignInFormSchema = object({
-  username: PasswordSignInSchema.fields.username,
-  password: PasswordSignInSchema.fields.password,
-});
+// The form sends exactly what the API takes.
+export const passwordSignInFormSchema = PasswordSignInSchema;
 
 export type PasswordSignInFormValues = InferType<typeof passwordSignInFormSchema>;
 

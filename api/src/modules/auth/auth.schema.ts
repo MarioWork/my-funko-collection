@@ -91,7 +91,12 @@ export const SignInVerifySchema = z.strictObject({
 
 // Sign-in only checks the shape: a wrong length is just a wrong password, with the same answer as any other.
 export const PasswordSignInSchema = z.strictObject({
-  username: z.string().trim().min(1).max(USERNAME_MAX_LENGTH),
+  username: z
+    .string()
+    .trim()
+    .min(1)
+    .max(USERNAME_MAX_LENGTH)
+    .transform((username) => username.toLowerCase()),
   password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
 });
 
