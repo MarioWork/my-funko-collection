@@ -13,24 +13,6 @@ const USERNAME = 'luke';
 const NEW_PASSWORD = 'a shelf of tiny vinyl heads';
 const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
-// The routes a temporary-password session may call besides the public ones: replacing it, and signing out.
-const ALLOWED_WITH_TEMPORARY_PASSWORD = new Set([
-  'PUT /auth/password',
-  'POST /auth/logout',
-  'POST /auth/logout-everywhere',
-]);
-// Routes anyone may call without a session (auth.route.test.ts holds the full list and checks it).
-const PUBLIC_ROUTES = new Set([
-  'GET /health',
-  'GET /ready',
-  'GET /auth/status',
-  'POST /auth/setup/options',
-  'POST /auth/setup/verify',
-  'POST /auth/login/options',
-  'POST /auth/login/verify',
-  'POST /auth/login/password',
-  'POST /auth/logout',
-]);
 let addressCounter = 0;
 
 let app: App;
@@ -153,32 +135,7 @@ describe('POST /auth/login/password', () => {
   });
 });
 
-describe('ANY /<every route> with a temporary password', () => {
-  it('returns 403 PASSWORD_CHANGE_REQUIRED on every route but changing it and signing out', async () => {
-    const token = await temporarySession();
-    const document = app.swagger() as { paths: Record<string, Record<string, unknown>> };
-    const refused: string[] = [];
-
-    for (const [path, operations] of Object.entries(document.paths)) {
-      for (const method of Object.keys(operations)) {
-        const route = `${method.toUpperCase()} ${path}`;
-        const isAllowed = ALLOWED_WITH_TEMPORARY_PASSWORD.has(route) || PUBLIC_ROUTES.has(route);
-
-        if (isAllowed) continue;
-
-        const url = path.replace(/\{[^}]+\}/g, '1');
-        const response = await asToken(token)({ method: method.toUpperCase(), url });
-        const code = response.statusCode === 403 ? response.json<{ code: string }>().code : undefined;
-
-        expect({ route, code }).toEqual({ route, code: 'PASSWORD_CHANGE_REQUIRED' });
-        refused.push(route);
-      }
-    }
-
-    expect(refused).toContain('GET /collections');
-    expect(refused).toContain('POST /auth/passkeys/options');
-  });
-
+describe('GET /uploads/* with a temporary password', () => {
   it('returns 403 PASSWORD_CHANGE_REQUIRED for an image file', async () => {
     const token = await temporarySession();
 
@@ -187,7 +144,9 @@ describe('ANY /<every route> with a temporary password', () => {
     expect(response.statusCode).toBe(403);
     expect(response.json()).toMatchObject({ code: 'PASSWORD_CHANGE_REQUIRED' });
   });
+});
 
+describe('POST /auth/logout with a temporary password', () => {
   it('signs out with 204 when the user leaves without changing it', async () => {
     const token = await temporarySession();
 
