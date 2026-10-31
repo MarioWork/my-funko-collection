@@ -21,4 +21,5 @@ export { FunkoGridDensityUtil } from './funkoGridDensityUtil.type';
 export { CollectionLayoutUtil } from './collectionLayoutUtil.type';
 export { ImageViewUtil } from './imageViewUtil.type';
 export { ThemeUtil } from './themeUtil.type';
-export { UserRoleUtil } from './userRoleUtil.type';
+export { USER_ROLE_LABELS, UserRoleUtil } from './userRoleUtil.type';
+export { USER_STATE_LABELS, UserStateUtil } from './userStateUtil.type';

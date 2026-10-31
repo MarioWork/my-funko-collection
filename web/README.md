@@ -111,10 +111,12 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 | `/items`                            | Every item across collections (filter by tag to find a box)                                              |
 | `/search`                           | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                            |
 | `/categories`, `/tags`, `/settings` | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports               |
+| `/users`, `/users/add`              | Admin group, admins only: every user with role and state; New user shows the temporary password once     |
 | `/images`                           | Admin group, admins only: every stored image, loose files included, with who uploaded it and when        |
 | `/settings` → Security              | Passkeys (add, remove), sign out, sign out everywhere                                                    |
 | `/login`                            | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                   |
 | `/setup?code=...`                   | First run: your name and the first passkey, from the link in the log                                     |
+| `/set-password`                     | Outside the shell: a user signed in with a temporary password chooses their own before anything else     |
 
 ## How data flows
 
@@ -131,7 +133,7 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 
 ## Signing in
 
-One user, with a passkey (`@simplewebauthn/browser`) or a username and password; the API keeps the session in an
+Each user, with a passkey (`@simplewebauthn/browser`) or a username and password; the API keeps the session in an
 HttpOnly cookie the app never sees.
 
 - **Gate.** The app shell's loader (`AppShell/appShellLoader.ts`) asks `GET /auth/status` once, when the shell
@@ -141,9 +143,15 @@ HttpOnly cookie the app never sees.
 - **Roles.** Only an admin changes the catalogue. For a member `useIsAdmin()` hides every catalogue edit control:
   New / rename / delete on Categories and Series (read-only, Export stays), Edit and Delete in a funko's ⋯ menu,
   the New funko buttons, and the Add page's form (a scanned funko not in the catalogue shows a notice instead;
-  adding a known one to a collection still works). The sidebar's Admin group (and the phone menu's) holds Images,
-  admins only. A member who opens `/images` or a funko's edit address gets the "This page is for admins" error
+  adding a known one to a collection still works). The sidebar's Admin group (and the phone menu's) holds Users and
+  Images, admins only. A member who opens `/images` or a funko's edit address gets the "This page is for admins" error
   page (`assertAdmin()` in those loaders).
+- **New users.** An admin creates one on _Users_ → _New user_ (`/users/add`, a routed dialog): a username and a
+  role. It needs a recent sign-in (the same "confirm with passkey" step as Settings), and the answer's temporary
+  password is shown once with a Copy button; nothing keeps it. Signed in with it, the user's status carries
+  `mustChangePassword`: `signedInUserMiddleware` sends every app page to `/set-password`, and `authMiddleware` does
+  the same for any 403 `PASSWORD_CHANGE_REQUIRED`. That page (outside the shell) saves the new password under the
+  username the admin gave, or signs out; saving opens Home.
 - **Lost session.** The root route's `authMiddleware` lets every loader and action run, then turns any 401
   `UNAUTHORIZED` (a thrown read or an action's envelope) into a redirect to the login page, remembering the page.
   `redirectTo` is checked (`safeRedirectPath`): only a path inside the app.
@@ -162,7 +170,11 @@ HttpOnly cookie the app never sees.
   like the API. The mocks accept any well-formed ceremony response; the first-run code is `funko-first-run`. Mario
   has no password until one is set (the mock store keeps it as typed). Mario is an admin; `setMockUserRole()`
   (tests) makes him a member, and `requireAdmin.mock.handler.ts` then answers 403 `ADMIN_ONLY` on the admin-only
-  routes, like the API. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
+  routes, like the API. `mockStore.users` holds the other users (`mockUsers.ts`: leia, an admin; luke, with the
+  temporary password `MOCK_TEMPORARY_PASSWORD`; han, whose one expired): `GET /users` lists them after the
+  signed-in user, `POST /users` adds one with a made-up temporary password, and a password sign-in as one of them
+  makes the browser theirs. `setMockMustChangePassword()` (tests) starts signed in with a temporary password;
+  `requirePasswordChange.mock.handler.ts` then answers 403 `PASSWORD_CHANGE_REQUIRED` like the API. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
   mock user (`shellRoute()` for a table that needs it placed by hand). The store holds only Mario's own collections,
   items and tags, as the API sends them; an item write naming a tag that is not in it answers 404, like the API.
 - **E2E.** `auth.e2e.test.ts` runs the real ceremonies against Chrome's virtual authenticator (the

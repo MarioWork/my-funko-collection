@@ -47,6 +47,7 @@ export function createMockAuth(state: AuthState): MockAuth {
     username: null,
     role: UserRoleUtil.ADMIN,
     password: null,
+    mustChangePassword: false,
     isSignInRecent: true,
     passkeys: hasUser ? SEED_PASSKEYS.map((passkey) => ({ ...passkey })) : [],
   };

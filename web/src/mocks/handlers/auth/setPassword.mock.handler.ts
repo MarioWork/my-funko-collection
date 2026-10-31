@@ -30,8 +30,20 @@ export default (baseUrl: string) => [
       );
     }
 
+    const isTemporaryPassword = mockStore.auth.mustChangePassword && password === mockStore.auth.password;
+
+    if (isTemporaryPassword) {
+      return errorResponse(
+        BAD_REQUEST_STATUS,
+        AuthApiErrorCodes.PASSWORD_REUSED,
+        'Pick a new password, not the temporary one.',
+      );
+    }
+
     mockStore.auth.username = username.trim().toLowerCase();
     mockStore.auth.password = password;
+    // A temporary password, replaced: the rest of the app opens.
+    mockStore.auth.mustChangePassword = false;
 
     return HttpResponse.json<AuthSessionApiModel>({ user: mockUserOf(mockStore.auth) });
   }),

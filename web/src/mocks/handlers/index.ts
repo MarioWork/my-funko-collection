@@ -10,6 +10,7 @@ import { funkoImageMockHandlers } from './funkoImage';
 import { statsMockHandlers } from './stats';
 import { suggestMockHandlers } from './suggest';
 import { tagMockHandlers } from './tag';
+import { userMockHandlers } from './user';
 
 // Long enough to show loading states in local dev, short enough not to slow the tests.
 const MOCK_DELAY = 200;
@@ -28,6 +29,7 @@ export const getHandlers = (baseUrl: string) => [
   ...suggestMockHandlers(baseUrl),
   ...statsMockHandlers(baseUrl),
   ...exportMockHandlers(baseUrl),
+  ...userMockHandlers(baseUrl),
 ];
 
 export { MOCK_DELAY };

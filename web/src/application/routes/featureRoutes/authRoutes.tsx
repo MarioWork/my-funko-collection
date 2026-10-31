@@ -3,10 +3,12 @@ import { AUTH_ROUTES_PATHS } from '../routesUtils';
 
 const settingsActions = () => import('@pages/Settings/settingsActions');
 
-// Outside the app shell: no sidebar, and no session needed to open them.
+// Outside the app shell: no sidebar. Login and first run need no session; choosing your own password needs the
+// temporary-password one.
 export const authRoutes: RouteObject[] = [
   { path: AUTH_ROUTES_PATHS.LOGIN, lazy: () => import('@pages/Login/Login.route') },
   { path: AUTH_ROUTES_PATHS.SETUP, lazy: () => import('@pages/Setup/Setup.route') },
+  { path: AUTH_ROUTES_PATHS.SET_PASSWORD, lazy: () => import('@pages/SetPassword/SetPassword.route') },
 ];
 
 // Inside the app shell: the action-only routes behind Settings → Security.

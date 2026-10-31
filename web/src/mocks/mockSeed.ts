@@ -11,7 +11,7 @@ import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from './mockImageUtils';
 import type { MockCollectionRow, MockFunkoRow, MockImageRow, MockItemRow, MockStore } from './mockStore.type';
 import { mockDate, mockEnv } from './mockStoreUtils';
 
-type MockSeedData = Omit<MockStore, 'auth'>;
+type MockSeedData = Omit<MockStore, 'auth' | 'users'>;
 
 const OWNED_COLLECTION_ID = 1;
 const WISHLIST_COLLECTION_ID = 2;

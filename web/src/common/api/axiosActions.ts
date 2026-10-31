@@ -67,3 +67,15 @@ export function isAdminOnlyFailure(value: unknown): boolean {
 
   return isForbidden && isAdminOnly;
 }
+
+// The envelope code of a request made while signed in with a temporary password (403): it must be replaced first.
+export const PASSWORD_CHANGE_REQUIRED_ERROR_CODE = 'PASSWORD_CHANGE_REQUIRED';
+
+// Whether a read or a write was refused because the user still has to replace their temporary password.
+export function isPasswordChangeFailure(value: unknown): boolean {
+  const failure = failureOf(value);
+  const isForbidden = failure?.statusCode === FORBIDDEN_STATUS;
+  const isPasswordChange = failure?.code === PASSWORD_CHANGE_REQUIRED_ERROR_CODE;
+
+  return isForbidden && isPasswordChange;
+}

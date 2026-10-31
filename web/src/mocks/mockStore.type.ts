@@ -1,5 +1,5 @@
 // The rows of the in-memory mock store (mockStore.ts), shaped like the API's tables.
-import type { FunkoImageApiModel, PasskeyApiModel } from '@app-types/models';
+import type { FunkoImageApiModel, PasskeyApiModel, UserApiModel } from '@app-types/models';
 import type {
   AuthStateUtil as AuthState,
   FunkoTypeUtil as FunkoType,
@@ -55,18 +55,26 @@ export type MockPasskeyRow = PasskeyApiModel;
 // passkey or the password needs (the API answers 403 REAUTH_REQUIRED otherwise). `username` and `password` stay null
 // until a password is set; the mocks keep the password as typed (the API keeps only an argon2id hash). `role`:
 // an admin by default, a member through setMockUserRole() (the admin-only routes then answer 403 ADMIN_ONLY).
+// `mustChangePassword`: signed in with a temporary password (setMockMustChangePassword(), or a password sign-in as a
+// user an admin created): every route but replacing it and signing out answers 403 PASSWORD_CHANGE_REQUIRED.
 export type MockAuth = {
   state: AuthState;
   userName: string;
   username: string | null;
   role: UserRole;
   password: string | null;
+  mustChangePassword: boolean;
   isSignInRecent: boolean;
   passkeys: MockPasskeyRow[];
 };
 
+// The other users, as GET /users lists them, plus their password as typed (the temporary one an admin was shown),
+// so a password sign-in as one of them works in mock mode. The API keeps only a hash.
+export type MockUserRow = UserApiModel & { password: string | null };
+
 export type MockStore = {
   auth: MockAuth;
+  users: MockUserRow[];
   categories: MockCategoryRow[];
   series: MockSeriesRow[];
   tags: MockTagRow[];

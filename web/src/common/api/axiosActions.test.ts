@@ -7,7 +7,9 @@ import {
   ADMIN_ONLY_ERROR_CODE,
   axiosActions,
   isAdminOnlyFailure,
+  isPasswordChangeFailure,
   isUnauthorizedFailure,
+  PASSWORD_CHANGE_REQUIRED_ERROR_CODE,
   UNAUTHORIZED_ERROR_CODE,
 } from './axiosActions';
 
@@ -125,5 +127,39 @@ describe('isAdminOnlyFailure', () => {
   it('is false for a success envelope and for an error that is not a request failure', () => {
     expect(isAdminOnlyFailure({ success: true, data: {} })).toBe(false);
     expect(isAdminOnlyFailure(new TypeError('bug'))).toBe(false);
+  });
+});
+
+describe('isPasswordChangeFailure', () => {
+  const refuseUntilPasswordChanged = () =>
+    HttpResponse.json(
+      { code: PASSWORD_CHANGE_REQUIRED_ERROR_CODE, message: 'Choose your own password first' },
+      { status: FORBIDDEN_STATUS },
+    );
+
+  it('is true for a read that threw 403 PASSWORD_CHANGE_REQUIRED', async () => {
+    server.use(http.get(TEST_URL, refuseUntilPasswordChanged));
+
+    await expect(axios.get(TEST_PATH)).rejects.toSatisfy(isPasswordChangeFailure);
+  });
+
+  it('is true for a write envelope with 403 PASSWORD_CHANGE_REQUIRED', async () => {
+    server.use(http.post(TEST_URL, refuseUntilPasswordChanged));
+
+    const result = await axiosActions({ url: TEST_PATH, method: HttpVerbsUtil.POST });
+
+    expect(isPasswordChangeFailure(result)).toBe(true);
+  });
+
+  it('is false for a 403 ADMIN_ONLY', async () => {
+    server.use(
+      http.post(TEST_URL, () =>
+        HttpResponse.json({ code: ADMIN_ONLY_ERROR_CODE, message: 'Admins only' }, { status: FORBIDDEN_STATUS }),
+      ),
+    );
+
+    const result = await axiosActions({ url: TEST_PATH, method: HttpVerbsUtil.POST });
+
+    expect(isPasswordChangeFailure(result)).toBe(false);
   });
 });

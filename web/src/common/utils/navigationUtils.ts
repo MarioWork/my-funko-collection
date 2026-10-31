@@ -8,6 +8,7 @@ import {
   Search,
   Settings,
   Tag,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -18,6 +19,7 @@ import {
   IMAGE_ROUTES_PATHS,
   SERIES_ROUTES_PATHS,
   TAG_ROUTES_PATHS,
+  USER_ROUTES_PATHS,
 } from '@application/routes/routesUtils';
 
 // One icon per page, shared by the sidebar, the bottom bar and each page's title (PageHeader).
@@ -30,6 +32,7 @@ export const PAGE_ICONS = {
   SERIES: Library,
   TAGS: Tag,
   IMAGES: Images,
+  USERS: Users,
   SETTINGS: Settings,
 } satisfies Record<string, LucideIcon>;
 
@@ -58,6 +61,7 @@ export const MANAGE_ITEMS: NavigationItem[] = [
 export const ADMIN_GROUP_LABEL = 'Admin';
 
 export const ADMIN_ITEMS: NavigationItem[] = [
+  { label: 'Users', to: USER_ROUTES_PATHS.BASE, icon: PAGE_ICONS.USERS },
   { label: 'Images', to: IMAGE_ROUTES_PATHS.BASE, icon: PAGE_ICONS.IMAGES },
 ];
 
