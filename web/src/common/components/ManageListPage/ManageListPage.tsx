@@ -25,10 +25,13 @@ type Props = {
   addPath: string;
   emptyTitle: string;
   emptyDescription: string;
+  // False shows the list read-only: no New, rename or delete (a member on a catalogue list).
+  canEdit?: boolean;
 };
 
 // The page around a ManageList (categories, series, tags): a header with New and Export, the list, the phone's
-// add button, and the routed New form. On phones that form is its own page instead.
+// add button, and the routed New form. On phones that form is its own page instead. Read-only when `canEdit` is
+// false: the list and Export stay.
 function ManageListPage({
   icon: Icon,
   title,
@@ -42,6 +45,7 @@ function ManageListPage({
   addPath,
   emptyTitle,
   emptyDescription,
+  canEdit = true,
 }: Props) {
   const childPage = useMobileChildPage();
   const addLabel = `New ${noun}`;
@@ -56,10 +60,12 @@ function ManageListPage({
         title={title}
         description={description}
         actions={
-          <LinkButton to={addPath} aria-label={addLabel} className="hidden lg:inline-flex">
-            <Icon data-icon="inline-start" aria-hidden="true" />
-            New
-          </LinkButton>
+          canEdit ? (
+            <LinkButton to={addPath} aria-label={addLabel} className="hidden lg:inline-flex">
+              <Icon data-icon="inline-start" aria-hidden="true" />
+              New
+            </LinkButton>
+          ) : null
         }
         iconActions={
           <ListExportMenu
@@ -76,9 +82,10 @@ function ManageListPage({
         rowPath={rowPath}
         emptyTitle={emptyTitle}
         emptyDescription={emptyDescription}
+        canEdit={canEdit}
       />
-      <AddFab to={addPath} label={addLabel} />
-      <Outlet />
+      {canEdit ? <AddFab to={addPath} label={addLabel} /> : null}
+      {canEdit ? <Outlet /> : null}
     </div>
   );
 }

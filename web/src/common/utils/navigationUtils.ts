@@ -52,6 +52,12 @@ export const MANAGE_ITEMS: NavigationItem[] = [
   { label: 'Categories', to: CATEGORY_ROUTES_PATHS.BASE, icon: PAGE_ICONS.CATEGORIES },
   { label: 'Series', to: SERIES_ROUTES_PATHS.BASE, icon: PAGE_ICONS.SERIES },
   { label: 'Tags', to: TAG_ROUTES_PATHS.BASE, icon: PAGE_ICONS.TAGS },
+];
+
+// The Admin group: pages only an admin sees (the sidebar on desktop, the phone menu), under ADMIN_GROUP_LABEL.
+export const ADMIN_GROUP_LABEL = 'Admin';
+
+export const ADMIN_ITEMS: NavigationItem[] = [
   { label: 'Images', to: IMAGE_ROUTES_PATHS.BASE, icon: PAGE_ICONS.IMAGES },
 ];
 

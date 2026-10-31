@@ -1,21 +1,13 @@
 import { House, RotateCw, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
+import { Link, useRouteError } from 'react-router';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AppLogo from '@components/AppLogo';
 import FunkoFigureArt from '@components/FunkoFigureArt';
 import LinkButton from '@components/LinkButton';
 import { Badge } from '@components/ui/badge';
 import { Button } from '@components/ui/button';
-
-type ErrorKind = 'notFound' | 'broken';
-
-type ErrorCopy = {
-  // The storage-box label on the figure, as a tag reads "Box 3".
-  label: string;
-  title: string;
-  description: string;
-};
+import { ERROR_COPY, errorKindOf, type ErrorCopy, type ErrorKind } from './routeErrorUtils';
 
 type ErrorFigureProps = {
   label: string;
@@ -25,27 +17,6 @@ type ErrorCardProps = {
   copy: ErrorCopy;
   children: ReactNode;
 };
-
-const NOT_FOUND_STATUS = 404;
-
-const ERROR_COPY: Record<ErrorKind, ErrorCopy> = {
-  notFound: {
-    label: 'Box 404',
-    title: 'This shelf is empty',
-    description: 'We looked in every box, but this page is not here. The link may be old or mistyped.',
-  },
-  broken: {
-    label: 'Oops',
-    title: 'Something went wrong',
-    description: 'This page tripped over on the way in. Try again, or head back home.',
-  },
-};
-
-function errorKindOf(error: unknown): ErrorKind {
-  const isNotFound = isRouteErrorResponse(error) && error.status === NOT_FOUND_STATUS;
-
-  return isNotFound ? 'notFound' : 'broken';
-}
 
 function NotFoundActions() {
   return (
@@ -79,6 +50,7 @@ function BrokenActions() {
 
 const ACTIONS_MAP: Record<ErrorKind, () => ReactNode> = {
   notFound: NotFoundActions,
+  adminOnly: NotFoundActions,
   broken: BrokenActions,
 };
 
@@ -108,7 +80,8 @@ function ErrorCard({ copy, children }: ErrorCardProps) {
 }
 
 // The one error boundary, on the root route: an unknown address, a failed loader, a thrown read or a failed chunk
-// lands here, outside the app shell. A 404 gets the empty-shelf page; anything else offers a reload. The error
+// lands here, outside the app shell. A 404 gets the empty-shelf page, an admin-only page opened by a member says
+// so; anything else offers a reload. The error
 // itself is never shown: it can carry request details.
 function RouteError() {
   const kind = errorKindOf(useRouteError());

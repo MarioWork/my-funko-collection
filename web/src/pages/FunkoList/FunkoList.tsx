@@ -12,6 +12,7 @@ import { useIsRefreshing } from '@hooks/useIsRefreshing';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import { useLayoutPreference } from '@hooks/useLayoutPreference';
 import { useIsDesktop } from '@hooks/useIsDesktop';
+import { useIsAdmin } from '@hooks/useIsAdmin';
 import { cn } from '@utils/classNameUtils';
 import { DIMMABLE_CLASS, DIMMED_CLASS } from '@utils/motionUtils';
 import FunkoListEmpty from './components/FunkoListEmpty';
@@ -30,17 +31,22 @@ function funkosPageOf(loaderData: unknown) {
   return (loaderData as FunkoListLoaderData)?.funkosResponse;
 }
 
+// Scan for everyone (a member adds funkos already in the catalogue to their collections); New only for an admin.
 function DesktopActions() {
+  const isAdmin = useIsAdmin();
+
   return (
     <>
       <LinkButton to={ADD_ROUTES_PATHS.BASE} variant="outline">
         <ScanBarcode data-icon="inline-start" aria-hidden="true" />
         Scan
       </LinkButton>
-      <LinkButton to={ADD_ROUTES_PATHS.MANUAL} aria-label="New funko">
-        <Package data-icon="inline-start" aria-hidden="true" />
-        New
-      </LinkButton>
+      {isAdmin ? (
+        <LinkButton to={ADD_ROUTES_PATHS.MANUAL} aria-label="New funko">
+          <Package data-icon="inline-start" aria-hidden="true" />
+          New
+        </LinkButton>
+      ) : null}
     </>
   );
 }

@@ -1,5 +1,7 @@
 import { renderRoutes, screen, within } from '@test-utils';
 import { BASE_ROUTES_PATHS, IMAGE_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { UserRoleUtil } from '@app-types/utility';
+import { setMockUserRole } from '@mocks/mockStore';
 
 const routes = [{ path: BASE_ROUTES_PATHS.HOME, lazy: () => import('./Home.route') }];
 
@@ -21,4 +23,14 @@ it('links the Images tile to the Images page', async () => {
   const overview = await screen.findByRole('region', { name: 'Overview' });
 
   expect(within(overview).getByRole('link', { name: 'Images' })).toHaveAttribute('href', IMAGE_ROUTES_PATHS.BASE);
+});
+
+it('shows the Images tile without a link to a member, since the Images page is admin-only', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  renderRoutes(routes, { initialEntries: [BASE_ROUTES_PATHS.HOME] });
+
+  const overview = await screen.findByRole('region', { name: 'Overview' });
+
+  expect(overview).toHaveTextContent(/Images60/);
+  expect(within(overview).queryByRole('link', { name: 'Images' })).not.toBeInTheDocument();
 });

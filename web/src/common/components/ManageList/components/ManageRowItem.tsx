@@ -1,18 +1,16 @@
-import { Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useFetcher } from 'react-router';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import ConfirmDialog from '@components/ConfirmDialog';
 import ExportMenu from '@components/ExportMenu';
 import exportService from '@services/exportService/exportService';
-import IconButton from '@components/IconButton';
 import InlineAlert from '@components/InlineAlert';
 import { useActionToast } from '@hooks/useActionToast';
 import { createFormData, isSamePayload } from '@utils/formDataUtils';
 import ManageForm, { type ManageEntityFormData, type ManageFormValues } from '@components/ManageForm';
 import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 import type { ManageRow } from '../types';
-import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
+import ManageRowEditButtons from './ManageRowEditButtons';
 import { cn } from '@utils/classNameUtils';
 import { FADE_IN_CLASS } from '@utils/motionUtils';
 
@@ -21,6 +19,7 @@ type Props = {
   rowPath: string;
   hasNotes: boolean;
   noun: string;
+  canEdit: boolean;
 };
 
 const SUCCESS_MESSAGE_MAP: Record<string, (name: string) => string> = {
@@ -28,8 +27,9 @@ const SUCCESS_MESSAGE_MAP: Record<string, (name: string) => string> = {
   [HttpVerbsUtil.DELETE]: (name) => `Deleted ${name}`,
 };
 
-// View mode: name, notes, what it is attached to, export its funkos, rename and delete. Rename swaps the row for the inline form.
-function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
+// View mode: name, notes, what it is attached to, export its funkos, rename and delete (only when `canEdit`).
+// Rename swaps the row for the inline form.
+function ManageRowItem({ row, rowPath, hasNotes, noun, canEdit }: Props) {
   const fetcher = useFetcher<JSONResponseUtil>();
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -100,24 +100,14 @@ function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
           hrefFor={(format) => exportService.getFunkosExportUrl(format, row.exportScope, row.id)}
           disabledReason={row.exportDisabledReason}
         />
-        <IconButton
-          variant="ghost"
-          aria-label={`Rename ${row.name}`}
-          onClick={() => setIsEditing(true)}
-          disabled={isBusy}
-          disabledReason={DISABLED_REASONS.WORKING}
-        >
-          <Pencil aria-hidden="true" />
-        </IconButton>
-        <IconButton
-          variant="ghost"
-          aria-label={row.isDeletable ? `Delete ${row.name}` : `Delete ${row.name} (in use, cannot be deleted)`}
-          onClick={() => setIsDeleteOpen(true)}
-          disabled={isBusy || !row.isDeletable}
-          disabledReason={isBusy ? DISABLED_REASONS.WORKING : `${row.name} is in use, so it cannot be deleted.`}
-        >
-          <Trash2 aria-hidden="true" />
-        </IconButton>
+        {canEdit ? (
+          <ManageRowEditButtons
+            row={row}
+            isBusy={isBusy}
+            onRename={() => setIsEditing(true)}
+            onDelete={() => setIsDeleteOpen(true)}
+          />
+        ) : null}
       </div>
       {failure ? <InlineAlert tone="error">{failure.message ?? GENERIC_WRITE_ERROR}</InlineAlert> : null}
       <ConfirmDialog

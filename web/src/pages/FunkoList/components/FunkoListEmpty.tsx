@@ -3,14 +3,19 @@ import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import EmptyState from '@components/EmptyState';
 import LinkButton from '@components/LinkButton';
 import { Button } from '@components/ui/button';
+import { useIsAdmin } from '@hooks/useIsAdmin';
 
 type Props = {
   isFiltered: boolean;
   onClearFilters: () => void;
 };
 
+const MEMBER_EMPTY_DESCRIPTION = 'An admin adds the funkos; they show up here.';
+
 // Two empty states that must not look alike: a fresh catalog, and a search that found nothing.
 function FunkoListEmpty({ isFiltered, onClearFilters }: Props) {
+  const isAdmin = useIsAdmin();
+
   if (isFiltered) {
     return (
       <EmptyState
@@ -29,6 +34,11 @@ function FunkoListEmpty({ isFiltered, onClearFilters }: Props) {
         </Button>
       </EmptyState>
     );
+  }
+
+  // Only an admin adds funkos, so a member's empty catalogue has nothing to start.
+  if (!isAdmin) {
+    return <EmptyState pose="waiting" title="No funkos yet" description={MEMBER_EMPTY_DESCRIPTION} />;
   }
 
   return (

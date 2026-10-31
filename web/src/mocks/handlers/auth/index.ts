@@ -7,15 +7,18 @@ import listPasskeysHandler from './listPasskeys.mock.handler';
 import logoutHandler from './logout.mock.handler';
 import logoutEverywhereHandler from './logoutEverywhere.mock.handler';
 import passwordLoginHandler from './passwordLogin.mock.handler';
+import requireAdminHandler from './requireAdmin.mock.handler';
 import requireSessionHandler from './requireSession.mock.handler';
 import setPasswordHandler from './setPassword.mock.handler';
 import startAddPasskeyHandler from './startAddPasskey.mock.handler';
 import startLoginHandler from './startLogin.mock.handler';
 import startSetupHandler from './startSetup.mock.handler';
 
-// The session check comes first so it sees every request; the root getHandlers() puts this group first too.
+// The session check comes first so it sees every request, then the admin-only check; the root getHandlers() puts
+// this group first too.
 export const authMockHandlers = (baseUrl: string) => [
   ...requireSessionHandler(baseUrl),
+  ...requireAdminHandler(baseUrl),
   ...getAuthStatusHandler(baseUrl),
   ...startSetupHandler(baseUrl),
   ...finishSetupHandler(baseUrl),

@@ -17,6 +17,7 @@ import {
 } from '@components/ui/dropdown-menu';
 import exportService from '@services/exportService/exportService';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
+import { useIsAdmin } from '@hooks/useIsAdmin';
 import { useFunkoMemberships } from '../hooks/useFunkoMemberships';
 
 type Props = {
@@ -79,18 +80,11 @@ function ExportSubmenu({ funko }: ExportSubmenuProps) {
   );
 }
 
-// The open ⋯ menu: Edit, Lists (every collection), Export, then Delete on its own.
-function FunkoActionsMenuContent({ funko, collections, items, onDelete }: Props) {
+type DeleteGroupProps = Pick<Props, 'onDelete'>;
+
+function DeleteGroup({ onDelete }: DeleteGroupProps) {
   return (
-    <DropdownMenuContent align="end">
-      <DropdownMenuGroup>
-        <DropdownMenuItem render={<Link viewTransition to={FUNKO_ROUTES_PATHS.edit(String(funko.id))} />}>
-          <Pencil aria-hidden="true" />
-          Edit
-        </DropdownMenuItem>
-        <ListsSubmenu funko={funko} collections={collections} items={items} />
-        <ExportSubmenu funko={funko} />
-      </DropdownMenuGroup>
+    <>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
         <DropdownMenuItem variant="destructive" onClick={onDelete}>
@@ -98,6 +92,28 @@ function FunkoActionsMenuContent({ funko, collections, items, onDelete }: Props)
           Delete
         </DropdownMenuItem>
       </DropdownMenuGroup>
+    </>
+  );
+}
+
+// The open ⋯ menu: Edit, Lists (every collection), Export, then Delete on its own. Edit and Delete change the shared
+// catalogue, so only an admin gets them; a member keeps Lists and Export.
+function FunkoActionsMenuContent({ funko, collections, items, onDelete }: Props) {
+  const isAdmin = useIsAdmin();
+
+  return (
+    <DropdownMenuContent align="end">
+      <DropdownMenuGroup>
+        {isAdmin ? (
+          <DropdownMenuItem render={<Link viewTransition to={FUNKO_ROUTES_PATHS.edit(String(funko.id))} />}>
+            <Pencil aria-hidden="true" />
+            Edit
+          </DropdownMenuItem>
+        ) : null}
+        <ListsSubmenu funko={funko} collections={collections} items={items} />
+        <ExportSubmenu funko={funko} />
+      </DropdownMenuGroup>
+      {isAdmin ? <DeleteGroup onDelete={onDelete} /> : null}
     </DropdownMenuContent>
   );
 }

@@ -2,7 +2,8 @@ import { http, HttpResponse } from 'msw/http';
 import { deferred, renderRoutes, screen, userEvent, waitFor, within } from '@test-utils';
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { mockStore } from '@mocks/mockStore';
+import { UserRoleUtil } from '@app-types/utility';
+import { mockStore, setMockUserRole } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
 
 const WISHLIST_NAME = 'Wishlist';
@@ -108,4 +109,17 @@ it('folds each collection to a quick look and unfolds it to every labelled detai
   expect(toggle).toHaveAttribute('aria-expanded', 'true');
   expect(screen.getByText('Notes')).toBeVisible();
   expect(screen.getByText(itemWithNotes?.notes ?? '')).toBeVisible();
+});
+
+it('offers a member Lists and Export but no Edit or Delete in the actions menu', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  const [funko] = mockStore.funkos;
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(funko?.id))] });
+
+  await userEvent.click(await screen.findByRole('button', { name: `Actions for ${funko?.name}` }));
+
+  expect(await screen.findByRole('menuitem', { name: 'Lists' })).toBeVisible();
+  expect(screen.getByRole('menuitem', { name: 'Export' })).toBeVisible();
+  expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
 });

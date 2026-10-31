@@ -36,8 +36,8 @@ export function rpIdOf(request: Request): string {
 }
 
 // The user as the API describes them in a sign-in or status answer.
-export function mockUserOf({ userName, username }: MockAuth): AuthUserApiModel {
-  return { name: userName, username };
+export function mockUserOf({ userName, username, role }: MockAuth): AuthUserApiModel {
+  return { name: userName, username, role };
 }
 
 export const unauthorized = (): Response =>

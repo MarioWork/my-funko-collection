@@ -11,6 +11,9 @@ import {
 import userEventBase from '@testing-library/user-event';
 import { createMemoryRouter, type RouteObject } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
+import { APP_SHELL_ROUTE_ID } from '@application/routes/routesUtils';
+import { mockUserOf } from '@mocks/handlers/auth/authMockUtils';
+import { mockStore } from '@mocks/mockStore';
 
 const ASYNC_QUERY_TIMEOUT_MS = 5000;
 
@@ -51,10 +54,28 @@ function withFreshLazy(routes: RouteObject[]): RouteObject[] {
   });
 }
 
+// A stand-in for the app shell around the pages under test: it holds the signed-in user (useSignedInUser,
+// useIsAdmin) the way the real shell's loader does, read from the mock store at load time. An admin unless the
+// test called setMockUserRole().
+export function shellRoute(children: RouteObject[]): RouteObject {
+  return { id: APP_SHELL_ROUTE_ID, loader: () => ({ user: mockUserOf(mockStore.auth) }), children };
+}
+
+function hasShellRoute(routes: RouteObject[]): boolean {
+  return routes.some((route) => route.id === APP_SHELL_ROUTE_ID || hasShellRoute(route.children ?? []));
+}
+
+// A table that brings its own shell route (the app's, or shellRoute() placed by the test) keeps it.
+function withShell(routes: RouteObject[]): RouteObject[] {
+  if (hasShellRoute(routes)) return routes;
+
+  return [shellRoute(routes)];
+}
+
 // Real route objects, so a page's loader and action run as they do in the app. The router comes back too, for a
 // test that navigates or reads the current location.
 export function renderRoutes(routes: RouteObject[], { initialEntries = ['/'], ...options }: RenderRoutesOptions = {}) {
-  const router = createMemoryRouter(withFreshLazy(routes), { initialEntries });
+  const router = createMemoryRouter(withShell(withFreshLazy(routes)), { initialEntries });
 
   return { ...render(<RouterProvider router={router} />, options), router };
 }

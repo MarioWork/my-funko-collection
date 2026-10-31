@@ -111,6 +111,7 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 | `/items`                            | Every item across collections (filter by tag to find a box)              |
 | `/search`                           | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere            |
 | `/categories`, `/tags`, `/settings` | Manage pages, theme, default collection, "Adding to" defaults, exports   |
+| `/images`                           | Admin group, admins only: every stored image, loose files included       |
 | `/settings` → Security              | Passkeys (add, remove), sign out, sign out everywhere                    |
 | `/login`                            | Sign in with a passkey (outside the app shell); `?redirectTo=` returns   |
 | `/setup?code=...`                   | First run: your name and the first passkey, from the link in the log     |
@@ -135,8 +136,13 @@ HttpOnly cookie the app never sees.
 
 - **Gate.** The app shell's loader (`AppShell/appShellLoader.ts`) asks `GET /auth/status` once, when the shell
   mounts: `setup` → `/setup`, `signedOut` → `/login?redirectTo=<where you were>`, `signedIn` → the app, with the
-  user's name and username for `useSignedInUser()`. Its `shouldRevalidate` is off (no status call per navigation),
+  user's name, username and role for `useSignedInUser()` / `useIsAdmin()`. Its `shouldRevalidate` is off (no status call per navigation),
   except after saving a password, which sets the username.
+- **Roles.** Only an admin changes the catalogue. For a member `useIsAdmin()` hides every catalogue edit control:
+  New / rename / delete on Categories and Series (read-only, Export stays), Edit and Delete in a funko's ⋯ menu,
+  the New funko buttons, and the Add page's form (a scanned funko not in the catalogue shows a notice instead;
+  adding a known one to a collection still works). The sidebar's Admin group (and the phone menu's) holds Images,
+  admins only; a member who opens `/images` gets the "This page is for admins" error page.
 - **Lost session.** The root route's `authMiddleware` lets every loader and action run, then turns any 401
   `UNAUTHORIZED` (a thrown read or an action's envelope) into a redirect to the login page, remembering the page.
   `redirectTo` is checked (`safeRedirectPath`): only a path inside the app.
@@ -153,7 +159,10 @@ HttpOnly cookie the app never sees.
 - **Mocks.** `mockStore.auth` starts signed in as Mario with two passkeys; `setMockAuthState()` (tests) or
   `VITE_MOCK_AUTH_STATE` (dev) starts signed out or before setup. Without a session every mocked route answers 401,
   like the API. The mocks accept any well-formed ceremony response; the first-run code is `funko-first-run`. Mario
-  has no password until one is set (the mock store keeps it as typed).
+  has no password until one is set (the mock store keeps it as typed). Mario is an admin; `setMockUserRole()`
+  (tests) makes him a member, and `requireAdmin.mock.handler.ts` then answers 403 `ADMIN_ONLY` on the admin-only
+  routes, like the API. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
+  mock user (`shellRoute()` for a table that needs it placed by hand).
 - **E2E.** `auth.e2e.test.ts` runs the real ceremonies against Chrome's virtual authenticator (the
   `virtualAuthenticator` fixture): first run, sign out, sign back in.
 
