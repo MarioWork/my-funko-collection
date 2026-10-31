@@ -47,6 +47,14 @@ enum AuthChallengePurpose {
   @@map("auth_challenge_purpose")
 }
 
+// How a session was opened. A PASSKEY session names its passkey; any other has none (a check in the migration).
+enum SignInMethod {
+  PASSKEY
+  PASSWORD
+
+  @@map("sign_in_method")
+}
+
 // A Funko line as printed on the box: "Pop! Marvel", "Pop! Television", "Pop! Star Wars".
 model Category {
   id        Int      @id @default(autoincrement())
@@ -245,20 +253,21 @@ model Passkey {
 // One signed-in browser. The cookie holds a random token; only its SHA-256 is stored, so a leaked database copy
 // cannot be turned back into a working cookie.
 model Session {
-  id         Int      @id @default(autoincrement())
-  tokenHash  String   @unique(map: "sessions_token_hash_uidx") @map("token_hash")
-  userId     Int      @map("user_id")
-  // The passkey that opened it: removing a passkey ends every session it opened.
-  passkeyId  Int      @map("passkey_id")
-  // When the passkey was used for it: the absolute lifetime and "signed in recently" are measured from here.
-  signedInAt DateTime @map("signed_in_at") @db.Timestamptz(3)
+  id           Int          @id @default(autoincrement())
+  tokenHash    String       @unique(map: "sessions_token_hash_uidx") @map("token_hash")
+  userId       Int          @map("user_id")
+  signInMethod SignInMethod @map("sign_in_method")
+  // The passkey that opened it, for a PASSKEY session: removing a passkey ends every session it opened.
+  passkeyId    Int?         @map("passkey_id")
+  // When the user signed in for it: the absolute lifetime and "signed in recently" are measured from here.
+  signedInAt   DateTime     @map("signed_in_at") @db.Timestamptz(3)
   // Moved forward at most once an hour while the session is used; the idle timeout is measured from here.
-  lastSeenAt DateTime @map("last_seen_at") @db.Timestamptz(3)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  lastSeenAt   DateTime     @map("last_seen_at") @db.Timestamptz(3)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  passkey Passkey @relation(fields: [passkeyId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passkey Passkey? @relation(fields: [passkeyId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "sessions_user_id_idx")
   @@index([passkeyId], map: "sessions_passkey_id_idx")

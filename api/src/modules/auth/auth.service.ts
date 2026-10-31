@@ -373,7 +373,7 @@ export async function addSession({ response }: SignInVerify, previous: AuthSessi
     passkeyId: passkey.id,
     passkeyUse: { counter: authentication.newCounter, isSynced: authentication.credentialBackedUp, lastUsedAt: now },
     previousTokenHash: previous?.tokenHash,
-    session: { ...session.row, userId: passkey.userId, passkeyId: passkey.id },
+    session: { ...session.row, userId: passkey.userId, signInMethod: 'PASSKEY', passkeyId: passkey.id },
   });
   await authRepository.deleteExpiredSessions(
     new Date(now.getTime() - SESSION_ABSOLUTE_MS),
