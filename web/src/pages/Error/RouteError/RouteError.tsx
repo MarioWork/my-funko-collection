@@ -18,7 +18,8 @@ type ErrorCardProps = {
   children: ReactNode;
 };
 
-function NotFoundActions() {
+// Somewhere else to go: home, or a search.
+function HomeActions() {
   return (
     <>
       <LinkButton to={BASE_ROUTES_PATHS.HOME}>
@@ -49,8 +50,8 @@ function BrokenActions() {
 }
 
 const ACTIONS_MAP: Record<ErrorKind, () => ReactNode> = {
-  notFound: NotFoundActions,
-  adminOnly: NotFoundActions,
+  notFound: HomeActions,
+  adminOnly: HomeActions,
   broken: BrokenActions,
 };
 

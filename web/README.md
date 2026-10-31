@@ -142,7 +142,8 @@ HttpOnly cookie the app never sees.
   New / rename / delete on Categories and Series (read-only, Export stays), Edit and Delete in a funko's ⋯ menu,
   the New funko buttons, and the Add page's form (a scanned funko not in the catalogue shows a notice instead;
   adding a known one to a collection still works). The sidebar's Admin group (and the phone menu's) holds Images,
-  admins only; a member who opens `/images` gets the "This page is for admins" error page.
+  admins only. A member who opens `/images` or a funko's edit address gets the "This page is for admins" error
+  page (`assertAdmin()` in those loaders).
 - **Lost session.** The root route's `authMiddleware` lets every loader and action run, then turns any 401
   `UNAUTHORIZED` (a thrown read or an action's envelope) into a redirect to the login page, remembering the page.
   `redirectTo` is checked (`safeRedirectPath`): only a path inside the app.

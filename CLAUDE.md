@@ -40,8 +40,10 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - Roles: a user is an `ADMIN` or a `MEMBER` (`docs/GLOSSARY.md`); whoever sets the app up is an admin. Catalogue
   writes (funkos, categories, series, funko images) and the images lists set `config: { isAdminOnly: true }` and
   answer 403 `ADMIN_ONLY` to a member; add every new one to `ADMIN_ONLY_ROUTES` in `auth.route.test.ts` (the test
-  calls every route as a member). The web hides those controls with `useIsAdmin()`, and the mocks refuse them in
-  `requireAdmin.mock.handler.ts`; keep the three in step.
+  calls every route as a member). The role check sits next to the sign-in check in `auth.plugin.ts`'s `onRequest`
+  hook, a route-level gate rather than a service check (node-ts-api §9), like the sign-in exception below. The web
+  hides those controls with `useIsAdmin()` (admin-only pages call `assertAdmin()` in their loader), and the mocks
+  refuse them in `requireAdmin.mock.handler.ts`; keep the three in step.
 - Deliberate exceptions to the Node skills for auth (decided 2026-10-23): the check is a global `onRequest` hook in
   `auth.plugin.ts` with server-side cookie sessions, not `@fastify/jwt` + `preHandler: [app.authenticate]`
   (node-ts-api §9); random 256-bit tokens (session, setup code) are stored as plain SHA-256, not argon2 (they can't

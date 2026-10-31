@@ -47,3 +47,11 @@ it('says the page is for admins, with a way home, when a member opens the Images
   expect(await screen.findByRole('heading', { level: 1, name: 'This page is for admins' })).toBeVisible();
   expect(screen.getByRole('link', { name: 'Back to home' })).toBeVisible();
 });
+
+it('says the page is for admins when a member opens the Edit funko address directly', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  const [funko] = mockStore.funkos;
+  renderRoutes(routes, { initialEntries: [FUNKO_ROUTES_PATHS.edit(String(funko?.id))] });
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'This page is for admins' })).toBeVisible();
+});

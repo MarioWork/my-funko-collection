@@ -139,6 +139,8 @@ export function toFormData(files: { buffer: Buffer; name?: string; field?: strin
 const TEST_USER_NAME = 'Tester';
 const RANDOM_ID_BYTES = 32;
 
+type SignInOptions = { signedInAt?: Date; lastSeenAt?: Date; signInMethod?: SignInMethod; role?: UserRole };
+
 export type SignedInClient = {
   userId: number;
   token: string;
@@ -182,10 +184,7 @@ export async function createPasskeyRow(
 // `signedInAt` / `lastSeenAt` backdate the session, for the "signed in recently" and timeout rules.
 // `signInMethod` PASSWORD opens it without a passkey; PASSKEY (the default) makes a passkey row to open it.
 // `role` MEMBER signs in as the member instead of the admin (the default).
-export async function signIn(
-  app: App,
-  options: { signedInAt?: Date; lastSeenAt?: Date; signInMethod?: SignInMethod; role?: UserRole } = {},
-): Promise<SignedInClient> {
+export async function signIn(app: App, options: SignInOptions = {}): Promise<SignedInClient> {
   const user = await findOrCreateTestUser(options.role ?? 'ADMIN');
   const signInMethod = options.signInMethod ?? 'PASSKEY';
   const passkey = signInMethod === 'PASSKEY' ? await createPasskeyRow(user.id) : undefined;

@@ -1,10 +1,6 @@
 import { isRouteErrorResponse } from 'react-router';
-import { AuthApiErrorCodes } from '@services/authService/authService';
 
 export type ErrorKind = 'notFound' | 'adminOnly' | 'broken';
-
-// The part of a failed read's error the boundary looks at: the API's error code, never the rest.
-type ApiErrorShape = { response?: { data?: { code?: unknown } } };
 
 export type ErrorCopy = {
   // The storage-box label on the figure, as a tag reads "Box 3".
@@ -14,6 +10,7 @@ export type ErrorCopy = {
 };
 
 const NOT_FOUND_STATUS = 404;
+const FORBIDDEN_STATUS = 403;
 
 export const ERROR_COPY: Record<ErrorKind, ErrorCopy> = {
   notFound: {
@@ -33,9 +30,9 @@ export const ERROR_COPY: Record<ErrorKind, ErrorCopy> = {
   },
 };
 
-// A member opened an admin-only page (Images): its read answered 403 ADMIN_ONLY.
+// A member opened an admin-only page (Images): its loader threw a 403 route error.
 function isAdminOnlyError(error: unknown): boolean {
-  return (error as ApiErrorShape | null)?.response?.data?.code === AuthApiErrorCodes.ADMIN_ONLY;
+  return isRouteErrorResponse(error) && error.status === FORBIDDEN_STATUS;
 }
 
 export function errorKindOf(error: unknown): ErrorKind {

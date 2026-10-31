@@ -3,10 +3,14 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { DEFAULT_FIRST_PAGE } from '@app-types/utility';
 import collectionItemService, { ItemApiSearchFields } from '@services/collectionItemService/collectionItemService';
 import funkoService from '@services/funkoService/funkoService';
+import { assertAdmin } from '@utils/adminRouteUtils';
 import { FUNKO_ITEMS_PAGE_SIZE } from '../../funkoDetailUtils';
 
 // The funko with its photos, the form's options (categories, collections, tags) and the collections it is in now.
+// Admins only: a member never edits the catalogue.
 export async function loader({ params }: LoaderFunctionArgs) {
+  await assertAdmin();
+
   const funkoId = Number(params.funkoId);
   const pagination = { page: DEFAULT_FIRST_PAGE, size: FUNKO_ITEMS_PAGE_SIZE };
 

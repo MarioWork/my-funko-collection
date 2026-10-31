@@ -51,7 +51,8 @@ function ManageListPage({
   const addLabel = `New ${noun}`;
   const isEmpty = rows.length === 0;
 
-  if (childPage) return childPage;
+  // On phones the New form is its own page; never for a read-only list.
+  if (childPage && canEdit) return childPage;
 
   return (
     <div className="flex flex-col gap-4">
