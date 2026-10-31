@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs } from 'react-router';
 import { withFreshSignIn } from '@api/passkeyFlows';
+import type { UserId } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import userService from '@services/userService/userService';
 import { NewTemporaryPasswordSchema, UpdateUserSchema } from '@services/userService/userService.type';
@@ -8,7 +9,7 @@ import { assertAdmin } from '@utils/adminRouteUtils';
 import { parseFormData } from '@utils/formDataUtils';
 import type { ManageUserFormData } from './manageUserDialogUtils';
 
-type ManageUserRequest = ManageUserFormData & { userId: number };
+type ManageUserRequest = ManageUserFormData & { userId: UserId };
 
 // Every change to a user needs the admin's sign-in from the last 10 minutes: the first try may answer
 // REAUTH_REQUIRED, and the dialog then submits again with `isReauth` (see withFreshSignIn).

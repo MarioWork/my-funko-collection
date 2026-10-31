@@ -41,6 +41,11 @@ export class UsersPage {
     await this.confirm('Make admin');
   }
 
+  async makeMember() {
+    await this.page.getByRole('button', { name: 'Make member' }).click();
+    await this.confirm('Make member');
+  }
+
   async giveNewTemporaryPassword() {
     await this.page.getByRole('button', { name: 'New temporary password' }).click();
     await this.confirm('Make password');

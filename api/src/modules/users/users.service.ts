@@ -1,4 +1,4 @@
-import { ConflictError, HttpError, NotFoundError } from '../../lib/httpErrors.ts';
+import { BadRequestError, ConflictError, HttpError, NotFoundError } from '../../lib/httpErrors.ts';
 import { logger } from '../../lib/logger.ts';
 import {
   assertRecentSignIn,
@@ -24,6 +24,7 @@ const ENTITY = 'User';
 const USERNAME_TAKEN_MESSAGE = 'That username is taken. Pick another one.';
 const LAST_ADMIN_MESSAGE = 'There must always be at least one admin. Make someone else an admin first.';
 const USERNAME_REQUIRED_MESSAGE = 'This user has no username yet. Pick one for them.';
+const USERNAME_ALREADY_SET_MESSAGE = 'This user already has a username, and keeps it.';
 
 // There is always at least one admin (docs/GLOSSARY.md): the last one can't be made a member or deleted.
 class LastAdminError extends HttpError {
@@ -99,10 +100,10 @@ export async function addUser(
 
   log.info({ userId: row.id, createdBy: session.userId, role }, 'user created');
 
-  return { user: await toFreshResponse(row), temporaryPassword: temporaryPassword.password };
+  return { user: await toResponseWithAdminCount(row), temporaryPassword: temporaryPassword.password };
 }
 
-async function toFreshResponse(row: UserRow): Promise<UserResponse> {
+async function toResponseWithAdminCount(row: UserRow): Promise<UserResponse> {
   return toResponse(row, await usersRepository.countAdmins());
 }
 
@@ -125,7 +126,7 @@ export async function updateUser(session: AuthSession, userId: number, { role }:
 
   log.info({ userId, changedBy: session.userId, role }, 'user role changed');
 
-  return toFreshResponse(row);
+  return toResponseWithAdminCount(row);
 }
 
 async function usernameForTemporaryPassword(userId: number, requested: string | undefined): Promise<string> {
@@ -133,9 +134,18 @@ async function usernameForTemporaryPassword(userId: number, requested: string | 
 
   if (!user) throw new NotFoundError(ENTITY, userId);
 
-  const username = requested ?? user.username;
+  // Only a user with no username gets one here: a new temporary password never renames anyone.
+  if (user.username) {
+    const isRename = requested !== undefined && requested !== user.username;
 
-  if (!username) throw new UsernameRequiredError();
+    if (isRename) throw new BadRequestError(USERNAME_ALREADY_SET_MESSAGE);
+
+    return user.username;
+  }
+
+  if (!requested) throw new UsernameRequiredError();
+
+  const username = requested;
 
   if (await usersRepository.isUsernameTaken(username, userId)) throw new ConflictError(USERNAME_TAKEN_MESSAGE);
 
@@ -164,7 +174,7 @@ export async function addTemporaryPassword(
 
   log.info({ userId, changedBy: session.userId }, 'temporary password made');
 
-  return { user: await toFreshResponse(row), temporaryPassword: temporaryPassword.password };
+  return { user: await toResponseWithAdminCount(row), temporaryPassword: temporaryPassword.password };
 }
 
 // An admin deletes a user: needs a recent sign-in and never takes away the last admin. Their sessions, passkeys,
