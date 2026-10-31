@@ -166,9 +166,6 @@ export const collectionItemsRepository = {
     return grouped;
   },
 
-  countExistingTags: (tagIds: number[]): Promise<number> =>
-    tagIds.length === 0 ? Promise.resolve(0) : prisma.tag.count({ where: { id: { in: tagIds } } }),
-
   // Row and tags in one transaction: an item never appears with half its tags.
   create: (data: ItemInsert, tagIds: number[]): Promise<ItemRow | undefined> =>
     prisma.$transaction(async (tx) => {

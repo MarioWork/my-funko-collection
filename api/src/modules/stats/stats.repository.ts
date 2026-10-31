@@ -27,14 +27,13 @@ function categoryTotalsSelect(userId: number) {
 }
 
 export const statsRepository = {
-  // Tags do not belong to a user yet (issue #3), so tagCount is still every tag.
   counts: async (userId: number) => {
     const ownFunko = ownFunkoFilter(userId);
 
     const [funkoCount, categoryCount, tagCount, imageTotals] = await prisma.$transaction([
       prisma.funko.count({ where: ownFunko }),
       prisma.category.count({ where: { funkos: { some: ownFunko } } }),
-      prisma.tag.count(),
+      prisma.tag.count({ where: { userId } }),
       prisma.funkoImage.aggregate({ where: { funko: ownFunko }, _count: { _all: true }, _sum: { sizeBytes: true } }),
     ]);
 

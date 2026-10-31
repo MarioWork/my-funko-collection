@@ -276,14 +276,9 @@ describe('POST /collections/:collectionId/items', () => {
     expect(response.json()).toMatchObject({ code: 'CONFLICT', existingId: existing.id });
   });
 
-  it('returns 400 when a tag is unknown, the quantity is zero or the date is malformed', async () => {
+  it('returns 400 when the quantity is zero or the date is malformed', async () => {
     const { owned, spiderMan } = await seed();
 
-    const unknownTag = await api.inject({
-      method: 'POST',
-      url: itemsUrl(owned.id),
-      payload: { funkoId: spiderMan.id, tagIds: [MISSING_ID] },
-    });
     const zeroQuantity = await api.inject({
       method: 'POST',
       url: itemsUrl(owned.id),
@@ -295,9 +290,21 @@ describe('POST /collections/:collectionId/items', () => {
       payload: { funkoId: spiderMan.id, purchasedAt: '02/03/2024' },
     });
 
-    expect(unknownTag.statusCode).toBe(400);
     expect(zeroQuantity.statusCode).toBe(400);
     expect(badDate.statusCode).toBe(400);
+  });
+
+  it('returns 404 when a tag does not exist', async () => {
+    const { owned, spiderMan } = await seed();
+
+    const response = await api.inject({
+      method: 'POST',
+      url: itemsUrl(owned.id),
+      payload: { funkoId: spiderMan.id, tagIds: [MISSING_ID] },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ code: 'NOT_FOUND', message: `Tag ${MISSING_ID} not found` });
   });
 
   it('returns 404 when the funko does not exist', async () => {

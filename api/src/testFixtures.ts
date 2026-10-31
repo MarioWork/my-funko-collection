@@ -80,8 +80,11 @@ export async function createCollection(
   });
 }
 
-export async function createTag(name = nextName('Tag')): Promise<{ id: number; name: string }> {
-  return prisma.tag.create({ data: { name }, select: { id: true, name: true } });
+// The test admin's tag by that name; `userId` makes it another user's.
+export async function createTag(name = nextName('Tag'), userId?: number): Promise<{ id: number; name: string }> {
+  const tagUserId = userId ?? (await findOrCreateTestUser('ADMIN')).id;
+
+  return prisma.tag.create({ data: { name, userId: tagUserId }, select: { id: true, name: true } });
 }
 
 type ItemOverrides = {
