@@ -143,7 +143,7 @@ model FunkoImage {
 // every new user their "Owned" (the default) and "Wishlist", whichever code makes the user.
 model Collection {
   id        Int      @id @default(autoincrement())
-  // The owner. Deleting the user deletes their collections, and with them their items.
+  // The user it belongs to. Deleting the user deletes their collections, and with them their items.
   userId    Int      @map("user_id")
   // Unique per user: two users may each have a "Wishlist".
   name      String

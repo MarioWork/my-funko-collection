@@ -17,8 +17,17 @@ function ownFunkoFilter(userId: number): Prisma.FunkoWhereInput {
   return { collectionItems: { some: { collection: { userId } } } };
 }
 
+// A category with how many of the user's funkos it holds: a builder, since the count depends on the user.
+function categoryTotalsSelect(userId: number) {
+  return {
+    id: true,
+    name: true,
+    _count: { select: { funkos: { where: ownFunkoFilter(userId) } } },
+  } as const satisfies Prisma.CategorySelect;
+}
+
 export const statsRepository = {
-  // Tags are still shared by everyone, so tagCount is every tag.
+  // Tags do not belong to a user yet (issue #3), so tagCount is still every tag.
   counts: async (userId: number) => {
     const ownFunko = ownFunkoFilter(userId);
 
@@ -56,10 +65,9 @@ export const statsRepository = {
 
   // Only the categories the user has a funko of, each with how many of their funkos it holds.
   perCategory: async (userId: number): Promise<CategoryTotalsRow[]> => {
-    const ownFunko = ownFunkoFilter(userId);
     const categories = await prisma.category.findMany({
-      where: { funkos: { some: ownFunko } },
-      select: { id: true, name: true, _count: { select: { funkos: { where: ownFunko } } } },
+      where: { funkos: { some: ownFunkoFilter(userId) } },
+      select: categoryTotalsSelect(userId),
       orderBy: { name: 'asc' },
     });
 
