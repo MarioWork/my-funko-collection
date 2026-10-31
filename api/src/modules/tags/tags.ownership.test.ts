@@ -78,7 +78,7 @@ describe('POST /tags', () => {
 });
 
 describe('PATCH /tags/:tagId', () => {
-  it('renames the tag to a name only another user has', async () => {
+  it('renames the tag when only another user has the new name', async () => {
     await createTag('Shelf', them.userId);
 
     const response = await me.inject({ method: 'PATCH', url: `/tags/${myTag.id}`, payload: { name: 'Shelf' } });
@@ -125,7 +125,7 @@ describe('POST|PATCH /collections/:collectionId/items', () => {
 });
 
 describe('GET /items and GET /funkos', () => {
-  it('finds nothing when filtering by another user’s tag, and matches tag names only on the user’s own tags', async () => {
+  it('finds nothing when filtering by another user’s tag, by a name only their tags have, or by having tags', async () => {
     const funko = await createFunko({ name: 'Grogu' });
     await createItem(await defaultCollectionId(them.userId), funko.id, { tagIds: [theirTag.id] });
     await createTag('Signed', them.userId);
@@ -155,7 +155,7 @@ describe('GET /suggest', () => {
 });
 
 describe('GET /stats', () => {
-  it('counts only the signed-in user’s tags', async () => {
+  it('counts only the signed-in user’s tags when another user has some', async () => {
     await createTag('Shelf', them.userId);
 
     const response = await me.inject({ method: 'GET', url: '/stats' });
@@ -165,7 +165,7 @@ describe('GET /stats', () => {
 });
 
 describe('GET /export', () => {
-  it('exports only the signed-in user’s tags', async () => {
+  it('exports only the signed-in user’s tags when another user has some', async () => {
     const response = await me.inject({ method: 'GET', url: '/export' });
 
     expect(response.json<{ tags: Named[] }>().tags.map(({ id }) => id)).toEqual([myTag.id]);
