@@ -1,11 +1,12 @@
-import { http } from 'msw/http';
+import { http, HttpResponse } from 'msw/http';
+import type { AuthSessionApiModel } from '@app-types/models';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { BAD_REQUEST_STATUS, errorResponse, noContent } from '@mocks/mockResponses';
+import { BAD_REQUEST_STATUS, errorResponse } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import type { SetPassword } from '@services/authService/authService.type';
-import { reauthRequiredResponse } from './authMockUtils';
+import { mockUserOf, reauthRequiredResponse } from './authMockUtils';
 
 // A stand-in for the API's built-in list of common passwords: enough to show the refusal in mock mode.
 const MOCK_COMMON_PASSWORDS = new Set(['password12345678', 'qwertyuiopasdfgh', 'iloveyouforever']);
@@ -31,6 +32,6 @@ export default (baseUrl: string) => [
     mockStore.auth.username = username.trim().toLowerCase();
     mockStore.auth.password = password;
 
-    return noContent();
+    return HttpResponse.json<AuthSessionApiModel>({ user: mockUserOf(mockStore.auth) });
   }),
 ];

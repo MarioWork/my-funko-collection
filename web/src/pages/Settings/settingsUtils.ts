@@ -15,10 +15,8 @@ export type AddPasskeyFormData = { passkey: AddPasskeyFormValues; isReauth?: boo
 
 export type DeletePasskeyFormData = { isReauth?: boolean };
 
-export const setPasswordFormSchema = object({
-  username: SetPasswordSchema.fields.username,
-  password: SetPasswordSchema.fields.password,
-});
+// The form sends exactly what the API takes.
+export const setPasswordFormSchema = SetPasswordSchema;
 
 export type SetPasswordFormValues = InferType<typeof setPasswordFormSchema>;
 

@@ -401,18 +401,12 @@ export async function addSession({ response }: SignInVerify, previous: AuthSessi
 }
 
 // Checked against when the username is unknown, so a wrong username takes as long as a wrong password and the
-// answer time says nothing about which usernames exist. Made once, on first use.
-let timingDecoyHash: Promise<string> | undefined;
-
-function getTimingDecoyHash(): Promise<string> {
-  timingDecoyHash ??= hashPassword(createSecureToken());
-
-  return timingDecoyHash;
-}
+// answer time says nothing about which usernames exist. Made once, at start-up, so even the first try is not slower.
+const timingDecoyHash = hashPassword(createSecureToken());
 
 async function findPasswordUser({ username, password }: PasswordSignIn) {
-  const user = await authRepository.findUserByUsername(username.toLowerCase());
-  const storedHash = user?.passwordHash ?? (await getTimingDecoyHash());
+  const user = await authRepository.findUserByUsername(username);
+  const storedHash = user?.passwordHash ?? (await timingDecoyHash);
   const isMatch = await verifyPassword(password, storedHash);
 
   return isMatch && user?.passwordHash ? user : undefined;
@@ -445,7 +439,10 @@ export async function addPasswordSession(
 
 // Sets or changes the username and password. Needs a recent sign-in; the length is checked by the schema, the
 // common-password list here. Every other session a password opened ends; this one stays.
-export async function setPassword(session: AuthSession, { username, password }: SetPassword): Promise<void> {
+export async function setPassword(
+  session: AuthSession,
+  { username, password }: SetPassword,
+): Promise<SignedInResponse> {
   assertRecentSignIn(session);
 
   if (isCommonPassword(password)) {
@@ -456,7 +453,7 @@ export async function setPassword(session: AuthSession, { username, password }: 
 
   if (holder && holder.id !== session.userId) throw new ConflictError(USERNAME_TAKEN_MESSAGE);
 
-  await authRepository.setPassword({
+  const user = await authRepository.setPassword({
     userId: session.userId,
     username,
     passwordHash: await hashPassword(password),
@@ -464,6 +461,8 @@ export async function setPassword(session: AuthSession, { username, password }: 
   });
 
   log.info({ userId: session.userId }, 'password set');
+
+  return { user: { name: user.name, username: user.username } };
 }
 
 // --- Passkeys ----------------------------------------------------------------------------------------------------

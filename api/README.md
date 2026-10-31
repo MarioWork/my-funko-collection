@@ -105,7 +105,7 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
 - **Passkeys.** `@simplewebauthn/server`: discoverable, user verification required, no attestation (any passkey
   manager works, Bitwarden included). Adding or removing one needs a sign-in from the last 10 minutes; the last one can't go, and
   removing one ends every session it opened.
-- **Password.** Set or changed in Settings (`PUT /auth/password`, with the username), which needs a sign-in from the
+- **Password.** Set or changed in Settings (`PUT /auth/password`, with the username; answers the user), which needs a sign-in from the
   last 10 minutes and ends every other session a password opened. At least 15 characters, no character-mix rules,
   refused when it is on the built-in common list (`assets/common-passwords.txt`, case ignored, no outside service).
   Stored only as an argon2id hash (`src/lib/passwordHash.ts`, Node's own `crypto.argon2`, 19 MiB, 2 passes).

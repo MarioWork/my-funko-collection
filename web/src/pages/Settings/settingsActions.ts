@@ -1,6 +1,6 @@
 import { redirect, type ActionFunctionArgs } from 'react-router';
 import { withFreshSignIn } from '@api/passkeyFlows';
-import type { PasskeyApiModel } from '@app-types/models';
+import type { AuthSessionApiModel, PasskeyApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS } from '@application/routes/routesUtils';
 import authService from '@services/authService/authService';
@@ -49,7 +49,9 @@ export const deletePasskeyAction = async ({ request, params }: ActionFunctionArg
   return withFreshSignIn(isReauth === true, () => authService.deletePasskey(String(params.passkeyId)));
 };
 
-export const setPasswordAction = async ({ request }: ActionFunctionArgs): Promise<JSONResponseUtil> => {
+export const setPasswordAction = async ({
+  request,
+}: ActionFunctionArgs): Promise<JSONResponseUtil<AuthSessionApiModel>> => {
   const { credentials, isReauth } = parseFormData<SetPasswordFormData>(await request.formData());
 
   return failWhenInvalid(async () => {

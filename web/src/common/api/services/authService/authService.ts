@@ -68,8 +68,8 @@ export default {
     }),
 
   // Sets or changes the username and password; needs a recent sign-in (403 REAUTH_REQUIRED otherwise).
-  setPassword: async (fields: SetPassword): Promise<JSONResponseUtil> =>
-    axiosActions({ url: `${BASE_AUTH_URL}/password`, method: HttpVerbsUtil.PUT, data: fields }),
+  setPassword: async (fields: SetPassword): Promise<JSONResponseUtil<AuthSessionApiModel>> =>
+    axiosActions<AuthSessionApiModel>({ url: `${BASE_AUTH_URL}/password`, method: HttpVerbsUtil.PUT, data: fields }),
 
   logout: async (): Promise<JSONResponseUtil> =>
     axiosActions({ url: `${BASE_AUTH_URL}/logout`, method: HttpVerbsUtil.POST }),
