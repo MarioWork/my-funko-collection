@@ -54,14 +54,14 @@ async function assertFunkoExists(funkoId: number): Promise<void> {
   if (!exists) throw new NotFoundError(PARENT_ENTITY, funkoId);
 }
 
-// `uploadedById` is the signed-in user: every image records who uploaded it.
-async function storeOne(uploadedById: number, funkoId: number, buffer: Buffer): Promise<FunkoImageRow> {
+// `userId` is the signed-in user: every image records who uploaded it.
+async function storeOne(userId: number, funkoId: number, buffer: Buffer): Promise<FunkoImageRow> {
   await assertNotDuplicate(funkoId, hashImage(buffer));
 
   // Bytes that are not an image are refused here with a 400 (imageStorage throws BadRequestError).
   const stored = await processImage(funkoId, buffer);
   const position = await funkoImagesRepository.nextPosition(funkoId);
-  const row = await funkoImagesRepository.create({ funkoId, uploadedById, position, ...stored });
+  const row = await funkoImagesRepository.create({ funkoId, uploadedById: userId, position, ...stored });
 
   log.info({ funkoId, imageId: row.id, sizeBytes: row.sizeBytes }, 'image stored');
 

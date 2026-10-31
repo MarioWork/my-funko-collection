@@ -47,8 +47,7 @@ it('names the uploader and the upload time in the preview', async () => {
   window.localStorage.setItem(IMAGE_VIEW_STORAGE_KEY, ImageViewUtil.IMAGES);
   renderPage();
 
-  const [kratosImage] = await screen.findAllByRole('button', { name: /^Preview Kratos #25/ });
-  await userEvent.click(kratosImage ?? document.body);
+  await userEvent.click(await screen.findByRole('button', { name: 'Preview Kratos #25, image-59.webp' }));
 
   expect(await screen.findByText(/Uploaded by a removed user on /)).toBeVisible();
 });
