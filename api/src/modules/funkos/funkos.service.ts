@@ -108,12 +108,13 @@ function toResponse(row: FunkoRow | ListedFunkoRow, extras: FunkoExtras): FunkoR
   };
 }
 
-// Two page-wide queries instead of two per row.
-async function loadExtras(rows: FunkoRow[]): Promise<Map<number, FunkoExtras>> {
+// Two page-wide queries instead of two per row. `collections` lists only `userId`'s own: the funko is shared, the
+// lists it sits in are not.
+async function loadExtras(userId: number, rows: FunkoRow[]): Promise<Map<number, FunkoExtras>> {
   const ids = rows.map((row) => row.id);
   const [primaryImages, collectionsByFunko] = await Promise.all([
     funkosRepository.primaryImagesByFunkoIds(ids),
-    funkosRepository.collectionsByFunkoIds(ids),
+    funkosRepository.collectionsByFunkoIds(userId, ids),
   ]);
 
   return new Map(
@@ -127,14 +128,14 @@ async function loadExtras(rows: FunkoRow[]): Promise<Map<number, FunkoExtras>> {
   );
 }
 
-async function toResponses(rows: (FunkoRow | ListedFunkoRow)[]): Promise<FunkoResponse[]> {
-  const extras = await loadExtras(rows);
+async function toResponses(userId: number, rows: (FunkoRow | ListedFunkoRow)[]): Promise<FunkoResponse[]> {
+  const extras = await loadExtras(userId, rows);
 
   return rows.map((row) => toResponse(row, extras.get(row.id) ?? EMPTY_EXTRAS));
 }
 
-async function toSingleResponse(row: FunkoRow): Promise<FunkoResponse> {
-  const [response] = await toResponses([row]);
+async function toSingleResponse(userId: number, row: FunkoRow): Promise<FunkoResponse> {
+  const [response] = await toResponses(userId, [row]);
 
   if (!response) throw new NotFoundError(ENTITY, row.id);
 
@@ -167,33 +168,33 @@ async function assertUnique(
   if (isOtherBarcode) throw new ConflictError('This barcode belongs to another funko', sameBarcode.id);
 }
 
-export async function getFunkos(query: ListFunkosQuery): Promise<FunkoListResponse> {
+export async function getFunkos(userId: number, query: ListFunkosQuery): Promise<FunkoListResponse> {
   const normalisedQuery = query.barcode ? { ...query, barcode: normaliseBarcode(query.barcode) } : query;
-  const { data, totalResultNumber } = await funkosRepository.list(normalisedQuery);
-  const responses = await toResponses(data);
+  const { data, totalResultNumber } = await funkosRepository.list(userId, normalisedQuery);
+  const responses = await toResponses(userId, data);
 
   return { data: responses, totalResultNumber, currentPage: query.page };
 }
 
-export async function getFunko(id: number): Promise<FunkoDetailResponse> {
+export async function getFunko(userId: number, id: number): Promise<FunkoDetailResponse> {
   const row = await funkosRepository.findById(id);
 
   if (!row) throw new NotFoundError(ENTITY, id);
 
-  const [response, images] = await Promise.all([toSingleResponse(row), getImages(id)]);
+  const [response, images] = await Promise.all([toSingleResponse(userId, row), getImages(id)]);
 
   return { ...response, images };
 }
 
-export async function getFunkoByBarcode(barcode: string): Promise<FunkoResponse> {
+export async function getFunkoByBarcode(userId: number, barcode: string): Promise<FunkoResponse> {
   const row = await funkosRepository.findByBarcode(normaliseBarcode(barcode));
 
   if (!row) throw new NotFoundError(ENTITY, barcode);
 
-  return toSingleResponse(row);
+  return toSingleResponse(userId, row);
 }
 
-export async function addFunko(input: CreateFunko): Promise<FunkoResponse> {
+export async function addFunko(userId: number, input: CreateFunko): Promise<FunkoResponse> {
   const data = withNormalisedBarcode(input);
   const identity: FunkoIdentity = {
     categoryId: data.categoryId,
@@ -211,10 +212,10 @@ export async function addFunko(input: CreateFunko): Promise<FunkoResponse> {
 
   log.info({ funkoId: row.id }, 'funko created');
 
-  return toSingleResponse(row);
+  return toSingleResponse(userId, row);
 }
 
-export async function updateFunko(id: number, input: UpdateFunko): Promise<FunkoResponse> {
+export async function updateFunko(userId: number, id: number, input: UpdateFunko): Promise<FunkoResponse> {
   const data = withNormalisedBarcode(input);
   const current = await funkosRepository.findById(id);
 
@@ -236,25 +237,39 @@ export async function updateFunko(id: number, input: UpdateFunko): Promise<Funko
 
   if (!row) throw new NotFoundError(ENTITY, id);
 
-  return toSingleResponse(row);
+  return toSingleResponse(userId, row);
 }
 
-function describeCollections(collectionNames: string[]): string {
-  return collectionNames.map((name) => `"${name}"`).join(', ');
+// The user's own collections by name; anyone else's only as "other users' collections", never whose.
+function describeCollections(ownCollectionNames: string[], isInOtherUsersCollections: boolean): string {
+  const places = ownCollectionNames.map((name) => `"${name}"`);
+
+  if (isInOtherUsersCollections) places.push("other users' collections");
+
+  return places.join(', ');
 }
 
-// A funko inside a collection is kept unless `force` is set; then its items go with it. Files go after the rows.
-export async function deleteFunko(id: number, { force }: DeleteFunkoQuery): Promise<void> {
+// A funko inside anyone's collection is kept unless `force` is set; then every item of it goes with it. Files go
+// after the rows.
+export async function deleteFunko(userId: number, id: number, { force }: DeleteFunkoQuery): Promise<void> {
   const current = await funkosRepository.findById(id);
 
   if (!current) throw new NotFoundError(ENTITY, id);
 
-  const collectionsByFunko = await funkosRepository.collectionsByFunkoIds([id]);
-  const memberships = collectionsByFunko.get(id) ?? [];
-  const isInCollections = memberships.length > 0;
+  const [collectionsByFunko, itemCount] = await Promise.all([
+    funkosRepository.collectionsByFunkoIds(userId, [id]),
+    funkosRepository.countItems(id),
+  ]);
+  const ownCollections = collectionsByFunko.get(id) ?? [];
+  const isInCollections = itemCount > 0;
 
   if (isInCollections && !force) {
-    const names = describeCollections(memberships.map((membership) => membership.name));
+    // One item per collection and funko, so any item beyond the user's own is in someone else's collection.
+    const isInOtherUsersCollections = itemCount > ownCollections.length;
+    const names = describeCollections(
+      ownCollections.map((collection) => collection.name),
+      isInOtherUsersCollections,
+    );
 
     throw new ConflictError(`The funko is in ${names}. Send force=true to remove it from them and delete it`);
   }
@@ -264,7 +279,7 @@ export async function deleteFunko(id: number, { force }: DeleteFunkoQuery): Prom
   if (!deleted) throw new NotFoundError(ENTITY, id);
 
   await removeFunkoFolder(id);
-  log.info({ funkoId: id, force, removedFromCollections: memberships.length }, 'funko deleted');
+  log.info({ funkoId: id, force, removedItems: itemCount }, 'funko deleted');
 }
 
 // For other modules (collection items): summaries keyed by id, with the primary image resolved.

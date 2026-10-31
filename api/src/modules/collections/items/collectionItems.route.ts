@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../../lib/errorHandler.ts';
+import { signedInUserId } from '../../../plugins/auth.plugin.ts';
 import {
   CollectionItemListResponseSchema,
   CollectionItemParamsSchema,
@@ -38,7 +39,7 @@ export const collectionItemsRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: CollectionItemListResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => getCollectionItems(request.params.collectionId, request.query),
+    async (request) => getCollectionItems(signedInUserId(request), request.params.collectionId, request.query),
   );
 
   app.get(
@@ -51,7 +52,7 @@ export const collectionItemsRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: CollectionItemResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => getCollectionItem(request.params.collectionId, request.params.itemId),
+    async (request) => getCollectionItem(signedInUserId(request), request.params.collectionId, request.params.itemId),
   );
 
   app.post(
@@ -72,7 +73,7 @@ export const collectionItemsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const item = await addCollectionItem(request.params.collectionId, request.body);
+      const item = await addCollectionItem(signedInUserId(request), request.params.collectionId, request.body);
 
       return reply.code(201).send(item);
     },
@@ -89,7 +90,8 @@ export const collectionItemsRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: CollectionItemResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => updateCollectionItem(request.params.collectionId, request.params.itemId, request.body),
+    async (request) =>
+      updateCollectionItem(signedInUserId(request), request.params.collectionId, request.params.itemId, request.body),
   );
 
   app.post(
@@ -108,7 +110,8 @@ export const collectionItemsRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => moveCollectionItem(request.params.collectionId, request.params.itemId, request.body),
+    async (request) =>
+      moveCollectionItem(signedInUserId(request), request.params.collectionId, request.params.itemId, request.body),
   );
 
   app.delete(
@@ -122,7 +125,7 @@ export const collectionItemsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await deleteCollectionItem(request.params.collectionId, request.params.itemId);
+      await deleteCollectionItem(signedInUserId(request), request.params.collectionId, request.params.itemId);
 
       return reply.code(204).send();
     },
@@ -142,6 +145,6 @@ export const allItemsRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: CollectionItemListResponseSchema, 400: ErrorResponseSchema },
       },
     },
-    async (request) => getAllItems(request.query),
+    async (request) => getAllItems(signedInUserId(request), request.query),
   );
 };

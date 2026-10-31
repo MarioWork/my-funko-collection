@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
+import { signedInUserId } from '../../plugins/auth.plugin.ts';
 import {
   EXPORT_LIST_KINDS,
   ExportFunkosQuerySchema,
@@ -47,10 +48,14 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
     '/',
     {
       prefixTrailingSlash: 'no-slash',
-      schema: { tags: TAGS, summary: 'Everything as one JSON download', response: { 200: ExportResponseSchema } },
+      schema: {
+        tags: TAGS,
+        summary: 'Everything as one JSON download: the catalogue and your own collections',
+        response: { 200: ExportResponseSchema },
+      },
     },
-    async (_request, reply) => {
-      const data = await getExport();
+    async (request, reply) => {
+      const data = await getExport(signedInUserId(request));
 
       return reply.header('content-disposition', attachment(JSON_FILE_NAME)).send(data);
     },
@@ -61,13 +66,13 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
     {
       schema: {
         tags: TAGS,
-        summary: 'One CSV line per collection item',
+        summary: 'One CSV line per item in your collections',
         produces: [CSV_CONTENT_TYPE],
         response: { 200: z.string() },
       },
     },
-    async (_request, reply) => {
-      const csv = await getItemsCsv();
+    async (request, reply) => {
+      const csv = await getItemsCsv(signedInUserId(request));
 
       return reply.type(CSV_CONTENT_TYPE).header('content-disposition', attachment(CSV_FILE_NAME)).send(csv);
     },
@@ -85,7 +90,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const { fileName, content } = await getFunkosCsv(request.query);
+      const { fileName, content } = await getFunkosCsv(signedInUserId(request), request.query);
 
       return reply.type(CSV_CONTENT_TYPE).header('content-disposition', attachment(fileName)).send(content);
     },
@@ -102,7 +107,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const { fileName, content } = await getFunkosJson(request.query);
+      const { fileName, content } = await getFunkosJson(signedInUserId(request), request.query);
 
       return reply.header('content-disposition', attachment(fileName)).send(content);
     },
@@ -121,7 +126,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const { fileName, content } = await getFunkosSpreadsheet(request.query);
+      const { fileName, content } = await getFunkosSpreadsheet(signedInUserId(request), request.query);
 
       return reply.type(XLSX_CONTENT_TYPE).header('content-disposition', attachment(fileName)).send(content);
     },
@@ -141,7 +146,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
       async (request, reply) => {
-        const { fileName, content } = await getListCsv(kind, request.query);
+        const { fileName, content } = await getListCsv(signedInUserId(request), kind, request.query);
 
         return reply.type(CSV_CONTENT_TYPE).header('content-disposition', attachment(fileName)).send(content);
       },
@@ -158,7 +163,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
       async (request, reply) => {
-        const { fileName, content } = await getListJson(kind, request.query);
+        const { fileName, content } = await getListJson(signedInUserId(request), kind, request.query);
 
         return reply.header('content-disposition', attachment(fileName)).send(content);
       },
@@ -176,7 +181,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
       async (request, reply) => {
-        const { fileName, content } = await getListSpreadsheet(kind, request.query);
+        const { fileName, content } = await getListSpreadsheet(signedInUserId(request), kind, request.query);
 
         return reply.type(XLSX_CONTENT_TYPE).header('content-disposition', attachment(fileName)).send(content);
       },
