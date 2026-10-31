@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
+import { signedInUserId } from '../../plugins/auth.plugin.ts';
 import { SuggestQuerySchema, SuggestResponseSchema } from './suggest.schema.ts';
 import { getSuggestions } from './suggest.service.ts';
 
@@ -17,6 +18,6 @@ export const suggestRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: SuggestResponseSchema, 400: ErrorResponseSchema },
       },
     },
-    async (request) => getSuggestions(request.query),
+    async (request) => getSuggestions(signedInUserId(request), request.query),
   );
 };

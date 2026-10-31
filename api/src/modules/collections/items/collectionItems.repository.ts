@@ -64,8 +64,10 @@ function hasAnyTag(tagIds: number[]): Prisma.Sql {
   )`;
 }
 
-function buildListFilter(query: ListAllItemsQuery): Prisma.Sql {
+// `c` is the item's collection: only the user's own collections count.
+function buildListFilter(userId: number, query: ListAllItemsQuery): Prisma.Sql {
   return allOf([
+    Prisma.sql`c.user_id = ${userId}`,
     query.collectionId ? inList(Prisma.sql`i.collection_id`, query.collectionId) : undefined,
     query.name ? ilikeContains(Prisma.sql`f.name`, query.name) : undefined,
     query.funkoId ? inList(Prisma.sql`i.funko_id`, query.funkoId) : undefined,
@@ -97,8 +99,9 @@ async function replaceTags(executor: DbExecutor, itemId: number, tagIds: number[
 }
 
 export const collectionItemsRepository = {
-  findById: (collectionId: number, itemId: number): Promise<ItemRow | undefined> =>
-    findRow({ collectionId, id: itemId }, prisma),
+  // The owner is part of every lookup by id: an item in another user's collection is not found.
+  findById: (userId: number, collectionId: number, itemId: number): Promise<ItemRow | undefined> =>
+    findRow({ collectionId, id: itemId, collection: { userId } }, prisma),
 
   findIdByFunko: async (collectionId: number, funkoId: number) =>
     (await prisma.collectionItem.findUnique({
@@ -106,8 +109,8 @@ export const collectionItemsRepository = {
       select: ID_SELECT,
     })) ?? undefined,
 
-  list: async (query: ListAllItemsQuery) => {
-    const filter = buildListFilter(query);
+  list: async (userId: number, query: ListAllItemsQuery) => {
+    const filter = buildListFilter(userId, query);
     const sortColumn = SORT_FIELD_MAP[query.sorting_fields];
     const { skip, take } = toSkipTake(query);
 
@@ -135,6 +138,7 @@ export const collectionItemsRepository = {
       prisma.$queryRaw<CountRow[]>`
         select count(*)::int as total
         from collection_items i
+        join collections c on c.id = i.collection_id
         join funkos f on f.id = i.funko_id
         where ${filter}`,
     ]);
@@ -199,8 +203,10 @@ export const collectionItemsRepository = {
     return reloadIfUpdated(write, () => findRow({ id: itemId }, prisma));
   },
 
-  delete: async (collectionId: number, itemId: number): Promise<{ id: number } | undefined> => {
-    const write = await prisma.collectionItem.deleteMany({ where: { collectionId, id: itemId } });
+  delete: async (userId: number, collectionId: number, itemId: number): Promise<{ id: number } | undefined> => {
+    const write = await prisma.collectionItem.deleteMany({
+      where: { collectionId, id: itemId, collection: { userId } },
+    });
 
     return deletedIdOrUndefined(itemId, write);
   },

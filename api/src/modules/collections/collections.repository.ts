@@ -64,8 +64,9 @@ async function withStats(
   return collections.map((collection) => ({ ...collection, ...(stats.get(collection.id) ?? EMPTY_STATS) }));
 }
 
-async function findById(id: number, executor: DbExecutor = prisma): Promise<CollectionRow | undefined> {
-  const collection = await executor.collection.findUnique({ where: { id }, select: COLLECTION_SELECT });
+// Every read and write names the owner: another user's collection is simply not there.
+async function findById(userId: number, id: number, executor: DbExecutor = prisma): Promise<CollectionRow | undefined> {
+  const collection = await executor.collection.findFirst({ where: { id, userId }, select: COLLECTION_SELECT });
 
   if (!collection) return undefined;
 
@@ -74,19 +75,19 @@ async function findById(id: number, executor: DbExecutor = prisma): Promise<Coll
   return row;
 }
 
-function buildListFilter({ name }: ListCollectionsQuery): Prisma.CollectionWhereInput {
-  return name ? { name: containsText(name) } : {};
+function buildListFilter(userId: number, { name }: ListCollectionsQuery): Prisma.CollectionWhereInput {
+  return name ? { userId, name: containsText(name) } : { userId };
 }
 
-async function clearDefault(executor: DbExecutor): Promise<void> {
-  await executor.collection.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
+async function clearDefault(userId: number, executor: DbExecutor): Promise<void> {
+  await executor.collection.updateMany({ where: { userId, isDefault: true }, data: { isDefault: false } });
 }
 
 export const collectionsRepository = {
   findById,
 
-  list: async (query: ListCollectionsQuery) => {
-    const where = buildListFilter(query);
+  list: async (userId: number, query: ListCollectionsQuery) => {
+    const where = buildListFilter(userId, query);
     const direction = toOrderDirection(query.direction);
     const sortField = SORT_FIELD_MAP[query.sorting_fields];
 
@@ -103,27 +104,28 @@ export const collectionsRepository = {
     return { data: await withStats(collections, prisma), totalResultNumber };
   },
 
-  // Becoming the default clears the flag elsewhere first, inside one transaction, so the partial unique index holds.
-  create: (data: CreateCollection): Promise<CollectionRow | undefined> =>
+  // Becoming the default clears the flag on the user's other collections first, inside one transaction, so the
+  // partial unique index (one default per user) holds.
+  create: (userId: number, data: CreateCollection): Promise<CollectionRow | undefined> =>
     prisma.$transaction(async (tx) => {
-      if (data.isDefault) await clearDefault(tx);
+      if (data.isDefault) await clearDefault(userId, tx);
 
-      const created = await tx.collection.create({ data, select: COLLECTION_SELECT });
+      const created = await tx.collection.create({ data: { ...data, userId }, select: COLLECTION_SELECT });
 
-      return findById(created.id, tx);
+      return findById(userId, created.id, tx);
     }),
 
-  update: (id: number, data: UpdateCollection): Promise<CollectionRow | undefined> =>
+  update: (userId: number, id: number, data: UpdateCollection): Promise<CollectionRow | undefined> =>
     prisma.$transaction(async (tx) => {
-      if (data.isDefault) await clearDefault(tx);
+      if (data.isDefault) await clearDefault(userId, tx);
 
-      const write = await tx.collection.updateMany({ where: { id }, data });
+      const write = await tx.collection.updateMany({ where: { id, userId }, data });
 
-      return reloadIfUpdated(write, () => findById(id, tx));
+      return reloadIfUpdated(write, () => findById(userId, id, tx));
     }),
 
-  delete: async (id: number): Promise<{ id: number } | undefined> => {
-    const write = await prisma.collection.deleteMany({ where: { id } });
+  delete: async (userId: number, id: number): Promise<{ id: number } | undefined> => {
+    const write = await prisma.collection.deleteMany({ where: { id, userId } });
 
     return deletedIdOrUndefined(id, write);
   },

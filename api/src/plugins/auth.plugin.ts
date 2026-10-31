@@ -3,6 +3,7 @@ import type { FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { env } from '../config/env.ts';
 import { ErrorResponseSchema } from '../lib/errorHandler.ts';
+import { InternalError } from '../lib/errors.ts';
 import { ForbiddenError, UnauthorizedError } from '../lib/httpErrors.ts';
 import { SESSION_COOKIE_NAME } from '../lib/sessionCookie.ts';
 import { getSession, type AuthSession } from '../modules/auth/auth.service.ts';
@@ -50,6 +51,14 @@ function isCrossSiteWrite(request: FastifyRequest): boolean {
   if (origin) return origin !== APP_ORIGIN;
 
   return false;
+}
+
+// Whose collections a locked route works on. The hook below already refused a request with no session; this only
+// narrows the type, so a route that reaches it without one is a bug.
+export function signedInUserId(request: FastifyRequest): number {
+  if (!request.session) throw new InternalError('A signed-in route ran without a session');
+
+  return request.session.userId;
 }
 
 async function readSession(request: FastifyRequest): Promise<AuthSession | null> {

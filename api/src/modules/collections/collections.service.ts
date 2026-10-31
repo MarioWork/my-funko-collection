@@ -25,22 +25,24 @@ function toResponse(row: CollectionRow): CollectionResponse {
   };
 }
 
-export async function getCollections(query: ListCollectionsQuery): Promise<CollectionListResponse> {
-  const { data, totalResultNumber } = await collectionsRepository.list(query);
+// Every function works on one user's collections only (`userId`, the signed-in user). Another user's collection
+// answers 404, the same as one that does not exist, so its id gives nothing away.
+export async function getCollections(userId: number, query: ListCollectionsQuery): Promise<CollectionListResponse> {
+  const { data, totalResultNumber } = await collectionsRepository.list(userId, query);
 
   return { data: data.map(toResponse), totalResultNumber, currentPage: query.page };
 }
 
-export async function getCollection(id: number): Promise<CollectionResponse> {
-  const row = await collectionsRepository.findById(id);
+export async function getCollection(userId: number, id: number): Promise<CollectionResponse> {
+  const row = await collectionsRepository.findById(userId, id);
 
   if (!row) throw new NotFoundError(ENTITY, id);
 
   return toResponse(row);
 }
 
-export async function addCollection(data: CreateCollection): Promise<CollectionResponse> {
-  const row = await collectionsRepository.create(data);
+export async function addCollection(userId: number, data: CreateCollection): Promise<CollectionResponse> {
+  const row = await collectionsRepository.create(userId, data);
 
   if (!row) throw new InternalError('The collection was not found right after its insert');
 
@@ -48,8 +50,12 @@ export async function addCollection(data: CreateCollection): Promise<CollectionR
 }
 
 // Unsetting the default directly is refused: make another collection the default instead, which moves the flag.
-export async function updateCollection(id: number, data: UpdateCollection): Promise<CollectionResponse> {
-  const current = await collectionsRepository.findById(id);
+export async function updateCollection(
+  userId: number,
+  id: number,
+  data: UpdateCollection,
+): Promise<CollectionResponse> {
+  const current = await collectionsRepository.findById(userId, id);
 
   if (!current) throw new NotFoundError(ENTITY, id);
 
@@ -57,7 +63,7 @@ export async function updateCollection(id: number, data: UpdateCollection): Prom
 
   if (isUnsettingDefault) throw new ConflictError('Set another collection as default instead of unsetting this one');
 
-  const row = await collectionsRepository.update(id, data);
+  const row = await collectionsRepository.update(userId, id, data);
 
   if (!row) throw new NotFoundError(ENTITY, id);
 
@@ -65,11 +71,11 @@ export async function updateCollection(id: number, data: UpdateCollection): Prom
 }
 
 // Items go with the collection (cascade); the funkos stay. The default collection cannot be deleted.
-export async function deleteCollection(id: number): Promise<void> {
-  const current = await collectionsRepository.findById(id);
+export async function deleteCollection(userId: number, id: number): Promise<void> {
+  const current = await collectionsRepository.findById(userId, id);
 
   if (!current) throw new NotFoundError(ENTITY, id);
   if (current.isDefault) throw new ConflictError('The default collection cannot be deleted');
 
-  await collectionsRepository.delete(id);
+  await collectionsRepository.delete(userId, id);
 }

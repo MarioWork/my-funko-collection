@@ -59,15 +59,23 @@ export async function createFunko(
   });
 }
 
+// The test user's collection by that name; `userId` makes it another user's. Every user already has "Owned" (the
+// default) and "Wishlist", so asking for one of those returns it, with the given fields applied. A default one
+// moves the user's default flag here, as the API does, so their one default stays one.
 export async function createCollection(
-  overrides: { name?: string; isDefault?: boolean; notes?: string | null } = {},
+  overrides: { name?: string; isDefault?: boolean; notes?: string | null; userId?: number } = {},
 ): Promise<{ id: number; name: string }> {
-  return prisma.collection.create({
-    data: {
-      name: overrides.name ?? nextName('Collection'),
-      isDefault: overrides.isDefault ?? false,
-      notes: overrides.notes ?? null,
-    },
+  const userId = overrides.userId ?? (await findOrCreateTestUser()).id;
+  const name = overrides.name ?? nextName('Collection');
+
+  if (overrides.isDefault) {
+    await prisma.collection.updateMany({ where: { userId, isDefault: true }, data: { isDefault: false } });
+  }
+
+  return prisma.collection.upsert({
+    where: { userId_name: { userId, name } },
+    create: { userId, name, isDefault: overrides.isDefault ?? false, notes: overrides.notes ?? null },
+    update: { isDefault: overrides.isDefault, notes: overrides.notes },
     select: { id: true, name: true },
   });
 }
@@ -145,16 +153,31 @@ export type SignedInClient = {
   inject: (options: InjectOptions) => Promise<LightMyRequestResponse>;
 };
 
-// The test user, made once per database: the app has one user at most.
+// A user row with no way to sign in; the database trigger gives them their own "Owned" and "Wishlist".
+export async function createUser(name = nextName('User')): Promise<{ id: number }> {
+  return prisma.user.create({
+    data: { name, webauthnUserId: randomBytes(RANDOM_ID_BYTES).toString('base64url') },
+    select: { id: true },
+  });
+}
+
+// The test user, made once per database: the first user. Other users come from createUser().
 async function findOrCreateTestUser(): Promise<{ id: number }> {
-  const existing = await prisma.user.findFirst({ select: { id: true } });
+  const existing = await prisma.user.findFirst({ orderBy: { id: 'asc' }, select: { id: true } });
 
   if (existing) return existing;
 
-  return prisma.user.create({
-    data: { name: TEST_USER_NAME, webauthnUserId: randomBytes(RANDOM_ID_BYTES).toString('base64url') },
+  return createUser(TEST_USER_NAME);
+}
+
+// The id of a user's default collection ("Owned" unless the test moved it).
+export async function defaultCollectionId(userId: number): Promise<number> {
+  const collection = await prisma.collection.findFirstOrThrow({
+    where: { userId, isDefault: true },
     select: { id: true },
   });
+
+  return collection.id;
 }
 
 // A passkey row with a made-up key: enough for sessions to point at, it can't sign anything.
@@ -179,11 +202,12 @@ export async function createPasskeyRow(
 // A user with a live session, straight in the database (no passkey ceremony): `inject` sends its cookie.
 // `signedInAt` / `lastSeenAt` backdate the session, for the "signed in recently" and timeout rules.
 // `signInMethod` PASSWORD opens it without a passkey; PASSKEY (the default) makes a passkey row to open it.
+// `userId` signs in as another user (from createUser()) instead of the test user.
 export async function signIn(
   app: App,
-  options: { signedInAt?: Date; lastSeenAt?: Date; signInMethod?: SignInMethod } = {},
+  options: { signedInAt?: Date; lastSeenAt?: Date; signInMethod?: SignInMethod; userId?: number } = {},
 ): Promise<SignedInClient> {
-  const user = await findOrCreateTestUser();
+  const user = options.userId === undefined ? await findOrCreateTestUser() : { id: options.userId };
   const signInMethod = options.signInMethod ?? 'PASSKEY';
   const passkey = signInMethod === 'PASSKEY' ? await createPasskeyRow(user.id) : undefined;
   const token = createSecureToken();

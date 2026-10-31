@@ -7,6 +7,7 @@ import {
   createItem,
   createSeries,
   createTag,
+  createUser,
   makeImage,
   type SignedInClient,
   signIn,
@@ -66,8 +67,27 @@ describe('GET /export', () => {
     expect(body.series).toEqual([{ id: homecoming.id, name: 'Homecoming' }]);
     expect(body.items[0]?.tagIds).toEqual([box.id]);
     expect(body.categories).toHaveLength(1);
-    expect(body.collections).toHaveLength(1);
+    expect(body.collections).toHaveLength(2);
     expect(body.tags).toHaveLength(1);
+  });
+
+  it('holds only the signed-in user’s collections and items when another user has some too', async () => {
+    const { funko, owned } = await seed();
+    const other = await createUser();
+    const theirs = await createCollection({ name: 'For sale', userId: other.id });
+    await createItem(theirs.id, funko.id, { notes: 'not yours' });
+
+    const json = await api.inject({ method: 'GET', url: '/export' });
+    const csv = await api.inject({ method: 'GET', url: '/export/items.csv' });
+    const theirCollection = await api.inject({ method: 'GET', url: `/export/funkos.csv?collectionId=${theirs.id}` });
+
+    const body = json.json<{ collections: { id: number }[]; items: { collectionId: number }[]; funkos: unknown[] }>();
+    expect(body.items.map((item) => item.collectionId)).toEqual([owned.id]);
+    expect(body.collections.map((collection) => collection.id)).not.toContain(theirs.id);
+    expect(body.funkos).toHaveLength(1);
+    expect(csv.body).not.toContain('not yours');
+    expect(csv.body).not.toContain('For sale');
+    expect(theirCollection.statusCode).toBe(404);
   });
 });
 
