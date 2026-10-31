@@ -201,16 +201,22 @@ model CollectionItem {
   @@map("collection_items")
 }
 
-// A free label on a collection item. First use: the storage box ("Box 3").
+// A free label a user puts on their own items. First use: the storage box ("Box 3"). Only that user sees it, and
+// it only goes on their own items (the service checks; the database cannot say "same user" across the junction).
 model Tag {
   id        Int      @id @default(autoincrement())
-  name      String   @unique(map: "tags_name_uidx")
+  // The user it belongs to. Deleting the user deletes their tags.
+  userId    Int      @map("user_id")
+  // Unique per user: two users may each have a "Box 1".
+  name      String
   notes     String?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   itemTags CollectionItemTag[]
 
+  @@unique([userId, name], map: "tags_user_id_name_uidx")
   @@index([createdAt], map: "tags_created_at_idx")
   @@map("tags")
 }
@@ -247,6 +253,7 @@ model User {
   passkeys       Passkey[]
   sessions       Session[]
   collections    Collection[]
+  tags           Tag[]
   uploadedImages FunkoImage[]
 
   @@map("users")

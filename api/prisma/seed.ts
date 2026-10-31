@@ -287,8 +287,9 @@ for (const name of REFERENCE_COLLECTION_NAMES) {
   if (!collectionIds.has(name)) throw new Error(`The "${name}" collection is missing: run yarn db:migrate first`);
 }
 
+// Tags belong to a user too: the example ones are the first user's, like the items they go on.
 const tagRows = await prisma.tag.createManyAndReturn({
-  data: TAG_NAMES.map((name) => ({ name })),
+  data: TAG_NAMES.map((name) => ({ name, userId: seedUser.id })),
   select: NAME_SELECT,
 });
 const tagIds = new Map(tagRows.map((row) => [row.name, row.id]));

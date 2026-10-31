@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
+import { signedInUserId } from '../../plugins/auth.plugin.ts';
 import {
   CreateTagSchema,
   ListTagsQuerySchema,
@@ -25,7 +26,7 @@ export const tagsRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: TagListResponseSchema, 400: ErrorResponseSchema },
       },
     },
-    async (request) => getTags(request.query),
+    async (request) => getTags(signedInUserId(request), request.query),
   );
 
   app.get(
@@ -38,7 +39,7 @@ export const tagsRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: TagResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => getTag(request.params.tagId),
+    async (request) => getTag(signedInUserId(request), request.params.tagId),
   );
 
   app.post(
@@ -53,7 +54,7 @@ export const tagsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      const tag = await addTag(request.body);
+      const tag = await addTag(signedInUserId(request), request.body);
 
       return reply.code(201).send(tag);
     },
@@ -75,7 +76,7 @@ export const tagsRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => updateTag(request.params.tagId, request.body),
+    async (request) => updateTag(signedInUserId(request), request.params.tagId, request.body),
   );
 
   app.delete(
@@ -89,7 +90,7 @@ export const tagsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await deleteTag(request.params.tagId);
+      await deleteTag(signedInUserId(request), request.params.tagId);
 
       return reply.code(204).send();
     },

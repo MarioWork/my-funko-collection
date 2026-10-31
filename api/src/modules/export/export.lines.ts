@@ -116,7 +116,7 @@ export async function loadEverything(userId: number) {
     exportRepository.funkos(),
     exportRepository.images(),
     exportRepository.collections(userId),
-    exportRepository.tags(),
+    exportRepository.tags(userId),
     exportRepository.items(userId),
     exportRepository.itemTags(userId),
   ]);

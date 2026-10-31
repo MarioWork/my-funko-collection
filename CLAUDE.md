@@ -31,10 +31,13 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - One search endpoint: `GET /funkos?q=` searches every field, named params narrow one field. No separate `/search`.
 - `DELETE /funkos/:id` answers 409 while the funko is in a collection; `?force=true` removes it from all of them.
 - Deleting a tag only removes the label from items. Deleting a collection removes its items, never the funkos.
-- Collections and items belong to one user (`docs/adr/0001-shared-catalogue-own-collections.md`); the catalogue is
-  shared. Every collection/item read and write takes the signed-in user's id (`signedInUserId(request)` from
-  `auth.plugin.ts`, passed route → service → repository) and another user's id answers 404. So do the funko filters
-  and search that look at collections or items, a funko's `collections`, suggestions, stats and exports.
+- Collections, items and tags belong to one user (`docs/adr/0001-shared-catalogue-own-collections.md`); the
+  catalogue is shared. Every collection/item/tag read and write takes the signed-in user's id
+  (`signedInUserId(request)` from `auth.plugin.ts`, passed route → service → repository) and another user's id
+  answers 404. So do the funko filters and search that look at collections, items or tags, a funko's `collections`,
+  suggestions, stats and exports. Tag names are unique per user. Only the user's own tags go on their own items:
+  the items service asks `assertOwnTags()` in the tags service (the database cannot check "same user" across
+  `collection_item_tags`).
 - Every user has their own "Owned" (the default) and "Wishlist" from the moment the user row exists: reference data
   from the custom migration `api/prisma/migrations/*_default_collections/` (claimed by the first user) plus a trigger
   in `*_collections_per_user/` for every new user, not the seed or app code. Each insert skips one that is already

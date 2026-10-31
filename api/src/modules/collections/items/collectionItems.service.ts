@@ -2,6 +2,7 @@ import { InternalError } from '../../../lib/errors.ts';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../lib/httpErrors.ts';
 import { getFunkoSummaries, getFunkoSummary } from '../../funkos/funkos.service.ts';
 import type { FunkoSummary } from '../../funkos/funkos.type.ts';
+import { assertOwnTags } from '../../tags/tags.service.ts';
 import { getCollection } from '../collections.service.ts';
 import { collectionItemsRepository, type ItemRow, type TagRow } from './collectionItems.repository.ts';
 import type {
@@ -67,15 +68,6 @@ async function assertFunkoExists(funkoId: number): Promise<void> {
   await getFunkoSummary(funkoId);
 }
 
-async function assertTagsExist(tagIds: number[] | undefined): Promise<void> {
-  if (!tagIds || tagIds.length === 0) return;
-
-  const uniqueIds = [...new Set(tagIds)];
-  const found = await collectionItemsRepository.countExistingTags(uniqueIds);
-
-  if (found !== uniqueIds.length) throw new BadRequestError('One or more tagIds do not exist');
-}
-
 async function assertNotAlreadyInCollection(collectionId: number, funkoId: number): Promise<void> {
   const existing = await collectionItemsRepository.findIdByFunko(collectionId, funkoId);
 
@@ -125,7 +117,7 @@ export async function addCollectionItem(
 ): Promise<CollectionItemResponse> {
   await assertCollectionExists(userId, collectionId);
   await assertFunkoExists(data.funkoId);
-  await assertTagsExist(tagIds);
+  await assertOwnTags(userId, tagIds ?? []);
   await assertNotAlreadyInCollection(collectionId, data.funkoId);
 
   const row = await collectionItemsRepository.create({ ...data, collectionId }, [...new Set(tagIds ?? [])]);
@@ -135,7 +127,8 @@ export async function addCollectionItem(
   return toSingleResponse(row, row.id);
 }
 
-// `tagIds` replaces the whole set; leaving it out keeps the tags as they are.
+// `tagIds` replaces the whole set; leaving it out keeps the tags as they are. Only the user's own tags go on their
+// items: another user's tag answers 404, like one that does not exist.
 export async function updateCollectionItem(
   userId: number,
   collectionId: number,
@@ -143,7 +136,7 @@ export async function updateCollectionItem(
   { tagIds, ...data }: UpdateCollectionItem,
 ): Promise<CollectionItemResponse> {
   await findOwnItem(userId, collectionId, itemId);
-  await assertTagsExist(tagIds);
+  await assertOwnTags(userId, tagIds ?? []);
 
   const row = await collectionItemsRepository.update(userId, itemId, data, tagIds ? [...new Set(tagIds)] : undefined);
 
