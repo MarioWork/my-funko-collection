@@ -3,7 +3,7 @@ import { withFreshSignIn } from '@api/passkeyFlows';
 import type { UserId } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import userService from '@services/userService/userService';
-import { NewTemporaryPasswordSchema, UpdateUserSchema } from '@services/userService/userService.type';
+import { CreateTemporaryPasswordSchema, UpdateUserSchema } from '@services/userService/userService.type';
 import { actionForVerbs, failWhenInvalid, type VerbActionMap } from '@utils/actionUtils';
 import { assertAdmin } from '@utils/adminRouteUtils';
 import { parseFormData } from '@utils/formDataUtils';
@@ -36,7 +36,7 @@ export const addTemporaryPasswordAction = async (args: ActionFunctionArgs): Prom
   const { user, isReauth, userId } = await readRequest(args);
 
   return failWhenInvalid(async () => {
-    const fields = await NewTemporaryPasswordSchema.validate(user ?? {});
+    const fields = await CreateTemporaryPasswordSchema.validate(user ?? {});
 
     return withFreshSignIn(isReauth === true, () => userService.addTemporaryPassword(userId, fields));
   });

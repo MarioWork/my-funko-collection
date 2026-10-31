@@ -5,6 +5,8 @@ import { mockStore } from '@mocks/mockStore';
 import { TEST_BASE_API_URL, server } from '@mocks/server';
 import userService, { UserApiSortingFields } from './userService';
 
+type ReceivedRequest = { path: string; body: unknown };
+
 describe('getUsers', () => {
   it('sends the page and the sort under their wire names', async () => {
     let receivedQuery = new URLSearchParams();
@@ -54,7 +56,7 @@ describe('addUser', () => {
 
 describe('updateUser', () => {
   it('sends the new role to the user’s path and returns the changed user', async () => {
-    let received: { path: string; body: unknown } | undefined;
+    let received: ReceivedRequest | undefined;
     server.use(
       http.patch(`${TEST_BASE_API_URL}/users/:userId`, async ({ request, params }) => {
         received = { path: String(params.userId), body: await request.json() };

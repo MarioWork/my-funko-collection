@@ -9,7 +9,7 @@ import {
   type PaginationUtil,
   type ResponseWithPaginationUtil,
 } from '@app-types/utility';
-import type { CreateUser, NewTemporaryPassword, UpdateUser } from './userService.type';
+import type { CreateUser, CreateTemporaryPassword, UpdateUser } from './userService.type';
 
 const BASE_USERS_URL = '/users';
 
@@ -44,7 +44,7 @@ export default {
   // For a user who forgot their password. The answer carries the new temporary password, the only time it is sent.
   addTemporaryPassword: async (
     id: UserId,
-    fields: NewTemporaryPassword,
+    fields: CreateTemporaryPassword,
   ): Promise<JSONResponseUtil<UserWithTemporaryPasswordApiModel>> =>
     axiosActions<UserWithTemporaryPasswordApiModel>({
       url: `${BASE_USERS_URL}/${id}/temporary-password`,

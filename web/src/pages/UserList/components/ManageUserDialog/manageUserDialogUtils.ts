@@ -1,12 +1,12 @@
 import { object, type InferType } from 'yup';
 import { USER_ROLE_LABELS, UserRoleUtil, type AuthFailureMessagesUtil } from '@app-types/utility';
 import { usernameSchema } from '@utils/authUtils';
-import type { NewTemporaryPassword, UpdateUser } from '@services/userService/userService.type';
+import type { CreateTemporaryPassword, UpdateUser } from '@services/userService/userService.type';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 
 // What the manage dialog sends: the change itself (none for a delete), and `isReauth` once the admin has been asked
 // to confirm it's them (403 REAUTH_REQUIRED, see withFreshSignIn).
-export type ManageUserFormData = { user?: UpdateUser | NewTemporaryPassword; isReauth?: boolean };
+export type ManageUserFormData = { user?: UpdateUser | CreateTemporaryPassword; isReauth?: boolean };
 
 // A user with no username yet gets one with their new temporary password.
 export const usernameFormSchema = object({ username: usernameSchema });
@@ -16,12 +16,12 @@ export type UsernameFormValues = InferType<typeof usernameFormSchema>;
 export const USERNAME_FORM_DEFAULT_VALUES: UsernameFormValues = { username: '' };
 
 // The admin manages one user at a time: these are the three changes, each confirmed in its own dialog.
-export const USER_CHANGE = {
+export const UserChange = {
   ROLE: 'role',
   TEMPORARY_PASSWORD: 'temporaryPassword',
   DELETE: 'delete',
 } as const;
-export type UserChange = (typeof USER_CHANGE)[keyof typeof USER_CHANGE];
+export type UserChange = (typeof UserChange)[keyof typeof UserChange];
 
 // Why the last admin's "Make member" and "Delete user" are disabled (docs/GLOSSARY.md: there is always one admin).
 export const LAST_ADMIN_REASON = 'There must always be at least one admin. Make someone else an admin first.';
@@ -54,9 +54,12 @@ export function makeRoleLabel(role: UserRoleUtil): string {
   return `Make ${USER_ROLE_LABELS[role].toLowerCase()}`;
 }
 
+const ROLE_ARTICLE: Record<UserRoleUtil, string> = {
+  [UserRoleUtil.ADMIN]: 'an',
+  [UserRoleUtil.MEMBER]: 'a',
+};
+
 // "an admin" / "a member".
 export function roleWithArticle(role: UserRoleUtil): string {
-  const article = role === UserRoleUtil.ADMIN ? 'an' : 'a';
-
-  return `${article} ${USER_ROLE_LABELS[role].toLowerCase()}`;
+  return `${ROLE_ARTICLE[role]} ${USER_ROLE_LABELS[role].toLowerCase()}`;
 }

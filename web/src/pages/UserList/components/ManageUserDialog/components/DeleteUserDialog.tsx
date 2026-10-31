@@ -31,7 +31,7 @@ function DeleteUserDialog({ user, onClose, onDeleted }: Props) {
       title={`Delete ${name}?`}
       description={`Their collections, items and tags are deleted with them, for good. Funkos stay in the catalogue, and photos they added stay too. ${SIGNS_OUT_EVERYWHERE}`}
       nextStep={`Then ${name} is deleted.`}
-      needsReauth={change.needsReauth}
+      isReauthNeeded={change.isReauthNeeded}
       isSaving={change.isSaving}
       failure={change.failure}
       onClose={onClose}
@@ -41,7 +41,7 @@ function DeleteUserDialog({ user, onClose, onDeleted }: Props) {
           confirmIcon={<Trash2 data-icon="inline-start" aria-hidden="true" />}
           isDestructive
           isSaving={change.isSaving}
-          needsReauth={change.needsReauth}
+          isReauthNeeded={change.isReauthNeeded}
           onConfirm={() => change.submit(HttpVerbsUtil.DELETE)}
         />
       }

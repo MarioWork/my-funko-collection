@@ -182,6 +182,7 @@ describe('PATCH /users/:userId', () => {
     const response = await changeRole(admin, 999_999, 'ADMIN');
 
     expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('returns 400 when the role or a key is not allowed', async () => {
@@ -194,6 +195,10 @@ describe('PATCH /users/:userId', () => {
     ];
 
     expect(answers.map((answer) => answer.statusCode)).toEqual([400, 400]);
+    expect(answers.map((answer) => answer.json<{ code: string }>().code)).toEqual([
+      'VALIDATION_ERROR',
+      'VALIDATION_ERROR',
+    ]);
   });
 });
 
@@ -267,6 +272,7 @@ describe('POST /users/:userId/temporary-password', () => {
     const response = await newTemporaryPassword(admin, luke.id, { username: 'skywalker' });
 
     expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
     const row = await prisma.user.findUniqueOrThrow({ where: { id: luke.id }, select: { username: true } });
     expect(row.username).toBe('luke');
   });
@@ -290,6 +296,21 @@ describe('POST /users/:userId/temporary-password', () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json()).toMatchObject({ code: 'CONFLICT' });
+  });
+
+  it('returns 400 VALIDATION_ERROR when the username or a key is not allowed', async () => {
+    const admin = await signIn(app);
+    const luke = await createUser('Luke');
+
+    const answers = [
+      await newTemporaryPassword(admin, luke.id, { username: 'luke skywalker' }),
+      await newTemporaryPassword(admin, luke.id, { username: 'luke', password: 'my own choice of password' }),
+    ];
+
+    expect(answers.map((answer) => answer.json<{ code: string }>().code)).toEqual([
+      'VALIDATION_ERROR',
+      'VALIDATION_ERROR',
+    ]);
   });
 
   it('returns 403 REAUTH_REQUIRED when the admin signed in more than 10 minutes ago', async () => {
@@ -317,10 +338,20 @@ describe('POST /users/:userId/temporary-password', () => {
     const response = await newTemporaryPassword(admin, 999_999, { username: 'nobody' });
 
     expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
 describe('DELETE /users/:userId', () => {
+  it('returns 400 VALIDATION_ERROR when the user id is not a number', async () => {
+    const admin = await signIn(app);
+
+    const response = await admin.inject({ method: 'DELETE', url: '/users/abc' });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
   it('deletes the user with their collections, items, tags and sessions, and keeps the catalogue funko', async () => {
     const admin = await signIn(app);
     const luke = await createUser('Luke');
@@ -387,5 +418,6 @@ describe('DELETE /users/:userId', () => {
     const response = await removeUser(admin, 999_999);
 
     expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ code: 'NOT_FOUND' });
   });
 });

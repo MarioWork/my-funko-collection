@@ -17,10 +17,10 @@ export const UpdateUserSchema = object({
 
 // A user with no username yet needs one to use the temporary password (the API answers 400 USERNAME_REQUIRED
 // otherwise); one who has a username keeps it, and the request leaves it out.
-export const NewTemporaryPasswordSchema = object({
+export const CreateTemporaryPasswordSchema = object({
   username: usernameSchema.optional(),
 });
 
 export type CreateUser = InferType<typeof CreateUserSchema>;
 export type UpdateUser = InferType<typeof UpdateUserSchema>;
-export type NewTemporaryPassword = InferType<typeof NewTemporaryPasswordSchema>;
+export type CreateTemporaryPassword = InferType<typeof CreateTemporaryPasswordSchema>;
