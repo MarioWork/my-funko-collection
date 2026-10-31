@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { badRequest, conflict, noContent, notFound, toItemModel } from '@mocks/mockResponses';
+import { badRequest, conflict, noContent, notFound, tagsNotFound, toItemModel } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import { nowIso } from '@mocks/mockStoreUtils';
 import type {
@@ -26,8 +26,9 @@ export default (baseUrl: string) => [
 
     const { tagIds, ...fields } = (await request.json()) as UpdateCollectionItem;
 
-    if (tagIds?.some((tagId) => !mockStore.tags.some((tag) => tag.id === tagId)))
-      return badRequest('One or more tagIds do not exist');
+    const missingTags = tagsNotFound(tagIds ?? []);
+
+    if (missingTags) return missingTags;
 
     Object.assign(row, fields, tagIds ? { tagIds: [...new Set(tagIds)] } : {}, { updatedAt: nowIso() });
 

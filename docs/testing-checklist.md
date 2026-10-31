@@ -216,6 +216,8 @@ covers what only a person notices: how it looks, feels, reads and recovers.
 - [ ] **Category:** cannot be deleted while funkos use it (disabled, with the reason).
 - [ ] **Series:** deleting it keeps its funkos, now with no series.
 - [ ] **Tag:** deleting it only removes the label from items.
+- [ ] **Tags are your own:** signed in as a second user, the Tags page, the tag filters and the search suggestions
+      show only that user's tags, and they may reuse a name the first user has.
 
 ## 10. Images page
 

@@ -1,7 +1,7 @@
 import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { badRequest, conflict, created, notFound, toItemModel } from '@mocks/mockResponses';
+import { conflict, created, notFound, tagsNotFound, toItemModel } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockItemRow } from '@mocks/mockStore.type';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
@@ -22,8 +22,9 @@ export default (baseUrl: string) => [
 
     const tagIds = [...new Set(body.tagIds ?? [])];
 
-    if (tagIds.some((tagId) => !mockStore.tags.some((tag) => tag.id === tagId)))
-      return badRequest('One or more tagIds do not exist');
+    const missingTags = tagsNotFound(tagIds);
+
+    if (missingTags) return missingTags;
 
     const existing = mockStore.items.find(
       (item) => item.collectionId === collection.id && item.funkoId === body.funkoId,

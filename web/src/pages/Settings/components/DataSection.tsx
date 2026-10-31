@@ -8,7 +8,7 @@ function DataSection() {
   return (
     <SettingsSection
       title="Data"
-      description="A copy of the catalogue and your own collections, to keep or to open in a spreadsheet."
+      description="A copy of the catalogue and your own collections and tags, to keep or to open in a spreadsheet."
     >
       <div className="flex flex-wrap gap-2">
         <DownloadLink href={exportService.getExportJsonUrl()} variant="secondary">

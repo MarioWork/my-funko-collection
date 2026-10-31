@@ -110,7 +110,7 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 | `/collections`, `/collections/:id`  | Your lists and their items (table on desktop, cards on phones)                                           |
 | `/items`                            | Every item across collections (filter by tag to find a box)                                              |
 | `/search`                           | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                            |
-| `/categories`, `/tags`, `/settings` | Manage pages, theme, default collection, "Adding to" defaults, exports                                   |
+| `/categories`, `/tags`, `/settings` | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports               |
 | `/images`                           | Admin group, admins only: every stored image, loose files included, with who uploaded it and when        |
 | `/settings` → Security              | Passkeys (add, remove), sign out, sign out everywhere                                                    |
 | `/login`                            | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                   |
@@ -163,7 +163,8 @@ HttpOnly cookie the app never sees.
   has no password until one is set (the mock store keeps it as typed). Mario is an admin; `setMockUserRole()`
   (tests) makes him a member, and `requireAdmin.mock.handler.ts` then answers 403 `ADMIN_ONLY` on the admin-only
   routes, like the API. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
-  mock user (`shellRoute()` for a table that needs it placed by hand).
+  mock user (`shellRoute()` for a table that needs it placed by hand). The store holds only Mario's own collections,
+  items and tags, as the API sends them; an item write naming a tag that is not in it answers 404, like the API.
 - **E2E.** `auth.e2e.test.ts` runs the real ceremonies against Chrome's virtual authenticator (the
   `virtualAuthenticator` fixture): first run, sign out, sign back in.
 

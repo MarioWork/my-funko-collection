@@ -164,6 +164,16 @@ export function notFound(entity: string, id: string | number): Response {
   return errorResponse(NOT_FOUND_STATUS, NOT_FOUND_ERROR_CODE, `${entity} ${id} not found`);
 }
 
+// The 404 the API answers when an item write names a tag that is not one of the user's own (the store holds only
+// theirs); undefined when every id is one of them.
+export function tagsNotFound(tagIds: number[]): Response | undefined {
+  const missingIds = [...new Set(tagIds)].filter((tagId) => !mockStore.tags.some((tag) => tag.id === tagId));
+
+  if (missingIds.length === 0) return undefined;
+
+  return notFound('Tag', missingIds.join(', '));
+}
+
 export function conflict(message: string, existingId?: number): Response {
   return errorResponse(CONFLICT_STATUS, CONFLICT_ERROR_CODE, message, existingId);
 }
