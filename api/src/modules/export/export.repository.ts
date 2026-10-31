@@ -1,4 +1,5 @@
 import type { Prisma } from '../../generated/prisma/client.ts';
+import { visibleTo } from '../../lib/catalogueVisibility.ts';
 import { prisma } from '../../lib/prisma.ts';
 
 const NAME_SELECT = { id: true, name: true } as const;
@@ -52,16 +53,22 @@ const ITEM_TAG_SELECT = { collectionItemId: true, tagId: true } as const satisfi
 const BY_ID = { id: 'asc' } as const;
 
 // Explicit columns, ordered by id so two exports of the same data are byte-identical. The catalogue (categories,
-// series, funkos, images) is whole; collections, tags, items and the tags on them are only `userId`'s own.
+// series, funkos, images) is what `userId` sees of it (approved, plus what they sent in); collections, tags, items
+// and the tags on them are only `userId`'s own.
 export const exportRepository = {
-  categories: () => prisma.category.findMany({ select: NAME_SELECT, orderBy: BY_ID }),
+  categories: (userId: number) =>
+    prisma.category.findMany({ where: visibleTo(userId), select: NAME_SELECT, orderBy: BY_ID }),
 
-  series: () => prisma.series.findMany({ select: NAME_SELECT, orderBy: BY_ID }),
+  series: (userId: number) => prisma.series.findMany({ where: visibleTo(userId), select: NAME_SELECT, orderBy: BY_ID }),
 
-  funkos: () => prisma.funko.findMany({ select: FUNKO_SELECT, orderBy: BY_ID }),
+  funkos: (userId: number) => prisma.funko.findMany({ where: visibleTo(userId), select: FUNKO_SELECT, orderBy: BY_ID }),
 
-  images: () =>
-    prisma.funkoImage.findMany({ select: IMAGE_SELECT, orderBy: [{ funkoId: 'asc' }, { position: 'asc' }] }),
+  images: (userId: number) =>
+    prisma.funkoImage.findMany({
+      where: { funko: visibleTo(userId) },
+      select: IMAGE_SELECT,
+      orderBy: [{ funkoId: 'asc' }, { position: 'asc' }],
+    }),
 
   collections: (userId: number) =>
     prisma.collection.findMany({ where: { userId }, select: COLLECTION_SELECT, orderBy: BY_ID }),

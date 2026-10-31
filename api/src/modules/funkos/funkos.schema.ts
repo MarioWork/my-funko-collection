@@ -4,6 +4,7 @@ import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagina
 import { BooleanQuerySchema, ContainsQuerySchema, IdListQuerySchema } from '../../lib/queryParams.ts';
 import { FUNKO_TYPES, FunkoSummarySchema } from './funkos.type.ts';
 import { FunkoImageResponseSchema } from './images/funkoImages.type.ts';
+import { SUBMISSION_STATUSES } from '../submissions/submissions.type.ts';
 
 export const FUNKO_NAME_MAX_LENGTH = 150;
 export const FUNKO_NUMBER_MAX_LENGTH = 20;
@@ -95,6 +96,10 @@ export const CollectionSummarySchema = z.object({ id: z.number().int(), name: z.
 
 export const FunkoResponseSchema = FunkoSummarySchema.extend({
   collections: z.array(CollectionSummarySchema),
+  // APPROVED: in the catalogue. Anything else is a submission, which only its sender (and admins) see.
+  status: z.enum(SUBMISSION_STATUSES),
+  // The signed-in user sent it in: while it waits, they may change it and its images.
+  isSubmittedByMe: z.boolean(),
   // Present only on a `q` search: which fields the query words hit.
   matchedOn: z.array(z.enum(FUNKO_MATCH_FIELDS)).optional(),
   createdAt: z.iso.datetime(),

@@ -118,15 +118,34 @@ describe('POST /categories', () => {
     expect(response.json()).toMatchObject({ code: 'CONFLICT' });
   });
 
-  it('returns 403 ADMIN_ONLY and creates nothing when a member sends it', async () => {
+  it('creates an approved category when an admin sends it', async () => {
+    const response = await api.inject({ method: 'POST', url: URL, payload: { name: 'Pop! Games' } });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({ name: 'Pop! Games', status: 'APPROVED' });
+  });
+
+  it('creates a waiting category only that member sees when a member sends it', async () => {
     const member = await signIn(app, { role: 'MEMBER' });
 
     const response = await member.inject({ method: 'POST', url: URL, payload: { name: 'Pop! Games' } });
 
-    expect(response.statusCode).toBe(403);
-    expect(response.json()).toMatchObject({ code: 'ADMIN_ONLY' });
-    const list = await api.inject({ method: 'GET', url: URL });
-    expect(list.json<{ totalResultNumber: number }>().totalResultNumber).toBe(0);
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({ name: 'Pop! Games', status: 'WAITING' });
+    const ownList = await member.inject({ method: 'GET', url: URL });
+    expect(ownList.json<{ data: { name: string }[] }>().data.map(({ name }) => name)).toEqual(['Pop! Games']);
+    const adminList = await api.inject({ method: 'GET', url: URL });
+    expect(adminList.json<{ totalResultNumber: number }>().totalResultNumber).toBe(0);
+  });
+
+  it('returns 409 with the existing id when a member types a name the catalogue has', async () => {
+    const existing = await createCategory('Pop! Games');
+    const member = await signIn(app, { role: 'MEMBER' });
+
+    const response = await member.inject({ method: 'POST', url: URL, payload: { name: 'Pop! Games' } });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'CONFLICT', existingId: existing.id });
   });
 });
 

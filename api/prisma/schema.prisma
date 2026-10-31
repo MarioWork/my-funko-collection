@@ -55,8 +55,8 @@ enum SignInMethod {
   @@map("sign_in_method")
 }
 
-// What a user may do. An admin manages the catalogue (funkos, categories, series, images); a member only their own
-// collections, items and tags.
+// What a user may do. An admin manages the catalogue (funkos, categories, series, images); a member keeps their own
+// collections, items and tags, and sends new funkos in as submissions.
 enum UserRole {
   ADMIN
   MEMBER
@@ -64,57 +64,95 @@ enum UserRole {
   @@map("user_role")
 }
 
+// Where a funko, category or series stands in the catalogue (docs/adr/0001-shared-catalogue-own-collections.md).
+// An admin's new one is APPROVED at once; a member's is a WAITING submission only its sender sees until an admin
+// approves it, rejects it, or merges it into one already there.
+enum SubmissionStatus {
+  WAITING
+  APPROVED
+  REJECTED
+  MERGED
+
+  @@map("submission_status")
+}
+
 // A Funko line as printed on the box: "Pop! Marvel", "Pop! Television", "Pop! Star Wars".
 model Category {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique(map: "categories_name_uidx")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            Int              @id @default(autoincrement())
+  // Unique in the approved catalogue, and among one member's waiting ones (partial indexes in the migration).
+  name          String
+  status        SubmissionStatus @default(APPROVED)
+  // The member who typed it in with a submission; null for one an admin added. Deleting that user deletes the ones
+  // never approved (a trigger in the migration) and clears this on the rest.
+  submittedById Int?             @map("submitted_by_id")
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  funkos Funko[]
+  funkos      Funko[]
+  submittedBy User?   @relation("CategorySubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
 
   @@index([createdAt], map: "categories_created_at_idx")
+  @@index([submittedById], map: "categories_submitted_by_id_idx")
   @@map("categories")
 }
 
 // The show, film or game a figure comes from: "Daredevil: Born Again", "The Mandalorian". Optional on a funko.
 model Series {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique(map: "series_name_uidx")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            Int              @id @default(autoincrement())
+  // Unique in the approved catalogue, and among one member's waiting ones (partial indexes in the migration).
+  name          String
+  status        SubmissionStatus @default(APPROVED)
+  // The member who typed it in with a submission; null for one an admin added. Deleting that user deletes the ones
+  // never approved (a trigger in the migration) and clears this on the rest.
+  submittedById Int?             @map("submitted_by_id")
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  funkos Funko[]
+  funkos      Funko[]
+  submittedBy User?   @relation("SeriesSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
 
   @@index([createdAt], map: "series_created_at_idx")
+  @@index([submittedById], map: "series_submitted_by_id_idx")
   @@map("series")
 }
 
 // One figure in the catalog. Numbers repeat across lines, and the same number exists as a normal, a chase and a
 // sticker exclusive, so the natural key is (category, number, name, isChase, exclusive).
 model Funko {
-  id         Int       @id @default(autoincrement())
-  name       String
+  id            Int              @id @default(autoincrement())
+  name          String
   // Text on purpose: boxes carry "01", "1300" and "SE".
-  number     String
-  type       FunkoType @default(POP)
-  categoryId Int       @map("category_id")
+  number        String
+  type          FunkoType        @default(POP)
+  categoryId    Int              @map("category_id")
   // Optional: the series it belongs to. Deleting the series clears it here.
-  seriesId   Int?      @map("series_id")
-  isChase    Boolean   @default(false) @map("is_chase")
+  seriesId      Int?             @map("series_id")
+  isChase       Boolean          @default(false) @map("is_chase")
   // "SDCC 2024", "Hot Topic"; empty string means a regular release (not null, so it can be part of a unique index).
-  exclusive  String    @default("")
-  // The UPC/EAN printed on the box, when known, in its 13-digit form. Many funkos may have none.
-  barcode    String?   @unique(map: "funkos_barcode_uidx")
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  exclusive     String           @default("")
+  // The UPC/EAN printed on the box, when known, in its 13-digit form. Many funkos may have none. Unique in the
+  // approved catalogue and among one member's waiting submissions (partial indexes in the migration), so two members
+  // may each send in the same box.
+  barcode       String?
+  // APPROVED: in the catalogue for everyone. Anything else: a submission only its sender (and admins) can see.
+  status        SubmissionStatus @default(APPROVED)
+  // The member who sent it in; null for a funko an admin added. Deleting that user deletes their submissions that
+  // never joined the catalogue (a trigger in the migration) and clears this on the approved ones.
+  submittedById Int?             @map("submitted_by_id")
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   category        Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   series          Series?          @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  submittedBy     User?            @relation("FunkoSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
   images          FunkoImage[]
   collectionItems CollectionItem[]
 
-  @@unique([categoryId, number, name, isChase, exclusive], map: "funkos_identity_uidx")
+  // The identity (category, number, name, chase, exclusive) is unique like the barcode: a partial index in the
+  // migration, approved catalogue and each member's waiting submissions apart.
+  @@index([submittedById], map: "funkos_submitted_by_id_idx")
+  // Plain, beside the partial unique one: lookups by barcode also look at waiting submissions.
+  @@index([barcode], map: "funkos_barcode_idx")
   @@index([categoryId], map: "funkos_category_id_idx")
   @@index([seriesId], map: "funkos_series_id_idx")
   @@index([name], map: "funkos_name_idx")
@@ -253,11 +291,14 @@ model User {
   createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  passkeys       Passkey[]
-  sessions       Session[]
-  collections    Collection[]
-  tags           Tag[]
-  uploadedImages FunkoImage[]
+  passkeys            Passkey[]
+  sessions            Session[]
+  collections         Collection[]
+  tags                Tag[]
+  uploadedImages      FunkoImage[]
+  funkoSubmissions    Funko[]      @relation("FunkoSubmissions")
+  categorySubmissions Category[]   @relation("CategorySubmissions")
+  seriesSubmissions   Series[]     @relation("SeriesSubmissions")
 
   @@map("users")
 }

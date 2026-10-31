@@ -64,8 +64,9 @@ async function assertCollectionExists(userId: number, collectionId: number): Pro
   await getCollection(userId, collectionId);
 }
 
-async function assertFunkoExists(funkoId: number): Promise<void> {
-  await getFunkoSummary(funkoId);
+// A funko the user sees in the catalogue: approved, or one they sent in themselves.
+async function assertFunkoExists(userId: number, funkoId: number): Promise<void> {
+  await getFunkoSummary(userId, funkoId);
 }
 
 async function assertNotAlreadyInCollection(collectionId: number, funkoId: number): Promise<void> {
@@ -116,7 +117,7 @@ export async function addCollectionItem(
   { tagIds, ...data }: CreateCollectionItem,
 ): Promise<CollectionItemResponse> {
   await assertCollectionExists(userId, collectionId);
-  await assertFunkoExists(data.funkoId);
+  await assertFunkoExists(userId, data.funkoId);
   await assertOwnTags(userId, tagIds ?? []);
   await assertNotAlreadyInCollection(collectionId, data.funkoId);
 

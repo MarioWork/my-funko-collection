@@ -1,7 +1,8 @@
+import type { InjectOptions } from 'fastify';
 import { buildApp, type App } from '../../app.ts';
 import { resetTestDb } from '../../testDb.ts';
 import { SESSION_COOKIE_NAME } from '../../lib/sessionCookie.ts';
-import { createPasskeyRow, createTag, signIn } from '../../testFixtures.ts';
+import { createFunko, createPasskeyRow, createTag, makeImage, signIn, toFormData } from '../../testFixtures.ts';
 import type { AuthenticationOptionsResponse, RegistrationOptionsResponse } from './auth.schema.ts';
 import { addSetupCode, deleteSignIns } from './auth.service.ts';
 import { TestPasskey } from './TestPasskey.ts';
@@ -34,25 +35,16 @@ const ALLOWED_WITH_TEMPORARY_PASSWORD = new Set([
   'POST /auth/logout',
   'POST /auth/logout-everywhere',
 ]);
-// The paths under which every write changes the catalogue, so every write there must be admin-only.
+// The paths under which every write changes the catalogue, so every write there must be admin-only or a submission
+// route below.
 const CATALOGUE_PATH_PREFIXES = ['/funkos', '/categories', '/series'];
-// Routes only an admin may call: catalogue writes, the images lists and the users. A member gets 403 ADMIN_ONLY on
-// these and never on any other route.
+// Routes only an admin may call: changing a category or series, the images lists and the users. A member gets 403
+// ADMIN_ONLY on these from the route gate, and never on any other route without a funko of the catalogue.
 const ADMIN_ONLY_ROUTES = new Set([
-  'POST /categories',
   'PATCH /categories/{categoryId}',
   'DELETE /categories/{categoryId}',
-  'POST /series',
   'PATCH /series/{seriesId}',
   'DELETE /series/{seriesId}',
-  'POST /funkos',
-  'PATCH /funkos/{funkoId}',
-  'DELETE /funkos/{funkoId}',
-  'POST /funkos/{funkoId}/images',
-  'POST /funkos/{funkoId}/images/from-url',
-  'PATCH /funkos/{funkoId}/images/order',
-  'POST /funkos/{funkoId}/images/{imageId}/rotate',
-  'DELETE /funkos/{funkoId}/images/{imageId}',
   'GET /images',
   'GET /images/groups',
   'GET /export/images.csv',
@@ -64,6 +56,31 @@ const ADMIN_ONLY_ROUTES = new Set([
   'POST /users/{userId}/temporary-password',
   'DELETE /users/{userId}',
 ]);
+// Catalogue writes open to members, for their submissions: a member's new funko, category or series waits for an
+// admin, and a member changes only their own waiting funko and its images. The service refuses a funko of the
+// catalogue with the same 403 ADMIN_ONLY (checked below with a body each route accepts).
+const SUBMISSION_ROUTES = new Set([
+  'POST /categories',
+  'POST /series',
+  'POST /funkos',
+  'PATCH /funkos/{funkoId}',
+  'DELETE /funkos/{funkoId}',
+  'POST /funkos/{funkoId}/images',
+  'POST /funkos/{funkoId}/images/from-url',
+  'PATCH /funkos/{funkoId}/images/order',
+  'POST /funkos/{funkoId}/images/{imageId}/rotate',
+  'DELETE /funkos/{funkoId}/images/{imageId}',
+]);
+// The submission routes that change one funko, each with a body it accepts, so the request reaches the service.
+const FUNKO_WRITE_BODIES: Record<string, () => Promise<Pick<InjectOptions, 'payload'>>> = {
+  'PATCH /funkos/{funkoId}': async () => ({ payload: { name: 'Renamed' } }),
+  'DELETE /funkos/{funkoId}': async () => ({}),
+  'POST /funkos/{funkoId}/images': async () => ({ payload: toFormData([{ buffer: await makeImage() }]) }),
+  'POST /funkos/{funkoId}/images/from-url': async () => ({ payload: { url: 'https://example.com/photo.png' } }),
+  'PATCH /funkos/{funkoId}/images/order': async () => ({ payload: { imageIds: [1] } }),
+  'POST /funkos/{funkoId}/images/{imageId}/rotate': async () => ({ payload: { degrees: 90 } }),
+  'DELETE /funkos/{funkoId}/images/{imageId}': async () => ({}),
+};
 // The rate limit counts per address: each test speaks from its own, so no test eats another's allowance.
 let addressCounter = 0;
 
@@ -514,8 +531,9 @@ describe('ANY /<every admin-only route>', () => {
   });
 
   // The admin gate is opt-in (`isAdminOnly` on the route), so a new catalogue write that forgets the flag would let
-  // members change the catalogue. Every write under the catalogue paths must be on the list above.
-  it('puts every catalogue write behind the admin gate when the app registers its routes', async () => {
+  // members change the catalogue. Every write under the catalogue paths must be admin-only or a submission route,
+  // whose service checks the funko (below).
+  it('puts every catalogue write behind the admin gate or a submission check when the app registers its routes', async () => {
     await app.ready();
 
     const document = app.swagger() as { paths: Record<string, Record<string, unknown>> };
@@ -524,10 +542,36 @@ describe('ANY /<every admin-only route>', () => {
       .flatMap(([path, operations]) => Object.keys(operations).map((method) => `${method.toUpperCase()} ${path}`))
       .filter(isWriteRoute);
 
-    const missingWrites = catalogueWrites.filter((route) => !ADMIN_ONLY_ROUTES.has(route));
+    const missingWrites = catalogueWrites.filter(
+      (route) => !ADMIN_ONLY_ROUTES.has(route) && !SUBMISSION_ROUTES.has(route),
+    );
 
     expect(catalogueWrites.length).toBeGreaterThan(0);
     expect(missingWrites).toEqual([]);
+  });
+});
+
+describe('ANY /<every submission route that changes one funko>', () => {
+  it('returns 403 ADMIN_ONLY and changes nothing when a member aims it at a funko of the catalogue', async () => {
+    const funkoRoutes = [...SUBMISSION_ROUTES].filter((route) => route.includes('{funkoId}'));
+
+    expect(Object.keys(FUNKO_WRITE_BODIES).sort()).toEqual(funkoRoutes.sort());
+
+    for (const route of funkoRoutes) {
+      const [method = 'GET', path = '/'] = route.split(' ');
+      const funko = await createFunko({ name: 'Catalogue funko' });
+      const member = await signIn(app, { role: 'MEMBER' });
+      const url = path.replace('{funkoId}', String(funko.id)).replace('{imageId}', '1');
+      const body = await FUNKO_WRITE_BODIES[route]?.();
+
+      const response = await member.inject({ method, url, ...body });
+
+      const code = response.statusCode === 403 ? response.json<{ code: string }>().code : undefined;
+      expect({ route, code }).toEqual({ route, code: 'ADMIN_ONLY' });
+      const admin = await signIn(app);
+      const after = await admin.inject({ method: 'GET', url: `/funkos/${funko.id}` });
+      expect(after.json()).toMatchObject({ name: 'Catalogue funko', images: [] });
+    }
   });
 });
 

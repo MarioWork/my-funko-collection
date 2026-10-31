@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { IdParamSchema } from '../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { ContainsQuerySchema } from '../../lib/queryParams.ts';
+import { SUBMISSION_STATUSES } from '../submissions/submissions.type.ts';
 
 export const CATEGORY_NAME_MAX_LENGTH = 100;
 
@@ -27,6 +28,8 @@ export const CategoryResponseSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
+    // WAITING: typed in by the signed-in member with a submission, seen only by them until an admin approves it.
+    status: z.enum(SUBMISSION_STATUSES),
     funkoCount: z.number().int(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),

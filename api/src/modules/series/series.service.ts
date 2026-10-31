@@ -1,47 +1,79 @@
-import { NotFoundError } from '../../lib/httpErrors.ts';
-import { seriesRepository, type SeriesRow } from './series.repository.ts';
+import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
+import type { SignedInUser } from '../auth/auth.type.ts';
+import type { SubmissionStatus } from '../submissions/submissions.type.ts';
+import { seriesRepository, type SeriesRow, type NameScope } from './series.repository.ts';
 import type {
-  CreateSeries,
-  ListSeriesQuery,
   SeriesListResponse,
   SeriesResponse,
+  CreateSeries,
+  ListSeriesQuery,
   UpdateSeries,
 } from './series.schema.ts';
 
 const ENTITY = 'Series';
 
+type SeriesAccess = { status: SubmissionStatus; submittedById: number | null };
+
 function toResponse(row: SeriesRow): SeriesResponse {
   return {
     id: row.id,
     name: row.name,
+    status: row.status,
     funkoCount: row.funkoCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-export async function getSeriesList(query: ListSeriesQuery): Promise<SeriesListResponse> {
-  const { data, totalResultNumber } = await seriesRepository.list(query);
+// An admin sees every series; anyone else the approved ones and the ones they typed in themselves.
+function canSee(user: SignedInUser, series: SeriesAccess): boolean {
+  const isApproved = series.status === 'APPROVED';
+  const isOwn = series.submittedById === user.userId;
+
+  return user.isAdmin || isApproved || isOwn;
+}
+
+// A member's new series waits with their submission; an admin's joins the catalogue at once.
+function scopeOf(user: SignedInUser): NameScope {
+  return { submittedById: user.isAdmin ? null : user.userId };
+}
+
+// A member typing a name the catalogue already has gets a 409 pointing at it, so the form can pick that one. The
+// database refuses a second one in the same scope (the partial unique indexes) with a plain 409.
+async function assertNameFree(name: string, scope: NameScope): Promise<void> {
+  const isMemberScope = scope.submittedById !== null;
+  const inCatalogue = isMemberScope ? await seriesRepository.findIdByName(name, { submittedById: null }) : undefined;
+
+  if (inCatalogue) throw new ConflictError('This series is already in the catalogue', inCatalogue.id);
+}
+
+export async function getSeriesList(userId: number, query: ListSeriesQuery): Promise<SeriesListResponse> {
+  const { data, totalResultNumber } = await seriesRepository.list(userId, query);
 
   return { data: data.map(toResponse), totalResultNumber, currentPage: query.page };
 }
 
-export async function getSeries(id: number): Promise<SeriesResponse> {
-  const row = await seriesRepository.findById(id);
+export async function getSeries(user: SignedInUser, id: number): Promise<SeriesResponse> {
+  const row = await seriesRepository.findById(user.userId, id);
 
-  if (!row) throw new NotFoundError(ENTITY, id);
-
-  return toResponse(row);
-}
-
-export async function addSeries(data: CreateSeries): Promise<SeriesResponse> {
-  const row = await seriesRepository.create(data);
+  if (!row || !canSee(user, row)) throw new NotFoundError(ENTITY, id);
 
   return toResponse(row);
 }
 
-export async function updateSeries(id: number, data: UpdateSeries): Promise<SeriesResponse> {
-  const row = await seriesRepository.update(id, data);
+export async function addSeries(user: SignedInUser, data: CreateSeries): Promise<SeriesResponse> {
+  const scope = scopeOf(user);
+  const status: SubmissionStatus = scope.submittedById === null ? 'APPROVED' : 'WAITING';
+
+  await assertNameFree(data.name, scope);
+
+  const row = await seriesRepository.create(user.userId, { ...data, status, submittedById: scope.submittedById });
+
+  return toResponse(row);
+}
+
+export async function updateSeries(user: SignedInUser, id: number, data: UpdateSeries): Promise<SeriesResponse> {
+  const row = await seriesRepository.update(user.userId, id, data);
 
   if (!row) throw new NotFoundError(ENTITY, id);
 
@@ -53,4 +85,17 @@ export async function deleteSeries(id: number): Promise<void> {
   const deleted = await seriesRepository.delete(id);
 
   if (!deleted) throw new NotFoundError(ENTITY, id);
+}
+
+// For funkos: whether a funko sent in by `submitterId` may have this series. Every funko may use an approved
+// one; a waiting one only its own sender's waiting submissions (null: an approved funko, so approved ones only).
+export async function isUsableSeries(id: number, submitterId: number | null): Promise<boolean> {
+  const access = await seriesRepository.findAccess(id);
+
+  if (!access) return false;
+
+  const isApproved = access.status === 'APPROVED';
+  const isSendersWaiting = access.status === 'WAITING' && submitterId !== null && access.submittedById === submitterId;
+
+  return isApproved || isSendersWaiting;
 }

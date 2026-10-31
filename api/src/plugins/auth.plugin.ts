@@ -7,13 +7,16 @@ import { InternalError } from '../lib/errors.ts';
 import { ForbiddenError, UnauthorizedError } from '../lib/httpErrors.ts';
 import { SESSION_COOKIE_NAME } from '../lib/sessionCookie.ts';
 import { getSession, type AuthSession } from '../modules/auth/auth.service.ts';
+import type { SignedInUser } from '../modules/auth/auth.type.ts';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
     // Opt a route out of the sign-in check. Everything else, the image files included, needs a session.
     isPublic?: boolean;
-    // Only an admin may call it: catalogue writes (funkos, categories, series, images), the images lists and the
-    // users. A member gets 403 ADMIN_ONLY.
+    // Only an admin may call it: changing or deleting a category or series, the images lists and the users. A
+    // member gets 403 ADMIN_ONLY. Creating a funko, category or series, and changing a funko or its images, are open
+    // to members: their services make a member's new one a waiting submission and refuse (with the same 403) any
+    // change but to the member's own waiting submission.
     isAdminOnly?: boolean;
     // Still open to a session signed in with a temporary password: replacing it, and signing out. Every other
     // locked route answers 403 PASSWORD_CHANGE_REQUIRED until the user has chosen their own password.
@@ -72,6 +75,13 @@ export function signedInSession(request: FastifyRequest): AuthSession {
 // Whose collections a locked route works on.
 export function signedInUserId(request: FastifyRequest): number {
   return signedInSession(request).userId;
+}
+
+// Who calls a locked route and whether they are an admin: what a service needs to decide what they may change.
+export function signedInUser(request: FastifyRequest): SignedInUser {
+  const session = signedInSession(request);
+
+  return { userId: session.userId, isAdmin: session.userRole === 'ADMIN' };
 }
 
 async function readSession(request: FastifyRequest): Promise<AuthSession | null> {

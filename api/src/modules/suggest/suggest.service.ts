@@ -25,12 +25,13 @@ function toSummary(funko: FunkoResponse): FunkoSummary {
   };
 }
 
-// Funkos, categories and series come from the shared catalogue; collections and tags are the signed-in user's own.
+// Funkos, categories and series come from the shared catalogue (approved, plus what the user sent in themselves);
+// collections and tags are the signed-in user's own.
 export async function getSuggestions(userId: number, { q }: SuggestQuery): Promise<SuggestResponse> {
   const [funkoPage, categoryPage, seriesPage, collectionPage, tagPage] = await Promise.all([
     getFunkos(userId, { q, page: DEFAULT_PAGE, size: SUGGEST_FUNKO_LIMIT, direction: 'ASC' }),
-    getCategories({ ...NAME_SORT, name: q }),
-    getSeriesList({ ...NAME_SORT, name: q }),
+    getCategories(userId, { ...NAME_SORT, name: q }),
+    getSeriesList(userId, { ...NAME_SORT, name: q }),
     getCollections(userId, { ...NAME_SORT, name: q }),
     getTags(userId, { ...NAME_SORT, name: q }),
   ]);
