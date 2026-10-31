@@ -20,6 +20,10 @@ export const securityRoutes: RouteObject[] = [
     lazy: { action: async () => (await settingsActions()).deletePasskeyAction },
   },
   {
+    path: AUTH_ROUTES_PATHS.PASSWORD,
+    lazy: { action: async () => (await settingsActions()).setPasswordAction },
+  },
+  {
     path: AUTH_ROUTES_PATHS.SIGN_OUT,
     lazy: { action: async () => (await settingsActions()).signOutAction },
   },

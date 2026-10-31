@@ -35,11 +35,13 @@ COPY --chown=node:node prisma/migrations ./prisma/migrations
 USER node
 CMD ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
 
-# Runtime image (the default target): production dependencies (sharp's prebuilt binary included) and dist/ only.
+# Runtime image (the default target): production dependencies (sharp's prebuilt binary included), dist/ and assets/.
 FROM base AS runtime
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/package.json ./
+# Data files the code reads at start-up (the common-password list).
+COPY --chown=node:node assets ./assets
 # The compose volume mounts over /app/data/uploads; the folder exists so a first run without the volume works too.
 RUN mkdir -p /app/data/uploads && chown -R node:node /app/data
 USER node

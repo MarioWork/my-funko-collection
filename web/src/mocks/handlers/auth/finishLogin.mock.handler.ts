@@ -7,7 +7,7 @@ import { errorResponse, UNAUTHORIZED_STATUS } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import { nowIso } from '@mocks/mockStoreUtils';
 import { AuthApiErrorCodes } from '@services/authService/authService';
-import { readCeremonyResponse } from './authMockUtils';
+import { mockUserOf, readCeremonyResponse } from './authMockUtils';
 
 // Any well-formed answer signs in. The passkey it names gets its "last used" date when the mocks know it.
 export default (baseUrl: string) => [
@@ -32,6 +32,6 @@ export default (baseUrl: string) => [
     mockStore.auth.state = AuthStateUtil.SIGNED_IN;
     mockStore.auth.isSignInRecent = true;
 
-    return HttpResponse.json<AuthSessionApiModel>({ user: { name: mockStore.auth.userName } });
+    return HttpResponse.json<AuthSessionApiModel>({ user: mockUserOf(mockStore.auth) });
   }),
 ];

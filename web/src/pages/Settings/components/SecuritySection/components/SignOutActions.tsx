@@ -69,7 +69,7 @@ function SignOutActions() {
       <ConfirmDialog
         isOpen={isConfirmOpen}
         title="Sign out everywhere?"
-        description="This ends every sign-in, on this device and all the others. You'll need a passkey to get back in."
+        description="This ends every sign-in, on this device and all the others. You'll need a passkey or your password to get back in."
         confirmLabel="Sign out everywhere"
         isDestructive
         isPending={isEndingAll}

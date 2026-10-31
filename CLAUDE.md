@@ -1,7 +1,7 @@
 # My Funko Collection
 
 A self-hosted Funko Pop tracker for one person, run with Docker Compose on a LAN-only home server. One user signs in
-with a passkey (no passwords).
+with a passkey or a username and password.
 The global React/Node conventions apply; this file holds only what is specific to this repo.
 
 ## Layout
@@ -31,10 +31,12 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - Deleting a tag only removes the label from items. Deleting a collection removes its items, never the funkos.
 - "Owned" (the default) and "Wishlist" always exist from the first start: reference data in the custom migration
   `api/prisma/migrations/*_default_collections/`, not the seed. Each insert skips one that is already there.
-- Sign-in is passkeys only, for one user (`api/README.md` "Sign-in"). Every API
+- Sign-in is a passkey or a username + password (`docs/adr/0002-passwords-next-to-passkeys.md`, `api/README.md`
+  "Sign-in"). Passwords: 15+ characters, the built-in list `api/assets/common-passwords.txt` refused, argon2id via
+  Node's `crypto.argon2` (`api/src/lib/passwordHash.ts`), rate limited, never a lockout. Every API
   route and `/uploads` file needs a session unless it sets `config: { isPublic: true }`; keep that list tiny, and
   add new public routes to `PUBLIC_ROUTES` in `auth.route.test.ts`. Sessions are server-side rows (SHA-256 of an
-  HttpOnly cookie token), never JWTs or localStorage. No password, TOTP or "auth off" switch, not even in dev.
+  HttpOnly cookie token), never JWTs or localStorage. No TOTP, email or "auth off" switch, not even in dev.
 - Deliberate exceptions to the Node skills for auth (decided 2026-10-23): the check is a global `onRequest` hook in
   `auth.plugin.ts` with server-side cookie sessions, not `@fastify/jwt` + `preHandler: [app.authenticate]`
   (node-ts-api §9); random 256-bit tokens (session, setup code) are stored as plain SHA-256, not argon2 (they can't

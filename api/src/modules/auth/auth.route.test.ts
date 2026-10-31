@@ -24,6 +24,7 @@ const PUBLIC_ROUTES = new Set([
   'POST /auth/setup/verify',
   'POST /auth/login/options',
   'POST /auth/login/verify',
+  'POST /auth/login/password',
   'POST /auth/logout',
 ]);
 // The rate limit counts per address: each test speaks from its own, so no test eats another's allowance.
@@ -120,7 +121,7 @@ describe('GET /auth/status', () => {
 
     const response = await api.inject({ method: 'GET', url: `${URL}/status` });
 
-    expect(response.json()).toEqual({ state: 'signedIn', user: { name: 'Tester' } });
+    expect(response.json()).toEqual({ state: 'signedIn', user: { name: 'Tester', username: null } });
   });
 
   it('marks the answer no-store when any API route answers, so no cache keeps the collection', async () => {
@@ -158,7 +159,7 @@ describe('POST /auth/setup/verify', () => {
     });
 
     expect(verifyResponse.statusCode).toBe(200);
-    expect(verifyResponse.json()).toEqual({ user: { name: OWNER_NAME } });
+    expect(verifyResponse.json()).toEqual({ user: { name: OWNER_NAME, username: null } });
     const cookie = sessionCookieOf(verifyResponse.headers['set-cookie']) ?? '';
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('SameSite=Strict');
@@ -169,7 +170,7 @@ describe('POST /auth/setup/verify', () => {
       url: `${URL}/status`,
       cookies: { [SESSION_COOKIE_NAME]: tokenOf(verifyResponse.headers['set-cookie']) },
     });
-    expect(status.json()).toEqual({ state: 'signedIn', user: { name: OWNER_NAME } });
+    expect(status.json()).toEqual({ state: 'signedIn', user: { name: OWNER_NAME, username: null } });
   });
 
   it('returns 401 PASSKEY_FAILED when the passkey was made for another site', async () => {
@@ -277,7 +278,7 @@ describe('POST /auth/login/verify', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ user: { name: OWNER_NAME } });
+    expect(response.json()).toEqual({ user: { name: OWNER_NAME, username: null } });
     const newToken = tokenOf(response.headers['set-cookie']);
     expect(newToken).not.toBe(firstToken);
     const oldSession = await app.inject({

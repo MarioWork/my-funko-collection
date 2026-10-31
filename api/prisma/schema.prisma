@@ -210,12 +210,16 @@ model CollectionItemTag {
   @@map("collection_item_tags")
 }
 
-// The one person who signs in. A table (not a setting) so passkeys and sessions have something to point at.
+// The person who signs in. A table (not a setting) so passkeys and sessions have something to point at.
 model User {
   id             Int      @id @default(autoincrement())
   name           String
   // The random WebAuthn user handle (base64url), stored in every passkey made for this user. Never the row id.
   webauthnUserId String   @unique(map: "users_webauthn_user_id_uidx") @map("webauthn_user_id")
+  // What the user types to sign in with a password, stored lower-case. Null until they set a password.
+  username       String?  @unique(map: "users_username_uidx")
+  // An argon2id hash in PHC form ($argon2id$v=19$m=...,t=...,p=...$salt$hash). Never the password itself.
+  passwordHash   String?  @map("password_hash")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 

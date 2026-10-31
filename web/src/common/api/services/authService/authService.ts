@@ -12,13 +12,20 @@ import type {
   PasskeyListApiModel,
 } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
-import type { CreatePasskey, FinishLogin, FinishSetup, StartSetup } from './authService.type';
+import type {
+  CreatePasskey,
+  FinishLogin,
+  FinishSetup,
+  PasswordSignIn,
+  SetPassword,
+  StartSetup,
+} from './authService.type';
 
 const BASE_AUTH_URL = '/auth';
 
-// Passkeys only, one user. Every "start" call returns the options for a WebAuthn ceremony that the browser runs
-// (see @utils/passkeyUtils); the matching "finish" call sends the result. The session is an HttpOnly cookie the API
-// sets and clears itself: nothing here ever sees a token.
+// A passkey or a username and password, one user. Every passkey "start" call returns the options for a WebAuthn
+// ceremony that the browser runs (see @utils/passkeyUtils); the matching "finish" call sends the result. The session
+// is an HttpOnly cookie the API sets and clears itself: nothing here ever sees a token.
 export default {
   getStatus: async (): Promise<AuthStatusApiModel> => {
     const response = await axios.get<AuthStatusApiModel>(`${BASE_AUTH_URL}/status`);
@@ -52,6 +59,17 @@ export default {
       method: HttpVerbsUtil.POST,
       data: fields,
     }),
+
+  signInWithPassword: async (fields: PasswordSignIn): Promise<JSONResponseUtil<AuthSessionApiModel>> =>
+    axiosActions<AuthSessionApiModel>({
+      url: `${BASE_AUTH_URL}/login/password`,
+      method: HttpVerbsUtil.POST,
+      data: fields,
+    }),
+
+  // Sets or changes the username and password; needs a recent sign-in (403 REAUTH_REQUIRED otherwise).
+  setPassword: async (fields: SetPassword): Promise<JSONResponseUtil> =>
+    axiosActions({ url: `${BASE_AUTH_URL}/password`, method: HttpVerbsUtil.PUT, data: fields }),
 
   logout: async (): Promise<JSONResponseUtil> =>
     axiosActions({ url: `${BASE_AUTH_URL}/logout`, method: HttpVerbsUtil.POST }),
@@ -92,6 +110,7 @@ export const AuthApiErrorCodes = {
   SIGN_IN_FAILED: 'SIGN_IN_FAILED',
   LAST_PASSKEY: 'LAST_PASSKEY',
   REAUTH_REQUIRED: 'REAUTH_REQUIRED',
+  COMMON_PASSWORD: 'COMMON_PASSWORD',
   TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
 } as const;
 export type AuthApiErrorCodes = (typeof AuthApiErrorCodes)[keyof typeof AuthApiErrorCodes];

@@ -49,11 +49,14 @@ export type MockItemRow = {
 };
 
 export type MockPasskeyRow = PasskeyApiModel;
-// The one user and this browser's session. `isSignInRecent`: signed in within the last 10 minutes, which removing a
-// passkey needs (the API answers 403 REAUTH_REQUIRED otherwise).
+// The one user and this browser's session. `isSignInRecent`: signed in within the last 10 minutes, which changing a
+// passkey or the password needs (the API answers 403 REAUTH_REQUIRED otherwise). `username` and `password` stay null
+// until a password is set; the mocks keep the password as typed (the API keeps only an argon2id hash).
 export type MockAuth = {
   state: AuthState;
   userName: string;
+  username: string | null;
+  password: string | null;
   isSignInRecent: boolean;
   passkeys: MockPasskeyRow[];
 };
