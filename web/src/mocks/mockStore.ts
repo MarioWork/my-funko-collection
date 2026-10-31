@@ -14,6 +14,7 @@ import { createSeedData } from './mockSeed';
 import type { MockFunkoRow, MockStore } from './mockStore.type';
 import { nextId, nowIso, resetMockClock } from './mockStoreUtils';
 
+const SUBMISSION_NAME = 'Sent-in funko';
 const SUBMISSION_NUMBER = '9001';
 
 function createMockStore(): MockStore {
@@ -44,7 +45,7 @@ type MockSubmissionOptions = Partial<Pick<MockFunkoRow, 'name' | 'barcode' | 'st
 export function addMockSubmission(options: MockSubmissionOptions = {}): MockFunkoRow {
   const row: MockFunkoRow = {
     id: nextId(mockStore.funkos),
-    name: options.name ?? 'Sent-in funko',
+    name: options.name ?? SUBMISSION_NAME,
     number: SUBMISSION_NUMBER,
     type: FunkoTypeUtil.POP,
     categoryId: mockStore.categories[0]?.id ?? 1,

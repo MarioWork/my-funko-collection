@@ -14,14 +14,23 @@ export function isSubmittedByMockUser(row: MockSubmissionColumns): boolean {
   return row.submittedById === MOCK_USER_ID;
 }
 
-// In the lists, search, suggestions, counts and the barcode lookup: approved, or the signed-in user's own.
+// The catalogue the user browses (lists, search, suggestions, counts, the barcode lookup, adding to a collection):
+// approved, or the signed-in user's own waiting submission. A rejected or merged one is gone from it.
 export function isInMockCatalogue(row: MockSubmissionColumns): boolean {
+  const isApproved = row.status === SubmissionStatusUtil.APPROVED;
+  const isOwnWaiting = row.status === SubmissionStatusUtil.WAITING && isSubmittedByMockUser(row);
+
+  return isApproved || isOwnWaiting;
+}
+
+// What the user may read at all (by id, in the export): approved, or anything they sent in.
+export function isSentInOrApproved(row: MockSubmissionColumns): boolean {
   return row.status === SubmissionStatusUtil.APPROVED || isSubmittedByMockUser(row);
 }
 
-// Opened by id: an admin sees every row, anyone else only what the lists show them.
+// Opened by id: an admin sees every row, anyone else what they may read.
 export function canSeeMockRow(row: MockSubmissionColumns): boolean {
-  return isMockAdmin() || isInMockCatalogue(row);
+  return isMockAdmin() || isSentInOrApproved(row);
 }
 
 export function canEditMockFunko(row: MockSubmissionColumns): boolean {
@@ -47,6 +56,15 @@ export function catalogueCategories(): MockCategoryRow[] {
 
 export function catalogueSeries(): MockSeriesRow[] {
   return mockStore.series.filter(isInMockCatalogue);
+}
+
+// The export's funkos and categories: what the user may read, so their items of a rejected one still name it.
+export function readableFunkos(): MockFunkoRow[] {
+  return mockStore.funkos.filter(isSentInOrApproved);
+}
+
+export function readableCategories(): MockCategoryRow[] {
+  return mockStore.categories.filter(isSentInOrApproved);
 }
 
 // Whether a funko with this standing may use this category or series: an approved one always, a waiting one only

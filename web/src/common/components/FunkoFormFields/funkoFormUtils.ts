@@ -11,9 +11,14 @@ import {
   funkoTypeSchema,
 } from '@utils/funkoUtils';
 
+const WAITING_OPTION_SUFFIX = '(waiting for review)';
+
+// A category or series as the dropdowns show it.
+type ReferenceOption = Pick<CategoryApiModel, 'name' | 'status'>;
+
 // A category or series the member typed in with a submission says so in the dropdown: nobody else sees it yet.
-export function referenceOptionLabel({ name, status }: Pick<CategoryApiModel, 'name' | 'status'>): string {
-  return status === SubmissionStatusUtil.WAITING ? `${name} (waiting for review)` : name;
+export function referenceOptionLabel({ name, status }: ReferenceOption): string {
+  return status === SubmissionStatusUtil.WAITING ? `${name} ${WAITING_OPTION_SUFFIX}` : name;
 }
 
 // Form values are strings as inputs produce them; `toPayload` turns them into the service's shape.
