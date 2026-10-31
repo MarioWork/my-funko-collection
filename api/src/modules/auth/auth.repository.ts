@@ -174,7 +174,7 @@ export const authRepository = {
   findUserByUsername: async (username: string) =>
     (await prisma.user.findUnique({ where: { username }, select: PASSWORD_USER_SELECT })) ?? undefined,
 
-  findPasswordHolder: async (id: number) =>
+  findPasswordUserById: async (id: number) =>
     (await prisma.user.findUnique({ where: { id }, select: PASSWORD_USER_SELECT })) ?? undefined,
 
   // A new password ends every other session a password opened (one may have used the old password), all or

@@ -1,7 +1,7 @@
 import type { Control } from 'react-hook-form';
 import TextField from '@components/TextField';
 import { FieldGroup } from '@components/ui/field';
-import { PASSWORD_MIN_LENGTH } from '@utils/authUtils';
+import { NEW_PASSWORD_HINT } from '@utils/authUtils';
 import type { SetPasswordFormValues } from '../../../settingsUtils';
 
 type Props = {
@@ -10,8 +10,6 @@ type Props = {
   // The API's refusal of the password (too common), shown on its field.
   passwordError?: string;
 };
-
-const PASSWORD_HINT = `At least ${PASSWORD_MIN_LENGTH} characters. A few words in a row is easy to remember and hard to guess.`;
 
 function SetPasswordFields({ control, idPrefix, passwordError }: Props) {
   return (
@@ -32,7 +30,7 @@ function SetPasswordFields({ control, idPrefix, passwordError }: Props) {
         label="New password"
         type="password"
         autoComplete="new-password"
-        description={PASSWORD_HINT}
+        description={NEW_PASSWORD_HINT}
         serverError={passwordError}
         isPlainText
       />

@@ -9,7 +9,6 @@ import { MOCK_TEMPORARY_PASSWORD } from '@mocks/mockUsers';
 type MemoryRouter = ReturnType<typeof createMemoryRouter>;
 
 const NEW_PASSWORD = 'a shelf of tiny vinyl heads';
-const TEMPORARY_PASSWORD = 'hjkmn-pqrst-vwxyz-temp1';
 const HOME_HEADING = { level: 1, name: 'Home' } as const;
 const SET_PASSWORD_HEADING = { level: 1, name: 'Choose your password' } as const;
 
@@ -23,7 +22,12 @@ function renderApp(initialEntry: string): MemoryRouter {
 // Signed in as "luke" with the temporary password an admin made.
 function signInWithTemporaryPassword(): void {
   setMockMustChangePassword();
-  Object.assign(mockStore.auth, { userName: 'luke', username: 'luke', password: TEMPORARY_PASSWORD, passkeys: [] });
+  Object.assign(mockStore.auth, {
+    userName: 'luke',
+    username: 'luke',
+    password: MOCK_TEMPORARY_PASSWORD,
+    passkeys: [],
+  });
 }
 
 async function saveNewPassword(password: string): Promise<void> {
@@ -58,7 +62,7 @@ it('says on the field when the new password is the temporary one', async () => {
   signInWithTemporaryPassword();
   renderApp(AUTH_ROUTES_PATHS.SET_PASSWORD);
 
-  await saveNewPassword(TEMPORARY_PASSWORD);
+  await saveNewPassword(MOCK_TEMPORARY_PASSWORD);
 
   expect(await screen.findByText('Pick a new password, not the temporary one.')).toBeVisible();
   expect(screen.getByLabelText('New password')).toHaveAccessibleDescription(/not the temporary one/);
