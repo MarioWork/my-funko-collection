@@ -1,14 +1,18 @@
 -- Collections, and the items in them, belong to one user (docs/adr/0001-shared-catalogue-own-collections.md).
 
--- AlterTable: nullable first, so the rows already here can be given their owner.
+-- AlterTable: nullable first, so the rows already here can be given their user.
 ALTER TABLE "collections" ADD COLUMN "user_id" INTEGER;
+
+-- Collections with no user to own them: a fresh install (the default_collections migration), a seed run before setup,
+-- or an old yarn auth:reset (which deleted the user and kept the collection). Nothing is thrown away: a user with
+-- no way to sign in is made for them, and the next setup gives that first user their passkey. The handle is only a
+-- placeholder; setup replaces it.
+INSERT INTO "users" ("name", "webauthn_user_id", "updated_at")
+SELECT 'Collector', replace(gen_random_uuid()::text, '-', ''), now()
+WHERE NOT EXISTS (SELECT 1 FROM "users") AND EXISTS (SELECT 1 FROM "collections");
 
 -- Every collection that exists today becomes the current user's: the first user, the only one so far.
 UPDATE "collections" SET "user_id" = (SELECT min("id") FROM "users");
-
--- Nobody set up yet means no owner. Then only the empty "Owned" and "Wishlist" of the default_collections migration
--- can be here (every route and the seed need a user). They go; the trigger below makes them again for each user.
-DELETE FROM "collections" WHERE "user_id" IS NULL;
 
 ALTER TABLE "collections" ALTER COLUMN "user_id" SET NOT NULL;
 

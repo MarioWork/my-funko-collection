@@ -99,7 +99,7 @@ async function replaceTags(executor: DbExecutor, itemId: number, tagIds: number[
 }
 
 export const collectionItemsRepository = {
-  // The owner is part of every lookup by id: an item in another user's collection is not found.
+  // The user is part of every lookup and write by id: an item in another user's collection is not found.
   findById: (userId: number, collectionId: number, itemId: number): Promise<ItemRow | undefined> =>
     findRow({ collectionId, id: itemId, collection: { userId } }, prisma),
 
@@ -179,24 +179,29 @@ export const collectionItemsRepository = {
       return findRow({ id: created.id }, tx);
     }),
 
-  update: (itemId: number, data: ItemUpdate, tagIds: number[] | undefined): Promise<ItemRow | undefined> =>
+  update: (
+    userId: number,
+    itemId: number,
+    data: ItemUpdate,
+    tagIds: number[] | undefined,
+  ): Promise<ItemRow | undefined> =>
     prisma.$transaction(async (tx) => {
+      const ownItem = { id: itemId, collection: { userId } };
+      const current = await findRow(ownItem, tx);
+
+      if (!current) return undefined;
+
       const hasFieldChanges = Object.keys(data).length > 0;
 
-      if (hasFieldChanges) {
-        const { count } = await tx.collectionItem.updateMany({ where: { id: itemId }, data });
-
-        if (count === 0) return undefined;
-      }
-
+      if (hasFieldChanges) await tx.collectionItem.updateMany({ where: ownItem, data });
       if (tagIds) await replaceTags(tx, itemId, tagIds);
 
-      return findRow({ id: itemId }, tx);
+      return findRow(ownItem, tx);
     }),
 
-  move: async (itemId: number, toCollectionId: number): Promise<ItemRow | undefined> => {
+  move: async (userId: number, itemId: number, toCollectionId: number): Promise<ItemRow | undefined> => {
     const write = await prisma.collectionItem.updateMany({
-      where: { id: itemId },
+      where: { id: itemId, collection: { userId } },
       data: { collectionId: toCollectionId },
     });
 

@@ -53,7 +53,7 @@ const BY_ID = { id: 'asc' } as const;
 
 // Explicit columns, ordered by id so two exports of the same data are byte-identical. The catalogue (categories,
 // series, funkos, images) is whole; collections, items and their tags are only `userId`'s own. Tags themselves
-// are still shared by everyone.
+// do not belong to a user yet (issue #3), so every tag is in it.
 export const exportRepository = {
   categories: () => prisma.category.findMany({ select: NAME_SELECT, orderBy: BY_ID }),
 

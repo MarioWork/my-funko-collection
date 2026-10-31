@@ -256,16 +256,16 @@ export async function deleteFunko(userId: number, id: number, { force }: DeleteF
 
   if (!current) throw new NotFoundError(ENTITY, id);
 
-  const [collectionsByFunko, itemCount] = await Promise.all([
+  const [collectionsByFunko, itemCount, otherUsersItemCount] = await Promise.all([
     funkosRepository.collectionsByFunkoIds(userId, [id]),
     funkosRepository.countItems(id),
+    funkosRepository.countOtherUsersItems(userId, id),
   ]);
   const ownCollections = collectionsByFunko.get(id) ?? [];
   const isInCollections = itemCount > 0;
 
   if (isInCollections && !force) {
-    // One item per collection and funko, so any item beyond the user's own is in someone else's collection.
-    const isInOtherUsersCollections = itemCount > ownCollections.length;
+    const isInOtherUsersCollections = otherUsersItemCount > 0;
     const names = describeCollections(
       ownCollections.map((collection) => collection.name),
       isInOtherUsersCollections,

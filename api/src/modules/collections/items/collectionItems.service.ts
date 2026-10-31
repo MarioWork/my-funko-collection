@@ -145,7 +145,7 @@ export async function updateCollectionItem(
   await findOwnItem(userId, collectionId, itemId);
   await assertTagsExist(tagIds);
 
-  const row = await collectionItemsRepository.update(itemId, data, tagIds ? [...new Set(tagIds)] : undefined);
+  const row = await collectionItemsRepository.update(userId, itemId, data, tagIds ? [...new Set(tagIds)] : undefined);
 
   return toSingleResponse(row, itemId);
 }
@@ -165,7 +165,7 @@ export async function moveCollectionItem(
   await assertCollectionExists(userId, toCollectionId);
   await assertNotAlreadyInCollection(toCollectionId, current.funkoId);
 
-  const row = await collectionItemsRepository.move(itemId, toCollectionId);
+  const row = await collectionItemsRepository.move(userId, itemId, toCollectionId);
 
   return toSingleResponse(row, itemId);
 }

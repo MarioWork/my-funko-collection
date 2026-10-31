@@ -64,7 +64,7 @@ async function withStats(
   return collections.map((collection) => ({ ...collection, ...(stats.get(collection.id) ?? EMPTY_STATS) }));
 }
 
-// Every read and write names the owner: another user's collection is simply not there.
+// Every read and write names the user it belongs to: another user's collection is simply not there.
 async function findById(userId: number, id: number, executor: DbExecutor = prisma): Promise<CollectionRow | undefined> {
   const collection = await executor.collection.findFirst({ where: { id, userId }, select: COLLECTION_SELECT });
 
