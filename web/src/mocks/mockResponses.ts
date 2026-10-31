@@ -19,6 +19,7 @@ import {
   NO_CONTENT_STATUS,
   NOT_FOUND_STATUS,
 } from '@utils/httpStatusUtils';
+import { catalogueFunkos, isSubmittedByMockUser } from './mockCatalogueUtils';
 import { toPrimaryImage } from './mockImageUtils';
 import { mockStore } from './mockStore';
 import type {
@@ -42,12 +43,13 @@ const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';
 // What the API answers when a unique name is taken.
 export const DUPLICATE_CONFLICT_MESSAGE = 'A record with these values already exists';
 
-export function toCategoryModel(row: MockCategoryRow): CategoryApiModel {
-  return { ...row, funkoCount: mockStore.funkos.filter((funko) => funko.categoryId === row.id).length };
+// The counts take only the funkos the signed-in user sees, as the API's do.
+export function toCategoryModel({ submittedById: _submittedById, ...row }: MockCategoryRow): CategoryApiModel {
+  return { ...row, funkoCount: catalogueFunkos().filter((funko) => funko.categoryId === row.id).length };
 }
 
-export function toSeriesModel(row: MockSeriesRow): SeriesApiModel {
-  return { ...row, funkoCount: mockStore.funkos.filter((funko) => funko.seriesId === row.id).length };
+export function toSeriesModel({ submittedById: _submittedById, ...row }: MockSeriesRow): SeriesApiModel {
+  return { ...row, funkoCount: catalogueFunkos().filter((funko) => funko.seriesId === row.id).length };
 }
 
 export function toTagModel(row: MockTagRow): TagApiModel {
@@ -102,6 +104,8 @@ export function toFunkoModel(row: MockFunkoRow): FunkoApiModel {
   return {
     ...toFunkoSummary(row),
     collections: mockStore.collections.filter((collection) => collectionIds.has(collection.id)).map(named),
+    status: row.status,
+    isSubmittedByMe: isSubmittedByMockUser(row),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

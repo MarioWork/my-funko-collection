@@ -4,6 +4,7 @@ import type { SuggestApiModel } from '@app-types/models';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { filterFunkos, relevance } from '@mocks/handlers/funko/funkoSearchUtils';
 import { toFunkoSummary } from '@mocks/mockResponses';
+import { catalogueCategories, catalogueSeries } from '@mocks/mockCatalogueUtils';
 import { mockStore } from '@mocks/mockStore';
 import type { MockNamedRow } from '@mocks/mockStore.type';
 import { SUGGEST_QUERY_PARAM } from '@services/suggestService/suggestService';
@@ -33,8 +34,8 @@ export default (baseUrl: string) => [
         )
         .slice(0, FUNKO_LIMIT)
         .map(toFunkoSummary),
-      categories: byName(mockStore.categories),
-      series: byName(mockStore.series),
+      categories: byName(catalogueCategories()),
+      series: byName(catalogueSeries()),
       collections: byName(mockStore.collections),
       tags: byName(mockStore.tags),
     });

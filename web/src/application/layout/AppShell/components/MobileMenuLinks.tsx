@@ -1,7 +1,7 @@
 import {
   ADMIN_GROUP_LABEL,
   ADMIN_ITEMS,
-  MANAGE_ITEMS,
+  manageItemsFor,
   SETTINGS_ITEM,
   type NavigationItem,
 } from '@utils/navigationUtils';
@@ -18,8 +18,6 @@ type LinkListProps = {
   onNavigate: () => void;
 };
 
-const MENU_ITEMS: NavigationItem[] = [...MANAGE_ITEMS, SETTINGS_ITEM];
-
 function LinkList({ items, onNavigate }: LinkListProps) {
   return (
     <ul className="flex flex-col gap-1">
@@ -32,14 +30,14 @@ function LinkList({ items, onNavigate }: LinkListProps) {
   );
 }
 
-// The manage pages and Settings, then the Admin group for an admin.
+// The manage pages (and a member's Submissions) and Settings, then the Admin group for an admin.
 function MobileMenuLinks({ onNavigate }: Props) {
   const isAdmin = useIsAdmin();
   const adminHeadingId = useId();
 
   return (
     <nav aria-label="More" className="flex flex-col gap-3">
-      <LinkList items={MENU_ITEMS} onNavigate={onNavigate} />
+      <LinkList items={[...manageItemsFor(isAdmin), SETTINGS_ITEM]} onNavigate={onNavigate} />
       {isAdmin ? (
         <section aria-labelledby={adminHeadingId} className="flex flex-col gap-1">
           <h2 id={adminHeadingId} className="px-3 text-xs font-medium text-muted-foreground">

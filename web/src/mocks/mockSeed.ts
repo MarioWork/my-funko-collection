@@ -2,13 +2,21 @@
 import {
   FunkoTypeUtil,
   ItemConditionUtil,
+  SubmissionStatusUtil,
   type FunkoTypeUtil as FunkoType,
   type ItemConditionUtil as ItemCondition,
 } from '@app-types/utility';
 import { DEFAULT_CURRENCY } from '@utils/moneyUtils';
 import { MOCK_USER_ID } from './mockAuth';
 import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from './mockImageUtils';
-import type { MockCollectionRow, MockFunkoRow, MockImageRow, MockItemRow, MockStore } from './mockStore.type';
+import type {
+  MockCollectionRow,
+  MockFunkoRow,
+  MockImageRow,
+  MockItemRow,
+  MockStore,
+  MockSubmissionColumns,
+} from './mockStore.type';
 import { mockDate, mockEnv } from './mockStoreUtils';
 
 type MockSeedData = Omit<MockStore, 'auth' | 'users'>;
@@ -223,6 +231,9 @@ const EXTRA_WISHLIST_EVERY = 7;
 const EXTRA_CHASE_EVERY = 11;
 const EXTRA_NUMBER_START = 2000;
 
+// The seed is the catalogue, as in the API's seed: approved, with no sender.
+const APPROVED_COLUMNS: MockSubmissionColumns = { status: SubmissionStatusUtil.APPROVED, submittedById: null };
+
 // How many generated funkos to add: none in tests and normal mock mode.
 const extraFunkoCount = Number(mockEnv.VITE_MOCK_EXTRA_FUNKOS ?? 0) || 0;
 
@@ -244,6 +255,7 @@ function createExtraFunkos(startId: number, startIndex: number): MockFunkoRow[] 
       isChase: offset % EXTRA_CHASE_EVERY === 0,
       exclusive: '',
       barcode: null,
+      ...APPROVED_COLUMNS,
       createdAt: mockDate(index),
       updatedAt: mockDate(index),
     };
@@ -323,12 +335,14 @@ export function createSeedData(): MockSeedData {
   const categories = CATEGORY_NAMES.map((name, index) => ({
     id: index + 1,
     name,
+    ...APPROVED_COLUMNS,
     createdAt: mockDate(index),
     updatedAt: mockDate(index),
   }));
   const series = SERIES_NAMES.map((name, index) => ({
     id: index + 1,
     name,
+    ...APPROVED_COLUMNS,
     createdAt: mockDate(index),
     updatedAt: mockDate(index),
   }));
@@ -367,6 +381,7 @@ export function createSeedData(): MockSeedData {
     isChase: seed.isChase ?? false,
     exclusive: seed.exclusive ?? '',
     barcode: seed.barcode ?? null,
+    ...APPROVED_COLUMNS,
     createdAt: mockDate(index),
     updatedAt: mockDate(index),
   }));

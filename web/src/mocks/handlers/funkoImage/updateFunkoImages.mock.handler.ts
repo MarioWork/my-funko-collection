@@ -3,16 +3,22 @@ import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls } from '@mocks/mockImageUtils';
 import { badRequest, noContent, notFound, toFunkoImageModel } from '@mocks/mockResponses';
+import { findEditableFunko } from '@mocks/handlers/funko/funkoMockUtils';
 import { mockStore } from '@mocks/mockStore';
 import { nextId } from '@mocks/mockStoreUtils';
 import type { ReorderImages, RotateImage } from '@services/funkoImageService/funkoImageService.type';
 
+// Every image write is refused, as the API refuses it, unless the user may change the funko (see findEditableFunko).
 // Turns that swap the picture's width and height.
 const QUARTER_TURN_DEGREES: number[] = [90, 270];
 
 export default (baseUrl: string) => [
   http.patch(`${baseUrl}/funkos/:funkoId/images/order`, async ({ params, request }) => {
     await delay(MOCK_DELAY);
+
+    const target = findEditableFunko(String(params.funkoId));
+
+    if ('refusal' in target) return target.refusal;
 
     const images = mockStore.images.filter((image) => String(image.funkoId) === params.funkoId);
     const { imageIds } = (await request.json()) as ReorderImages;
@@ -26,6 +32,10 @@ export default (baseUrl: string) => [
   }),
   http.post(`${baseUrl}/funkos/:funkoId/images/:imageId/rotate`, async ({ params, request }) => {
     await delay(MOCK_DELAY);
+
+    const target = findEditableFunko(String(params.funkoId));
+
+    if ('refusal' in target) return target.refusal;
 
     const image = mockStore.images.find(
       (candidate) => String(candidate.id) === params.imageId && String(candidate.funkoId) === params.funkoId,
@@ -44,6 +54,10 @@ export default (baseUrl: string) => [
   }),
   http.delete(`${baseUrl}/funkos/:funkoId/images/:imageId`, async ({ params }) => {
     await delay(MOCK_DELAY);
+
+    const target = findEditableFunko(String(params.funkoId));
+
+    if ('refusal' in target) return target.refusal;
 
     const index = mockStore.images.findIndex(
       (image) => String(image.id) === params.imageId && String(image.funkoId) === params.funkoId,

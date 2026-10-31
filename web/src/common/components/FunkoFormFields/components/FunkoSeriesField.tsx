@@ -6,7 +6,7 @@ import { SERIES_ROUTES_PATHS } from '@application/routes/routesUtils';
 import CreateNamedButton from '@components/CreateNamedButton';
 import { Field, FieldDescription, FieldLabel } from '@components/ui/field';
 import { NativeSelect, NativeSelectOption } from '@components/ui/native-select';
-import type { FunkoFormValues } from '../funkoFormUtils';
+import { referenceOptionLabel, type FunkoFormValues } from '../funkoFormUtils';
 
 type Props = {
   control: Control<FunkoFormValues>;
@@ -36,7 +36,7 @@ function FunkoSeriesField({ control, id }: Props) {
               <NativeSelectOption value={NO_SERIES}>None</NativeSelectOption>
               {series.map((entry) => (
                 <NativeSelectOption key={entry.id} value={String(entry.id)}>
-                  {entry.name}
+                  {referenceOptionLabel(entry)}
                 </NativeSelectOption>
               ))}
             </NativeSelect>

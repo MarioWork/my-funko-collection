@@ -2,6 +2,7 @@ import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { conflict, created, notFound, tagsNotFound, toItemModel } from '@mocks/mockResponses';
+import { catalogueFunkos } from '@mocks/mockCatalogueUtils';
 import { mockStore } from '@mocks/mockStore';
 import type { MockItemRow } from '@mocks/mockStore.type';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
@@ -18,7 +19,8 @@ export default (baseUrl: string) => [
 
     const body = (await request.json()) as CreateCollectionItem;
 
-    if (!mockStore.funkos.some((funko) => funko.id === body.funkoId)) return notFound('Funko', body.funkoId);
+    // A funko the user sees in the catalogue: approved, or one they sent in themselves.
+    if (!catalogueFunkos().some((funko) => funko.id === body.funkoId)) return notFound('Funko', body.funkoId);
 
     const tagIds = [...new Set(body.tagIds ?? [])];
 

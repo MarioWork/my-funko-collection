@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import type { FunkoDetailApiModel } from '@app-types/models';
-import { FUNKO_TYPE_LABELS } from '@app-types/utility';
+import { FUNKO_TYPE_LABELS, SubmissionStatusUtil } from '@app-types/utility';
+import SubmissionStatusBadge from '@components/SubmissionStatusBadge';
 import { Badge } from '@components/ui/badge';
 import { Separator } from '@components/ui/separator';
 import { formatDateTime } from '@utils/dateUtils';
@@ -87,8 +88,13 @@ function SummaryHeading({ funko, actions }: HeadingProps) {
   );
 }
 
-// The funko at a glance, in one tile: name and actions, then the catalog facts.
+const SUBMISSION_NOTE = 'Only you see it until an admin approves it.';
+
+// The funko at a glance, in one tile: name and actions, then the catalog facts. A submission says where it stands.
 function FunkoSummary({ funko, actions }: Props) {
+  const isSubmission = funko.status !== SubmissionStatusUtil.APPROVED;
+  const isOwnWaiting = funko.isSubmittedByMe && funko.status === SubmissionStatusUtil.WAITING;
+
   return (
     <section aria-labelledby={TITLE_ID} className="flex flex-col gap-4 rounded-xl border bg-card p-4">
       <SummaryHeading funko={funko} actions={actions} />
@@ -102,6 +108,14 @@ function FunkoSummary({ funko, actions }: Props) {
           {funko.barcode ? <span className="tabular-nums">{funko.barcode}</span> : 'None yet'}
         </SpecRow>
         <SpecRow label="Added">{formatDateTime(funko.createdAt)}</SpecRow>
+        {isSubmission ? (
+          <SpecRow label="Submission">
+            <span className="flex flex-col items-start gap-1">
+              <SubmissionStatusBadge status={funko.status} />
+              {isOwnWaiting ? <span className="text-xs text-muted-foreground">{SUBMISSION_NOTE}</span> : null}
+            </span>
+          </SpecRow>
+        ) : null}
       </dl>
     </section>
   );

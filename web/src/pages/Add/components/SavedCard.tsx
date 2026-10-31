@@ -1,5 +1,6 @@
 import { ExternalLink, Plus, ScanBarcode } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { SubmissionStatusUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoImage from '@components/FunkoImage';
 import LinkButton from '@components/LinkButton';
@@ -13,6 +14,7 @@ type Props = {
 };
 
 const THUMB_SIZES = '96px';
+const WAITING_NOTE = 'Sent in for review: only you see it until an admin approves it.';
 
 function membershipText({ funko }: AddResult): string {
   if (funko.collections.length === 0) return 'Saved to the catalog only.';
@@ -23,6 +25,7 @@ function membershipText({ funko }: AddResult): string {
 // After a save: what happened, then straight on to the next one.
 function SavedCard({ result, onAddAnother, onScanAnother }: Props) {
   const { funko } = result;
+  const isWaiting = funko.status === SubmissionStatusUtil.WAITING;
   const heading = useRef<HTMLHeadingElement>(null);
 
   // The form that had focus is gone; put the screen reader and keyboard on the result instead.
@@ -44,6 +47,7 @@ function SavedCard({ result, onAddAnother, onScanAnother }: Props) {
           <p className="text-sm text-muted-foreground">
             #{funko.number} · {membershipText(result)}
           </p>
+          {isWaiting ? <p className="text-sm text-muted-foreground">{WAITING_NOTE}</p> : null}
         </div>
       </div>
       <div className="grid gap-2 @md:grid-cols-3">

@@ -6,6 +6,7 @@ export type { NamedApiModel } from './namedApiModel.type';
 export type { PrimaryImageApiModel } from './primaryImageApiModel.type';
 export type { FunkoSummaryApiModel } from './funkoSummaryApiModel.type';
 export type { FunkoApiModel, FunkoId } from './funkoApiModel.type';
+export type { SubmissionApiModel } from './submissionApiModel.type';
 export type { FunkoImageApiModel, FunkoImageId } from './funkoImageApiModel.type';
 export type { FunkoDetailApiModel } from './funkoDetailApiModel.type';
 export type { CollectionApiModel, CollectionId } from './collectionApiModel.type';
