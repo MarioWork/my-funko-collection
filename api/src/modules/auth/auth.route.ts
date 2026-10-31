@@ -43,6 +43,8 @@ const CEREMONY_RATE_LIMIT = { max: 10, timeWindow: '1 minute' };
 const PUBLIC_CEREMONY_CONFIG = { isPublic: true, rateLimit: CEREMONY_RATE_LIMIT };
 // Password tries per address: enough for a few typos, far too few to guess a 15-character password. No lockout.
 const PASSWORD_RATE_LIMIT = { max: 5, timeWindow: '1 minute' };
+// Replacing a temporary password and signing out stay open to a session that signed in with one.
+const TEMPORARY_PASSWORD_CONFIG = { isAllowedWithTemporaryPassword: true };
 
 // Signing out also drops what this browser cached from the app (the images are cached privately). Not "cookies":
 // that would clear every cookie of the whole registrable domain (other home apps), not just this host's.
@@ -197,7 +199,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/logout',
     {
-      config: { isPublic: true },
+      config: { isPublic: true, ...TEMPORARY_PASSWORD_CONFIG },
       schema: {
         tags: TAGS,
         summary: 'Sign this browser out (always clears the cookie)',
@@ -215,6 +217,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/logout-everywhere',
     {
+      config: TEMPORARY_PASSWORD_CONFIG,
       schema: {
         tags: TAGS,
         summary: 'Sign every browser out, this one included',
@@ -232,6 +235,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   app.put(
     '/password',
     {
+      config: TEMPORARY_PASSWORD_CONFIG,
       schema: {
         tags: TAGS,
         summary: 'Set or change the username and password (needs a recent sign-in; ends other password sessions)',

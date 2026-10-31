@@ -5,7 +5,7 @@ import {
   verifyRegistrationResponse,
   type WebAuthnCredential,
 } from '@simplewebauthn/server';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { z } from 'zod';
 import { env } from '../../config/env.ts';
 import { ConflictError, ForbiddenError, HttpError, NotFoundError, UnauthorizedError } from '../../lib/httpErrors.ts';
@@ -26,8 +26,8 @@ import type {
   SetupVerify,
   SignInVerify,
   SignedInResponse,
-  UserRole,
 } from './auth.schema.ts';
+import type { UserRole } from './auth.type.ts';
 import { isCommonPassword } from './commonPasswords.ts';
 
 const log = logger.child({ module: 'auth' });
@@ -51,6 +51,14 @@ const RP_NAME = 'My Funko Collection';
 const WEBAUTHN_USER_ID_BYTES = 32;
 const DEFAULT_PASSKEY_NAME = 'Passkey';
 const SETUP_PATH = '/setup';
+// An unused temporary password stops working this long after it was made (ADR 0002).
+const TEMPORARY_PASSWORD_LIFETIME_MS = 7 * DAY_MS;
+// Temporary passwords: 4 groups of 5 characters from an alphabet with no look-alikes (no 0/o, 1/l/i), joined by
+// dashes so they are easy to read out and type. 20 characters from 31 is ~99 bits of entropy, far past guessing.
+const TEMPORARY_PASSWORD_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+const TEMPORARY_PASSWORD_GROUPS = 4;
+const TEMPORARY_PASSWORD_GROUP_LENGTH = 5;
+const TEMPORARY_PASSWORD_SEPARATOR = '-';
 
 const APP_ORIGIN = new URL(env.APP_ORIGIN).origin;
 // A passkey belongs to a host name for good: it never works on another one, and never on a bare IP address.
@@ -66,6 +74,8 @@ const PASSKEY_FAILED_MESSAGE = "The passkey couldn't be saved. Try again.";
 const SETUP_CODE_MESSAGE = 'This setup link is wrong or was already used';
 const ALREADY_SET_UP_MESSAGE = 'The app is already set up. Sign in instead.';
 const REAUTH_MESSAGE = 'Confirm it’s you first';
+const TEMPORARY_PASSWORD_EXPIRED_MESSAGE = 'This temporary password has expired. Ask an admin for a new one.';
+const PASSWORD_REUSED_MESSAGE = 'Pick a new password, not the temporary one.';
 
 const ClientDataSchema = z.object({ challenge: z.string().min(1) });
 
@@ -76,8 +86,13 @@ export type AuthSession = {
   userName: string;
   username: string | null;
   userRole: UserRole;
+  // Signed in with a temporary password: every route but changing it and signing out is refused until it is.
+  mustChangePassword: boolean;
   signedInAt: Date;
 };
+
+// A new temporary password: the clear text is shown to the admin once and never stored.
+export type TemporaryPassword = { password: string; passwordHash: string; expiresAt: Date };
 
 // A new session: the raw token goes in the cookie and nowhere else.
 export type NewSessionToken = { token: string; result: SignedInResponse };
@@ -89,6 +104,7 @@ function toAuthSession(row: SessionRow): AuthSession {
     userName: row.userName,
     username: row.username,
     userRole: row.userRole,
+    mustChangePassword: row.mustChangePassword,
     signedInAt: row.signedInAt,
   };
 }
@@ -166,9 +182,22 @@ async function assertNotSetUp(): Promise<void> {
   if (isSetUp) throw new HttpError(ALREADY_SET_UP_MESSAGE, { code: 'ALREADY_SET_UP', statusCode: 409 });
 }
 
-// A stolen, still-open session must not be able to swap the owner's passkeys or password: changing one needs a
-// sign-in from the last few minutes. Otherwise a thief could add their own way in and keep coming back.
-function assertRecentSignIn(session: AuthSession): void {
+type SignedInUser = { name: string; username: string | null; role: UserRole; temporaryPasswordExpiresAt: Date | null };
+
+function toSignedInResponse(user: SignedInUser): SignedInResponse {
+  return {
+    user: {
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      mustChangePassword: user.temporaryPasswordExpiresAt !== null,
+    },
+  };
+}
+
+// A stolen, still-open session must not be able to swap the owner's passkeys or password, or create a user:
+// these need a sign-in from the last few minutes. Otherwise a thief could add their own way in and keep coming back.
+export function assertRecentSignIn(session: AuthSession): void {
   const isRecentSignIn = Date.now() - session.signedInAt.getTime() <= RECENT_SIGN_IN_MS;
 
   if (!isRecentSignIn) throw new ForbiddenError(REAUTH_MESSAGE, 'REAUTH_REQUIRED');
@@ -240,8 +269,16 @@ async function verifySignedAnswer(
 // --- Status and sessions ---------------------------------------------------------------------------------------
 
 export async function getAuthStatus(session: AuthSession | null): Promise<AuthStatusResponse> {
-  if (session)
-    return { state: 'signedIn', user: { name: session.userName, username: session.username, role: session.userRole } };
+  if (session) {
+    const user = {
+      name: session.userName,
+      username: session.username,
+      role: session.userRole,
+      mustChangePassword: session.mustChangePassword,
+    };
+
+    return { state: 'signedIn', user };
+  }
 
   const isSetUp = (await authRepository.countUsersWhoCanSignIn()) > 0;
 
@@ -310,7 +347,7 @@ export async function getSetupOptions({ code, name }: SetupOptions): Promise<Reg
   await assertNotSetUp();
   await assertSetupCode(code);
 
-  const webauthnUserId = randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url');
+  const webauthnUserId = createWebauthnUserId();
   const options = await buildRegistrationOptions(name, webauthnUserId);
   await storeChallenge(options.challenge, 'SETUP', webauthnUserId);
 
@@ -348,7 +385,7 @@ export async function addFirstUser(setup: SetupVerify): Promise<NewSessionToken>
 
   log.info({ userId: user.id }, 'first user set up');
 
-  return { token: session.token, result: { user: { name: user.name, username: user.username, role: user.role } } };
+  return { token: session.token, result: toSignedInResponse(user) };
 }
 
 // --- Sign in -----------------------------------------------------------------------------------------------------
@@ -406,7 +443,7 @@ export async function addSession({ response }: SignInVerify, previous: AuthSessi
 
   log.info({ userId: passkey.userId, passkeyId: passkey.id }, 'signed in');
 
-  return { token: session.token, result: { user: { name: user.name, username: user.username, role: user.role } } };
+  return { token: session.token, result: toSignedInResponse(user) };
 }
 
 // Checked against when the username is unknown, so a wrong username takes as long as a wrong password and the
@@ -421,8 +458,14 @@ async function findPasswordUser({ username, password }: PasswordSignIn) {
   return isMatch && user?.passwordHash ? user : undefined;
 }
 
+function isPastExpiry(expiresAt: Date | null): boolean {
+  return expiresAt !== null && expiresAt.getTime() <= Date.now();
+}
+
 // Password sign-in: one answer for every failure, and no lockout (anyone could lock the owner out); the route's
 // rate limit caps the tries. Like a passkey sign-in, the new session replaces this browser's old one.
+// A temporary password past its 7 days gets its own answer, but only once the password matched: it tells the
+// person to ask an admin, and says nothing to someone who doesn't know the password.
 export async function addPasswordSession(
   signIn: PasswordSignIn,
   previous: AuthSession | null,
@@ -430,6 +473,10 @@ export async function addPasswordSession(
   const user = await findPasswordUser(signIn);
 
   if (!user) throw new UnauthorizedError(PASSWORD_SIGN_IN_FAILED_MESSAGE, 'SIGN_IN_FAILED');
+
+  if (isPastExpiry(user.temporaryPasswordExpiresAt)) {
+    throw new UnauthorizedError(TEMPORARY_PASSWORD_EXPIRED_MESSAGE, 'TEMPORARY_PASSWORD_EXPIRED');
+  }
 
   const now = new Date();
   const session = newSessionRow(now);
@@ -441,13 +488,26 @@ export async function addPasswordSession(
 
   log.info({ userId: user.id }, 'signed in with a password');
 
-  return { token: session.token, result: { user: { name: user.name, username: user.username, role: user.role } } };
+  return { token: session.token, result: toSignedInResponse(user) };
 }
 
 // --- Password ----------------------------------------------------------------------------------------------------
 
+// Replacing a temporary password with itself is not replacing it.
+async function assertNotTemporaryPassword(userId: number, password: string): Promise<void> {
+  const holder = await authRepository.findPasswordHolder(userId);
+  const temporaryHash = holder?.passwordHash;
+
+  if (!temporaryHash) return;
+
+  const isSamePassword = await verifyPassword(password, temporaryHash);
+
+  if (isSamePassword) throw new HttpError(PASSWORD_REUSED_MESSAGE, { code: 'PASSWORD_REUSED', statusCode: 400 });
+}
+
 // Sets or changes the username and password. Needs a recent sign-in; the length is checked by the schema, the
-// common-password list here. Every other session a password opened ends; this one stays.
+// common-password list here. Every other session a password opened ends; this one stays. A temporary password
+// becomes the user's own: it no longer expires, and the rest of the app opens.
 export async function setPassword(
   session: AuthSession,
   { username, password }: SetPassword,
@@ -462,6 +522,8 @@ export async function setPassword(
 
   if (holder && holder.id !== session.userId) throw new ConflictError(USERNAME_TAKEN_MESSAGE);
 
+  if (session.mustChangePassword) await assertNotTemporaryPassword(session.userId, password);
+
   const user = await authRepository.setPassword({
     userId: session.userId,
     username,
@@ -471,7 +533,43 @@ export async function setPassword(
 
   log.info({ userId: session.userId }, 'password set');
 
-  return { user: { name: user.name, username: user.username, role: user.role } };
+  return toSignedInResponse(user);
+}
+
+// --- Users made by an admin --------------------------------------------------------------------------------------
+
+function randomGroup(): string {
+  const characters = Array.from(
+    { length: TEMPORARY_PASSWORD_GROUP_LENGTH },
+    () => TEMPORARY_PASSWORD_ALPHABET[randomInt(TEMPORARY_PASSWORD_ALPHABET.length)],
+  );
+
+  return characters.join('');
+}
+
+function randomTemporaryPassword(): string {
+  const groups = Array.from({ length: TEMPORARY_PASSWORD_GROUPS }, randomGroup);
+
+  return groups.join(TEMPORARY_PASSWORD_SEPARATOR);
+}
+
+// An app-made temporary password for a new user: random, past the length rule and never on the common list, dead
+// 7 days from now unless the user replaces it first. The clear text goes to the admin once.
+export async function createTemporaryPassword(): Promise<TemporaryPassword> {
+  let password = randomTemporaryPassword();
+
+  while (isCommonPassword(password)) password = randomTemporaryPassword();
+
+  return {
+    password,
+    passwordHash: await hashPassword(password),
+    expiresAt: new Date(Date.now() + TEMPORARY_PASSWORD_LIFETIME_MS),
+  };
+}
+
+// The random WebAuthn user handle a new user's passkeys will carry. Never the row id.
+export function createWebauthnUserId(): string {
+  return randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url');
 }
 
 // --- Passkeys ----------------------------------------------------------------------------------------------------
