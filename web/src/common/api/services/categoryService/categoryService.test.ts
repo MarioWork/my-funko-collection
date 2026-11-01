@@ -78,9 +78,18 @@ describe('deleteCategory', () => {
     expect(result.success).toBe(true);
   });
 
-  it('returns the 409 envelope while funkos use the category', async () => {
+  it('returns the 409 envelope in words and keeps the category while funkos use it', async () => {
     const result = await categoryService.deleteCategory(MARVEL_CATEGORY_ID);
+    const remaining = await categoryService.getCategories({ pagination: { page: '1', size: '10' }, name: 'Marvel' });
 
-    expect(result).toMatchObject({ success: false, error: { statusCode: 409, code: 'CONFLICT' } });
+    expect(result).toMatchObject({
+      success: false,
+      error: {
+        statusCode: 409,
+        code: 'CONFLICT',
+        message: 'Funkos still use this category. Move them to another category first',
+      },
+    });
+    expect(remaining.data.map((category) => category.id)).toContain(MARVEL_CATEGORY_ID);
   });
 });
