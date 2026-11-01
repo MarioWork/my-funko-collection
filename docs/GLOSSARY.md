@@ -138,6 +138,10 @@ _Avoid_: Reset password, initial password
 The other way to sign in. Tied to the app's host name, so changing that name makes every passkey useless.
 _Avoid_: Login, key
 
+**Recent sign-in**:
+A user proved it's them within the last 10 minutes, with a passkey or their password. Only risky actions need one: passkeys, passwords and managing users.
+_Avoid_: Reauth, fresh sign-in, re-login
+
 **Setup link**:
 A one-time link, printed by the server, that lets the first admin sign in for the first time, or after every admin is locked out.
 _Avoid_: Invite, reset link

@@ -8,7 +8,7 @@ type Props = {
   canUsePassword: boolean;
 };
 
-// Shown when the server wants a fresh sign-in before the change: how to confirm, and what happens after.
+// Shown when the server wants a recent sign-in before the change: how to confirm, and what happens after.
 function ReauthNotice({ nextStep, canUsePassword }: Props) {
   return (
     <InlineAlert tone="info">

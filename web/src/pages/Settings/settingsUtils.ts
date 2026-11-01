@@ -10,7 +10,7 @@ export const addPasskeyFormSchema = object({
 
 export type AddPasskeyFormValues = InferType<typeof addPasskeyFormSchema>;
 
-// `reauth`: how the user confirms it's them once asked (403 REAUTH_REQUIRED), see withFreshSignIn.
+// `reauth`: how the user confirms it's them once asked (403 REAUTH_REQUIRED), see withRecentSignIn.
 export type AddPasskeyFormData = { passkey: AddPasskeyFormValues; reauth?: ReauthUtil };
 
 export type DeletePasskeyFormData = { reauth?: ReauthUtil };
