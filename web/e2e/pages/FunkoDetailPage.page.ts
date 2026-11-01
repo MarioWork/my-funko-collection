@@ -23,13 +23,26 @@ export class FunkoDetailPage {
     return this.deleteDialog.getByRole('checkbox', { name: `Also remove it from ${collectionName}` });
   }
 
+  // An item of the open ⋯ menu.
+  menuItem(name: string): Locator {
+    return this.page.getByRole('menuitem', { name, exact: true });
+  }
+
   // The funko's own ⋯ menu; each collection row has one too ("Actions for Owned").
-  async openDeleteDialog(funkoName: string) {
+  async openActionsMenu(funkoName: string) {
     await this.page
       .getByRole('main')
       .getByRole('button', { name: `Actions for ${funkoName}`, exact: true })
       .click();
-    await this.page.getByRole('menuitem', { name: 'Delete' }).click();
+  }
+
+  async hoverMenuItem(name: string) {
+    await this.menuItem(name).hover();
+  }
+
+  async openDeleteDialog(funkoName: string) {
+    await this.openActionsMenu(funkoName);
+    await this.menuItem('Delete').click();
   }
 
   async confirmDelete({ alsoRemoveFromCollections }: ConfirmDeleteOptions) {
