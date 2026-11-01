@@ -4,6 +4,7 @@ import { env } from '../src/config/env.ts';
 import { clearUploads, generateImage, processImage } from '../src/lib/imageStorage.ts';
 import { logger } from '../src/lib/logger.ts';
 import { prisma } from '../src/lib/prisma.ts';
+import type { Prisma } from '../src/generated/prisma/client.ts';
 import type { ItemCondition } from '../src/modules/collections/items/collectionItems.type.ts';
 import type { FunkoType } from '../src/modules/funkos/funkos.type.ts';
 
@@ -24,6 +25,8 @@ type SeedSubmission = {
   category: string;
   sender: string;
   rejectionReason?: string;
+  // The catalogue funko (by name, the regular one) an admin merged it into.
+  mergedInto?: string;
 };
 type SeedItem = {
   funko: string;
@@ -59,6 +62,7 @@ const SUBMISSIONS: SeedSubmission[] = [
     sender: 'luke',
     rejectionReason: 'The photo is from a shop listing. Please add a photo of your own box.',
   },
+  { name: 'Baby Yoda', number: '368', category: 'Pop! Star Wars', sender: 'han', mergedInto: 'Grogu' },
 ];
 
 // A funko an admin already removed from the catalogue while han had it: only his notification is left of it.
@@ -235,6 +239,14 @@ const ITEMS: SeedItem[] = [
   { funko: 'Groot', collection: 'Wishlist', notes: 'Wait for a sale' },
 ];
 
+// Where an example submission stands: rejected (with a reason), merged (with a target), else still waiting.
+function submissionStatusOf(submission: SeedSubmission): 'WAITING' | 'REJECTED' | 'MERGED' {
+  if (submission.rejectionReason !== undefined) return 'REJECTED';
+  if (submission.mergedInto !== undefined) return 'MERGED';
+
+  return 'WAITING';
+}
+
 const IMAGES_PER_FUNKO = 2;
 const SEED_IMAGE_PX = 900;
 const HUE_STEP = 37;
@@ -327,26 +339,29 @@ const memberIds = new Map(memberRows.map((row) => [row.username ?? '', row.id]))
 const submissionRows = await prisma.funko.createManyAndReturn({
   data: SUBMISSIONS.map((submission) => {
     const isRejected = submission.rejectionReason !== undefined;
+    const isMerged = submission.mergedInto !== undefined;
 
     return {
       name: submission.name,
       number: submission.number,
       categoryId: idFor(categoryIds, 'category', submission.category),
-      status: isRejected ? ('REJECTED' as const) : ('WAITING' as const),
+      status: submissionStatusOf(submission),
       submittedById: idFor(memberIds, 'member', submission.sender),
       rejectionReason: submission.rejectionReason ?? null,
-      reviewedAt: isRejected ? new Date() : null,
+      mergedIntoId: submission.mergedInto ? idFor(funkoIds, 'funko', submission.mergedInto) : null,
+      reviewedAt: isRejected || isMerged ? new Date() : null,
     };
   }),
   select: NAME_SELECT,
 });
 
 // What the submissions above would have told people: every admin heard of each one sent in (the oldest already read),
-// and the sender of the rejected one heard why; han also heard of REMOVED_FUNKO. Mirrors web/src/mocks/mockSeed.ts.
+// the sender of the rejected one heard why, and the sender of the merged one heard where it went; han also heard of
+// REMOVED_FUNKO. Mirrors web/src/mocks/mockSeed.ts.
 const submissionIds = new Map(submissionRows.map((row) => [row.name, row.id]));
 const adminRows = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
 const notificationRows = await prisma.notification.createManyAndReturn({
-  data: SUBMISSIONS.flatMap((submission, index) => {
+  data: SUBMISSIONS.flatMap((submission, index): Prisma.NotificationCreateManyInput[] => {
     const funko = { funkoId: idFor(submissionIds, 'submission', submission.name), funkoName: submission.name };
     const sentAt = new Date(Date.now() - (SUBMISSIONS.length - index) * HOUR_MS);
     const toAdmins = adminRows.map((admin) => ({
@@ -357,10 +372,18 @@ const notificationRows = await prisma.notification.createManyAndReturn({
       createdAt: sentAt,
     }));
 
+    const senderId = idFor(memberIds, 'member', submission.sender);
+
+    if (submission.mergedInto !== undefined) {
+      const target = { funkoId: idFor(funkoIds, 'funko', submission.mergedInto), funkoName: submission.mergedInto };
+
+      return [...toAdmins, { userId: senderId, kind: 'SUBMISSION_MERGED' as const, ...target }];
+    }
+
     if (submission.rejectionReason === undefined) return toAdmins;
 
     const toSender = {
-      userId: idFor(memberIds, 'member', submission.sender),
+      userId: senderId,
       kind: 'SUBMISSION_REJECTED' as const,
       ...funko,
       reason: submission.rejectionReason,

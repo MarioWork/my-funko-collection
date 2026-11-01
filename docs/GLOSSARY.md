@@ -63,7 +63,7 @@ An admin turns a submission down.
 _Avoid_: Decline, deny
 
 **Merge**:
-An admin finds that a submission is a funko already in the catalogue, and moves the member's items onto that funko instead.
+An admin finds that a submission is a funko already in the catalogue, and moves the member's items onto that funko instead. Where the member already had that funko in the same collection, the two items become one. The submission stays, as merged, so its sender sees where it went.
 _Avoid_: Combine, dedupe
 
 **Image**:

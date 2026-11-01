@@ -1,6 +1,6 @@
 // The submissions routes' own request schemas. What other modules share is in submissions.type.ts.
 import { z } from 'zod';
-import { IdParamSchema } from '../../lib/ids.ts';
+import { IdParamSchema, IdSchema } from '../../lib/ids.ts';
 
 export const REJECTION_REASON_MAX_LENGTH = 500;
 
@@ -13,4 +13,10 @@ export const RejectSubmissionSchema = z.strictObject({
   reason: z.string().trim().min(1).max(REJECTION_REASON_MAX_LENGTH),
 });
 
+// The funko already in the catalogue the submission is the same as.
+export const MergeSubmissionSchema = z.strictObject({
+  targetFunkoId: IdSchema,
+});
+
 export type RejectSubmission = z.infer<typeof RejectSubmissionSchema>;
+export type MergeSubmission = z.infer<typeof MergeSubmissionSchema>;

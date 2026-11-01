@@ -1,10 +1,11 @@
-// Submissions: a member's own list, the admins' review list, and approving, rejecting and sending again. The rows
+// Submissions: a member's own list, the admins' review list, and approving, rejecting, merging and sending again. The rows
 // are funkos, so the funkos service does the work; this module owns no table.
 import type { SignedInUser } from '../auth/auth.type.ts';
 import {
   approveSubmission as approveFunkoSubmission,
   getReviewSubmissions as getFunkoReviewSubmissions,
   getSubmittedFunkos,
+  mergeSubmission as mergeFunkoSubmission,
   rejectSubmission as rejectFunkoSubmission,
   resendSubmission as resendFunkoSubmission,
 } from '../funkos/funkos.service.ts';
@@ -31,6 +32,10 @@ export async function approveSubmission(funkoId: number): Promise<SubmissionResp
 
 export async function rejectSubmission(funkoId: number, reason: string): Promise<RejectionOutcome> {
   return rejectFunkoSubmission(funkoId, reason);
+}
+
+export async function mergeSubmission(funkoId: number, targetFunkoId: number): Promise<SubmissionResponse> {
+  return mergeFunkoSubmission(funkoId, targetFunkoId);
 }
 
 export async function resendSubmission(user: SignedInUser, funkoId: number): Promise<SubmissionResponse> {

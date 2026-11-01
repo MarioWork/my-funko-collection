@@ -20,6 +20,7 @@ import {
   type ListFunkosQuery,
   type UpdateFunko,
 } from './funkos.schema.ts';
+import type { ItemCombiner } from './funkos.merge.ts';
 import { FUNKO_TYPES, type FunkoType } from './funkos.type.ts';
 
 const FUNKO_SELECT = {
@@ -44,12 +45,13 @@ const SUBMITTER_SELECT = {
   submittedBy: { select: { id: true, name: true } },
 } as const satisfies Prisma.FunkoSelect;
 
-// How a submission's review went, and who sent it in (null for no sender: an admin's funko, or a deleted user's):
-// what the submissions lists and the funko page add.
+// How a submission's review went (with the catalogue funko a merged one went into), and who sent it in (null for no
+// sender: an admin's funko, or a deleted user's): what the submissions lists and the funko page add.
 const REVIEW_SELECT = {
   reviewedAt: true,
   rejectionReason: true,
   changedByAdminAt: true,
+  mergedInto: { select: { id: true, name: true } },
   ...SUBMITTER_SELECT,
 } as const satisfies Prisma.FunkoSelect;
 
@@ -67,6 +69,17 @@ const DOUBLE_CANDIDATE_SELECT = {
 
 // A category's or series' standing and name, to find the approved one of the same name when a submission is approved.
 const REFERENCE_SELECT = { id: true, name: true, status: true } as const satisfies Prisma.CategorySelect;
+
+// What a merge reads of each item it moves: where it is, and what a clash combines.
+const MERGED_ITEM_SELECT = {
+  id: true,
+  collectionId: true,
+  quantity: true,
+  notes: true,
+  createdAt: true,
+} as const satisfies Prisma.CollectionItemSelect;
+
+type MergedItemRow = Prisma.CollectionItemGetPayload<{ select: typeof MERGED_ITEM_SELECT }>;
 
 const PRIMARY_IMAGE_SELECT = {
   funkoId: true,
@@ -111,6 +124,10 @@ export type DoubleProbe = { id: number; barcode: string | null; number: string; 
 
 // The category and series an approved funko ends up with: its own, or the approved one of the same name.
 export type CatalogueReferences = { categoryId: number; seriesId: number | null };
+
+// What became of a merge: done, or refused because the submission is no longer waiting or the target is not (or no
+// longer) in the catalogue. Nothing changes unless it is MERGED.
+export type MergeOutcome = 'MERGED' | 'NOT_WAITING' | 'TARGET_NOT_IN_CATALOGUE';
 
 // A change to a funko: the body, plus when an admin changed someone else's submission.
 export type FunkoChange = UpdateFunko & { changedByAdminAt?: Date };
@@ -510,6 +527,88 @@ async function deleteOrphanInTransaction(id: number): Promise<boolean> {
   });
 }
 
+// The older of two items first: created first, the lower id on a tie.
+function olderFirst(first: MergedItemRow, second: MergedItemRow): [MergedItemRow, MergedItemRow] {
+  const isFirstOlder =
+    first.createdAt.getTime() < second.createdAt.getTime() ||
+    (first.createdAt.getTime() === second.createdAt.getTime() && first.id < second.id);
+
+  return isFirstOlder ? [first, second] : [second, first];
+}
+
+// Two items of the same funko in one collection become the older one: it takes `combine`'s quantity and notes and
+// both items' tags, then the newer one goes. The newer one is deleted before the kept one moves, so the collection
+// never holds the target funko twice (collection_items_collection_id_funko_id_uidx).
+async function combineItems(
+  tx: Prisma.TransactionClient,
+  pair: { moving: MergedItemRow; staying: MergedItemRow },
+  targetId: number,
+  combine: ItemCombiner,
+): Promise<void> {
+  const [older, newer] = olderFirst(pair.moving, pair.staying);
+  const combined = combine(older, newer);
+  const newerTags = await tx.collectionItemTag.findMany({
+    where: { collectionItemId: newer.id },
+    select: { tagId: true },
+  });
+
+  await tx.collectionItemTag.createMany({
+    data: newerTags.map(({ tagId }) => ({ collectionItemId: older.id, tagId })),
+    skipDuplicates: true,
+  });
+  await tx.collectionItem.delete({ where: { id: newer.id } });
+  await tx.collectionItem.update({ where: { id: older.id }, data: { ...combined, funkoId: targetId } });
+}
+
+// One of the submission's items moves onto the target funko, or combines with the target's item in its collection.
+async function moveItem(
+  tx: Prisma.TransactionClient,
+  moving: MergedItemRow,
+  targetId: number,
+  combine: ItemCombiner,
+): Promise<void> {
+  const staying = await tx.collectionItem.findUnique({
+    where: { collectionId_funkoId: { collectionId: moving.collectionId, funkoId: targetId } },
+    select: MERGED_ITEM_SELECT,
+  });
+
+  if (!staying) {
+    await tx.collectionItem.update({ where: { id: moving.id }, data: { funkoId: targetId } });
+
+    return;
+  }
+
+  await combineItems(tx, { moving, staying }, targetId, combine);
+}
+
+// Merging, all or nothing: the target must still be in the catalogue, the submission still waiting; then every item
+// of it (whoever's collection) moves onto the target, and it is marked merged into it. Its images, category and
+// series stay with it.
+async function mergeInTransaction(id: number, targetId: number, combine: ItemCombiner): Promise<MergeOutcome> {
+  return prisma.$transaction(async (tx) => {
+    const target = await tx.funko.findFirst({ where: { id: targetId, status: 'APPROVED' }, select: ID_SELECT });
+
+    if (!target) return 'TARGET_NOT_IN_CATALOGUE';
+
+    const write = await tx.funko.updateMany({
+      where: { id, status: 'WAITING' },
+      data: { status: 'MERGED', mergedIntoId: targetId, reviewedAt: new Date() },
+    });
+
+    if (write.count === 0) return 'NOT_WAITING';
+
+    const items = await tx.collectionItem.findMany({
+      where: { funkoId: id },
+      select: MERGED_ITEM_SELECT,
+      orderBy: { id: 'asc' },
+    });
+
+    for (const item of items) await moveItem(tx, item, targetId, combine);
+
+    return 'MERGED';
+  });
+}
+
 export const funkosRepository = {
   findById: (id: number): Promise<FunkoRow | undefined> => findRow({ id }),
 
@@ -697,6 +796,10 @@ export const funkosRepository = {
 
     return reloadIfUpdated(write, () => findRow({ id }));
   },
+
+  // Only a waiting funko is merged, only into an approved one; `combine` decides what a clash in one collection
+  // becomes.
+  merge: mergeInTransaction,
 
   // Rejecting an orphan submission deletes it, as the user-delete trigger deletes a removed user's rejected ones:
   // its items (there should be none), the funko, and the never-approved category and series of the removed user that

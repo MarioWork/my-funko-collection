@@ -39,7 +39,7 @@ function toResponse(row: NotificationRow): NotificationResponse {
 }
 
 // Written after the change it reports, which has already been saved: a notification that fails to write is logged
-// and dropped (recovered from), so the approve, reject, send or delete still answers as the success it is.
+// and dropped (recovered from), so the approve, reject, merge, send or delete still answers as the success it is.
 async function notify(notification: NewNotification): Promise<void> {
   if (notification.userIds.length === 0) return;
 
@@ -64,6 +64,12 @@ export async function notifySubmissionApproved(senderId: number, funko: Notified
 // To the sender: an admin rejected their submission, and why.
 export async function notifySubmissionRejected(senderId: number, funko: NotifiedFunko, reason: string): Promise<void> {
   await notify({ userIds: [senderId], kind: 'SUBMISSION_REJECTED', ...funko, reason });
+}
+
+// To the sender: an admin merged their submission into `target`, a funko already in the catalogue, where their items
+// now are.
+export async function notifySubmissionMerged(senderId: number, target: NotifiedFunko): Promise<void> {
+  await notify({ userIds: [senderId], kind: 'SUBMISSION_MERGED', ...target, reason: null });
 }
 
 // To every admin (read-only ones too: they still read): a member sent a new submission in.

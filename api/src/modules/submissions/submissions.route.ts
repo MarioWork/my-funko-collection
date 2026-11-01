@@ -2,11 +2,12 @@ import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { z } from 'zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
 import { signedInUser, signedInUserId } from '../../plugins/auth.plugin.ts';
-import { RejectSubmissionSchema, SubmissionParamsSchema } from './submissions.schema.ts';
+import { MergeSubmissionSchema, RejectSubmissionSchema, SubmissionParamsSchema } from './submissions.schema.ts';
 import {
   approveSubmission,
   getReviewSubmissions,
   getSubmissions,
+  mergeSubmission,
   rejectSubmission,
   resendSubmission,
 } from './submissions.service.ts';
@@ -94,6 +95,27 @@ export const submissionsRoutes: FastifyPluginAsyncZod = async (app) => {
 
       return outcome.submission;
     },
+  );
+
+  app.post(
+    '/:funkoId/merge',
+    {
+      config: { isAdminOnly: true },
+      schema: {
+        tags: TAGS,
+        summary:
+          'Merge a waiting submission into a funko already in the catalogue: its items move there (400 when the target is not in the catalogue)',
+        params: SubmissionParamsSchema,
+        body: MergeSubmissionSchema,
+        response: {
+          200: SubmissionResponseSchema,
+          400: ErrorResponseSchema,
+          404: ErrorResponseSchema,
+          409: ErrorResponseSchema,
+        },
+      },
+    },
+    async (request) => mergeSubmission(request.params.funkoId, request.body.targetFunkoId),
   );
 
   app.post(
