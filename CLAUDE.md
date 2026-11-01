@@ -50,10 +50,15 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   route and `/uploads` file needs a session unless it sets `config: { isPublic: true }`; keep that list tiny, and
   add new public routes to `PUBLIC_ROUTES` in `auth.route.test.ts`. Sessions are server-side rows (SHA-256 of an
   HttpOnly cookie token), never JWTs or localStorage. No TOTP, email or "auth off" switch, not even in dev.
+- A recent sign-in (10 minutes, `assertRecentSignIn`) guards passkey, password and user changes. "Confirm it's you"
+  renews it with a passkey (`POST /auth/login/verify`) or the signed-in user's own password
+  (`POST /auth/recent-sign-in`, no username: it never switches users); both replace the session. Web side:
+  `withFreshSignIn` + `useConfirmIdentityStep`, the password option only for a user with a username.
 - Admins create every user (`POST /users`, a sign-in from the last 10 minutes) with an app-made temporary password,
   sent once and stored only as a hash; it dies 7 days after it was made unless replaced
   (`users.temporary_password_expires_at`). Until then the session gets 403 `PASSWORD_CHANGE_REQUIRED` on every
-  locked route but those with `config: { isAllowedWithTemporaryPassword: true }` (`PUT /auth/password`, sign-out);
+  locked route but those with `config: { isAllowedWithTemporaryPassword: true }` (`PUT /auth/password`,
+  `POST /auth/recent-sign-in`, sign-out);
   keep that list tiny. The web's `signedInUserMiddleware` and `authMiddleware` send such a user to `/set-password`,
   and the mocks refuse the rest in `requirePasswordChange.mock.handler.ts`.
 - Admins manage users (`PATCH /users/:id` role and/or `isReadOnly`, `POST /users/:id/temporary-password`,
