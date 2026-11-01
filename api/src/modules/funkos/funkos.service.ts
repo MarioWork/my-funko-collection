@@ -12,6 +12,7 @@ import type {
   ListReviewQuery,
   ListSubmissionsQuery,
   PossibleDouble,
+  RejectionOutcome,
   ReviewSubmissionListResponse,
   SubmissionListResponse,
   SubmissionResponse,
@@ -538,10 +539,24 @@ export async function approveSubmission(id: number): Promise<SubmissionResponse>
   return toSingleSubmission(id);
 }
 
+// An orphan submission (its sender removed) has nobody to fix it: rejecting it deletes it.
+async function deleteRejectedOrphan(id: number): Promise<RejectionOutcome> {
+  const isDeleted = await funkosRepository.deleteOrphan(id);
+
+  if (!isDeleted) throw new ConflictError(NOT_WAITING_MESSAGE);
+
+  log.info({ funkoId: id }, 'orphan submission rejected and deleted');
+
+  return { isDeleted: true };
+}
+
 // An admin rejects a waiting submission, saying why: it stays in its sender's collections, still private, for them
-// to fix and send again, or delete.
-export async function rejectSubmission(id: number, reason: string): Promise<SubmissionResponse> {
-  await findWaitingSubmission(id);
+// to fix and send again, or delete. An orphan submission is deleted instead.
+export async function rejectSubmission(id: number, reason: string): Promise<RejectionOutcome> {
+  const current = await findWaitingSubmission(id);
+  const isOrphan = current.submittedById === null;
+
+  if (isOrphan) return deleteRejectedOrphan(id);
 
   const row = await funkosRepository.reject(id, reason);
 
@@ -549,7 +564,7 @@ export async function rejectSubmission(id: number, reason: string): Promise<Subm
 
   log.info({ funkoId: id }, 'submission rejected');
 
-  return toSingleSubmission(id);
+  return { isDeleted: false, submission: await toSingleSubmission(id) };
 }
 
 // The sender sends a rejected submission in again, once it fits their other waiting ones and the catalogue.

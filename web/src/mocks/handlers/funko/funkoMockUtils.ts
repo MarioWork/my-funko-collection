@@ -76,8 +76,8 @@ export function referenceRefusal(candidate: ReferenceCandidate): Response | unde
   return undefined;
 }
 
-// After a change to a funko or its images: an admin who changed someone else's submission leaves a note its sender
-// reads, as the API does.
+// After a change to a funko's fields, or a photo added or removed (not reordered or rotated): an admin who changed
+// someone else's submission leaves a note its sender reads, as the API does.
 export function recordMockAdminChange(funko: MockFunkoRow): void {
   if (isAdminChangingMockSubmission(funko)) funko.changedByAdminAt = nowIso();
 }

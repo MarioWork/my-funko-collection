@@ -6,7 +6,8 @@ import DisabledReason from '@components/DisabledReason';
 import InlineAlert from '@components/InlineAlert';
 import { Button } from '@components/ui/button';
 import { Spinner } from '@components/ui/spinner';
-import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
+import { DISABLED_REASONS, firstReason, reasonWhen } from '@utils/disabledReasonUtils';
 import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 import { useReviewActionsContext } from '../hooks/useReviewActionsContext';
 
@@ -32,22 +33,23 @@ function ApproveFailure({ failure }: FailureProps) {
   );
 }
 
-// One review at a time: while one is saving, every row's buttons wait.
+// One review at a time: while one is saving, every row's buttons wait. A read-only admin only looks.
 function ReviewButtons({ submission }: Props) {
   const { busyId, isBusy, approve, openReject } = useReviewActionsContext();
   const isApproving = busyId === submission.id;
-  const disabledReason = reasonWhen(isBusy, DISABLED_REASONS.WORKING);
+  const disabledReason = firstReason(useReadOnlyReason(), reasonWhen(isBusy, DISABLED_REASONS.WORKING));
+  const isDisabled = disabledReason !== undefined;
 
   return (
     <div className="flex flex-wrap justify-end gap-2">
       <DisabledReason reason={disabledReason}>
-        <Button variant="outline" size="sm" onClick={() => openReject(submission)} disabled={isBusy}>
+        <Button variant="outline" size="sm" onClick={() => openReject(submission)} disabled={isDisabled}>
           <X data-icon="inline-start" aria-hidden="true" />
           Reject
         </Button>
       </DisabledReason>
       <DisabledReason reason={disabledReason}>
-        <Button size="sm" onClick={() => approve(submission)} disabled={isBusy}>
+        <Button size="sm" onClick={() => approve(submission)} disabled={isDisabled}>
           {isApproving ? <Spinner data-icon="inline-start" /> : <Check data-icon="inline-start" aria-hidden="true" />}
           Approve
         </Button>
