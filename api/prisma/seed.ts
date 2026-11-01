@@ -61,6 +61,13 @@ const SUBMISSIONS: SeedSubmission[] = [
   },
 ];
 
+// A funko an admin already removed from the catalogue while han had it: only his notification is left of it.
+const REMOVED_FUNKO = {
+  name: 'Boba Fett (Prototype)',
+  reason: 'A double of Boba Fett #08, which stays in the catalogue',
+  holder: 'han',
+};
+
 // Example catalog rows; numbers are illustrative, not a price guide.
 const FUNKOS: SeedFunko[] = [
   { name: 'Spider-Man', number: '03', category: 'Pop! Marvel' },
@@ -335,7 +342,7 @@ const submissionRows = await prisma.funko.createManyAndReturn({
 });
 
 // What the submissions above would have told people: every admin heard of each one sent in (the oldest already read),
-// and the sender of the rejected one heard why. Mirrors web/src/mocks/mockSeed.ts.
+// and the sender of the rejected one heard why; han also heard of REMOVED_FUNKO. Mirrors web/src/mocks/mockSeed.ts.
 const submissionIds = new Map(submissionRows.map((row) => [row.name, row.id]));
 const adminRows = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
 const notificationRows = await prisma.notification.createManyAndReturn({
@@ -361,6 +368,18 @@ const notificationRows = await prisma.notification.createManyAndReturn({
 
     return [...toAdmins, toSender];
   }),
+  select: { id: true },
+});
+const removalRows = await prisma.notification.createManyAndReturn({
+  data: [
+    {
+      userId: idFor(memberIds, 'member', REMOVED_FUNKO.holder),
+      kind: 'FUNKO_REMOVED' as const,
+      funkoId: null,
+      funkoName: REMOVED_FUNKO.name,
+      reason: REMOVED_FUNKO.reason,
+    },
+  ],
   select: { id: true },
 });
 
@@ -423,7 +442,7 @@ logger.info(
     funkos: funkoRows.length,
     members: memberRows.length,
     submissions: submissionRows.length,
-    notifications: notificationRows.length,
+    notifications: notificationRows.length + removalRows.length,
     collections: collectionRows.length,
     tags: tagRows.length,
     items: ITEMS.length,

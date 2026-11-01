@@ -16,11 +16,11 @@ const NOTIFICATION_SELECT = {
 
 export type NotificationRow = Prisma.NotificationGetPayload<{ select: typeof NOTIFICATION_SELECT }>;
 
-// One message to write, to one or more users.
+// One message to write, to one or more users. `funkoId` is null for a funko that is already gone.
 export type NewNotification = {
   userIds: number[];
   kind: NotificationKind;
-  funkoId: number;
+  funkoId: number | null;
   funkoName: string;
   reason: string | null;
 };

@@ -121,6 +121,23 @@ export type NewFunko = Omit<Prisma.FunkoUncheckedCreateInput, 'id' | 'createdAt'
 // The natural key the duplicate guard checks: the columns of `funkos_identity_uidx`.
 export type FunkoIdentity = Pick<FunkoRow, 'categoryId' | 'number' | 'name' | 'isChase' | 'exclusive'>;
 
+// A forced delete that went through: the funko's id, and the users whose items went with it.
+export type DeletedWithItems = { id: number; holderIds: number[] };
+
+// The client a query runs on: the shared one, or a transaction's.
+type QueryClient = Pick<typeof prisma, 'user'>;
+
+// Users with the funko in at least one of their collections.
+function holdsFunko(funkoId: number): Prisma.UserWhereInput {
+  return { collections: { some: { items: { some: { funkoId } } } } };
+}
+
+async function findHolderIdsIn(client: QueryClient, funkoId: number): Promise<number[]> {
+  const holders = await client.user.findMany({ where: holdsFunko(funkoId), select: ID_SELECT, orderBy: { id: 'asc' } });
+
+  return holders.map((holder) => holder.id);
+}
+
 // A list row also says which fields the search words hit (null when there was no search), so the UI can say
 // "matched by tag". The words' SQL conditions decide it, the same ones that filter the list.
 export type ListedFunkoRow = FunkoRow & { matchedOn: FunkoMatchField[] | null };
@@ -648,12 +665,12 @@ export const funkosRepository = {
     return groupByFunkoId(items.map(({ funkoId, collection }) => ({ funkoId, ...collection })));
   },
 
-  // Every user's items of the funko, for the delete guard: a funko in anyone's collection is protected.
-  countItems: (funkoId: number): Promise<number> => prisma.collectionItem.count({ where: { funkoId } }),
+  // Every user with the funko in a collection, for the delete guard: a funko in anyone's collection is protected.
+  // Only ids: who they are is never told, only how many.
+  findHolderIds: (funkoId: number): Promise<number[]> => findHolderIdsIn(prisma, funkoId),
 
-  // The funko's items in collections that are not `userId`'s: told apart in the 409, never named.
-  countOtherUsersItems: (userId: number, funkoId: number): Promise<number> =>
-    prisma.collectionItem.count({ where: { funkoId, collection: { userId: { not: userId } } } }),
+  // How many users have the funko in a collection, for an admin about to delete it.
+  countHolders: (funkoId: number): Promise<number> => prisma.user.count({ where: holdsFunko(funkoId) }),
 
   create: async (data: NewFunko): Promise<FunkoRow> => toRow(await prisma.funko.create({ data, select: FUNKO_SELECT })),
 
@@ -697,13 +714,18 @@ export const funkosRepository = {
     return deletedIdOrUndefined(id, write);
   },
 
-  // The forced delete: its collection items go first (their tags cascade), then the funko, all or nothing.
-  deleteWithItems: async (id: number): Promise<{ id: number } | undefined> => {
-    const [, deleted] = await prisma.$transaction([
-      prisma.collectionItem.deleteMany({ where: { funkoId: id } }),
-      prisma.funko.deleteMany({ where: { id } }),
-    ]);
+  // The forced delete: its collection items go first (their tags cascade), then the funko, all or nothing. Answers
+  // the users whose items went, read in the same transaction, so the ones told are the ones who lost it.
+  deleteWithItems: (id: number): Promise<DeletedWithItems | undefined> =>
+    prisma.$transaction(async (tx) => {
+      const holderIds = await findHolderIdsIn(tx, id);
 
-    return deletedIdOrUndefined(id, deleted);
-  },
+      await tx.collectionItem.deleteMany({ where: { funkoId: id } });
+
+      const deleted = await tx.funko.deleteMany({ where: { id } });
+
+      if (deleted.count === 0) return undefined;
+
+      return { id, holderIds };
+    }),
 };

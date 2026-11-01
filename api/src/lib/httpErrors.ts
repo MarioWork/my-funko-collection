@@ -28,6 +28,17 @@ export class ConflictError extends HttpError {
   }
 }
 
+// Something other users still hold, such as a funko in their collections: `userCount` says how many users, never
+// who.
+export class HeldByUsersError extends HttpError {
+  readonly userCount: number;
+
+  constructor(message: string, userCount: number) {
+    super(message, { code: 'IN_COLLECTIONS', statusCode: 409 });
+    this.userCount = userCount;
+  }
+}
+
 export class BadRequestError extends HttpError {
   constructor(message: string, options: { cause?: unknown } = {}) {
     super(message, { code: 'VALIDATION_ERROR', statusCode: 400, cause: options.cause });

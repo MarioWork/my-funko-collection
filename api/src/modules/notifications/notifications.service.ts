@@ -39,7 +39,7 @@ function toResponse(row: NotificationRow): NotificationResponse {
 }
 
 // Written after the change it reports, which has already been saved: a notification that fails to write is logged
-// and dropped (recovered from), so the approve, reject or send still answers as the success it is.
+// and dropped (recovered from), so the approve, reject, send or delete still answers as the success it is.
 async function notify(notification: NewNotification): Promise<void> {
   if (notification.userIds.length === 0) return;
 
@@ -74,6 +74,12 @@ export async function notifyAdminsOfNewSubmission(funko: NotifiedFunko): Promise
 // To every admin: a member sent a rejected submission in again.
 export async function notifyAdminsOfResentSubmission(funko: NotifiedFunko): Promise<void> {
   await notify({ userIds: await getAdminIds(), kind: 'SUBMISSION_RESENT', ...funko, reason: null });
+}
+
+// To every user who had it in a collection: an admin deleted the funko from the catalogue, and why. The funko is
+// gone, so the notification keeps only its name.
+export async function notifyFunkoRemoved(userIds: number[], funkoName: string, reason: string): Promise<void> {
+  await notify({ userIds, kind: 'FUNKO_REMOVED', funkoId: null, funkoName, reason });
 }
 
 export async function getNotifications(

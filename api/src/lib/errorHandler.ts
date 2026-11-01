@@ -12,7 +12,7 @@ import {
   getPrismaErrorCode,
   getSqlState,
 } from './databaseErrors.ts';
-import { ConflictError, HttpError } from './httpErrors.ts';
+import { ConflictError, HeldByUsersError, HttpError } from './httpErrors.ts';
 
 // The one error envelope every route lists for its 4xx/5xx responses.
 export const ErrorResponseSchema = z
@@ -22,6 +22,8 @@ export const ErrorResponseSchema = z
     issues: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
     // On a 409: the id of the record that already holds the conflicting value, when the service knows it.
     existingId: z.number().int().optional(),
+    // On a 409 IN_COLLECTIONS: how many users hold the record, never who.
+    userCount: z.number().int().optional(),
   })
   .meta({ id: 'ErrorResponse' });
 
@@ -86,8 +88,9 @@ function isClientError(error: FastifyError): boolean {
 
 function toHttpErrorResponse(error: HttpError): ErrorResponse {
   const existingId = error instanceof ConflictError ? error.existingId : undefined;
+  const userCount = error instanceof HeldByUsersError ? error.userCount : undefined;
 
-  return { code: error.code, message: error.message, existingId };
+  return { code: error.code, message: error.message, existingId, userCount };
 }
 
 export function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {

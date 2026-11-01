@@ -6,6 +6,7 @@ import {
   BarcodeParamsSchema,
   CreateFunkoSchema,
   DeleteFunkoQuerySchema,
+  DeleteFunkoSchema,
   FunkoDetailResponseSchema,
   FunkoListResponseSchema,
   FunkoParamsSchema,
@@ -104,9 +105,11 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: TAGS,
         summary:
-          'Delete a funko and its images (409 while it sits in a collection, unless force=true; a member: only their own waiting submission)',
+          'Delete a funko and its images (409 with userCount while it sits in a collection, unless force=true; a reason in the body when other users have it, sent to them; a member: only their own submission)',
         params: FunkoParamsSchema,
         querystring: DeleteFunkoQuerySchema,
+        // A DELETE without a body reaches the validator as null.
+        body: DeleteFunkoSchema.nullable(),
         response: {
           204: z.undefined(),
           400: ErrorResponseSchema,
@@ -117,7 +120,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await deleteFunko(signedInUser(request), request.params.funkoId, request.query);
+      await deleteFunko(signedInUser(request), request.params.funkoId, request.query, request.body);
 
       return reply.code(204).send();
     },
