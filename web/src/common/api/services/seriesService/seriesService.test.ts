@@ -5,6 +5,7 @@ import seriesService, { SeriesApiSearchFields, SeriesApiSortingFields } from './
 
 const STRANGER_THINGS_SERIES_ID = 3;
 const UNKNOWN_SERIES_ID = 999;
+const SEEDED_SERIES_COUNT = 25;
 
 describe('getSeriesList', () => {
   it('sends the page, sort and name filter under their wire names', async () => {
@@ -36,7 +37,7 @@ describe('getSeriesList', () => {
   it('returns the seeded series with their funko counts', async () => {
     const response = await seriesService.getSeriesList({ pagination: { page: '1', size: '10' } });
 
-    expect(response.totalResultNumber).toBe(3);
+    expect(response.totalResultNumber).toBe(SEEDED_SERIES_COUNT);
     expect(response.data.find((series) => series.name === 'Stranger Things')?.funkoCount).toBe(4);
   });
 });
@@ -79,11 +80,19 @@ describe('deleteSeries', () => {
     expect(result).toMatchObject({ success: false, error: { statusCode: 404 } });
   });
 
-  it('deletes a series still in use, and its funkos lose it', async () => {
-    const result = await seriesService.deleteSeries(STRANGER_THINGS_SERIES_ID);
-    const remaining = await seriesService.getSeriesList({ pagination: { page: '1', size: '10' } });
+  it('deletes a series no funko uses', async () => {
+    const created = await seriesService.addSeries({ name: 'Andor' });
+
+    const result = await seriesService.deleteSeries(created.data?.id ?? UNKNOWN_SERIES_ID);
 
     expect(result.success).toBe(true);
-    expect(remaining.data.map((series) => series.name)).not.toContain('Stranger Things');
+  });
+
+  it('returns the 409 envelope and keeps the series when funkos still use it', async () => {
+    const result = await seriesService.deleteSeries(STRANGER_THINGS_SERIES_ID);
+    const remaining = await seriesService.getSeriesList({ pagination: { page: '1', size: '10' }, name: 'Stranger' });
+
+    expect(result).toMatchObject({ success: false, error: { statusCode: 409 } });
+    expect(remaining.data.map((series) => series.name)).toContain('Stranger Things');
   });
 });

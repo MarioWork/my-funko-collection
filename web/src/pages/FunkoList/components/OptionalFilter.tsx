@@ -6,7 +6,7 @@ type Props = {
   id: string;
   label: string;
   anyLabel: string;
-  // The option for funkos that have none: "No series".
+  // The option for funkos that have none: "No tags".
   noneLabel: string;
   idField: FunkoFilterField;
   hasField: FunkoFilterField;
@@ -17,7 +17,7 @@ type Props = {
 
 const NONE = 'none';
 
-// A field a funko may leave empty (series, collections, tags): one select with Any, None, then each value. The id
+// A field a funko may leave empty (collections, tags): one select with Any, None, then each value. The id
 // and the has… flag are two URL params; picking one clears the other so they never disagree.
 function OptionalFilter({ id, label, anyLabel, noneLabel, idField, hasField, filters, options, onChange }: Props) {
   const isNone = filters[hasField] === FALSE_VALUE;

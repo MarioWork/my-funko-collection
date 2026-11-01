@@ -92,7 +92,6 @@ export const FunkoApiSearchFields = {
   COLLECTION: 'collection',
   NOT_IN_COLLECTION_ID: 'notInCollectionId',
   HAS_COLLECTIONS: 'hasCollections',
-  HAS_SERIES: 'hasSeries',
   HAS_TAGS: 'hasTags',
   HAS_IMAGES: 'hasImages',
 } as const;

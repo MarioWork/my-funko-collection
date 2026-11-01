@@ -16,9 +16,10 @@ const ADMIN_ONLY_MESSAGE = 'Only an admin can change a funko in the catalogue';
 // The API's 409 messages for a duplicate funko.
 export const DUPLICATE_FUNKO_MESSAGE = 'This funko already exists';
 export const DUPLICATE_BARCODE_MESSAGE = 'This barcode belongs to another funko';
+const SERIES_REQUIRED_MESSAGE = 'Series is required';
 
 type BarcodeCandidate = MockSubmissionColumns & { barcode: string | null };
-type ReferenceCandidate = MockSubmissionColumns & { categoryId: number; seriesId: number | null };
+type ReferenceCandidate = MockSubmissionColumns & { categoryId: number; seriesId: number };
 
 // The funko a write may change, or the response the API gives instead.
 type EditableFunkoLookup = { funko: MockFunkoRow } | { refusal: Response };
@@ -58,6 +59,14 @@ export function findBarcodeTwin(candidate: BarcodeCandidate, selfId?: number): M
   );
 }
 
+// Every funko has a series: a body that leaves it out (on a create) or clears it gets the API's 400. `seriesId` is
+// what came over the wire, so it is checked as unknown.
+export function missingSeriesRefusal(seriesId: unknown): Response | undefined {
+  const isGiven = typeof seriesId === 'number';
+
+  return isGiven ? undefined : badRequest(SERIES_REQUIRED_MESSAGE);
+}
+
 // Why this funko may not use the body's category or series (a 400, as the API answers), or undefined.
 export function referenceRefusal(candidate: ReferenceCandidate): Response | undefined {
   const category = mockStore.categories.find((row) => row.id === candidate.categoryId);
@@ -65,8 +74,6 @@ export function referenceRefusal(candidate: ReferenceCandidate): Response | unde
   if (!category || !isUsableByMockFunko(category, candidate)) {
     return badRequest(`Category ${candidate.categoryId} does not exist`);
   }
-
-  if (candidate.seriesId === null) return undefined;
 
   const series = mockStore.series.find((row) => row.id === candidate.seriesId);
 

@@ -4,6 +4,7 @@ import { FunkoTypeUtil, SubmissionStatusUtil } from '@app-types/utility';
 import type { CreateFunko } from '@services/funkoService/funkoService.type';
 import {
   FUNKO_CATEGORY_REQUIRED_MESSAGE,
+  FUNKO_SERIES_REQUIRED_MESSAGE,
   funkoBarcodeSchema,
   funkoExclusiveSchema,
   funkoNameSchema,
@@ -27,8 +28,7 @@ export const funkoFormSchema = object({
   number: funkoNumberSchema,
   type: funkoTypeSchema,
   categoryId: string().required(FUNKO_CATEGORY_REQUIRED_MESSAGE),
-  // '' = no series.
-  seriesId: string().defined(),
+  seriesId: string().required(FUNKO_SERIES_REQUIRED_MESSAGE),
   isChase: boolean().required(),
   exclusive: funkoExclusiveSchema,
   barcode: funkoBarcodeSchema,
@@ -53,7 +53,7 @@ export const funkoToFormValues = (funko: FunkoApiModel): FunkoFormValues => ({
   number: funko.number,
   type: funko.type,
   categoryId: String(funko.category.id),
-  seriesId: funko.series ? String(funko.series.id) : '',
+  seriesId: String(funko.series.id),
   isChase: funko.isChase,
   exclusive: funko.exclusive,
   barcode: funko.barcode ?? '',
@@ -64,7 +64,7 @@ export const toFunkoPayload = (values: FunkoFormValues): CreateFunko => ({
   number: values.number,
   type: values.type,
   categoryId: Number(values.categoryId),
-  seriesId: values.seriesId ? Number(values.seriesId) : null,
+  seriesId: Number(values.seriesId),
   isChase: values.isChase,
   exclusive: values.exclusive,
   barcode: values.barcode ? values.barcode : null,

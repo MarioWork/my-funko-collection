@@ -12,7 +12,7 @@ export interface FunkoSummaryApiModel {
   exclusive: string;
   barcode: string | null;
   category: NamedApiModel;
-  // The series it belongs to; optional.
-  series: NamedApiModel | null;
+  // The series it belongs to; every funko has one.
+  series: NamedApiModel;
   primaryImage: PrimaryImageApiModel | null;
 }

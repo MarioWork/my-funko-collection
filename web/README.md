@@ -165,6 +165,12 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 5. **Routed dialogs and sheets** (edit funko, add/edit item, add/edit collection) are child routes with their own
    loader and action; closing navigates back.
 
+Every funko has a series (issue #40), like its category; the barcode stays optional. The Add, scan-first and Edit
+forms require it (`funkoSeriesIdSchema`, the message under the Series field through `aria-describedby` and
+`aria-invalid`), the actions refuse a payload without one, and the mock handlers answer 400 like the API. A series
+with funkos cannot be deleted (the button is disabled with the reason; the API and mocks answer 409), and the funko
+list has no "No series" filter.
+
 ## Signing in
 
 Each user, with a passkey (`@simplewebauthn/browser`) or a username and password; the API keeps the session in an

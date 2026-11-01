@@ -26,8 +26,14 @@ export const funkoTypeSchema = string<FunkoTypeUtil>()
   .oneOf(Object.values(FunkoTypeUtil), 'Pick a type')
   .required('Type is required');
 
-// Optional: null means "no series".
-export const funkoSeriesIdSchema = number().integer().positive().nullable().defined().default(null);
+export const FUNKO_SERIES_REQUIRED_MESSAGE = 'Series is required';
+
+// Required, like the category: every funko has a series.
+export const funkoSeriesIdSchema = number()
+  .typeError('Pick a series')
+  .integer()
+  .positive('Pick a series')
+  .required(FUNKO_SERIES_REQUIRED_MESSAGE);
 
 export const FUNKO_CATEGORY_REQUIRED_MESSAGE = 'Category is required';
 

@@ -37,12 +37,12 @@ const CATALOGUE_HAS_BARCODE_MESSAGE =
 const APPROVED: MockSubmissionColumns = { status: SubmissionStatusUtil.APPROVED, submittedById: null };
 
 // A waiting category or series the funko left for an approved twin goes once no funko uses it.
-function dropUnused<Row extends NamedSubmissionRow>(rows: Row[], id: number | null, isUsed: (id: number) => boolean) {
+function dropUnused<Row extends NamedSubmissionRow>(rows: Row[], id: number, isUsed: (id: number) => boolean) {
   return rows.filter((row) => row.id !== id || row.status === SubmissionStatusUtil.APPROVED || isUsed(row.id));
 }
 
 // The never-approved category and series a funko left (approved onto a twin, or deleted) go once no funko uses them.
-function dropUnusedReferencesOf(categoryId: number, seriesId: number | null): void {
+function dropUnusedReferencesOf(categoryId: number, seriesId: number): void {
   mockStore.categories = dropUnused(mockStore.categories, categoryId, (id) =>
     mockStore.funkos.some((row) => row.categoryId === id),
   );
@@ -55,7 +55,7 @@ function approve(funko: MockFunkoRow): void {
   const leftCategoryId = funko.categoryId;
   const leftSeriesId = funko.seriesId;
 
-  funko.categoryId = approveReference(mockStore.categories, funko.categoryId) ?? funko.categoryId;
+  funko.categoryId = approveReference(mockStore.categories, funko.categoryId);
   funko.seriesId = approveReference(mockStore.series, funko.seriesId);
   Object.assign(funko, { status: SubmissionStatusUtil.APPROVED, reviewedAt: nowIso(), updatedAt: nowIso() });
 
@@ -67,7 +67,7 @@ function catalogueClashOf(funko: MockFunkoRow): Response | undefined {
   const candidate = {
     ...funko,
     ...APPROVED,
-    categoryId: catalogueReferenceIdOf(mockStore.categories, funko.categoryId) ?? funko.categoryId,
+    categoryId: catalogueReferenceIdOf(mockStore.categories, funko.categoryId),
   };
   const duplicate = findDuplicate(candidate, funko.id);
 

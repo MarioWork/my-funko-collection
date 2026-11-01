@@ -10,6 +10,7 @@ import {
   findBarcodeTwin,
   findDuplicate,
   findEditableFunko,
+  missingSeriesRefusal,
   recordMockAdminChange,
   referenceRefusal,
 } from './funkoMockUtils';
@@ -25,6 +26,10 @@ export default (baseUrl: string) => [
 
     const row = target.funko;
     const body = (await request.json()) as UpdateFunko;
+    const missingSeries = 'seriesId' in body ? missingSeriesRefusal(body.seriesId) : undefined;
+
+    if (missingSeries) return missingSeries;
+
     const next = { ...row, ...body, barcode: body.barcode === undefined ? row.barcode : body.barcode };
     const refusal = referenceRefusal(next);
 

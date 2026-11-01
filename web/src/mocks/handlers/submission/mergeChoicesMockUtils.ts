@@ -70,7 +70,7 @@ function hasRepeats(values: readonly unknown[]): boolean {
 function catalogueSideOf(submission: MockFunkoRow): MergeSide {
   return {
     ...submission,
-    categoryId: catalogueReferenceIdOf(mockStore.categories, submission.categoryId) ?? submission.categoryId,
+    categoryId: catalogueReferenceIdOf(mockStore.categories, submission.categoryId),
     seriesId: catalogueReferenceIdOf(mockStore.series, submission.seriesId),
   };
 }
@@ -170,7 +170,7 @@ export function planMockMerge(
 export function applyMockMerge(target: MockFunkoRow, submission: MockFunkoRow, plan: MockMergePlan): void {
   if (plan.fields.categoryId !== undefined) approveReference(mockStore.categories, submission.categoryId);
 
-  if (plan.fields.seriesId !== undefined && plan.fields.seriesId !== null) {
+  if (plan.fields.seriesId !== undefined) {
     approveReference(mockStore.series, submission.seriesId);
   }
 

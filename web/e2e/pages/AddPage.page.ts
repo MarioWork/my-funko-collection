@@ -5,6 +5,7 @@ type FunkoDetails = {
   name: string;
   number: string;
   categoryName: string;
+  seriesName: string;
 };
 
 export class AddPage {
@@ -29,10 +30,11 @@ export class AddPage {
     await this.page.goto(ADD_ROUTES_PATHS.BASE);
   }
 
-  async fillDetails({ name, number, categoryName }: FunkoDetails) {
+  async fillDetails({ name, number, categoryName, seriesName }: FunkoDetails) {
     await this.page.getByLabel('Name', { exact: true }).fill(name);
     await this.page.getByLabel('Number', { exact: true }).fill(number);
     await this.page.getByLabel('Category', { exact: true }).selectOption({ label: categoryName });
+    await this.page.getByLabel('Series', { exact: true }).selectOption({ label: seriesName });
   }
 
   async save() {
