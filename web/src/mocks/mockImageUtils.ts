@@ -1,4 +1,4 @@
-import type { PrimaryImageApiModel, FunkoImageApiModel } from '@app-types/models';
+import type { PrimaryImageApiModel } from '@app-types/models';
 
 const HUE_STEP = 37;
 const HUE_MAX = 360;
@@ -31,7 +31,7 @@ export function createMockImageUrls(label: string, seed: number) {
   };
 }
 
-export function toPrimaryImage(image: FunkoImageApiModel | undefined): PrimaryImageApiModel | null {
+export function toPrimaryImage(image: PrimaryImageApiModel | undefined): PrimaryImageApiModel | null {
   if (!image) return null;
 
   const { smallUrl, mediumUrl, placeholder, width, height } = image;

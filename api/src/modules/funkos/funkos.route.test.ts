@@ -8,6 +8,8 @@ import {
   createItem,
   createSeries,
   createTag,
+  createUser,
+  deleteUser,
   makeImage,
   type SignedInClient,
   signIn,
@@ -340,6 +342,27 @@ describe('GET /funkos/:funkoId', () => {
     expect(body.images).toHaveLength(1);
     expect(body.primaryImage?.smallUrl).toMatch(/\.sm\.webp$/);
     expect(body.category.name).toBe('Pop! Marvel');
+  });
+
+  it('says who uploaded each image, and no one once that user is deleted', async () => {
+    const uploader = await createUser('Mario', 'ADMIN');
+    const uploaderApi = await signIn(app, { userId: uploader.id });
+    const funko = await createFunko();
+    const upload = async (client: SignedInClient, width: number) =>
+      client.inject({
+        method: 'POST',
+        url: `${URL}/${funko.id}/images`,
+        payload: toFormData([{ buffer: await makeImage({ width, height: 64 }) }]),
+      });
+    await upload(uploaderApi, 64);
+    const leaver = await createUser('Leia', 'ADMIN');
+    await upload(await signIn(app, { userId: leaver.id }), 65);
+    await deleteUser(leaver.id);
+
+    const response = await api.inject({ method: 'GET', url: `${URL}/${funko.id}` });
+
+    const body = response.json<{ images: { uploadedBy: { id: number; name: string } | null }[] }>();
+    expect(body.images.map((image) => image.uploadedBy)).toEqual([{ id: uploader.id, name: 'Mario' }, null]);
   });
 
   it('includes the series when the funko has one', async () => {

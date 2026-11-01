@@ -33,6 +33,7 @@ export function toImageResponse(row: FunkoImageRow): FunkoImageResponse {
     sizeBytes: row.sizeBytes,
     position: row.position,
     createdAt: row.createdAt.toISOString(),
+    uploadedBy: row.uploadedBy,
   };
 }
 

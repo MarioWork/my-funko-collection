@@ -380,9 +380,10 @@ One envelope: `{ code, message, issues?, existingId? }`.
 `src/lib/imageStorage.ts` is the only file that imports `sharp` or touches the uploads folder. Each upload becomes
 `data/uploads/funkos/<funkoId>/<uuid>.{lg,md,sm}.webp` (2000 / 1200 / 480 px long edge, EXIF orientation applied,
 metadata stripped) plus a tiny blurred data URI kept in the database as `placeholder`. A response carries
-`url` (large), `mediumUrl`, `smallUrl` under `/uploads/...`, plus `width`, `height`, `sizeBytes` and `position`.
+`url` (large), `mediumUrl`, `smallUrl` under `/uploads/...`, plus `width`, `height`, `sizeBytes`, `position` and
+`uploadedBy` (`{ id, name }`; the funko page shows it under each photo).
 Every image records the user who uploaded it (`uploaded_by_id`) and when (`created_at`); the images that existed
-before went to the first admin. Deleting that user keeps the image and clears its uploader, so `GET /images` shows
+before went to the first admin. Deleting that user keeps the image and clears its uploader, so `GET /images` and a funko's images show
 `uploadedBy: null` on a row (a removed user), as on a loose file. Deleting a funko deletes its folder; `yarn images:prune` cleans up
 anything a crash left behind (in the container: `docker compose exec api node dist/cli/pruneImages.js`).
 
