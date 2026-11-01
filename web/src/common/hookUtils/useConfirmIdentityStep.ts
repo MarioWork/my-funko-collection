@@ -9,6 +9,8 @@ export type ConfirmIdentityStep = {
   needsReauth: boolean;
   // The user has a password (a username comes with it), so it is offered next to the passkey.
   canUsePassword: boolean;
+  // A passkey is offered (everywhere but the temporary-password page, which confirms with that password only).
+  canUsePasskey: boolean;
   password: string;
   setPassword: (password: string) => void;
   // A wrong password, shown on the password field.
@@ -22,8 +24,17 @@ export type ConfirmIdentityStep = {
   chooseReauth: (method: ReauthMethodUtil) => ReauthUtil | undefined;
 };
 
+type ConfirmIdentityOptions = {
+  // Outside the app shell, on the temporary-password page: the user has a password (the temporary one), and only it
+  // confirms, so a passkey sign-in can never swap in another user before the password is replaced.
+  isPasswordOnly?: boolean;
+};
+
 // The shared "confirm it's you" step of a change that needs a recent sign-in (a passkey, the password, a user).
-export function useConfirmIdentityStep(failure: ApiError | undefined): ConfirmIdentityStep {
+export function useConfirmIdentityStep(
+  failure: ApiError | undefined,
+  { isPasswordOnly = false }: ConfirmIdentityOptions = {},
+): ConfirmIdentityStep {
   const { username } = useSignedInUser();
   const [hasAskedForReauth, setHasAskedForReauth] = useState(false);
   const [password, setPassword] = useState('');
@@ -47,7 +58,8 @@ export function useConfirmIdentityStep(failure: ApiError | undefined): ConfirmId
 
   return {
     needsReauth,
-    canUsePassword: username !== null,
+    canUsePassword: isPasswordOnly || username !== null,
+    canUsePasskey: !isPasswordOnly,
     password,
     setPassword,
     passwordError: isWrongPassword ? failure.message : undefined,

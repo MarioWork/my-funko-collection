@@ -1,27 +1,23 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { KeyRound } from 'lucide-react';
 import { useFetcher } from 'react-router';
 import type { AuthSessionApiModel } from '@app-types/models';
-import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
-import DisabledReason from '@components/DisabledReason';
+import { HttpVerbsUtil, ReauthMethodUtil, type JSONResponseUtil } from '@app-types/utility';
+import ConfirmPasswordField from '@components/ConfirmPasswordField';
 import InlineAlert from '@components/InlineAlert';
-import TextField from '@components/TextField';
-import { Button } from '@components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@components/ui/field';
-import { Input } from '@components/ui/input';
-import { Spinner } from '@components/ui/spinner';
+import { useConfirmIdentityStep } from '@hooks/useConfirmIdentityStep';
 import { useFormCompat } from '@hooks/useFormCompat';
-import { NEW_PASSWORD_HINT } from '@utils/authUtils';
 import { authFailureMessage } from '@utils/authMessageUtils';
-import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 import { createFormData } from '@utils/formDataUtils';
 import {
+  CONFIRM_WITH_TEMPORARY_PASSWORD,
   PASSWORD_FIELD_CODES,
   SET_PASSWORD_FAILURE_MESSAGES,
   SetPasswordIntents,
   setOwnPasswordFormSchema,
   type SetOwnPasswordFormValues,
 } from '../setPasswordUtils';
+import SetOwnPasswordButtons from './SetOwnPasswordButtons';
+import SetOwnPasswordFields from './SetOwnPasswordFields';
 
 type Props = {
   // The username the admin gave: shown, not typed, and sent with the new password.
@@ -29,9 +25,10 @@ type Props = {
 };
 
 const FORM_ID = 'set-own-password';
+const CONFIRM_PASSWORD_FORM_ID = `${FORM_ID}-confirm`;
 
-// "username" and "new-password" fields, so a password manager offers to make one and saves it with the username.
-// The API's refusals of the password itself (too common, the temporary one again) show on its field.
+// The new password under the username the admin gave. The API's refusals of the password itself show on its field.
+// Past the 10 minutes of a recent sign-in, the temporary password confirms it's them right here (no sign-out).
 function SetOwnPasswordForm({ username }: Props) {
   const fetcher = useFetcher<JSONResponseUtil<AuthSessionApiModel>>();
   const { control, handleSubmit } = useFormCompat<SetOwnPasswordFormValues>({
@@ -39,53 +36,50 @@ function SetOwnPasswordForm({ username }: Props) {
     resolver: yupResolver(setOwnPasswordFormSchema),
   });
   const isSaving = fetcher.state !== 'idle';
-  const hasFailed = fetcher.data?.success === false && !isSaving;
-  const failure = hasFailed ? fetcher.data?.error : undefined;
+  const failure = fetcher.data?.success === false && !isSaving ? fetcher.data.error : undefined;
+  const step = useConfirmIdentityStep(failure, { isPasswordOnly: true });
   const isPasswordFailure = failure?.code !== undefined && PASSWORD_FIELD_CODES.has(failure.code);
   const passwordError = isPasswordFailure ? failure.message : undefined;
-  const hasAlert = hasFailed && !isPasswordFailure;
+  const hasAlert = failure !== undefined && !isPasswordFailure && !step.isStepFailure;
 
-  const onSubmit = handleSubmit(({ password }) => {
-    void fetcher.submit(createFormData({ intent: SetPasswordIntents.SAVE, credentials: { username, password } }), {
-      method: HttpVerbsUtil.POST,
+  function submitWith(method: ReauthMethodUtil) {
+    return handleSubmit(({ password }) => {
+      const formData = createFormData({
+        intent: SetPasswordIntents.SAVE,
+        credentials: { username, password },
+        reauth: step.chooseReauth(method),
+      });
+
+      void fetcher.submit(formData, { method: HttpVerbsUtil.POST });
     });
-  });
+  }
+
+  const confirm = (method: ReauthMethodUtil) => void submitWith(method)();
 
   return (
-    <form
-      id={FORM_ID}
-      aria-label="Choose your password"
-      onSubmit={(event) => void onSubmit(event)}
-      noValidate
-      className="flex flex-col gap-4"
-    >
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor={`${FORM_ID}-username`}>Username</FieldLabel>
-          <Input id={`${FORM_ID}-username`} value={username ?? ''} autoComplete="username" readOnly />
-        </Field>
-        <TextField
-          control={control}
-          idPrefix={FORM_ID}
-          name="password"
-          label="New password"
-          type="password"
-          autoComplete="new-password"
-          description={NEW_PASSWORD_HINT}
-          serverError={passwordError}
-          isPlainText
-        />
-      </FieldGroup>
-      <DisabledReason reason={reasonWhen(isSaving, DISABLED_REASONS.SAVING)}>
-        <Button type="submit" size="lg" className="h-12 w-full text-base" disabled={isSaving}>
-          {isSaving ? <Spinner data-icon="inline-start" /> : <KeyRound data-icon="inline-start" aria-hidden="true" />}
-          Save and open my collection
-        </Button>
-      </DisabledReason>
+    <div className="flex flex-col gap-4">
+      <form
+        id={FORM_ID}
+        aria-label="Choose your password"
+        onSubmit={(event) => void submitWith(ReauthMethodUtil.PASSWORD)(event)}
+        noValidate
+        className="flex flex-col gap-4"
+      >
+        <SetOwnPasswordFields control={control} idPrefix={FORM_ID} username={username} passwordError={passwordError} />
+        {step.needsReauth ? <InlineAlert tone="info">{CONFIRM_WITH_TEMPORARY_PASSWORD}</InlineAlert> : null}
+      </form>
+      <ConfirmPasswordField step={step} formId={CONFIRM_PASSWORD_FORM_ID} onConfirm={confirm} />
+      <SetOwnPasswordButtons
+        formId={FORM_ID}
+        passwordFormId={CONFIRM_PASSWORD_FORM_ID}
+        isSaving={isSaving}
+        step={step}
+        onConfirm={confirm}
+      />
       {hasAlert ? (
         <InlineAlert tone="error">{authFailureMessage(failure, SET_PASSWORD_FAILURE_MESSAGES)}</InlineAlert>
       ) : null}
-    </form>
+    </div>
   );
 }
 

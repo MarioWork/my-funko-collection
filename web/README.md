@@ -166,7 +166,9 @@ HttpOnly cookie the app never sees.
   password is shown once with a Copy button; nothing keeps it. Signed in with it, the user's status carries
   `mustChangePassword`: `signedInUserMiddleware` sends every app page to `/set-password`, and `authMiddleware` does
   the same for any 403 `PASSWORD_CHANGE_REQUIRED`. That page (outside the shell) saves the new password under the
-  username the admin gave, or signs out; saving opens Home.
+  username the admin gave, or signs out; saving opens Home. Past the 10 minutes of a recent sign-in, the page asks
+  for the temporary password right there (`useConfirmIdentityStep` with `isPasswordOnly`, no passkey); an expired one
+  says to sign out and ask an admin.
 - **Managing users.** Each row's _Manage_ link opens `/users/:userId` (a routed dialog over the list, its own page on
   phones; the user comes from the list's loader, `USER_LIST_ROUTE_ID`): _Make admin_ / _Make member_, _Make read-only_
   / _Allow changes_ (the row's role then reads "Member, read-only"), _New temporary
@@ -185,12 +187,12 @@ HttpOnly cookie the app never sees.
   login action with an `intent`. The fields carry `autocomplete` (`username`, `current-password`, `new-password` in
   Settings) so password managers fill them, and paste works. _Settings → Security → Password_ sets or changes it;
   15+ characters is checked here, the common-password list only by the API (shown on the field).
-- **Confirm it's you.** Adding or removing a passkey, saving a password, or creating or changing a user needs a sign-in from the last 10 minutes. On a 403
+- **Confirm it's you.** Adding or removing a passkey, saving a password, or creating or changing a user needs a recent sign-in (10 minutes). On a 403
   `REAUTH_REQUIRED` the dialog switches to "Confirm it's you" (`useConfirmIdentityStep`): "Confirm with passkey"
   always, and for a user with a password (a username) a "Your current password" field and "Confirm with password"
   next to it (`ConfirmPasswordField`, `ConfirmIdentityButtons`). The dialog submits again with `reauth` (the method,
   and the password typed), and the action confirms first (a passkey sign-in, or `POST /auth/recent-sign-in`), then
-  retries (`withFreshSignIn` in `@api/freshSignIn`). A wrong password shows on its field.
+  retries (`withRecentSignIn` in `@api/recentSignIn`). A wrong password shows on its field.
 - **Mocks.** `mockStore.auth` starts signed in as Mario with two passkeys; `setMockAuthState()` (tests) or
   `VITE_MOCK_AUTH_STATE` (dev) starts signed out or before setup. Without a session every mocked route answers 401,
   like the API. The mocks accept any well-formed ceremony response; the first-run code is `funko-first-run`. Mario
