@@ -166,7 +166,8 @@ HttpOnly cookie the app never sees.
   Done tabs as `?state=`). A waiting row says who sent it ("Removed user" for a deleted member), flags "Maybe a
   double" with links to the other funkos (same barcode, or same number and category), and has Approve and Reject;
   the funko's name opens its page, where an admin can fix it first (the sender is then told). Reject asks for a
-  reason in a dialog. One `useReviewActions()` fetcher owns both, so the toast and a refusal (the catalogue already
+  reason in a dialog (for an orphan submission it says rejecting deletes it). A read-only admin sees Approve and
+  Reject disabled with the reason, and a read-only member Send again. One `useReviewActions()` fetcher owns both, so the toast and a refusal (the catalogue already
   has the funko or barcode, with a link to it) outlive the row that leaves the tab. Merging is issue #12.
 - **New users.** An admin creates one on _Users_ → _New user_ (`/users/add`, a routed dialog): a username and a
   role. It needs a recent sign-in (the same "confirm it's you" step as Settings), and the answer's temporary
@@ -214,7 +215,9 @@ HttpOnly cookie the app never sees.
   the review page has something: luke's waiting "Thanos (Infinity Gauntlet)" (maybe a double of #78), han's waiting
   "Mandalorian with Grogu" and luke's rejected "Bluey". The review handlers (`handlers/submission/`) approve (moving
   a waiting category or series into the catalogue), reject and resend like the API, and an admin's change to
-  someone's submission sets `changedByAdminAt` (`recordMockAdminChange`). Deleting a user in the mocks settles their submissions as the API's trigger does (rejected ones
+  someone's submission (fields, or a photo added or removed) sets `changedByAdminAt` (`recordMockAdminChange`);
+  sending it again clears it, and rejecting an orphan submission deletes it, as on the API. The api seed has the same
+  three submissions. Deleting a user in the mocks settles their submissions as the API's trigger does (rejected ones
   go, the rest lose their sender), and an admin opening a submission sees "Sent in by ..." or "Removed user"
   (`@utils/removedUserUtils`, shared with the Images page). `mockStore.users` holds the other users (`mockUsers.ts`: leia, an admin; luke, with the
   temporary password `MOCK_TEMPORARY_PASSWORD`; han, whose one expired): `GET /users` lists them after the
