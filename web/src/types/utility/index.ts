@@ -27,3 +27,4 @@ export { SUBMISSION_STATUS_LABELS, SubmissionStatusUtil } from './submissionStat
 export { ReauthMethodUtil } from './reauthUtil.type';
 export type { ReauthUtil } from './reauthUtil.type';
 export { DOUBLE_MATCH_FIELD_LABELS, DoubleMatchFieldUtil } from './doubleMatchFieldUtil.type';
+export { NotificationKindUtil } from './notificationKindUtil.type';

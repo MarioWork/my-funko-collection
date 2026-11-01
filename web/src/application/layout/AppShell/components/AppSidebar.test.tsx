@@ -3,6 +3,7 @@ import { UserRoleUtil } from '@app-types/utility';
 import {
   BASE_ROUTES_PATHS,
   IMAGE_ROUTES_PATHS,
+  NOTIFICATION_ROUTES_PATHS,
   SUBMISSION_ROUTES_PATHS,
   USER_ROUTES_PATHS,
 } from '@application/routes/routesUtils';
@@ -67,4 +68,13 @@ it('gives an admin only the review Submissions page: their own new funkos join t
   expect(screen.getAllByRole('link', { name: 'Submissions' }).map((link) => link.getAttribute('href'))).toEqual([
     SUBMISSION_ROUTES_PATHS.REVIEW,
   ]);
+});
+
+it('puts a bell at the top that names how many notifications are unread and opens them', async () => {
+  renderSidebar();
+
+  const bell = await screen.findByRole('link', { name: 'Notifications, 2 unread' });
+
+  expect(bell).toHaveAttribute('href', NOTIFICATION_ROUTES_PATHS.BASE);
+  expect(within(bell).getByText('2')).toBeVisible();
 });

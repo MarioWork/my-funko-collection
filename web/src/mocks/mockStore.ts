@@ -4,6 +4,7 @@
 // and only the signed-in user's own collections, items and tags (the API never sends another user's).
 import {
   FunkoTypeUtil,
+  NotificationKindUtil,
   SubmissionStatusUtil,
   type AuthStateUtil as AuthState,
   type UserRoleUtil as UserRole,
@@ -11,14 +12,16 @@ import {
 import { createMockAuth, initialAuthState, MOCK_USER_ID } from './mockAuth';
 import { createMockUsers } from './mockUsers';
 import { createSeedData } from './mockSeed';
-import type { MockFunkoRow, MockStore } from './mockStore.type';
+import type { MockFunkoRow, MockNotificationRow, MockStore } from './mockStore.type';
 import { nextId, nowIso, resetMockClock } from './mockStoreUtils';
 
 const SUBMISSION_NAME = 'Sent-in funko';
 const SUBMISSION_NUMBER = '9001';
 
 function createMockStore(): MockStore {
-  return { auth: createMockAuth(initialAuthState), users: createMockUsers(), ...createSeedData() };
+  const users = createMockUsers();
+
+  return { auth: createMockAuth(initialAuthState), users, ...createSeedData(users) };
 }
 
 export let mockStore: MockStore = createMockStore();
@@ -87,4 +90,26 @@ export function setMockReadOnly(): void {
 // For a test that starts signed in with a temporary password. resetMockStore() gives the user their own again.
 export function setMockMustChangePassword(): void {
   mockStore.auth.mustChangePassword = true;
+}
+
+type MockNotificationOptions = Partial<Omit<MockNotificationRow, 'id' | 'createdAt'>>;
+
+// For a test that needs a notification: an unread one for the signed-in user (an approval of a funko named
+// "Sent-in funko" unless the options say otherwise), the newest so far.
+export function addMockNotification(options: MockNotificationOptions = {}): MockNotificationRow {
+  const row: MockNotificationRow = {
+    id: nextId(mockStore.notifications),
+    userId: MOCK_USER_ID,
+    kind: NotificationKindUtil.SUBMISSION_APPROVED,
+    funkoId: null,
+    funkoName: SUBMISSION_NAME,
+    reason: null,
+    isRead: false,
+    ...options,
+    createdAt: nowIso(),
+  };
+
+  mockStore.notifications.push(row);
+
+  return row;
 }

@@ -123,7 +123,7 @@ A user an admin has limited to looking. They can still sign in, see their own co
 _Avoid_: Disabled, suspended, banned
 
 **Notification**:
-A message inside the app telling a user something happened to them: a submission approved, rejected or merged, a new submission waiting (for admins), or a funko of theirs removed from the catalogue, with the reason.
+A message inside the app telling a user something happened to them: a submission approved, rejected or merged, a new submission waiting (for admins), or a funko of theirs removed from the catalogue, with the reason. Kept for 90 days.
 _Avoid_: Alert, message, email
 
 **Username**:

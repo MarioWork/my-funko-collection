@@ -1,5 +1,5 @@
 // The rows of the in-memory mock store (mockStore.ts), shaped like the API's tables.
-import type { FunkoImageApiModel, PasskeyApiModel, UserApiModel } from '@app-types/models';
+import type { FunkoImageApiModel, NotificationApiModel, PasskeyApiModel, UserApiModel } from '@app-types/models';
 import type {
   AuthStateUtil as AuthState,
   FunkoTypeUtil as FunkoType,
@@ -91,6 +91,10 @@ export type MockAuth = {
 // `isLastAdmin` is worked out from every row when the list is read, as the API does.
 export type MockUserRow = Omit<UserApiModel, 'isLastAdmin'> & { password: string | null };
 
+// A notification for one user (`userId`). The handlers answer only the signed-in user's own (MOCK_USER_ID), as the
+// API does; the others are what another user would read.
+export type MockNotificationRow = NotificationApiModel & { userId: number };
+
 export type MockStore = {
   auth: MockAuth;
   users: MockUserRow[];
@@ -101,4 +105,5 @@ export type MockStore = {
   funkos: MockFunkoRow[];
   images: MockImageRow[];
   items: MockItemRow[];
+  notifications: MockNotificationRow[];
 };

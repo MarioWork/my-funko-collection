@@ -102,23 +102,24 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 
 ## Pages
 
-| Path                                     | What                                                                                                                                                                                                                 |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/home`                                  | Your stats (the funkos in your collections), recent funkos, your collections, by category, quick actions                                                                                                             |
-| `/funkos`, `/funkos/:id`                 | The catalog: grid or table, search + filters + sort, detail with gallery                                                                                                                                             |
-| `/add`, `/add/manual`                    | Scan-first add page: images, details, a card per collection (own copy)                                                                                                                                               |
-| `/collections`, `/collections/:id`       | Your lists and their items (table on desktop, cards on phones)                                                                                                                                                       |
-| `/items`                                 | Every item across collections (filter by tag to find a box)                                                                                                                                                          |
-| `/search`                                | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                                                                                                                                        |
-| `/categories`, `/tags`, `/settings`      | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports                                                                                                                           |
-| `/submissions`                           | Members only (in the normal sidebar): the funkos you sent in, each with its state as a chip in words, why one was rejected (Send again) and whether an admin changed it                                              |
-| `/submissions/review`                    | Admin group, admins only: every member's submissions, Waiting (Approve, Reject with a reason, "Maybe a double") and Done tabs (`?state=DONE`)                                                                        |
-| `/users`, `/users/add`, `/users/:userId` | Admin group, admins only: every user with role (and read-only) and state; New user shows the temporary password once; Manage changes a role, makes read-only or undoes it, gives a new temporary password or deletes |
-| `/images`                                | Admin group, admins only: every stored image, loose files included, with who uploaded it and when                                                                                                                    |
-| `/settings` → Security                   | Passkeys (add, remove), sign out, sign out everywhere                                                                                                                                                                |
-| `/login`                                 | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                                                                                                                               |
-| `/setup?code=...`                        | First run: your name and the first passkey, from the link in the log                                                                                                                                                 |
-| `/set-password`                          | Outside the shell: a user signed in with a temporary password chooses their own before anything else                                                                                                                 |
+| Path                                     | What                                                                                                                                                                                                                                |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/home`                                  | Your stats (the funkos in your collections), recent funkos, your collections, by category, quick actions                                                                                                                            |
+| `/funkos`, `/funkos/:id`                 | The catalog: grid or table, search + filters + sort, detail with gallery                                                                                                                                                            |
+| `/add`, `/add/manual`                    | Scan-first add page: images, details, a card per collection (own copy)                                                                                                                                                              |
+| `/collections`, `/collections/:id`       | Your lists and their items (table on desktop, cards on phones)                                                                                                                                                                      |
+| `/items`                                 | Every item across collections (filter by tag to find a box)                                                                                                                                                                         |
+| `/search`                                | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                                                                                                                                                       |
+| `/categories`, `/tags`, `/settings`      | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports                                                                                                                                          |
+| `/submissions`                           | Members only (in the normal sidebar): the funkos you sent in, each with its state as a chip in words, why one was rejected (Send again) and whether an admin changed it                                                             |
+| `/submissions/review`                    | Admin group, admins only: every member's submissions, Waiting (Approve, Reject with a reason, "Maybe a double") and Done tabs (`?state=DONE`)                                                                                       |
+| `/notifications`                         | Everyone (the bell at the top of the sidebar, or in the phone header, with the unread count): your notifications, newest first; opening one marks it read and goes to the funko, your submissions or the review list; Mark all read |
+| `/users`, `/users/add`, `/users/:userId` | Admin group, admins only: every user with role (and read-only) and state; New user shows the temporary password once; Manage changes a role, makes read-only or undoes it, gives a new temporary password or deletes                |
+| `/images`                                | Admin group, admins only: every stored image, loose files included, with who uploaded it and when                                                                                                                                   |
+| `/settings` → Security                   | Passkeys (add, remove), sign out, sign out everywhere                                                                                                                                                                               |
+| `/login`                                 | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                                                                                                                                              |
+| `/setup?code=...`                        | First run: your name and the first passkey, from the link in the log                                                                                                                                                                |
+| `/set-password`                          | Outside the shell: a user signed in with a temporary password chooses their own before anything else                                                                                                                                |
 
 ## How data flows
 
@@ -169,6 +170,17 @@ HttpOnly cookie the app never sees.
   reason in a dialog (for an orphan submission it says rejecting deletes it). A read-only admin sees Approve and
   Reject disabled with the reason, and a read-only member Send again. One `useReviewActions()` fetcher owns both, so the toast and a refusal (the catalogue already
   has the funko or barcode, with a link to it) outlive the row that leaves the tab. Merging is issue #12.
+- **Notifications.** The bell (`NotificationBell`, top of the sidebar on desktop, the header on phones) links to
+  `/notifications` and carries the unread count, in its name too ("Notifications, 2 unread"). The count comes from
+  the app shell's loader as a promise it never waits for (`UnreadCountAwait`; a failed count only hides the number),
+  and the shell's `shouldRevalidate` re-runs it after every write and on every move to another page (not on search
+  param changes): no poll, so a notification that arrives while the user stays on one page shows at their next
+  click. One polite live region (`NotificationAnnouncer`) says the count when it goes up, never on the first load
+  or on every reload. On the page, each notification's title links to what it is about (an approval: the funko; a
+  rejection, with its reason: _Submissions_; a new or resent submission: the review list) and marks it read as it
+  opens (a fetcher that outlives the page); one whose funko was deleted gets _Mark read_ instead. Unread ones say
+  "New" in words. _Mark all read_ is open to a read-only user (it only touches their own notifications) and is
+  disabled, with the reason, once nothing is unread.
 - **New users.** An admin creates one on _Users_ → _New user_ (`/users/add`, a routed dialog): a username and a
   role. It needs a recent sign-in (the same "confirm it's you" step as Settings), and the answer's temporary
   password is shown once with a Copy button; nothing keeps it. Signed in with it, the user's status carries
@@ -213,10 +225,14 @@ HttpOnly cookie the app never sees.
   puts one in, the signed-in user's unless `submittedById` names another member (null: a removed user's); a
   rejected one carries a reason. The seed (`mockSeed.ts`) adds three of other members' after everything else, so
   the review page has something: luke's waiting "Thanos (Infinity Gauntlet)" (maybe a double of #78), han's waiting
-  "Mandalorian with Grogu" and luke's rejected "Bluey". The review handlers (`handlers/submission/`) approve (moving
+  "Mandalorian with Grogu" and luke's rejected "Bluey", with the notifications they sent (each admin heard of all
+  three, the oldest read; luke of his rejection), as in the api seed. The review handlers (`handlers/submission/`) approve (moving
   a waiting category or series into the catalogue), reject and resend like the API, and an admin's change to
   someone's submission (fields, or a photo added or removed) sets `changedByAdminAt` (`recordMockAdminChange`);
-  sending it again clears it, and rejecting an orphan submission deletes it, as on the API. The api seed has the same
+  sending it again clears it, and rejecting an orphan submission deletes it, as on the API. Approving, rejecting,
+  sending again and a member's new funko write notifications into `mockStore.notifications`
+  (`handlers/notification/notificationMockUtils.ts`); the handlers answer only Mario's own, and
+  `addMockNotification()` (tests) adds one for him. The api seed has the same
   three submissions. Deleting a user in the mocks settles their submissions as the API's trigger does (rejected ones
   go, the rest lose their sender), and an admin opening a submission sees "Sent in by ..." or "Removed user"
   (`@utils/removedUserUtils`, shared with the Images page). `mockStore.users` holds the other users (`mockUsers.ts`: leia, an admin; luke, with the
@@ -226,7 +242,7 @@ HttpOnly cookie the app never sees.
   Mario signs this browser out), and a password sign-in as one of them makes the browser theirs. `setMockMustChangePassword()` (tests) starts signed in with a temporary password;
   `requirePasswordChange.mock.handler.ts` then answers 403 `PASSWORD_CHANGE_REQUIRED` like the API. `setMockReadOnly()`
   (tests; `test.use({ isReadOnly: true })` in Playwright) makes Mario read-only, and `requireWriteAccess.mock.handler.ts`
-  then answers 403 `READ_ONLY` on every write but his own password, passkeys and signing out. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
+  then answers 403 `READ_ONLY` on every write but his own password, passkeys, signing out and marking his notifications read. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
   mock user (`shellRoute()` for a table that needs it placed by hand). The store holds only Mario's own collections,
   items and tags, as the API sends them; an item write naming a tag that is not in it answers 404, like the API.
 - **E2E.** `auth.e2e.test.ts` runs the real ceremonies against Chrome's virtual authenticator (the

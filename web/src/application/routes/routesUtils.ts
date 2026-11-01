@@ -93,6 +93,14 @@ export const SUBMISSION_ROUTES_PATHS = {
     funkoId ? `/submissions/${funkoId}/resubmission` : '/submissions/:funkoId/resubmission',
 };
 
+// The signed-in user's notifications (the bell opens it), and the action-only routes that mark one, or all, read.
+export const NOTIFICATION_ROUTES_PATHS = {
+  BASE: '/notifications',
+  MARK_ALL_READ: '/notifications/read',
+  markRead: (notificationId?: string) =>
+    notificationId ? `/notifications/${notificationId}/read` : '/notifications/:notificationId/read',
+};
+
 // Admins only: every user, the dialog that creates one, and the one that manages one (role, a new temporary
 // password, delete).
 export const USER_ROUTES_PATHS = {

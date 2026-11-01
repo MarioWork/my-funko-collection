@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
-import { SubmissionStatusUtil } from '@app-types/utility';
+import { NotificationKindUtil, SubmissionStatusUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
 import {
   DUPLICATE_BARCODE_MESSAGE,
@@ -9,6 +9,11 @@ import {
   findDuplicate,
   findEditableFunko,
 } from '@mocks/handlers/funko/funkoMockUtils';
+import {
+  forgetNotifiedFunkos,
+  notifyMockAdmins,
+  notifyMockSender,
+} from '@mocks/handlers/notification/notificationMockUtils';
 import { badRequest, conflict, noContent, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow, MockSubmissionColumns } from '@mocks/mockStore.type';
@@ -123,6 +128,7 @@ function waitingClashOf(funko: MockFunkoRow): Response | undefined {
 // user's never-approved category and series no funko uses any more. Its image rows go; the API keeps the files.
 function deleteOrphan(funko: MockFunkoRow): void {
   mockStore.funkos = mockStore.funkos.filter((row) => row.id !== funko.id);
+  forgetNotifiedFunkos(new Set([funko.id]));
   mockStore.items = mockStore.items.filter((item) => item.funkoId !== funko.id);
   mockStore.images = mockStore.images.filter((image) => image.funkoId !== funko.id);
   dropUnusedReferencesOf(funko.categoryId, funko.seriesId);
@@ -136,7 +142,7 @@ function rejectionReasonOf(body: Partial<RejectSubmission>): string | undefined 
 }
 
 // Approving, rejecting (admins only: requireAdmin refuses members first) and sending a rejected one again (its
-// sender), like the API.
+// sender), like the API, each with its notification: to the sender, or to every admin.
 export default (baseUrl: string) => [
   http.post(`${baseUrl}/submissions/:funkoId/approval`, async ({ params }) => {
     await delay(MOCK_DELAY);
@@ -150,6 +156,7 @@ export default (baseUrl: string) => [
     if (clash) return clash;
 
     approve(target.funko);
+    notifyMockSender(NotificationKindUtil.SUBMISSION_APPROVED, target.funko);
 
     return HttpResponse.json(toSubmissionModel(target.funko));
   }),
@@ -178,6 +185,7 @@ export default (baseUrl: string) => [
       reviewedAt: nowIso(),
       updatedAt: nowIso(),
     });
+    notifyMockSender(NotificationKindUtil.SUBMISSION_REJECTED, target.funko, reason);
 
     return HttpResponse.json(toSubmissionModel(target.funko));
   }),
@@ -200,6 +208,7 @@ export default (baseUrl: string) => [
       changedByAdminAt: null,
       updatedAt: nowIso(),
     });
+    notifyMockAdmins(NotificationKindUtil.SUBMISSION_RESENT, target.funko);
 
     return HttpResponse.json(toSubmissionModel(target.funko));
   }),

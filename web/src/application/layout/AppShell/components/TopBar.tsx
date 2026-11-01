@@ -3,8 +3,9 @@ import { APP_NAME } from '@utils/navigationUtils';
 import AppLogo from '@components/AppLogo';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import MobileMenu from './MobileMenu';
+import NotificationBell from './NotificationBell';
 
-// Phones only: the ☰ menu and the logo, nothing else (scan is the round Add button). On desktop the sidebar's own
+// Phones only: the ☰ menu, the logo and the notification bell, nothing else (scan is the round Add button). On desktop the sidebar's own
 // edge collapses it (SidebarEdgeToggle), so there is no top bar.
 function TopBar() {
   return (
@@ -18,6 +19,9 @@ function TopBar() {
       >
         <AppLogo />
       </Link>
+      <div className="ml-auto">
+        <NotificationBell />
+      </div>
     </header>
   );
 }
