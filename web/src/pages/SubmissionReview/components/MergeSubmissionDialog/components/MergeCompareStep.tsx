@@ -16,6 +16,8 @@ import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 import { funkoLabelOf } from '@utils/funkoUtils';
 import type { MergeComparison } from '../mergeSubmissionDialogLoader';
 import {
+  MERGE_SIDE_LABELS,
+  MergeSide,
   barcodeTakenReason,
   compareMergeFields,
   defaultCompareValues,
@@ -39,9 +41,9 @@ type Props = {
 const FORM_ID = 'merge-compare';
 const NOTHING_DIFFERS = 'Every field is the same on both.';
 
-// The side-by-side step: each field that differs as Original or Submission (the original's to start with), the
-// fields that are the same once, and which images the catalogue funko keeps. Mounted per original (keyed by the
-// dialog), so picking another funko starts it fresh.
+// The side-by-side step: each field that differs as Original entry or Submission (the original entry's to start
+// with), the fields that are the same once, and which images the catalogue funko keeps. Mounted per original entry
+// (keyed by the dialog), so picking another funko starts it fresh.
 function MergeCompareStep({ submission, comparison, isSaving, failure, onMerge, onCancel }: Props) {
   const { original, barcodeOwner } = comparison;
   const { differingRows, sameRows } = compareMergeFields(original, submission);
@@ -57,7 +59,8 @@ function MergeCompareStep({ submission, comparison, isSaving, failure, onMerge, 
     <>
       <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-6">
         <p className="text-sm text-muted-foreground">
-          Original: <span className="font-medium text-foreground">{funkoLabelOf(original)}</span>
+          {MERGE_SIDE_LABELS[MergeSide.ORIGINAL]}:{' '}
+          <span className="font-medium text-foreground">{funkoLabelOf(original)}</span>
         </p>
         <FieldGroup>
           {differingRows.length === 0 ? <p className="text-sm">{NOTHING_DIFFERS}</p> : null}

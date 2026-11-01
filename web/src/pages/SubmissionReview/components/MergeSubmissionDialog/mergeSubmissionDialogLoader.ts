@@ -20,7 +20,7 @@ function targetIdOf(request: Request): number | undefined {
   return POSITIVE_ID.test(targetParam) ? Number(targetParam) : undefined;
 }
 
-// Only asked when picking the submission's barcode would change the original's.
+// Only asked when picking the submission's barcode would change the original entry's.
 async function findBarcodeOwner(
   submission: FunkoDetailApiModel,
   original: FunkoDetailApiModel,

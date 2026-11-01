@@ -63,12 +63,12 @@ An admin turns a submission down.
 _Avoid_: Decline, deny
 
 **Merge**:
-An admin finds that a submission is a funko already in the catalogue, and moves the member's items onto that funko instead. Where the member already had that funko in the same collection, the two items become one. The admin picks, field by field and image by image, what the catalogue funko keeps. The submission stays, as merged and as its sender sent it, so its sender sees where it went.
+An admin finds that a submission is a funko already in the catalogue, and moves the member's items onto that funko instead. Where the member already had that funko in the same collection, the two items become one. The admin picks, field by field and image by image, what the catalogue funko (the original entry) keeps. The submission stays, as merged and as its sender sent it, so its sender sees where it went.
 _Avoid_: Combine, dedupe
 
-**Original**:
+**Original entry**:
 In a merge, the catalogue funko the submission merges into, beside the submission. It keeps its own details and images unless the admin picks the submission's.
-_Avoid_: Target (in the app's words), master, canonical
+_Avoid_: Original (on its own), target (in the app's words), master, canonical
 
 **Image**:
 A picture of a funko, taken by a user. A funko can have several, in a chosen order.

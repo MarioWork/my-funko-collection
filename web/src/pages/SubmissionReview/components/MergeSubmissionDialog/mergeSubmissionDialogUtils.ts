@@ -5,7 +5,7 @@ import { SubmissionApiMergeFields } from '@services/submissionService/submission
 import type { MergeSubmission } from '@services/submissionService/submissionService.type';
 import { funkoLabelOf } from '@utils/funkoUtils';
 
-// Which funko's value the catalogue funko keeps for one field: its own (the original, the default) or the
+// Which funko's value the catalogue funko keeps for one field: its own (the original entry, the default) or the
 // submission's.
 export const MergeSide = {
   ORIGINAL: 'ORIGINAL',
@@ -14,7 +14,7 @@ export const MergeSide = {
 export type MergeSide = (typeof MergeSide)[keyof typeof MergeSide];
 
 export const MERGE_SIDE_LABELS: Record<MergeSide, string> = {
-  [MergeSide.ORIGINAL]: 'Original',
+  [MergeSide.ORIGINAL]: 'Original entry',
   [MergeSide.SUBMISSION]: 'Submission',
 };
 
@@ -87,7 +87,7 @@ export function compareMergeFields(original: FunkoApiModel, submission: FunkoApi
   return { differingRows, sameRows };
 }
 
-// The original's value for every differing field, and the original's images: what a merge keeps when nothing is
+// The original entry's value for every differing field, and its images: what a merge keeps when nothing is
 // picked.
 export function defaultCompareValues(
   differingRows: MergeFieldRow[],
@@ -99,7 +99,7 @@ export function defaultCompareValues(
 }
 
 // The form's picks as the merge body: the fields taken from the submission, the submission's images that move over
-// and the original's images that go.
+// and the original entry's images that go.
 export function toMergeChoices(
   values: MergeCompareFormValues,
   original: FunkoDetailApiModel,
