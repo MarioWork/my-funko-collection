@@ -1,4 +1,4 @@
-import { mixed, object, type InferType } from 'yup';
+import { boolean, mixed, object, type InferType } from 'yup';
 import { UserRoleUtil } from '@app-types/utility';
 import { usernameSchema } from '@utils/authUtils';
 
@@ -10,10 +10,17 @@ export const CreateUserSchema = object({
   role: userRoleSchema,
 });
 
-// The only thing an admin changes on an existing user is their role.
+const UPDATE_USER_EMPTY_MESSAGE = 'Pick a role or whether they are read-only';
+
+// What an admin changes on an existing user: their role, whether they are read-only (limited to looking), or both.
 export const UpdateUserSchema = object({
-  role: userRoleSchema,
-});
+  role: mixed<UserRoleUtil>().oneOf(Object.values(UserRoleUtil)).optional(),
+  isReadOnly: boolean().optional(),
+}).test(
+  'role-or-read-only',
+  UPDATE_USER_EMPTY_MESSAGE,
+  (change) => change.role !== undefined || change.isReadOnly !== undefined,
+);
 
 // A user with no username yet needs one to use the temporary password (the API answers 400 USERNAME_REQUIRED
 // otherwise); one who has a username keeps it, and the request leaves it out.

@@ -1,12 +1,11 @@
 import { Settings2 } from 'lucide-react';
 import type { UserApiModel } from '@app-types/models';
-import { USER_ROLE_LABELS } from '@app-types/utility';
 import { USER_ROUTES_PATHS } from '@application/routes/routesUtils';
 import LinkButton from '@components/LinkButton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@components/ui/table';
 import { formatDate } from '@utils/dateUtils';
 import { TABLE_HEADER_ROW_CLASS } from '@utils/tableUtils';
-import { userTitle } from '../userListUtils';
+import { describeUserRole, userTitle } from '../userListUtils';
 import UserStateBadge from './UserStateBadge';
 
 type Props = {
@@ -27,7 +26,7 @@ function UserTableRow({ user }: RowProps) {
       <TableCell className="max-w-0 min-w-40">
         <p className="truncate font-medium">{title}</p>
       </TableCell>
-      <TableCell>{USER_ROLE_LABELS[user.role]}</TableCell>
+      <TableCell>{describeUserRole(user)}</TableCell>
       <TableCell>
         <UserStateBadge user={user} />
       </TableCell>

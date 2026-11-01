@@ -21,7 +21,8 @@ async function readRequest({ request, params, context }: ActionFunctionArgs): Pr
   return { ...formData, userId: Number(params.userId) };
 }
 
-export const changeUserRoleAction = async (args: ActionFunctionArgs): Promise<JSONResponseUtil> => {
+// A new role or read-only setting.
+export const updateUserAction = async (args: ActionFunctionArgs): Promise<JSONResponseUtil> => {
   const { user, isReauth, userId } = await readRequest(args);
 
   return failWhenInvalid(async () => {
@@ -49,7 +50,7 @@ export const deleteUserAction = async (args: ActionFunctionArgs): Promise<JSONRe
 };
 
 const MANAGE_USER_ACTION_MAP: VerbActionMap = {
-  [HttpVerbsUtil.PATCH]: changeUserRoleAction,
+  [HttpVerbsUtil.PATCH]: updateUserAction,
   [HttpVerbsUtil.POST]: addTemporaryPasswordAction,
   [HttpVerbsUtil.DELETE]: deleteUserAction,
 };

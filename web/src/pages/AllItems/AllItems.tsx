@@ -3,6 +3,7 @@ import type { LoaderDataUtil } from '@app-types/utility';
 import { ADD_ROUTES_PATHS, COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import ItemsList from '@components/ItemsList';
 import LinkButton from '@components/LinkButton';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import { useGoBack } from '@hooks/useGoBack';
 import type { loader } from './allItemsLoader';
 
@@ -10,6 +11,7 @@ import type { loader } from './allItemsLoader';
 function AllItems() {
   const data = useLoaderData<LoaderDataUtil<typeof loader>>();
   const goBack = useGoBack(COLLECTION_ROUTES_PATHS.BASE);
+  const readOnlyReason = useReadOnlyReason();
 
   return (
     <div className="flex flex-col gap-4">
@@ -29,7 +31,11 @@ function AllItems() {
         hasCollectionFilter
         emptyTitle="No items yet"
         emptyDescription="Add a funko to a collection and it shows up here."
-        emptyAction={<LinkButton to={ADD_ROUTES_PATHS.BASE}>Scan</LinkButton>}
+        emptyAction={
+          <LinkButton to={ADD_ROUTES_PATHS.BASE} disabledReason={readOnlyReason}>
+            Scan
+          </LinkButton>
+        }
       />
       <Outlet />
     </div>

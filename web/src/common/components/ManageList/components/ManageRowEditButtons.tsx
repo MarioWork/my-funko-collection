@@ -6,20 +6,34 @@ import type { ManageRow } from '../types';
 type Props = {
   row: ManageRow;
   isBusy: boolean;
+  // Set for a read-only user: both stay disabled, saying why.
+  readOnlyReason: string | undefined;
   onRename: () => void;
   onDelete: () => void;
 };
 
-// A row's Rename and Delete. Delete stays disabled, with the reason, while something still uses the row.
-function ManageRowEditButtons({ row, isBusy, onRename, onDelete }: Props) {
+// Why Delete is disabled: read-only first, then busy, then in use.
+function deleteDisabledReason(row: ManageRow, isBusy: boolean, readOnlyReason: string | undefined): string {
+  if (readOnlyReason) return readOnlyReason;
+
+  if (isBusy) return DISABLED_REASONS.WORKING;
+
+  return `${row.name} is in use, so it cannot be deleted.`;
+}
+
+// A row's Rename and Delete. Delete stays disabled, with the reason, while something still uses the row; both do
+// for a read-only user.
+function ManageRowEditButtons({ row, isBusy, readOnlyReason, onRename, onDelete }: Props) {
+  const isReadOnly = readOnlyReason !== undefined;
+
   return (
     <>
       <IconButton
         variant="ghost"
         aria-label={`Rename ${row.name}`}
         onClick={onRename}
-        disabled={isBusy}
-        disabledReason={DISABLED_REASONS.WORKING}
+        disabled={isBusy || isReadOnly}
+        disabledReason={readOnlyReason ?? DISABLED_REASONS.WORKING}
       >
         <Pencil aria-hidden="true" />
       </IconButton>
@@ -27,8 +41,8 @@ function ManageRowEditButtons({ row, isBusy, onRename, onDelete }: Props) {
         variant="ghost"
         aria-label={row.isDeletable ? `Delete ${row.name}` : `Delete ${row.name} (in use, cannot be deleted)`}
         onClick={onDelete}
-        disabled={isBusy || !row.isDeletable}
-        disabledReason={isBusy ? DISABLED_REASONS.WORKING : `${row.name} is in use, so it cannot be deleted.`}
+        disabled={isBusy || isReadOnly || !row.isDeletable}
+        disabledReason={deleteDisabledReason(row, isBusy, readOnlyReason)}
       >
         <Trash2 aria-hidden="true" />
       </IconButton>

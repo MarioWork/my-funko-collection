@@ -1,14 +1,15 @@
-import { AuthStateUtil, UserRoleUtil } from '@app-types/utility';
+import { AuthStateUtil } from '@app-types/utility';
 import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { errorResponse, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockUserRow } from '@mocks/mockStore.type';
-import { mockUserRowOf } from '@mocks/mockUsers';
+import { isWorkingMockAdmin, mockUserRowOf } from '@mocks/mockUsers';
 import { UserApiErrorCodes } from '@services/userService/userService';
 import { CONFLICT_STATUS } from '@utils/httpStatusUtils';
 import { reauthRequiredResponse } from '../auth/authMockUtils';
 
-const LAST_ADMIN_MESSAGE = 'There must always be at least one admin. Make someone else an admin first.';
+const LAST_ADMIN_MESSAGE =
+  'There must always be at least one admin who can make changes. Make someone else an admin first.';
 const USER_ENTITY = 'User';
 
 export const USERNAME_TAKEN_MESSAGE = 'That username is taken. Pick another one.';
@@ -50,11 +51,11 @@ export function storedMockUser(userId: number): MockUserRow | undefined {
   return mockStore.users.find((user) => user.id === userId);
 }
 
-// Whether the user is the only admin: they can't be made a member or deleted.
+// Whether the user is the only admin who can make changes: they can't be made a member, made read-only or deleted.
 export function isLastMockAdmin(user: MockUserRow): boolean {
-  const adminCount = everyMockUser().filter((row) => row.role === UserRoleUtil.ADMIN).length;
+  const adminCount = everyMockUser().filter(isWorkingMockAdmin).length;
 
-  return user.role === UserRoleUtil.ADMIN && adminCount === 1;
+  return isWorkingMockAdmin(user) && adminCount === 1;
 }
 
 export const lastAdminResponse = (): Response =>

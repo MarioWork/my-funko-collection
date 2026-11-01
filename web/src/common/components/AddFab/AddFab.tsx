@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import LinkButton from '@components/LinkButton';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 
 type Props = {
   // Where + goes: the Add flow by default, or a page's own "new" form.
@@ -10,11 +11,15 @@ type Props = {
 };
 
 // The one floating action below `lg`: a round + above the bottom bar and its safe-area inset. Hidden on desktop,
-// where the page header carries the same action as a labelled button.
+// where the page header carries the same action as a labelled button. Every + leads to a write: disabled, saying
+// why, for a read-only user.
 function AddFab({ to = ADD_ROUTES_PATHS.BASE, label = 'Add funko' }: Props) {
+  const readOnlyReason = useReadOnlyReason();
+
   return (
     <LinkButton
       to={to}
+      disabledReason={readOnlyReason}
       aria-label={label}
       className="fixed right-4 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] z-30 size-14 rounded-full p-0 shadow-lg lg:hidden"
     >

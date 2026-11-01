@@ -55,3 +55,16 @@ test('an admin who makes themselves a member is signed out', async ({ page }) =>
 
   await expect(auth.loginHeading).toBeVisible();
 });
+
+test('an admin makes a member read-only, which their row says in words', async ({ page }) => {
+  const users = new UsersPage(page);
+
+  await users.goto();
+  await users.manage('luke');
+  await users.makeReadOnly();
+  await expect(users.allowChangesButton).toBeVisible();
+
+  await users.goto();
+
+  await expect(users.rowOf('luke')).toContainText('Member, read-only');
+});
