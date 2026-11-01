@@ -20,3 +20,7 @@ export const FunkoImageResponseSchema = z
   .meta({ id: 'FunkoImage' });
 
 export type FunkoImageResponse = z.infer<typeof FunkoImageResponseSchema>;
+
+// One image as a merge plans with it: which picture it is (the same picture twice on one funko is refused) and where
+// its files are.
+export type ImageFile = { id: number; fileKey: string; contentHash: string };

@@ -104,7 +104,7 @@ export const submissionsRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: TAGS,
         summary:
-          'Merge a waiting submission into a funko already in the catalogue: its items move there (400 when the target is not in the catalogue)',
+          'Merge a waiting submission into a funko already in the catalogue: its items move there, and the catalogue funko takes the picked fields and images (400 when the target is not in the catalogue or a pick does not fit, 409 when a picked barcode or identity clashes with the catalogue)',
         params: SubmissionParamsSchema,
         body: MergeSubmissionSchema,
         response: {
@@ -115,7 +115,7 @@ export const submissionsRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => mergeSubmission(request.params.funkoId, request.body.targetFunkoId),
+    async (request) => mergeSubmission(request.params.funkoId, request.body),
   );
 
   app.post(

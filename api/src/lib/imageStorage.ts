@@ -230,6 +230,30 @@ export async function removeImageFiles(funkoId: number, fileKey: string): Promis
   }
 }
 
+// Copies one image's three sizes into another funko's folder under the same key, for an image that moves to that
+// funko (a merge). A copy, not a move: the caller removes the originals once the row has moved, or the copies when it
+// did not. Cleans up after itself on failure.
+export async function copyImageFiles(fromFunkoId: number, toFunkoId: number, fileKey: string): Promise<void> {
+  const fromFolder = funkoFolder(fromFunkoId);
+  const toFolder = funkoFolder(toFunkoId);
+  const writtenPaths: string[] = [];
+
+  await mkdir(toFolder, { recursive: true });
+  forgetStoredFiles();
+
+  try {
+    for (const size of IMAGE_SIZES) {
+      const path = join(toFolder, sizeFileName(fileKey, size));
+
+      await copyFile(join(fromFolder, sizeFileName(fileKey, size)), path);
+      writtenPaths.push(path);
+    }
+  } catch (error: unknown) {
+    await Promise.all(writtenPaths.map(removeQuietly));
+    throw error;
+  }
+}
+
 export async function removeFunkoFolder(funkoId: number): Promise<void> {
   forgetStoredFiles();
 
