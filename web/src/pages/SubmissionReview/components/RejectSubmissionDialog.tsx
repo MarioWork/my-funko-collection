@@ -30,9 +30,13 @@ type Props = {
 };
 
 const FORM_ID = 'reject-submission';
+const MEMBER_NOTE =
+  'It stays in the member’s own collections, still private. They read your reason, and can fix it and send it again, or delete it.';
+// docs/GLOSSARY.md, "Orphan submission".
+const ORPHAN_NOTE = 'Its sender was removed, so nobody is left to fix it: rejecting it deletes it.';
 
 // Mounted while open, so every opening starts empty. The reason is required: the member reads it, fixes the funko
-// and sends it again, or deletes it. The list submits it (useReviewActions) and closes the dialog once it worked.
+// and sends it again, or deletes it; an orphan submission is deleted instead. The list submits it (useReviewActions) and closes the dialog once it worked.
 function RejectSubmissionDialog({ submission, isSaving, failure, onReject, onClose }: Props) {
   const { control, handleSubmit } = useFormCompat<RejectSubmissionFormValues>({
     defaultValues: REJECT_SUBMISSION_DEFAULT_VALUES,
@@ -50,10 +54,7 @@ function RejectSubmissionDialog({ submission, isSaving, failure, onReject, onClo
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Reject {submission.name}?</DialogTitle>
-          <DialogDescription>
-            It stays in the member’s own collections, still private. They read your reason, and can fix it and send it
-            again, or delete it.
-          </DialogDescription>
+          <DialogDescription>{submission.submittedBy ? MEMBER_NOTE : ORPHAN_NOTE}</DialogDescription>
         </DialogHeader>
         <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-4">
           <RejectReasonField control={control} idPrefix={FORM_ID} />

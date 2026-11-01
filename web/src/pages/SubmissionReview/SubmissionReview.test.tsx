@@ -4,7 +4,7 @@ import { submissionRoutes } from '@application/routes/featureRoutes/submissionRo
 import { FUNKO_ROUTES_PATHS, SUBMISSION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { Toaster } from '@components/ui/toast';
 import RouteError from '@pages/Error/RouteError';
-import { addMockSubmission, mockStore, setMockUserRole } from '@mocks/mockStore';
+import { addMockSubmission, mockStore, setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
 import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
 
 // The seed's other members' submissions: two waiting (luke's Thanos is maybe a double of the catalogue's #78) and
@@ -115,4 +115,29 @@ it('says the page is for admins when a member opens it', async () => {
   renderReview();
 
   expect(await screen.findByRole('heading', { level: 1, name: 'This page is for admins' })).toBeVisible();
+});
+
+it('deletes an orphan submission on reject, saying so first, so it shows under neither tab', async () => {
+  const orphan = addMockSubmission({ name: 'Orphan', submittedById: null });
+  renderReview();
+
+  await userEvent.click(within(await findRow('Orphan')).getByRole('button', { name: 'Reject' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Reject Orphan?' });
+  expect(within(dialog).getByText(/rejecting it deletes it/)).toBeVisible();
+  await userEvent.type(within(dialog).getByLabelText('Why?'), 'Nobody to fix it');
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Reject' }));
+
+  expect(await screen.findByText('Orphan rejected')).toBeVisible();
+  expect(screen.queryByRole('row', { name: /Orphan/ })).not.toBeInTheDocument();
+  expect(mockStore.funkos.some((funko) => funko.id === orphan.id)).toBe(false);
+});
+
+it('shows a read-only admin the submissions with Approve and Reject disabled', async () => {
+  setMockReadOnly();
+  renderReview();
+
+  const row = await findRow(HANS_MANDO);
+
+  expect(within(row).getByRole('button', { name: 'Approve' })).toHaveAttribute('aria-disabled', 'true');
+  expect(within(row).getByRole('button', { name: 'Reject' })).toHaveAccessibleDescription(/Your account is read-only/);
 });

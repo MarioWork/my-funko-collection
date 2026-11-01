@@ -11,6 +11,7 @@ import {
 import type {
   ListReviewQuery,
   ListSubmissionsQuery,
+  RejectionOutcome,
   ReviewSubmissionListResponse,
   SubmissionListResponse,
   SubmissionResponse,
@@ -28,7 +29,7 @@ export async function approveSubmission(funkoId: number): Promise<SubmissionResp
   return approveFunkoSubmission(funkoId);
 }
 
-export async function rejectSubmission(funkoId: number, reason: string): Promise<SubmissionResponse> {
+export async function rejectSubmission(funkoId: number, reason: string): Promise<RejectionOutcome> {
   return rejectFunkoSubmission(funkoId, reason);
 }
 

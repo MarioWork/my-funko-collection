@@ -4,7 +4,8 @@ import DisabledReason from '@components/DisabledReason';
 import InlineAlert from '@components/InlineAlert';
 import { Button } from '@components/ui/button';
 import { Spinner } from '@components/ui/spinner';
-import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
+import { DISABLED_REASONS, firstReason, reasonWhen } from '@utils/disabledReasonUtils';
 import { GENERIC_WRITE_ERROR } from '@utils/errorMessageUtils';
 
 type Props = {
@@ -18,10 +19,12 @@ type Props = {
 // A rejected submission goes back to the admins, fixed on its page first (or as it was). A clash with another of
 // the member's waiting ones, or with the catalogue, shows here.
 function ResendSubmissionButton({ isSending, isBusy, failure, onResend }: Props) {
+  const disabledReason = firstReason(useReadOnlyReason(), reasonWhen(isBusy, DISABLED_REASONS.WORKING));
+
   return (
     <div className="flex flex-col items-start gap-2">
-      <DisabledReason reason={reasonWhen(isBusy, DISABLED_REASONS.WORKING)}>
-        <Button variant="outline" size="sm" onClick={onResend} disabled={isBusy}>
+      <DisabledReason reason={disabledReason}>
+        <Button variant="outline" size="sm" onClick={onResend} disabled={disabledReason !== undefined}>
           {isSending ? <Spinner data-icon="inline-start" /> : <Send data-icon="inline-start" aria-hidden="true" />}
           Send again
         </Button>

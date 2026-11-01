@@ -65,6 +65,9 @@ export const ReviewSubmissionResponseSchema = SubmissionResponseSchema.extend({
 
 export const ReviewSubmissionListResponseSchema = paginatedResponseSchema(ReviewSubmissionResponseSchema);
 
+// What became of a rejection: a member's submission is rejected (and returned), an orphan submission is deleted.
+export type RejectionOutcome = { isDeleted: false; submission: SubmissionResponse } | { isDeleted: true };
+
 export type ListSubmissionsQuery = z.infer<typeof ListSubmissionsQuerySchema>;
 export type ListReviewQuery = z.infer<typeof ListReviewQuerySchema>;
 export type SubmissionResponse = z.infer<typeof SubmissionResponseSchema>;

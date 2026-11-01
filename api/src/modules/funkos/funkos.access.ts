@@ -44,7 +44,7 @@ export function canEditFunko(user: SignedInUser, funko: FunkoAccess): boolean {
 }
 
 // An admin changing someone else's submission before it is approved: its sender is told (`changedByAdminAt`). An
-// orphan (its sender deleted) has nobody to tell.
+// orphan submission (its sender removed) has nobody to tell.
 export function isAdminChangingSubmission(user: SignedInUser, funko: FunkoAccess): boolean {
   const hasOtherSender = funko.submittedById !== null && funko.submittedById !== user.userId;
 

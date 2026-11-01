@@ -401,6 +401,35 @@ describe('POST /funkos/:funkoId/images', () => {
     const detail = await member.inject({ method: 'GET', url: `/funkos/${waiting.id}` });
     expect(detail.json()).toMatchObject({ changedByAdminAt: expect.any(String) as unknown });
   });
+
+  it('notes the change for the sender when an admin removes a photo, but not when they reorder or rotate them', async () => {
+    const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
+    const upload = await member.inject({
+      method: 'POST',
+      url: `/funkos/${waiting.id}/images`,
+      payload: toFormData([{ buffer: await makeImage() }, { buffer: await makeImage({ noise: true }) }]),
+    });
+    const [first, second] = upload.json<{ id: number }[]>();
+    const changedAt = async () =>
+      (await member.inject({ method: 'GET', url: `/funkos/${waiting.id}` })).json<{ changedByAdminAt: unknown }>()
+        .changedByAdminAt;
+
+    await admin.inject({
+      method: 'PATCH',
+      url: `/funkos/${waiting.id}/images/order`,
+      payload: { imageIds: [second?.id, first?.id] },
+    });
+    await admin.inject({
+      method: 'POST',
+      url: `/funkos/${waiting.id}/images/${first?.id}/rotate`,
+      payload: { degrees: 90 },
+    });
+    const afterReorderAndRotate = await changedAt();
+    await admin.inject({ method: 'DELETE', url: `/funkos/${waiting.id}/images/${second?.id}` });
+
+    expect(afterReorderAndRotate).toBeNull();
+    expect(typeof (await changedAt())).toBe('string');
+  });
 });
 
 describe('DELETE /funkos/:funkoId', () => {
@@ -682,7 +711,49 @@ describe('POST /submissions/:funkoId/rejection', () => {
   });
 });
 
+describe('POST /submissions/:funkoId/rejection of an orphan submission', () => {
+  it('deletes it, with its sender’s unused waiting category, and keeps its image files for images:prune', async () => {
+    const leaving = await createUser('Leaving');
+    const leavingClient = await signIn(app, { userId: leaving.id });
+    const category = await leavingClient.inject({ method: 'POST', url: '/categories', payload: { name: 'Pop! Gone' } });
+    const sent = await sendIn(leavingClient, {
+      name: 'Orphan',
+      number: '1',
+      categoryId: category.json<FunkoBody>().id,
+    });
+    const orphanId = sent.json<FunkoBody>().id;
+    const upload = await leavingClient.inject({
+      method: 'POST',
+      url: `/funkos/${orphanId}/images`,
+      payload: toFormData([{ buffer: await makeImage() }]),
+    });
+    const [image] = upload.json<{ url: string }[]>();
+    await deleteUser(leaving.id);
+
+    const response = await admin.inject({
+      method: 'POST',
+      url: `/submissions/${orphanId}/rejection`,
+      payload: { reason: 'Nobody to fix it' },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(await prisma.funko.count({ where: { id: orphanId } })).toBe(0);
+    expect(await prisma.category.count({ where: { id: category.json<FunkoBody>().id } })).toBe(0);
+    expect(await reviewList('DONE')).toEqual([]);
+    expect(await storedFileExists(image?.url ?? '')).toBe(true);
+  });
+});
+
 describe('POST /submissions/:funkoId/resubmission', () => {
+  it('clears the admin-changed note when the sender sends it again', async () => {
+    const rejected = await createFunko({ status: 'REJECTED', submittedById: member.userId });
+    await admin.inject({ method: 'PATCH', url: `/funkos/${rejected.id}`, payload: { name: 'Admin fixed' } });
+
+    const response = await member.inject({ method: 'POST', url: `/submissions/${rejected.id}/resubmission` });
+
+    expect(response.json()).toMatchObject({ status: 'WAITING', changedByAdminAt: null });
+  });
+
   it('makes a fixed rejected submission wait again, without the reason, when its sender sends it again', async () => {
     const rejected = await createFunko({ name: 'Fixed', status: 'REJECTED', submittedById: member.userId });
 
