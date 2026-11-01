@@ -3,4 +3,7 @@
 // there. The app asks for it at `${BASE_URL}wasm/zxing_reader.wasm` (useBarcodeScanner.ts).
 import { join } from 'node:path';
 
-export const SCANNER_WASM_FILE = join('wasm', 'zxing_reader.wasm');
+// zxing-wasm's own file name: the ponyfill asks for exactly this name.
+export const SCANNER_WASM_NAME = 'zxing_reader.wasm';
+
+export const SCANNER_WASM_FILE = join('wasm', SCANNER_WASM_NAME);
