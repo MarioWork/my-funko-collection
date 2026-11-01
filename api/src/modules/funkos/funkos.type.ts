@@ -45,6 +45,9 @@ export const FunkoSummarySchema = z
   })
   .meta({ id: 'FunkoSummary' });
 
+// The catalogue funko a merged submission went into (submissions lists and the funko page).
+export const MergedIntoSchema = z.object({ id: z.number().int(), name: z.string() }).nullable();
+
 export type PrimaryImageSummary = z.infer<typeof PrimaryImageSchema>;
 export type FunkoSummary = z.infer<typeof FunkoSummarySchema>;
 export type FunkoResponse = z.infer<typeof FunkoResponseSchema>;

@@ -17,6 +17,9 @@ type OptionProps = {
   idPrefix: string;
 };
 
+// The form field's setter for the picked target's id.
+type TargetIdChange = (targetFunkoId: string) => void;
+
 const LEGEND = 'Same as';
 const NO_TARGETS_NOTE = 'No maybe-double in the catalogue. Search for the funko above.';
 const SEARCHING_NOTE = 'Searching…';
@@ -43,7 +46,7 @@ function MergeTargetField({ control, idPrefix, targets, isSearching, onPick }: P
   const errorId = `${idPrefix}-target-error`;
   const hasTargets = targets.length > 0;
 
-  const pick = (value: unknown, onChange: (value: string) => void) => {
+  const pick = (value: unknown, onChange: TargetIdChange) => {
     const target = targets.find((candidate) => String(candidate.id) === value);
 
     if (!target) return;

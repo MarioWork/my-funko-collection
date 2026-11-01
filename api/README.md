@@ -245,8 +245,8 @@ carries `reviewedAt`, `rejectionReason`, `changedByAdminAt` and `mergedInto` (`{
 `GET /funkos/:id` adds the last three for admins and the sender only.
 
 **Notifications.** Approving, rejecting or merging a submission tells its sender (`SUBMISSION_APPROVED`,
-`SUBMISSION_REJECTED` with the reason, `SUBMISSION_MERGED` naming the catalogue funko it went into); an orphan submission has nobody to tell. A member's new submission
-(`POST /funkos`) and one sent again tell every admin, read-only ones included (`SUBMISSION_SENT`,
+`SUBMISSION_REJECTED` with the reason, `SUBMISSION_MERGED` naming the catalogue funko it went into); an orphan
+submission has nobody to tell. A member's new submission (`POST /funkos`) and one sent again tell every admin, read-only ones included (`SUBMISSION_SENT`,
 `SUBMISSION_RESENT`). Each row names its funko (`funkoId`, null once the funko is deleted) and keeps the funko's name
 as it was. A user reads and marks only their own: another user's id answers 404. Kept 90 days, with no scheduler:
 reads leave older rows out, and every new notification deletes everyone's older ones in the same transaction. The

@@ -28,6 +28,11 @@ export function isUniqueViolation(error: unknown): boolean {
   return getSqlState(error) === PG_UNIQUE_VIOLATION;
 }
 
+// A write that points at a row that is gone (deleted between the check and the write).
+export function isForeignKeyViolation(error: unknown): boolean {
+  return getSqlState(error) === PG_FOREIGN_KEY_VIOLATION;
+}
+
 export function getPrismaErrorCode(error: unknown): string | undefined {
   return error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
 }

@@ -4,19 +4,14 @@
 
 const NOTES_SEPARATOR = '\n\n';
 
-// What the rule reads of each of the two items.
-export type ClashingItem = {
+// What the rule reads of each of the two items, and what the kept (older) item ends up with. Its tags become both
+// items' tags; every other field stays its own.
+export type ItemQuantityAndNotes = {
   quantity: number;
   notes: string | null;
 };
 
-// What the kept (older) item ends up with. Its tags become both items' tags; every other field stays its own.
-export type CombinedItem = {
-  quantity: number;
-  notes: string | null;
-};
-
-export type ItemCombiner = (older: ClashingItem, newer: ClashingItem) => CombinedItem;
+export type ItemCombiner = (older: ItemQuantityAndNotes, newer: ItemQuantityAndNotes) => ItemQuantityAndNotes;
 
 // Both notes, the older first, each once; null when neither has any.
 function joinNotes(olderNotes: string | null, newerNotes: string | null): string | null {

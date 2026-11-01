@@ -19,4 +19,3 @@ export const MergeSubmissionSchema = z.strictObject({
 });
 
 export type RejectSubmission = z.infer<typeof RejectSubmissionSchema>;
-export type MergeSubmission = z.infer<typeof MergeSubmissionSchema>;

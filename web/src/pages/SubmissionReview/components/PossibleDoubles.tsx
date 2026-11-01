@@ -1,8 +1,8 @@
 import { CopyCheck } from 'lucide-react';
-import { Link } from 'react-router';
 import type { PossibleDoubleApiModel } from '@app-types/models';
 import { DOUBLE_MATCH_FIELD_LABELS, SUBMISSION_STATUS_LABELS, SubmissionStatusUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
+import TextLink from '@components/TextLink';
 import { Badge } from '@components/ui/badge';
 
 type Props = {
@@ -24,12 +24,9 @@ function describeMatch(double: PossibleDoubleApiModel): string {
 function PossibleDouble({ double }: DoubleProps) {
   return (
     <li className="text-xs text-muted-foreground">
-      <Link
-        to={FUNKO_ROUTES_PATHS.detail(String(double.id))}
-        className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
+      <TextLink to={FUNKO_ROUTES_PATHS.detail(String(double.id))}>
         #{double.number} {double.name}
-      </Link>{' '}
+      </TextLink>{' '}
       ({describeMatch(double)})
     </li>
   );
