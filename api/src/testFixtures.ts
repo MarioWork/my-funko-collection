@@ -49,12 +49,17 @@ type FunkoOverrides = SubmissionOverrides & {
   isChase?: boolean;
   exclusive?: string;
   barcode?: string | null;
+  // A rejected funko always carries a reason (a check in the migration): one is made up unless given.
+  rejectionReason?: string;
 };
+
+const REJECTION_REASON = 'Not a real funko';
 
 export async function createFunko(
   overrides: FunkoOverrides = {},
 ): Promise<{ id: number; name: string; categoryId: number; seriesId: number | null }> {
   const categoryId = overrides.categoryId ?? (await createCategory()).id;
+  const isRejected = overrides.status === 'REJECTED';
 
   return prisma.funko.create({
     data: {
@@ -69,6 +74,8 @@ export async function createFunko(
       barcode: overrides.barcode ? normaliseBarcode(overrides.barcode) : null,
       status: overrides.status ?? 'APPROVED',
       submittedById: overrides.submittedById ?? null,
+      rejectionReason: isRejected ? (overrides.rejectionReason ?? REJECTION_REASON) : null,
+      reviewedAt: isRejected ? new Date() : null,
     },
     select: { id: true, name: true, categoryId: true, seriesId: true },
   });

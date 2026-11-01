@@ -13,10 +13,10 @@ declare module 'fastify' {
   interface FastifyContextConfig {
     // Opt a route out of the sign-in check. Everything else, the image files included, needs a session.
     isPublic?: boolean;
-    // Only an admin may call it: changing or deleting a category or series, the images lists and the users. A
-    // member gets 403 ADMIN_ONLY. Creating a funko, category or series, and changing a funko or its images, are open
-    // to members: their services make a member's new one a waiting submission and refuse (with the same 403) any
-    // change but to the member's own waiting submission.
+    // Only an admin may call it: changing or deleting a category or series, reviewing submissions, the images lists
+    // and the users. A member gets 403 ADMIN_ONLY. Creating a funko, category or series, changing a funko or its
+    // images, and sending a rejected one again, are open to members: their services make a member's new one a
+    // waiting submission and refuse (with the same 403) any change but to the member's own waiting or rejected one.
     isAdminOnly?: boolean;
     // Still open to a session signed in with a temporary password: replacing it, and signing out. Every other
     // locked route answers 403 PASSWORD_CHANGE_REQUIRED until the user has chosen their own password.

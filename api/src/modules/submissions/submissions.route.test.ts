@@ -10,6 +10,7 @@ import {
   createSeries,
   createUser,
   defaultCollectionId,
+  deleteUser,
   makeImage,
   type SignedInClient,
   signIn,
@@ -330,17 +331,48 @@ describe('PATCH /funkos/:funkoId', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  it('returns 403 ADMIN_ONLY when the sender changes a submission that is no longer waiting', async () => {
-    const rejected = await createFunko({ status: 'REJECTED', submittedById: member.userId });
+  it('returns 403 ADMIN_ONLY when the sender changes a submission that was approved', async () => {
+    const approved = await createFunko({ status: 'APPROVED', submittedById: member.userId });
 
     const response = await member.inject({
       method: 'PATCH',
-      url: `/funkos/${rejected.id}`,
+      url: `/funkos/${approved.id}`,
       payload: { name: 'Again' },
     });
 
     expect(response.statusCode).toBe(403);
     expect(response.json()).toMatchObject({ code: 'ADMIN_ONLY' });
+  });
+
+  it('saves the sender’s fix when the submission was rejected', async () => {
+    const rejected = await createFunko({ status: 'REJECTED', submittedById: member.userId });
+
+    const response = await member.inject({
+      method: 'PATCH',
+      url: `/funkos/${rejected.id}`,
+      payload: { name: 'Fixed' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ name: 'Fixed', status: 'REJECTED' });
+  });
+
+  it('notes the change for the sender when an admin changes their waiting submission', async () => {
+    const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
+
+    await admin.inject({ method: 'PATCH', url: `/funkos/${waiting.id}`, payload: { name: 'Typo fixed' } });
+
+    const detail = await member.inject({ method: 'GET', url: `/funkos/${waiting.id}` });
+    expect(detail.json()).toMatchObject({ name: 'Typo fixed', changedByAdminAt: expect.any(String) as unknown });
+  });
+
+  it('notes nothing when the sender changes their own waiting submission', async () => {
+    const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
+
+    await member.inject({ method: 'PATCH', url: `/funkos/${waiting.id}`, payload: { name: 'Mine' } });
+
+    const detail = await member.inject({ method: 'GET', url: `/funkos/${waiting.id}` });
+    expect(detail.json()).toMatchObject({ changedByAdminAt: null });
   });
 });
 
@@ -356,6 +388,19 @@ describe('POST /funkos/:funkoId/images', () => {
 
     expect(response.statusCode).toBe(201);
   });
+
+  it('notes the change for the sender when an admin adds a photo to their waiting submission', async () => {
+    const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
+
+    await admin.inject({
+      method: 'POST',
+      url: `/funkos/${waiting.id}/images`,
+      payload: toFormData([{ buffer: await makeImage() }]),
+    });
+
+    const detail = await member.inject({ method: 'GET', url: `/funkos/${waiting.id}` });
+    expect(detail.json()).toMatchObject({ changedByAdminAt: expect.any(String) as unknown });
+  });
 });
 
 describe('DELETE /funkos/:funkoId', () => {
@@ -365,6 +410,313 @@ describe('DELETE /funkos/:funkoId', () => {
     const response = await member.inject({ method: 'DELETE', url: `/funkos/${waiting.id}` });
 
     expect(response.statusCode).toBe(204);
+  });
+
+  it('deletes the sender’s rejected submission when they give up on it', async () => {
+    const rejected = await createFunko({ status: 'REJECTED', submittedById: member.userId });
+
+    const response = await member.inject({ method: 'DELETE', url: `/funkos/${rejected.id}` });
+
+    expect(response.statusCode).toBe(204);
+  });
+});
+
+type ReviewRow = {
+  id: number;
+  name: string;
+  status: string;
+  submittedBy: { id: number; name: string } | null;
+  possibleDoubles: { id: number; matchedOn: string[] }[];
+  rejectionReason: string | null;
+};
+
+async function reviewList(state: 'WAITING' | 'DONE'): Promise<ReviewRow[]> {
+  const response = await admin.inject({ method: 'GET', url: `/submissions/review?state=${state}` });
+
+  return response.json<ListBody<ReviewRow>>().data;
+}
+
+describe('GET /submissions/review', () => {
+  it('lists every member’s waiting submissions, oldest first, with who sent each, when an admin asks', async () => {
+    await createFunko({ name: 'First', status: 'WAITING', submittedById: member.userId });
+    await createFunko({ name: 'Second', status: 'WAITING', submittedById: otherMember.userId });
+    await createFunko({ name: 'Catalogue' });
+
+    const rows = await reviewList('WAITING');
+
+    expect(rows.map(({ name, submittedBy }) => [name, submittedBy?.id])).toEqual([
+      ['First', member.userId],
+      ['Second', otherMember.userId],
+    ]);
+  });
+
+  it('names no sender when the member who sent it in was deleted', async () => {
+    const leaving = await createUser('Leaving');
+    await createFunko({ name: 'Orphan', status: 'WAITING', submittedById: leaving.id });
+    await deleteUser(leaving.id);
+
+    const [row] = await reviewList('WAITING');
+
+    expect(row).toMatchObject({ name: 'Orphan', submittedBy: null });
+  });
+
+  it('lists the reviewed submissions under DONE and leaves out an admin’s own funkos', async () => {
+    const approved = await createFunko({ name: 'Approved', status: 'WAITING', submittedById: member.userId });
+    const rejected = await createFunko({ name: 'Rejected', status: 'WAITING', submittedById: member.userId });
+    await createFunko({ name: 'Catalogue' });
+    await admin.inject({ method: 'POST', url: `/submissions/${approved.id}/approval` });
+    await admin.inject({
+      method: 'POST',
+      url: `/submissions/${rejected.id}/rejection`,
+      payload: { reason: 'Blurry photo' },
+    });
+
+    const rows = await reviewList('DONE');
+
+    expect(rows.map(({ name, status, rejectionReason }) => [name, status, rejectionReason])).toEqual([
+      ['Rejected', 'REJECTED', 'Blurry photo'],
+      ['Approved', 'APPROVED', null],
+    ]);
+  });
+
+  it('flags a maybe-double on the same barcode, and on the same number and category name', async () => {
+    const category = await createCategory('Pop! Marvel');
+    const sameBarcode = await createFunko({ name: 'Scanned', barcode: BARCODE });
+    const sameNumber = await createFunko({ name: 'Numbered', number: '78', categoryId: category.id });
+    const memberCategory = await createCategory('pop! marvel', { status: 'WAITING', submittedById: member.userId });
+    await createFunko({ name: 'Unrelated', number: '79', categoryId: category.id });
+    await createFunko({
+      name: 'Thanos',
+      number: '78',
+      barcode: BARCODE,
+      categoryId: memberCategory.id,
+      status: 'WAITING',
+      submittedById: member.userId,
+    });
+
+    const [row] = await reviewList('WAITING');
+
+    expect(row?.possibleDoubles).toEqual([
+      expect.objectContaining({ id: sameBarcode.id, matchedOn: ['BARCODE'] }),
+      expect.objectContaining({ id: sameNumber.id, matchedOn: ['NUMBER_AND_CATEGORY'] }),
+    ]);
+  });
+
+  it('flags another member’s waiting submission of the same box as a maybe-double', async () => {
+    const category = await createCategory();
+    const theirs = await createFunko({ barcode: BARCODE, status: 'WAITING', submittedById: otherMember.userId });
+    await createFunko({ barcode: BARCODE, categoryId: category.id, status: 'WAITING', submittedById: member.userId });
+
+    const rows = await reviewList('WAITING');
+
+    expect(rows[1]?.possibleDoubles.map(({ id }) => id)).toEqual([theirs.id]);
+  });
+
+  it('returns 403 ADMIN_ONLY when a member asks for it', async () => {
+    const response = await member.inject({ method: 'GET', url: '/submissions/review' });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({ code: 'ADMIN_ONLY' });
+  });
+
+  it('returns 400 when the state is not WAITING or DONE', async () => {
+    const response = await admin.inject({ method: 'GET', url: '/submissions/review?state=LATER' });
+
+    expect(response.statusCode).toBe(400);
+  });
+});
+
+describe('POST /submissions/:funkoId/approval', () => {
+  it('puts the funko, its new category and its new series in everyone’s catalogue when an admin approves it', async () => {
+    const category = await member.inject({ method: 'POST', url: '/categories', payload: { name: 'Pop! New' } });
+    const series = await member.inject({ method: 'POST', url: '/series', payload: { name: 'New Show' } });
+    const sent = await sendIn(member, {
+      name: 'Hero',
+      number: '1',
+      categoryId: category.json<{ id: number }>().id,
+      seriesId: series.json<{ id: number }>().id,
+    });
+
+    const response = await admin.inject({ method: 'POST', url: `/submissions/${sent.json<FunkoBody>().id}/approval` });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'APPROVED', reviewedAt: expect.any(String) as unknown });
+    expect(await namesListed(otherMember, '/funkos')).toEqual(['Hero']);
+    expect(await namesListed(otherMember, '/categories')).toEqual(['Pop! New']);
+    expect(await namesListed(otherMember, '/series')).toEqual(['New Show']);
+  });
+
+  it('files it under the catalogue’s category of the same name when an admin added that one meanwhile', async () => {
+    const memberCategory = await member.inject({ method: 'POST', url: '/categories', payload: { name: 'Pop! Rock' } });
+    const sent = await sendIn(member, { name: 'Singer', number: '5', categoryId: memberCategory.json<FunkoBody>().id });
+    const catalogueCategory = await admin.inject({
+      method: 'POST',
+      url: '/categories',
+      payload: { name: 'Pop! Rock' },
+    });
+
+    await admin.inject({ method: 'POST', url: `/submissions/${sent.json<FunkoBody>().id}/approval` });
+
+    const detail = await otherMember.inject({ method: 'GET', url: `/funkos/${sent.json<FunkoBody>().id}` });
+    expect(detail.json()).toMatchObject({ category: { id: catalogueCategory.json<FunkoBody>().id } });
+    expect(await prisma.category.count({ where: { id: memberCategory.json<FunkoBody>().id } })).toBe(0);
+  });
+
+  it('returns 409 with the catalogue funko’s id when the catalogue got the same barcode meanwhile', async () => {
+    const category = await createCategory();
+    const sent = await sendIn(member, { name: 'Thanos', number: '78', categoryId: category.id, barcode: BARCODE });
+    const added = await sendIn(admin, { name: 'Other', number: '1', categoryId: category.id, barcode: BARCODE });
+
+    const response = await admin.inject({ method: 'POST', url: `/submissions/${sent.json<FunkoBody>().id}/approval` });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      message: expect.stringContaining('barcode belongs to another funko in the catalogue') as unknown,
+      existingId: added.json<FunkoBody>().id,
+    });
+    expect(await namesListed(otherMember, '/funkos')).toEqual(['Other']);
+  });
+
+  it('returns 409 with the catalogue funko’s id when the catalogue got the same funko meanwhile', async () => {
+    const category = await createCategory();
+    const payload = { name: 'Thanos', number: '78', categoryId: category.id };
+    const sent = await sendIn(member, payload);
+    const added = await sendIn(admin, payload);
+
+    const response = await admin.inject({ method: 'POST', url: `/submissions/${sent.json<FunkoBody>().id}/approval` });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      message: expect.stringContaining('catalogue already has this funko') as unknown,
+      existingId: added.json<FunkoBody>().id,
+    });
+  });
+
+  it('returns 409 when the submission is not waiting', async () => {
+    const rejected = await createFunko({ status: 'REJECTED', submittedById: member.userId });
+
+    const response = await admin.inject({ method: 'POST', url: `/submissions/${rejected.id}/approval` });
+
+    expect(response.statusCode).toBe(409);
+  });
+
+  it('returns 404 when there is no such funko', async () => {
+    const response = await admin.inject({ method: 'POST', url: '/submissions/999999/approval' });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('approves an orphan when its sender was deleted', async () => {
+    const leaving = await createUser('Leaving');
+    const orphan = await createFunko({ name: 'Orphan', status: 'WAITING', submittedById: leaving.id });
+    await deleteUser(leaving.id);
+
+    const response = await admin.inject({ method: 'POST', url: `/submissions/${orphan.id}/approval` });
+
+    expect(response.statusCode).toBe(200);
+    expect(await namesListed(member, '/funkos')).toEqual(['Orphan']);
+  });
+});
+
+describe('POST /submissions/:funkoId/rejection', () => {
+  it('keeps the funko private in the sender’s collection, with the reason they read, when an admin rejects it', async () => {
+    const category = await createCategory();
+    const sent = await sendIn(member, { name: 'Fake', number: '1', categoryId: category.id });
+    const funkoId = sent.json<FunkoBody>().id;
+    await member.inject({
+      method: 'POST',
+      url: `/collections/${await defaultCollectionId(member.userId)}/items`,
+      payload: { funkoId },
+    });
+
+    const response = await admin.inject({
+      method: 'POST',
+      url: `/submissions/${funkoId}/rejection`,
+      payload: { reason: '  Not a real funko  ' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const mine = await member.inject({ method: 'GET', url: '/submissions' });
+    expect(mine.json<ListBody<ReviewRow>>().data).toEqual([
+      expect.objectContaining({ status: 'REJECTED', rejectionReason: 'Not a real funko' }),
+    ]);
+    const items = await member.inject({ method: 'GET', url: '/items' });
+    expect(items.json<ListBody<unknown>>().totalResultNumber).toBe(1);
+    expect(await namesListed(otherMember, '/funkos')).toEqual([]);
+  });
+
+  it('returns 400 when the reason is empty', async () => {
+    const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
+
+    const response = await admin.inject({
+      method: 'POST',
+      url: `/submissions/${waiting.id}/rejection`,
+      payload: { reason: '   ' },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('returns 409 when the submission was already approved', async () => {
+    const approved = await createFunko({ status: 'APPROVED', submittedById: member.userId });
+
+    const response = await admin.inject({
+      method: 'POST',
+      url: `/submissions/${approved.id}/rejection`,
+      payload: { reason: 'Too late' },
+    });
+
+    expect(response.statusCode).toBe(409);
+  });
+
+  it('returns 403 ADMIN_ONLY when a member tries it', async () => {
+    const waiting = await createFunko({ status: 'WAITING', submittedById: otherMember.userId });
+
+    const response = await member.inject({
+      method: 'POST',
+      url: `/submissions/${waiting.id}/rejection`,
+      payload: { reason: 'Mine is better' },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+});
+
+describe('POST /submissions/:funkoId/resubmission', () => {
+  it('makes a fixed rejected submission wait again, without the reason, when its sender sends it again', async () => {
+    const rejected = await createFunko({ name: 'Fixed', status: 'REJECTED', submittedById: member.userId });
+
+    const response = await member.inject({ method: 'POST', url: `/submissions/${rejected.id}/resubmission` });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'WAITING', rejectionReason: null });
+    expect((await reviewList('WAITING')).map(({ name }) => name)).toEqual(['Fixed']);
+    expect(await namesListed(member, '/funkos')).toEqual(['Fixed']);
+  });
+
+  it('returns 409 when the sender already waits on another funko with the same barcode', async () => {
+    await createFunko({ barcode: BARCODE, status: 'WAITING', submittedById: member.userId });
+    const rejected = await createFunko({ barcode: BARCODE, status: 'REJECTED', submittedById: member.userId });
+
+    const response = await member.inject({ method: 'POST', url: `/submissions/${rejected.id}/resubmission` });
+
+    expect(response.statusCode).toBe(409);
+  });
+
+  it('returns 409 when the submission is not rejected', async () => {
+    const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
+
+    const response = await member.inject({ method: 'POST', url: `/submissions/${waiting.id}/resubmission` });
+
+    expect(response.statusCode).toBe(409);
+  });
+
+  it('returns 404 when another member tries to send someone’s rejected submission again', async () => {
+    const rejected = await createFunko({ status: 'REJECTED', submittedById: otherMember.userId });
+
+    const response = await member.inject({ method: 'POST', url: `/submissions/${rejected.id}/resubmission` });
+
+    expect(response.statusCode).toBe(404);
   });
 });
 
@@ -476,7 +828,10 @@ describe('DELETE /users/:userId', () => {
       payload: toFormData([{ buffer: await makeImage() }]),
     });
     const [image] = upload.json<{ url: string }[]>();
-    await prisma.funko.update({ where: { id: submission.id }, data: { status: 'REJECTED' } });
+    await prisma.funko.update({
+      where: { id: submission.id },
+      data: { status: 'REJECTED', rejectionReason: 'Blurry' },
+    });
 
     await removeUser(sender.id);
 

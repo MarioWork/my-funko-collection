@@ -1,4 +1,5 @@
 import { normaliseBarcode } from '../../lib/barcode.ts';
+import { isUniqueViolation } from '../../lib/databaseErrors.ts';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
 import { removeFunkoFolder, sizeUrl } from '../../lib/imageStorage.ts';
 import { logger } from '../../lib/logger.ts';
@@ -7,20 +8,27 @@ import type { SignedInUser } from '../auth/auth.type.ts';
 import { isUsableCategory } from '../categories/categories.service.ts';
 import { isUsableSeries } from '../series/series.service.ts';
 import type {
+  DoubleMatchField,
+  ListReviewQuery,
   ListSubmissionsQuery,
+  PossibleDouble,
+  ReviewSubmissionListResponse,
   SubmissionListResponse,
   SubmissionResponse,
   SubmissionStatus,
 } from '../submissions/submissions.type.ts';
-import { assertCanEditFunko, canSeeFunko, isInCatalogueOf } from './funkos.access.ts';
+import { assertCanEditFunko, canSeeFunko, isAdminChangingSubmission, isInCatalogueOf } from './funkos.access.ts';
 import { getImages } from './images/funkoImages.service.ts';
 import {
   funkosRepository,
   type CollectionSummaryRow,
+  type DoubleCandidateRow,
+  type DoubleProbe,
   type FunkoIdentity,
   type FunkoRow,
   type ListedFunkoRow,
   type PrimaryImageRow,
+  type SubmissionRow,
 } from './funkos.repository.ts';
 import type {
   CreateFunko,
@@ -34,6 +42,13 @@ import type {
 import type { FunkoSummary, PrimaryImageSummary } from './funkos.type.ts';
 
 const ENTITY = 'Funko';
+const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved or rejected';
+const NOT_REJECTED_MESSAGE = 'Only a rejected submission can be sent again';
+const CATALOGUE_HAS_FUNKO_MESSAGE = 'The catalogue already has this funko. Reject this submission, or change it first';
+const CATALOGUE_HAS_BARCODE_MESSAGE =
+  'This barcode belongs to another funko in the catalogue. Reject this submission, or change it first';
+const CATALOGUE_CLASH_MESSAGE =
+  'The catalogue now has a funko, category or series that clashes with this submission. Reload and check it again';
 
 const log = logger.child({ module: 'funkos' });
 
@@ -79,9 +94,12 @@ async function assertSeriesUsableIfGiven(
   if (!isUsable) throw new BadRequestError(`Series ${seriesId} does not exist`);
 }
 
-// Whose waiting categories and series a funko may use: its sender's while it waits, nobody's once approved.
+// Whose waiting categories and series a funko may use: its sender's while it waits (or is rejected, for them to fix
+// and send again), nobody's once approved.
 function referenceOwnerOf(funko: FunkoStanding): number | null {
-  return funko.status === 'WAITING' ? funko.submittedById : null;
+  const isSubmission = funko.status === 'WAITING' || funko.status === 'REJECTED';
+
+  return isSubmission ? funko.submittedById : null;
 }
 
 function toSeries(row: FunkoRow): FunkoSummary['series'] {
@@ -163,6 +181,16 @@ function withNormalisedBarcode<Data extends { barcode?: string | null }>(data: D
 
 const CATALOGUE_SCOPE: SubmitterScope = { submittedById: null };
 
+function identityOf(row: FunkoRow): FunkoIdentity {
+  return {
+    categoryId: row.categoryId,
+    number: row.number,
+    name: row.name,
+    isChase: row.isChase,
+    exclusive: row.exclusive,
+  };
+}
+
 // The duplicate guard within one scope: same (category, number, name, chase, exclusive) or same barcode answers 409
 // with the existing id.
 async function assertUniqueIn(
@@ -209,19 +237,37 @@ export async function getFunkos(userId: number, query: ListFunkosQuery): Promise
   return { data: responses, totalResultNumber, currentPage: query.page };
 }
 
+// How a submission's review went, for those who may know: an admin, and its sender. An admin also reads who sent
+// a submission in (not an approved funko: who added the catalogue is nobody's business).
+async function reviewDetailsFor(user: SignedInUser, row: FunkoRow): Promise<Partial<FunkoDetailResponse>> {
+  const isSender = row.submittedById !== null && row.submittedById === user.userId;
+  const isSubmissionForAdmin = user.isAdmin && row.status !== 'APPROVED';
+
+  if (!isSender && !user.isAdmin) return {};
+
+  const review = await funkosRepository.findReview(row.id);
+
+  if (!review) return {};
+
+  return {
+    rejectionReason: review.rejectionReason,
+    changedByAdminAt: review.changedByAdminAt?.toISOString() ?? null,
+    submittedBy: isSubmissionForAdmin ? review.submittedBy : undefined,
+  };
+}
+
 export async function getFunko(user: SignedInUser, id: number): Promise<FunkoDetailResponse> {
   const row = await funkosRepository.findById(id);
 
   if (!row || !canSeeFunko(user, row)) throw new NotFoundError(ENTITY, id);
 
-  const isSubmissionForAdmin = user.isAdmin && row.status !== 'APPROVED';
-  const [response, images, submittedBy] = await Promise.all([
+  const [response, images, reviewDetails] = await Promise.all([
     toSingleResponse(user.userId, row),
     getImages(id),
-    isSubmissionForAdmin ? funkosRepository.findSubmitter(id) : undefined,
+    reviewDetailsFor(user, row),
   ]);
 
-  return { ...response, images, submittedBy };
+  return { ...response, images, ...reviewDetails };
 }
 
 export async function getFunkoByBarcode(userId: number, barcode: string): Promise<FunkoResponse> {
@@ -257,7 +303,8 @@ export async function addFunko(user: SignedInUser, input: CreateFunko): Promise<
   return toSingleResponse(user.userId, row);
 }
 
-// An admin changes any funko; a member only their own waiting submission.
+// An admin changes any funko; a member only their own waiting or rejected submission. An admin changing someone
+// else's submission leaves a note its sender reads (`changedByAdminAt`).
 export async function updateFunko(user: SignedInUser, id: number, input: UpdateFunko): Promise<FunkoResponse> {
   const data = withNormalisedBarcode(input);
   const current = assertCanEditFunko(user, id, await funkosRepository.findById(id));
@@ -274,7 +321,8 @@ export async function updateFunko(user: SignedInUser, id: number, input: UpdateF
   await assertSeriesUsableIfGiven(data.seriesId, referenceOwnerOf(current));
   await assertUnique(current, identity, data.barcode === undefined ? current.barcode : data.barcode, id);
 
-  const row = await funkosRepository.update(id, data);
+  const adminChange = isAdminChangingSubmission(user, current) ? { changedByAdminAt: new Date() } : {};
+  const row = await funkosRepository.update(id, { ...data, ...adminChange });
 
   if (!row) throw new NotFoundError(ENTITY, id);
 
@@ -347,13 +395,26 @@ export async function getFunkoSummary(userId: number, id: number): Promise<Funko
   return toSummary(row, primaryImages.get(id));
 }
 
-function toSubmission(row: FunkoRow, primaryImage: PrimaryImageRow | undefined): SubmissionResponse {
+function toSubmission(row: SubmissionRow, primaryImage: PrimaryImageRow | undefined): SubmissionResponse {
   return {
     ...toSummary(row, primaryImage),
     status: row.status,
+    reviewedAt: row.reviewedAt?.toISOString() ?? null,
+    rejectionReason: row.rejectionReason,
+    changedByAdminAt: row.changedByAdminAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+async function toSingleSubmission(id: number): Promise<SubmissionResponse> {
+  const row = await funkosRepository.findSubmission(id);
+
+  if (!row) throw new NotFoundError(ENTITY, id);
+
+  const primaryImages = await funkosRepository.primaryImagesByFunkoIds([id]);
+
+  return toSubmission(row, primaryImages.get(id));
 }
 
 // For the submissions module: what `userId` sent in, whatever became of it.
@@ -363,4 +424,144 @@ export async function getSubmittedFunkos(userId: number, query: ListSubmissionsQ
   const submissions = data.map((row) => toSubmission(row, primaryImages.get(row.id)));
 
   return { data: submissions, totalResultNumber, currentPage: query.page };
+}
+
+const SAME_TEXT = new Intl.Collator('en', { sensitivity: 'accent' });
+
+// Why `candidate` may be the same funko as `probe`: the same barcode, or the same number in a category of the same
+// name (any case, as the query matched it).
+function doubleMatchesOf(probe: DoubleProbe, candidate: DoubleCandidateRow): DoubleMatchField[] {
+  const isSameBarcode = probe.barcode !== null && probe.barcode === candidate.barcode;
+  const isSameNumber = probe.number === candidate.number;
+  const isSameCategory = SAME_TEXT.compare(probe.categoryName, candidate.category.name) === 0;
+  const matches: DoubleMatchField[] = [];
+
+  if (isSameBarcode) matches.push('BARCODE');
+  if (isSameNumber && isSameCategory) matches.push('NUMBER_AND_CATEGORY');
+
+  return matches;
+}
+
+function possibleDoublesOf(probe: DoubleProbe, candidates: DoubleCandidateRow[]): PossibleDouble[] {
+  return candidates.flatMap((candidate) => {
+    const matchedOn = candidate.id === probe.id ? [] : doubleMatchesOf(probe, candidate);
+
+    if (matchedOn.length === 0) return [];
+
+    return [{ id: candidate.id, name: candidate.name, number: candidate.number, status: candidate.status, matchedOn }];
+  });
+}
+
+// "Maybe a double", for the waiting ones only: every other approved or waiting funko that shares the barcode, or the
+// number and category. One query for the whole page.
+async function possibleDoublesByFunko(rows: SubmissionRow[]): Promise<Map<number, PossibleDouble[]>> {
+  const probes: DoubleProbe[] = rows
+    .filter((row) => row.status === 'WAITING')
+    .map((row) => ({ id: row.id, barcode: row.barcode, number: row.number, categoryName: row.categoryName }));
+  const candidates = await funkosRepository.findDoubleCandidates(probes);
+
+  return new Map(probes.map((probe) => [probe.id, possibleDoublesOf(probe, candidates)]));
+}
+
+// For the submissions module: every member's submissions as the admins review them, waiting or done.
+export async function getReviewSubmissions(query: ListReviewQuery): Promise<ReviewSubmissionListResponse> {
+  const { data, totalResultNumber } = await funkosRepository.listForReview(query);
+  const ids = data.map((row) => row.id);
+  const [primaryImages, doubles] = await Promise.all([
+    funkosRepository.primaryImagesByFunkoIds(ids),
+    possibleDoublesByFunko(data),
+  ]);
+  const submissions = data.map((row) => ({
+    ...toSubmission(row, primaryImages.get(row.id)),
+    submittedBy: row.submittedBy,
+    possibleDoubles: doubles.get(row.id) ?? [],
+  }));
+
+  return { data: submissions, totalResultNumber, currentPage: query.page };
+}
+
+async function findWaitingSubmission(id: number): Promise<FunkoRow> {
+  const row = await funkosRepository.findById(id);
+
+  if (!row) throw new NotFoundError(ENTITY, id);
+
+  if (row.status !== 'WAITING') throw new ConflictError(NOT_WAITING_MESSAGE);
+
+  return row;
+}
+
+// The clear refusals first: the same funko or barcode already in the catalogue (pointing at it). A clash that slips
+// in between (another admin approving the same box at once) is the unique index's 23505, answered in words too.
+async function assertFitsCatalogue(row: FunkoRow, categoryId: number): Promise<void> {
+  const identity: FunkoIdentity = { ...identityOf(row), categoryId };
+  const sameIdentity = await funkosRepository.findIdByIdentity(identity, CATALOGUE_SCOPE);
+
+  if (sameIdentity) throw new ConflictError(CATALOGUE_HAS_FUNKO_MESSAGE, sameIdentity.id);
+
+  const sameBarcode = row.barcode ? await funkosRepository.findIdByBarcode(row.barcode, CATALOGUE_SCOPE) : undefined;
+
+  if (sameBarcode) throw new ConflictError(CATALOGUE_HAS_BARCODE_MESSAGE, sameBarcode.id);
+}
+
+async function approveOrExplain(id: number, references: { categoryId: number; seriesId: number | null }) {
+  try {
+    return await funkosRepository.approve(id, references);
+  } catch (error: unknown) {
+    if (isUniqueViolation(error)) throw new ConflictError(CATALOGUE_CLASH_MESSAGE);
+
+    throw error;
+  }
+}
+
+// An admin approves a waiting submission: the funko joins the catalogue for everyone, with any waiting category and
+// series of its own (one the catalogue now has by name takes their place). Refused while its identity or barcode
+// clashes with the catalogue.
+export async function approveSubmission(id: number): Promise<SubmissionResponse> {
+  const row = await findWaitingSubmission(id);
+  const references = await funkosRepository.findCatalogueReferences(id);
+
+  if (!references) throw new NotFoundError(ENTITY, id);
+
+  await assertFitsCatalogue(row, references.categoryId);
+
+  const isApproved = await approveOrExplain(id, references);
+
+  if (!isApproved) throw new ConflictError(NOT_WAITING_MESSAGE);
+
+  log.info({ funkoId: id }, 'submission approved');
+
+  return toSingleSubmission(id);
+}
+
+// An admin rejects a waiting submission, saying why: it stays in its sender's collections, still private, for them
+// to fix and send again, or delete.
+export async function rejectSubmission(id: number, reason: string): Promise<SubmissionResponse> {
+  await findWaitingSubmission(id);
+
+  const row = await funkosRepository.reject(id, reason);
+
+  if (!row) throw new ConflictError(NOT_WAITING_MESSAGE);
+
+  log.info({ funkoId: id }, 'submission rejected');
+
+  return toSingleSubmission(id);
+}
+
+// The sender sends a rejected submission in again, once it fits their other waiting ones and the catalogue.
+export async function resendSubmission(user: SignedInUser, id: number): Promise<SubmissionResponse> {
+  const current = assertCanEditFunko(user, id, await funkosRepository.findById(id));
+
+  if (current.status !== 'REJECTED') throw new ConflictError(NOT_REJECTED_MESSAGE);
+
+  const waiting: FunkoStanding = { status: 'WAITING', submittedById: current.submittedById };
+
+  await assertUnique(waiting, identityOf(current), current.barcode, id);
+
+  const row = await funkosRepository.resend(id);
+
+  if (!row) throw new ConflictError(NOT_REJECTED_MESSAGE);
+
+  log.info({ funkoId: id }, 'submission sent again');
+
+  return toSingleSubmission(id);
 }
