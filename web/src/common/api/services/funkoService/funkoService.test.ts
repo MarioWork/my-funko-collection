@@ -112,10 +112,26 @@ describe('deleteFunko', () => {
     expect(receivedQueries).toEqual(['', '?force=true']);
   });
 
-  it('returns the 409 envelope when the funko sits in a collection', async () => {
+  it('sends the reason in the body only when one is given', async () => {
+    const receivedBodies: string[] = [];
+    server.use(
+      http.delete(`${TEST_BASE_API_URL}/funkos/:funkoId`, async ({ request }) => {
+        receivedBodies.push(await request.text());
+
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    await funkoService.deleteFunko(1, { force: true });
+    await funkoService.deleteFunko(1, { force: true, reason: 'A double' });
+
+    expect(receivedBodies).toEqual(['', JSON.stringify({ reason: 'A double' })]);
+  });
+
+  it('returns the 409 envelope with how many users have it when the funko sits in a collection', async () => {
     const result = await funkoService.deleteFunko(1);
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatchObject({ statusCode: 409, code: 'CONFLICT' });
+    expect(result.error).toMatchObject({ statusCode: 409, code: 'IN_COLLECTIONS', userCount: 1 });
   });
 });

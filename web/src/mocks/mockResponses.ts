@@ -21,7 +21,7 @@ import {
 } from '@utils/httpStatusUtils';
 import { SubmissionStatusUtil } from '@app-types/utility';
 import { MOCK_USER_ID } from './mockAuth';
-import { catalogueFunkos, isMockAdmin, isSubmittedByMockUser } from './mockCatalogueUtils';
+import { catalogueFunkos, isMockAdmin, isSubmittedByMockUser, mockHolderIdsOf } from './mockCatalogueUtils';
 import { toPrimaryImage } from './mockImageUtils';
 import { mockStore } from './mockStore';
 import type {
@@ -40,6 +40,7 @@ type MockJsonBody = Parameters<typeof HttpResponse.json>[0];
 
 const NOT_FOUND_ERROR_CODE = 'NOT_FOUND';
 const CONFLICT_ERROR_CODE = 'CONFLICT';
+const IN_COLLECTIONS_ERROR_CODE = 'IN_COLLECTIONS';
 const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';
 
 // What the API answers when a unique name is taken.
@@ -147,6 +148,7 @@ export function toFunkoDetail(row: MockFunkoRow): FunkoDetailApiModel {
     ...toFunkoModel(row),
     ...reviewDetailsOf(row),
     submittedBy: isSubmissionForAdmin ? senderOf(row) : undefined,
+    userCount: isMockAdmin() ? mockHolderIdsOf(row.id).length : undefined,
     images: mockStore.images
       .filter((image) => image.funkoId === row.id)
       .sort((first, second) => first.position - second.position || first.id - second.id)
@@ -204,6 +206,11 @@ export function tagsNotFound(tagIds: number[]): Response | undefined {
 
 export function conflict(message: string, existingId?: number): Response {
   return errorResponse(CONFLICT_STATUS, CONFLICT_ERROR_CODE, message, existingId);
+}
+
+// The 409 for a funko still in collections: how many users have it, never who.
+export function inCollections(message: string, userCount: number): Response {
+  return HttpResponse.json({ code: IN_COLLECTIONS_ERROR_CODE, message, userCount }, { status: CONFLICT_STATUS });
 }
 
 export function badRequest(message: string): Response {

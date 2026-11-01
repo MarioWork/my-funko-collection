@@ -17,6 +17,7 @@ import type {
   MockImageRow,
   MockItemRow,
   MockNotificationRow,
+  MockOtherUserItemRow,
   MockStore,
   MockUserRow,
   MockSubmissionColumns,
@@ -92,6 +93,22 @@ type SeedSubmission = Omit<SeedFunko, 'series' | 'type' | 'isChase' | 'exclusive
 
 const HAN_ID = MOCK_MEMBER_ID + 1;
 const SUBMISSION_REVIEW_DAY = 45;
+
+// Funkos luke and han have in their own collections, so an admin deleting one is asked for a reason.
+type SeedOtherUserItem = { userId: number; funkoName: string };
+
+const SEED_OTHER_USERS_ITEMS: SeedOtherUserItem[] = [
+  { userId: MOCK_MEMBER_ID, funkoName: 'Grogu' },
+  { userId: HAN_ID, funkoName: 'Grogu' },
+  { userId: MOCK_MEMBER_ID, funkoName: 'Darth Vader' },
+];
+
+// A funko an admin already removed from the catalogue while han had it: only his notification is left of it.
+const REMOVED_FUNKO = {
+  name: 'Boba Fett (Prototype)',
+  reason: 'A double of Boba Fett #08, which stays in the catalogue',
+  holderId: HAN_ID,
+};
 
 const SEED_SUBMISSIONS: SeedSubmission[] = [
   { name: 'Thanos (Infinity Gauntlet)', number: '78', category: 1, submittedById: MOCK_MEMBER_ID, day: 40 },
@@ -369,7 +386,8 @@ function createSubmissions(startId: number): MockFunkoRow[] {
 }
 
 // What the seed submissions told people, as api/prisma/seed.ts writes them: every admin (the signed-in user and the
-// other admins) heard of each one sent in, the oldest already read, and the sender of the rejected one heard why.
+// other admins) heard of each one sent in, the oldest already read, and the sender of the rejected one heard why;
+// han also heard of REMOVED_FUNKO.
 function createNotifications(submissions: MockFunkoRow[], users: MockUserRow[]): MockNotificationRow[] {
   const adminIds = [MOCK_USER_ID, ...users.filter((user) => user.role === UserRoleUtil.ADMIN).map((user) => user.id)];
   const rows = submissions.flatMap((submission, index) => {
@@ -395,8 +413,27 @@ function createNotifications(submissions: MockFunkoRow[], users: MockUserRow[]):
 
     return [...toAdmins, toSender];
   });
+  const removal = {
+    userId: REMOVED_FUNKO.holderId,
+    kind: NotificationKindUtil.FUNKO_REMOVED,
+    funkoId: null,
+    funkoName: REMOVED_FUNKO.name,
+    reason: REMOVED_FUNKO.reason,
+    isRead: false,
+    createdAt: mockRecentDate(FIRST_NOTIFICATION_HOURS_AGO),
+  };
 
-  return rows.map((row, index) => ({ id: index + 1, ...row }));
+  return [...rows, removal].map((row, index) => ({ id: index + 1, ...row }));
+}
+
+function createOtherUsersItems(funkos: MockFunkoRow[]): MockOtherUserItemRow[] {
+  return SEED_OTHER_USERS_ITEMS.map(({ userId, funkoName }) => {
+    const funko = funkos.find((candidate) => candidate.name === funkoName);
+
+    if (!funko) throw new Error(`The mock seed has no funko named ${funkoName}`);
+
+    return { userId, funkoId: funko.id };
+  });
 }
 
 function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
@@ -506,6 +543,7 @@ export function createSeedData(users: MockUserRow[]): MockSeedData {
     funkos: [...funkos, ...extraFunkos, ...submissions],
     images: [...seedImages, ...extraImages],
     items: [...items, ...extraItems],
+    otherUsersItems: createOtherUsersItems(funkos),
     notifications: createNotifications(submissions, users),
   };
 }

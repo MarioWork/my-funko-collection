@@ -8,11 +8,12 @@ import { CreateCollectionItemSchema } from '@services/collectionItemService/coll
 import funkoImageService from '@services/funkoImageService/funkoImageService';
 import { ReorderImagesSchema, RotateImageSchema } from '@services/funkoImageService/funkoImageService.type';
 import funkoService from '@services/funkoService/funkoService';
+import { RemoveFunkoSchema } from '@services/funkoService/funkoService.type';
 import { parseFormData } from '@utils/formDataUtils';
 import { newItemPayload } from '@utils/newItemUtils';
 import { failWhenInvalid } from '@utils/actionUtils';
 
-type DeleteFunkoFormData = { force?: boolean };
+type DeleteFunkoFormData = { force?: boolean; reason?: string };
 type MembershipFormData = { collectionId: number };
 type ReorderFormData = { imageIds: number[] };
 type RotateFormData = { degrees: number };
@@ -22,15 +23,32 @@ const SINGLE_ITEM_PAGE_SIZE = '1';
 
 const collectionIdSchema = number().integer().positive().required();
 
-// DELETE /funkos/:funkoId, with `force` from the confirm dialog's checkbox. Success leaves the page.
+// The reason checked against the service's schema; none when the dialog sent none (nobody else has the funko).
+async function validRemovalReason(reason: string | undefined): Promise<string | undefined> {
+  if (reason === undefined) return undefined;
+
+  const valid = await RemoveFunkoSchema.validate({ reason });
+
+  return valid.reason;
+}
+
+// DELETE /funkos/:funkoId, with `force` from the confirm dialog's checkbox, or `force` and the reason from the
+// dialog for a funko other users have. Success leaves the page.
 export const deleteFunkoAction = async ({
   request,
   params,
 }: ActionFunctionArgs): Promise<JSONResponseUtil | Response> => {
-  const { force } = parseFormData<DeleteFunkoFormData>(await request.formData());
-  const result = await funkoService.deleteFunko(Number(params.funkoId), { force: force === true });
+  const { force, reason } = parseFormData<DeleteFunkoFormData>(await request.formData());
 
-  return result.success ? redirect(FUNKO_ROUTES_PATHS.BASE) : result;
+  return failWhenInvalid(async () => {
+    const validReason = await validRemovalReason(reason);
+    const result = await funkoService.deleteFunko(Number(params.funkoId), {
+      force: force === true,
+      reason: validReason,
+    });
+
+    return result.success ? redirect(FUNKO_ROUTES_PATHS.BASE) : result;
+  });
 };
 
 // The funko's one item in that collection, removed. Nothing to remove is a failure.
