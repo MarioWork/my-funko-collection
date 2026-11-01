@@ -19,6 +19,7 @@ import {
   COLLECTION_ROUTES_PATHS,
   FUNKO_ROUTES_PATHS,
   IMAGE_ROUTES_PATHS,
+  NOTIFICATION_ROUTES_PATHS,
   SERIES_ROUTES_PATHS,
   SUBMISSION_ROUTES_PATHS,
   TAG_ROUTES_PATHS,
@@ -86,6 +87,13 @@ export const ADMIN_ITEMS: NavigationItem[] = [
   { label: 'Users', to: USER_ROUTES_PATHS.BASE, icon: PAGE_ICONS.USERS },
   { label: 'Images', to: IMAGE_ROUTES_PATHS.BASE, icon: PAGE_ICONS.IMAGES },
 ];
+
+// Notifications: a sidebar item with the unread count on desktop; the bell in the top bar on phones.
+export const NOTIFICATIONS_ITEM: NavigationItem = {
+  label: 'Notifications',
+  to: NOTIFICATION_ROUTES_PATHS.BASE,
+  icon: PAGE_ICONS.NOTIFICATIONS,
+};
 
 // Settings: the sidebar's footer on desktop, the last entry of the phone menu.
 export const SETTINGS_ITEM: NavigationItem = {

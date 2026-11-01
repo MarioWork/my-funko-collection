@@ -5,14 +5,15 @@ import {
   APP_NAME,
   manageItemsFor,
   NAVIGATION_ITEMS,
+  NOTIFICATIONS_ITEM,
   SETTINGS_ITEM,
   type NavigationItem,
 } from '@utils/navigationUtils';
 import { useIsAdmin } from '@hooks/useIsAdmin';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AppLogo from '@components/AppLogo';
-import NotificationBell from './NotificationBell';
 import SidebarEdgeToggle from './SidebarEdgeToggle';
+import SidebarNotificationsEntry from './SidebarNotificationsEntry';
 import ThemeToggle from './ThemeToggle';
 import {
   Sidebar,
@@ -69,26 +70,24 @@ function AdminGroup({ pathname }: AdminGroupProps) {
   );
 }
 
-// The logo (home) and the notification bell beside it; stacked when the sidebar is collapsed to icons.
+// The logo, a link home.
 function SidebarBrand() {
   return (
-    <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col">
-      <Link
-        viewTransition
-        to={BASE_ROUTES_PATHS.HOME}
-        aria-label={`${APP_NAME} home`}
-        className="min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <AppLogo className="group-data-[collapsible=icon]:hidden" />
-        <AppLogo isMarkOnly className="hidden group-data-[collapsible=icon]:flex" />
-      </Link>
-      <NotificationBell />
-    </div>
+    <Link
+      viewTransition
+      to={BASE_ROUTES_PATHS.HOME}
+      aria-label={`${APP_NAME} home`}
+      className="min-w-0 self-start rounded-md outline-none group-data-[collapsible=icon]:self-center focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <AppLogo className="group-data-[collapsible=icon]:hidden" />
+      <AppLogo isMarkOnly className="hidden group-data-[collapsible=icon]:flex" />
+    </Link>
   );
 }
 
-// Desktop navigation: the logo and the notification bell at the top, the four destinations, the manage pages (and a member's Submissions), the Admin group (admins only), then Settings and
-// the theme toggle in the footer. Adding lives in the page headers (Funkos, a collection, Home), not here. Collapses to icons from its edge (SidebarEdgeToggle), never hides; the edge is not draggable.
+// Desktop navigation: the logo at the top, the four destinations and Notifications (with the unread count), the
+// manage pages (and a member's Submissions), a divider and the Admin group (admins only), then Settings and the
+// theme toggle in the footer. Adding lives in the page headers (Funkos, a collection, Home), not here. Collapses to icons from its edge (SidebarEdgeToggle), never hides; the edge is not draggable.
 function AppSidebar() {
   const { pathname } = useLocation();
   const isAdmin = useIsAdmin();
@@ -103,6 +102,7 @@ function AppSidebar() {
           {NAVIGATION_ITEMS.map((item) => (
             <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} size="lg" />
           ))}
+          <SidebarNotificationsEntry isActive={pathname.startsWith(NOTIFICATIONS_ITEM.to)} />
         </SidebarMenu>
         <SidebarSeparator />
         <SidebarMenu className="gap-2 p-2 group-data-[collapsible=icon]:items-center">
@@ -110,7 +110,12 @@ function AppSidebar() {
             <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} />
           ))}
         </SidebarMenu>
-        {isAdmin ? <AdminGroup pathname={pathname} /> : null}
+        {isAdmin ? (
+          <>
+            <SidebarSeparator />
+            <AdminGroup pathname={pathname} />
+          </>
+        ) : null}
       </SidebarContent>
       <SidebarFooter className="flex-row items-center justify-between group-data-[collapsible=icon]:flex-col">
         <SidebarMenu className="w-auto">
