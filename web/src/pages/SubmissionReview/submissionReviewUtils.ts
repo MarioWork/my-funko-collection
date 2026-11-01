@@ -63,5 +63,5 @@ export type MergeSubmissionFormValues = InferType<typeof mergeSubmissionFormSche
 export type MergeSubmissionFormData = { merge?: MergeSubmission };
 
 // One funko a submission can be merged into, as the dialog lists it: a maybe-double first (with why), then search
-// results.
-export type MergeTarget = { id: number; name: string; number: string; hint: string };
+// results. `label` is funkoLabelOf()'s, so a chase or an exclusive never reads like the regular one.
+export type MergeTarget = { id: number; label: string; hint: string };

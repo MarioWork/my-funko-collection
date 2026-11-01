@@ -217,7 +217,7 @@ uploads plugin's hook, `assertCanSeeImageFiles()`).
 
 **Reviewing.** `GET /submissions/review?state=WAITING` (admins) lists every waiting submission, oldest first, with
 `submittedBy` (null for a removed user) and `possibleDoubles`: every other approved or waiting funko with the same
-barcode, or the same number in a category of the same name (any case), each with `matchedOn` (`BARCODE`,
+barcode, or the same number in a category of the same name (any case), each with `isChase`, `exclusive` (so look-alikes read apart) and `matchedOn` (`BARCODE`,
 `NUMBER_AND_CATEGORY`). `state=DONE` lists the reviewed ones (approved, rejected, merged), last reviewed first; an
 admin's own funkos are never on it. `POST /submissions/:id/approval` puts a waiting funko in everyone's catalogue
 with its sender's waiting category and series; when the catalogue meanwhile got a category or series of the same

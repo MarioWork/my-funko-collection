@@ -40,9 +40,13 @@ it('lists every member’s waiting submission, oldest first, with who sent it an
   const thanos = await findRow(LUKES_THANOS);
   expect(within(thanos).getByText(/from luke/)).toBeVisible();
   expect(within(thanos).getByText('Maybe a double')).toBeVisible();
-  expect(within(thanos).getAllByRole('link', { name: '#78 Thanos' })[0]).toHaveAttribute(
+  expect(within(thanos).getByRole('link', { name: '#78 Thanos' })).toHaveAttribute(
     'href',
     FUNKO_ROUTES_PATHS.detail('5'),
+  );
+  expect(within(thanos).getByRole('link', { name: '#78 Thanos (Chase)' })).toHaveAttribute(
+    'href',
+    FUNKO_ROUTES_PATHS.detail('6'),
   );
   expect(within(await findRow(HANS_MANDO)).queryByText('Maybe a double')).not.toBeInTheDocument();
   expect(screen.getByText('2 waiting')).toBeVisible();
@@ -115,9 +119,8 @@ it('merges a submission into its maybe-double, picked first, and shows it merged
 
   await userEvent.click(within(await findRow(LUKES_THANOS)).getByRole('button', { name: 'Merge' }));
   const dialog = await screen.findByRole('dialog', { name: `Merge ${LUKES_THANOS}?` });
-  const [regularThanos, chaseThanos] = within(dialog).getAllByRole('radio', { name: /#78 Thanos/ });
-  expect(regularThanos).toBeChecked();
-  expect(chaseThanos).not.toBeChecked();
+  expect(within(dialog).getByRole('radio', { name: /^#78 Thanos\s*Maybe a double/ })).toBeChecked();
+  expect(within(dialog).getByRole('radio', { name: /^#78 Thanos \(Chase\)/ })).not.toBeChecked();
   await userEvent.click(within(dialog).getByRole('button', { name: 'Merge' }));
 
   expect(await screen.findByText(`${LUKES_THANOS} merged`)).toBeVisible();

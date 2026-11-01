@@ -170,7 +170,7 @@ HttpOnly cookie the app never sees.
   Reject;
   the funko's name opens its page, where an admin can fix it first (the sender is then told). Reject asks for a
   reason in a dialog (for an orphan submission it says rejecting deletes it). Merge opens a dialog listing the
-  approved maybe-doubles first (the first one picked) and a search of the catalogue (`useMergeTargets`, reusing the
+  approved maybe-doubles first (the first one picked; each labelled by `funkoLabelOf`, so "#78 Thanos (Chase)" never reads like the regular one) and a search of the catalogue (`useMergeTargets`, reusing the
   `useSuggestions` type-ahead, so no new read outside a loader); a picked search result stays listed while the admin
   searches again, and Enter in the search never submits. A read-only admin sees Approve, Merge and Reject disabled
   with the reason, and a read-only member Send again. One `useReviewActions()` fetcher owns all three, so the toast

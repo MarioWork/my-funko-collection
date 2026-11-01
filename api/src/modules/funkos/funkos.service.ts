@@ -525,7 +525,17 @@ function possibleDoublesOf(probe: DoubleProbe, candidates: DoubleCandidateRow[])
 
     if (matchedOn.length === 0) return [];
 
-    return [{ id: candidate.id, name: candidate.name, number: candidate.number, status: candidate.status, matchedOn }];
+    return [
+      {
+        id: candidate.id,
+        name: candidate.name,
+        number: candidate.number,
+        isChase: candidate.isChase,
+        exclusive: candidate.exclusive,
+        status: candidate.status,
+        matchedOn,
+      },
+    ];
   });
 }
 
