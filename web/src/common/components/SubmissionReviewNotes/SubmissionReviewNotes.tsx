@@ -1,6 +1,6 @@
-import { Link } from 'react-router';
 import type { NamedApiModel } from '@app-types/models';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
+import TextLink from '@components/TextLink';
 import { formatDate } from '@utils/dateUtils';
 import { CHANGED_BY_ADMIN_NOTE } from '@utils/submissionUtils';
 
@@ -14,8 +14,6 @@ type Props = {
 };
 
 const MERGED_INTO_LABEL = 'Merged into';
-const LINK_CLASS =
-  'font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 // What the sender (and an admin) reads about a submission's review: why it was rejected, which catalogue funko it
 // was merged into (a link: their items are there now), and that an admin changed it. Nothing when there is nothing
@@ -33,9 +31,7 @@ function SubmissionReviewNotes({ rejectionReason, changedByAdminAt, mergedInto }
       {mergedInto ? (
         <span className="text-muted-foreground">
           {MERGED_INTO_LABEL}{' '}
-          <Link viewTransition to={FUNKO_ROUTES_PATHS.detail(String(mergedInto.id))} className={LINK_CLASS}>
-            {mergedInto.name}
-          </Link>
+          <TextLink to={FUNKO_ROUTES_PATHS.detail(String(mergedInto.id))}>{mergedInto.name}</TextLink>
         </span>
       ) : null}
       {changedByAdminAt ? (

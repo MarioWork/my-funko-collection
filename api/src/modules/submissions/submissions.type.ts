@@ -3,7 +3,7 @@
 // fills.
 import { z } from 'zod';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
-import { FunkoSummarySchema } from '../funkos/funkos.type.ts';
+import { FunkoSummarySchema, MergedIntoSchema } from '../funkos/funkos.type.ts';
 
 // Matches the `SubmissionStatus` enum in prisma/schema.prisma; the repositories fail to compile if the two drift.
 // APPROVED is the catalogue everyone sees; the others are a submission only its sender (and admins) see.
@@ -38,7 +38,7 @@ export const SubmissionResponseSchema = FunkoSummarySchema.extend({
   reviewedAt: z.iso.datetime().nullable(),
   rejectionReason: z.string().nullable(),
   changedByAdminAt: z.iso.datetime().nullable(),
-  mergedInto: z.object({ id: z.number().int(), name: z.string() }).nullable(),
+  mergedInto: MergedIntoSchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 }).meta({ id: 'Submission' });
