@@ -19,7 +19,9 @@ import {
   NO_CONTENT_STATUS,
   NOT_FOUND_STATUS,
 } from '@utils/httpStatusUtils';
-import { catalogueFunkos, isSubmittedByMockUser } from './mockCatalogueUtils';
+import { SubmissionStatusUtil } from '@app-types/utility';
+import { MOCK_USER_ID } from './mockAuth';
+import { catalogueFunkos, isMockAdmin, isSubmittedByMockUser } from './mockCatalogueUtils';
 import { toPrimaryImage } from './mockImageUtils';
 import { mockStore } from './mockStore';
 import type {
@@ -120,9 +122,21 @@ export function toFunkoImageModel({
   return image;
 }
 
+// Who sent a submission in, for an admin: the signed-in user, another user, or null once deleted (a removed user).
+function senderOf(row: MockFunkoRow): NamedApiModel | null {
+  if (row.submittedById === MOCK_USER_ID) return { id: MOCK_USER_ID, name: mockStore.auth.userName };
+
+  const sender = mockStore.users.find((user) => user.id === row.submittedById);
+
+  return sender ? { id: sender.id, name: sender.name } : null;
+}
+
 export function toFunkoDetail(row: MockFunkoRow): FunkoDetailApiModel {
+  const isSubmissionForAdmin = isMockAdmin() && row.status !== SubmissionStatusUtil.APPROVED;
+
   return {
     ...toFunkoModel(row),
+    submittedBy: isSubmissionForAdmin ? senderOf(row) : undefined,
     images: mockStore.images
       .filter((image) => image.funkoId === row.id)
       .sort((first, second) => first.position - second.position || first.id - second.id)

@@ -41,7 +41,7 @@ export function setMockUserRole(role: UserRole): void {
 type MockSubmissionOptions = Partial<Pick<MockFunkoRow, 'name' | 'barcode' | 'status' | 'submittedById'>>;
 
 // For a test that needs a submission: a funko sent in by the signed-in user (a waiting one unless `status` says
-// otherwise), or by another member when `submittedById` names one. Filed under the seed's first category.
+// otherwise), by another member when `submittedById` names one, or by a removed user when it is null. Filed under the seed's first category.
 export function addMockSubmission(options: MockSubmissionOptions = {}): MockFunkoRow {
   const row: MockFunkoRow = {
     id: nextId(mockStore.funkos),
@@ -54,7 +54,8 @@ export function addMockSubmission(options: MockSubmissionOptions = {}): MockFunk
     exclusive: '',
     barcode: options.barcode ?? null,
     status: options.status ?? SubmissionStatusUtil.WAITING,
-    submittedById: options.submittedById ?? MOCK_USER_ID,
+    // null is a removed user's submission, so only a missing option means the signed-in user's.
+    submittedById: options.submittedById === undefined ? MOCK_USER_ID : options.submittedById,
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };

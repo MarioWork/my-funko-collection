@@ -1,12 +1,11 @@
 import { Link } from 'react-router';
 import type { FunkoDetailApiModel } from '@app-types/models';
 import { FUNKO_TYPE_LABELS, SubmissionStatusUtil } from '@app-types/utility';
-import SubmissionStatusBadge from '@components/SubmissionStatusBadge';
-import { isOwnWaitingSubmission } from '@utils/funkoAccessUtils';
 import { Badge } from '@components/ui/badge';
 import { Separator } from '@components/ui/separator';
 import { formatDateTime } from '@utils/dateUtils';
 import { funkosInCategoryPath, funkosInSeriesPath } from '@utils/funkoLinkUtils';
+import SubmissionDetails from './SubmissionDetails';
 
 type Props = {
   funko: FunkoDetailApiModel;
@@ -89,12 +88,9 @@ function SummaryHeading({ funko, actions }: HeadingProps) {
   );
 }
 
-const SUBMISSION_NOTE = 'Only you see it until an admin approves it.';
-
 // The funko at a glance, in one tile: name and actions, then the catalog facts. A submission says where it stands.
 function FunkoSummary({ funko, actions }: Props) {
   const isSubmission = funko.status !== SubmissionStatusUtil.APPROVED;
-  const isOwnWaiting = isOwnWaitingSubmission(funko);
 
   return (
     <section aria-labelledby={TITLE_ID} className="flex flex-col gap-4 rounded-xl border bg-card p-4">
@@ -111,10 +107,7 @@ function FunkoSummary({ funko, actions }: Props) {
         <SpecRow label="Added">{formatDateTime(funko.createdAt)}</SpecRow>
         {isSubmission ? (
           <SpecRow label="Submission">
-            <span className="flex flex-col items-start gap-1">
-              <SubmissionStatusBadge status={funko.status} />
-              {isOwnWaiting ? <span className="text-xs text-muted-foreground">{SUBMISSION_NOTE}</span> : null}
-            </span>
+            <SubmissionDetails funko={funko} />
           </SpecRow>
         ) : null}
       </dl>
