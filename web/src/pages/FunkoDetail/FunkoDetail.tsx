@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Outlet, useLoaderData } from 'react-router';
+import { ArrowLeft } from 'lucide-react';
 import type { LoaderDataUtil } from '@app-types/utility';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { Button } from '@components/ui/button';
 import { useGoBack } from '@hooks/useGoBack';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
-import BackTileButton from './components/BackTileButton';
 import FunkoActionsMenu from './components/FunkoActionsMenu';
 import FunkoCollectionToggles from './components/FunkoCollectionToggles';
 import FunkoDeleteDialog from './components/FunkoDeleteDialog';
@@ -27,7 +28,12 @@ function FunkoDetail() {
 
   return (
     <div className="flex flex-col gap-4">
-      <BackTileButton onClick={goBack} />
+      {/* Card background, border and radius like the sections below, so it reads as a tile; the outline button's own
+          hover. */}
+      <Button variant="outline" size="lg" className="self-start rounded-xl bg-card" onClick={goBack}>
+        <ArrowLeft data-icon="inline-start" aria-hidden="true" />
+        Back
+      </Button>
       <div className="grid items-start gap-6 @3xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
         <FunkoGallery funko={funko} />
         {/* Beside the gallery, this column ends at the screen's bottom (less the top bar, back link and padding), so
