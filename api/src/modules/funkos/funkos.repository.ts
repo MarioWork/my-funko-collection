@@ -20,7 +20,7 @@ import {
   type ListFunkosQuery,
   type UpdateFunko,
 } from './funkos.schema.ts';
-import type { ItemCombiner } from './funkos.merge.ts';
+import type { ItemCombiner, MergedItem } from './funkos.merge.ts';
 import { FUNKO_TYPES, type FunkoType } from './funkos.type.ts';
 
 const FUNKO_SELECT = {
@@ -73,13 +73,14 @@ const DOUBLE_CANDIDATE_SELECT = {
 // A category's or series' standing and name, to find the approved one of the same name when a submission is approved.
 const REFERENCE_SELECT = { id: true, name: true, status: true } as const satisfies Prisma.CategorySelect;
 
-// What a merge reads of each item it moves: where it is, and what a clash combines.
+// What a merge reads of each item it moves: where it is, and what a clash combines (its tags in the order it got them).
 const MERGED_ITEM_SELECT = {
   id: true,
   collectionId: true,
   quantity: true,
   notes: true,
   createdAt: true,
+  itemTags: { select: { tagId: true }, orderBy: [{ createdAt: 'asc' }, { tagId: 'asc' }] },
 } as const satisfies Prisma.CollectionItemSelect;
 
 type MergedItemRow = Prisma.CollectionItemGetPayload<{ select: typeof MERGED_ITEM_SELECT }>;
@@ -539,9 +540,13 @@ function olderFirst(first: MergedItemRow, second: MergedItemRow): [MergedItemRow
   return isFirstOlder ? [first, second] : [second, first];
 }
 
-// Two items of the same funko in one collection become the older one: it takes `combine`'s quantity and notes and
-// both items' tags, then the newer one goes. The newer one is deleted before the kept one moves, so the collection
-// never holds the target funko twice (collection_items_collection_id_funko_id_uidx).
+function toMergedItem(row: MergedItemRow): MergedItem {
+  return { quantity: row.quantity, notes: row.notes, tagIds: row.itemTags.map(({ tagId }) => tagId) };
+}
+
+// Two items of the same funko in one collection become the older one: it takes `combine`'s quantity, notes and tags,
+// then the newer one goes. The newer one is deleted before the kept one moves, so the collection never holds the
+// target funko twice (collection_items_collection_id_funko_id_uidx).
 async function combineItems(
   tx: Prisma.TransactionClient,
   pair: { moving: MergedItemRow; staying: MergedItemRow },
@@ -549,17 +554,14 @@ async function combineItems(
   combine: ItemCombiner,
 ): Promise<void> {
   const [older, newer] = olderFirst(pair.moving, pair.staying);
-  const combined = combine(older, newer);
-  const newerTags = await tx.collectionItemTag.findMany({
-    where: { collectionItemId: newer.id },
-    select: { tagId: true },
-  });
+  const { tagIds, ...combined } = combine(toMergedItem(older), toMergedItem(newer));
 
+  await tx.collectionItem.delete({ where: { id: newer.id } });
+  await tx.collectionItemTag.deleteMany({ where: { collectionItemId: older.id, tagId: { notIn: tagIds } } });
   await tx.collectionItemTag.createMany({
-    data: newerTags.map(({ tagId }) => ({ collectionItemId: older.id, tagId })),
+    data: tagIds.map((tagId) => ({ collectionItemId: older.id, tagId })),
     skipDuplicates: true,
   });
-  await tx.collectionItem.delete({ where: { id: newer.id } });
   await tx.collectionItem.update({ where: { id: older.id }, data: { ...combined, funkoId: targetId } });
 }
 

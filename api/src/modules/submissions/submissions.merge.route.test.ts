@@ -48,6 +48,12 @@ async function merge(client: SignedInClient, funkoId: number, payload: Record<st
   return client.inject({ method: 'POST', url: `/submissions/${funkoId}/merge`, payload });
 }
 
+async function createTags(prefix: string, count: number): Promise<{ id: number; name: string }[]> {
+  const names = Array.from({ length: count }, (_, index) => `${prefix} ${String(index + 1).padStart(2, '0')}`);
+
+  return Promise.all(names.map((name) => createTag(name, member.userId)));
+}
+
 async function itemsOf(client: SignedInClient): Promise<ItemBody[]> {
   const response = await client.inject({ method: 'GET', url: '/items?size=100' });
 
@@ -129,6 +135,30 @@ describe('POST /submissions/:funkoId/merge', () => {
     expect(items.map((item) => [item.id, item.funko.id, item.quantity, item.condition, item.notes])).toEqual([
       [older.id, target.id, 2, 'BOX_DAMAGED', 'Newer'],
     ]);
+  });
+
+  it('caps the joined item at 1000 and 20 tags, keeping the older item’s tags, so it can still be edited', async () => {
+    const target = await createFunko();
+    const submission = await createFunko({ status: 'WAITING', submittedById: member.userId });
+    const collectionId = await defaultCollectionId(member.userId);
+    const olderTags = await createTags('Older', 15);
+    const newerTags = await createTags('Newer', 10);
+    const older = await createItem(collectionId, target.id, { quantity: 600, tagIds: olderTags.map(({ id }) => id) });
+    await createItem(collectionId, submission.id, { quantity: 700, tagIds: newerTags.map(({ id }) => id) });
+
+    await merge(admin, submission.id, { targetFunkoId: target.id });
+
+    const [merged] = await itemsOf(member);
+    expect(merged).toMatchObject({ id: older.id, quantity: 1000 });
+    const keptTagNames = merged?.tags.map(({ name }) => name) ?? [];
+    expect(keptTagNames).toHaveLength(20);
+    expect(keptTagNames).toEqual(expect.arrayContaining(olderTags.map(({ name }) => name)));
+    const editResponse = await member.inject({
+      method: 'PATCH',
+      url: `/collections/${collectionId}/items/${older.id}`,
+      payload: { notes: 'Edited after the merge', tagIds: merged?.tags.map(({ id }) => id) },
+    });
+    expect(editResponse.statusCode).toBe(200);
   });
 
   it('leaves the items in other collections apart when only one collection clashes', async () => {
