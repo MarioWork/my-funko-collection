@@ -1,4 +1,5 @@
 import AuthLayout from '@components/AuthLayout';
+import DevModeBanner from './components/DevModeBanner';
 import LockedOutHelp from './components/LockedOutHelp';
 import OrDivider from './components/OrDivider';
 import PasskeySignIn from './components/PasskeySignIn';
@@ -14,6 +15,7 @@ function Login() {
       description="Your shelves missed you. Sign in to see your collection."
       footer="Only you can open this collection."
     >
+      {import.meta.env.DEV ? <DevModeBanner /> : null}
       <PasskeySignIn />
       <OrDivider />
       <PasswordSignInForm />
