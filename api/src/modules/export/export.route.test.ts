@@ -132,7 +132,8 @@ describe('GET /export/funkos.csv', () => {
 
   it('returns the category’s funkos, one in no collection included, when filtered by category', async () => {
     const { marvel } = await seed();
-    await createFunko({ name: 'Loose Hulk', categoryId: marvel.id });
+    const hulk = await createSeries('The Incredible Hulk');
+    await createFunko({ name: 'Loose Hulk', categoryId: marvel.id, seriesId: hulk.id });
     await createFunko({ name: 'Other line' });
 
     const response = await api.inject({
@@ -223,7 +224,8 @@ describe('GET /export/funkos.json', () => {
     const { marvel, funko } = await seed();
     const wishlist = await createCollection({ name: 'Wishlist' });
     await createItem(wishlist.id, funko.id);
-    await createFunko({ name: 'Loose Hulk', categoryId: marvel.id });
+    const hulk = await createSeries('The Incredible Hulk');
+    await createFunko({ name: 'Loose Hulk', categoryId: marvel.id, seriesId: hulk.id });
 
     const response = await api.inject({
       method: 'GET',
@@ -235,12 +237,12 @@ describe('GET /export/funkos.json', () => {
     expect(response.headers['content-disposition']).toBe('attachment; filename="category-pop-marvel.json"');
     const body = response.json<{
       scope: unknown;
-      funkos: { name: string; series: string | null; items: unknown[] }[];
+      funkos: { name: string; series: string; items: unknown[] }[];
     }>();
     expect(body.scope).toEqual({ kind: 'category', name: 'Pop! Marvel' });
     expect(body.funkos.map(({ name, series, items }) => ({ name, series, itemCount: items.length }))).toEqual([
       { name: 'Spider-Man, "Classic"', series: 'Homecoming', itemCount: 2 },
-      { name: 'Loose Hulk', series: null, itemCount: 0 },
+      { name: 'Loose Hulk', series: 'The Incredible Hulk', itemCount: 0 },
     ]);
     expect(body.funkos[0]?.items[0]).toMatchObject({ collection: 'Owned', purchasePrice: 14.99, tags: ['Box 3'] });
   });

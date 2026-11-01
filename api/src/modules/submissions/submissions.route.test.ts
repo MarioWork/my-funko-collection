@@ -43,8 +43,11 @@ beforeEach(async () => {
   otherMember = await signIn(app, { userId: (await createUser('Other member')).id });
 });
 
+// Every funko needs a series: one from the catalogue is made unless the payload names one.
 async function sendIn(client: SignedInClient, payload: Record<string, unknown>) {
-  return client.inject({ method: 'POST', url: '/funkos', payload });
+  const seriesId = payload.seriesId ?? (await createSeries()).id;
+
+  return client.inject({ method: 'POST', url: '/funkos', payload: { seriesId, ...payload } });
 }
 
 async function namesListed(client: SignedInClient, url: string): Promise<string[]> {
@@ -880,20 +883,26 @@ describe('DELETE /users/:userId', () => {
     expect(waitingAfter.json()).toMatchObject({ status: 'WAITING', submittedBy: null });
   });
 
-  it('keeps a waiting category a kept submission uses and deletes the ones nothing uses when the sender goes', async () => {
+  it('keeps a waiting category and series a kept submission uses and deletes the ones nothing uses when the sender goes', async () => {
     const sender = await createUser('Leaving member');
     const usedCategory = await createCategory('Pop! Used', { status: 'WAITING', submittedById: sender.id });
     const unusedCategory = await createCategory('Pop! Unused', { status: 'WAITING', submittedById: sender.id });
     const usedSeries = await createSeries('Used Show', { status: 'WAITING', submittedById: sender.id });
     const unusedSeries = await createSeries('Unused Show', { status: 'WAITING', submittedById: sender.id });
     const rejectedOnlyCategory = await createCategory('Pop! Rejected', { status: 'WAITING', submittedById: sender.id });
+    const rejectedOnlySeries = await createSeries('Rejected Show', { status: 'WAITING', submittedById: sender.id });
     await createFunko({
       categoryId: usedCategory.id,
       seriesId: usedSeries.id,
       status: 'WAITING',
       submittedById: sender.id,
     });
-    await createFunko({ categoryId: rejectedOnlyCategory.id, status: 'REJECTED', submittedById: sender.id });
+    await createFunko({
+      categoryId: rejectedOnlyCategory.id,
+      seriesId: rejectedOnlySeries.id,
+      status: 'REJECTED',
+      submittedById: sender.id,
+    });
 
     await removeUser(sender.id);
 
@@ -903,12 +912,12 @@ describe('DELETE /users/:userId', () => {
       ),
     );
     const seriesStatuses = await Promise.all(
-      [usedSeries, unusedSeries].map(
+      [usedSeries, unusedSeries, rejectedOnlySeries].map(
         async ({ id }) => (await admin.inject({ method: 'GET', url: `/series/${id}` })).statusCode,
       ),
     );
     expect(categoryStatuses).toEqual([200, 404, 404]);
-    expect(seriesStatuses).toEqual([200, 404]);
+    expect(seriesStatuses).toEqual([200, 404, 404]);
   });
 
   it('keeps the image files of a deleted rejected submission on disk for images:prune when its sender goes', async () => {

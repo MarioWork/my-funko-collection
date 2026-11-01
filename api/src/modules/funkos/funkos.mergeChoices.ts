@@ -15,7 +15,7 @@ export type MergeComparableFields = {
   exclusive: string;
   barcode: string | null;
   categoryId: number;
-  seriesId: number | null;
+  seriesId: number;
 };
 
 // The values the catalogue funko takes from the submission; every column left out keeps its own.

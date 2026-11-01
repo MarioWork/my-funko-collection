@@ -58,8 +58,8 @@ export const CreateFunkoSchema = z.strictObject({
   number: z.string().trim().min(1).max(FUNKO_NUMBER_MAX_LENGTH),
   type: z.enum(FUNKO_TYPES).optional(),
   categoryId: IdSchema,
-  // Optional: null (or left out) means no series; on a patch, null clears it.
-  seriesId: IdSchema.nullable().optional(),
+  // Required: every funko has a series. A patch may move it to another one, never clear it.
+  seriesId: IdSchema,
   isChase: z.boolean().optional(),
   exclusive: z.string().trim().max(FUNKO_EXCLUSIVE_MAX_LENGTH).optional(),
   barcode: z
@@ -95,7 +95,6 @@ export const ListFunkosQuerySchema = PaginationQuerySchema.extend({
   notInCollectionId: IdListQuerySchema.optional(),
   // false: in no collection at all; true: in at least one.
   hasCollections: BooleanQuerySchema.optional(),
-  hasSeries: BooleanQuerySchema.optional(),
   // false: none of its items carries a tag.
   hasTags: BooleanQuerySchema.optional(),
   hasImages: BooleanQuerySchema.optional(),

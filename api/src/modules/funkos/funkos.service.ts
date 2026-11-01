@@ -121,13 +121,8 @@ async function assertCategoryUsable(categoryId: number, submitterId: number | nu
   if (!isUsable) throw new BadRequestError(`Category ${categoryId} does not exist`);
 }
 
-// A series id in a body is checked only when one is given: null and a missing key both mean "no series".
-async function assertSeriesUsableIfGiven(
-  seriesId: number | null | undefined,
-  submitterId: number | null,
-): Promise<void> {
-  const hasSeries = seriesId !== undefined && seriesId !== null;
-  const isUsable = hasSeries ? await isUsableSeries(seriesId, submitterId) : true;
+async function assertSeriesUsable(seriesId: number, submitterId: number | null): Promise<void> {
+  const isUsable = await isUsableSeries(seriesId, submitterId);
 
   if (!isUsable) throw new BadRequestError(`Series ${seriesId} does not exist`);
 }
@@ -136,12 +131,6 @@ async function assertSeriesUsableIfGiven(
 // and send again), nobody's once approved.
 function referenceOwnerOf(funko: FunkoStanding): number | null {
   return isOpenSubmission(funko) ? funko.submittedById : null;
-}
-
-function toSeries(row: FunkoRow): FunkoSummary['series'] {
-  if (row.seriesId === null || row.seriesName === null) return null;
-
-  return { id: row.seriesId, name: row.seriesName };
 }
 
 function toSummary(row: FunkoRow, primaryImage: PrimaryImageRow | undefined): FunkoSummary {
@@ -154,7 +143,7 @@ function toSummary(row: FunkoRow, primaryImage: PrimaryImageRow | undefined): Fu
     exclusive: row.exclusive,
     barcode: row.barcode,
     category: { id: row.categoryId, name: row.categoryName },
-    series: toSeries(row),
+    series: { id: row.seriesId, name: row.seriesName },
     primaryImage: toPrimaryImage(primaryImage),
   };
 }
@@ -338,7 +327,7 @@ export async function addFunko(user: SignedInUser, input: CreateFunko): Promise<
   };
 
   await assertCategoryUsable(data.categoryId, referenceOwnerOf(standing));
-  await assertSeriesUsableIfGiven(data.seriesId, referenceOwnerOf(standing));
+  await assertSeriesUsable(data.seriesId, referenceOwnerOf(standing));
   await assertUnique(standing, identity, data.barcode);
 
   const row = await funkosRepository.create({ ...data, ...standing });
@@ -365,7 +354,7 @@ export async function updateFunko(user: SignedInUser, id: number, input: UpdateF
   };
 
   if (data.categoryId !== undefined) await assertCategoryUsable(data.categoryId, referenceOwnerOf(current));
-  await assertSeriesUsableIfGiven(data.seriesId, referenceOwnerOf(current));
+  if (data.seriesId !== undefined) await assertSeriesUsable(data.seriesId, referenceOwnerOf(current));
   await assertUnique(current, identity, data.barcode === undefined ? current.barcode : data.barcode, id);
 
   const adminChange = isAdminChangingSubmission(user, current) ? { changedByAdminAt: new Date() } : {};

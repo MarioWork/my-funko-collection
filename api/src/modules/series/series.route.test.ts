@@ -1,6 +1,6 @@
 import { buildApp, type App } from '../../app.ts';
 import { resetTestDb } from '../../testDb.ts';
-import { createFunko, createSeries, type SignedInClient, signIn } from '../../testFixtures.ts';
+import { createFunko, createSeries, createUser, type SignedInClient, signIn } from '../../testFixtures.ts';
 
 const URL = '/series';
 const MISSING_ID = 999;
@@ -28,7 +28,6 @@ describe('GET /series', () => {
     await createSeries('Daredevil: Born Again');
     await createFunko({ seriesId: strangerThings.id });
     await createFunko({ seriesId: strangerThings.id });
-    await createFunko();
 
     const response = await api.inject({ method: 'GET', url: URL });
 
@@ -184,16 +183,37 @@ describe('PATCH /series/:seriesId', () => {
 });
 
 describe('DELETE /series/:seriesId', () => {
-  it('removes the series with 204 and leaves its funkos without a series when it exists', async () => {
+  it('removes the series with 204 when no funko uses it', async () => {
+    const created = await createSeries();
+
+    const response = await api.inject({ method: 'DELETE', url: `${URL}/${created.id}` });
+
+    expect(response.statusCode).toBe(204);
+  });
+
+  it('returns 409 in words and keeps the series and its funkos when funkos still use it', async () => {
     const created = await createSeries();
     const funko = await createFunko({ seriesId: created.id });
 
     const response = await api.inject({ method: 'DELETE', url: `${URL}/${created.id}` });
 
-    expect(response.statusCode).toBe(204);
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      code: 'CONFLICT',
+      message: 'Funkos still use this series. Move them to another series first',
+    });
     const funkoResponse = await api.inject({ method: 'GET', url: `/funkos/${funko.id}` });
-    expect(funkoResponse.statusCode).toBe(200);
-    expect(funkoResponse.json()).toMatchObject({ id: funko.id, series: null });
+    expect(funkoResponse.json()).toMatchObject({ id: funko.id, series: { id: created.id } });
+  });
+
+  it('returns 409 when only a submission uses it', async () => {
+    const member = await createUser();
+    const created = await createSeries();
+    await createFunko({ seriesId: created.id, status: 'WAITING', submittedById: member.id });
+
+    const response = await api.inject({ method: 'DELETE', url: `${URL}/${created.id}` });
+
+    expect(response.statusCode).toBe(409);
   });
 
   it('returns 400 when the id is not a positive integer', async () => {

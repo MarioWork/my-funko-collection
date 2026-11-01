@@ -44,7 +44,7 @@ type FunkoOverrides = SubmissionOverrides & {
   name?: string;
   number?: string;
   categoryId?: number;
-  seriesId?: number | null;
+  seriesId?: number;
   type?: FunkoType;
   isChase?: boolean;
   exclusive?: string;
@@ -57,8 +57,9 @@ const REJECTION_REASON = 'Not a real funko';
 
 export async function createFunko(
   overrides: FunkoOverrides = {},
-): Promise<{ id: number; name: string; categoryId: number; seriesId: number | null }> {
+): Promise<{ id: number; name: string; categoryId: number; seriesId: number }> {
   const categoryId = overrides.categoryId ?? (await createCategory()).id;
+  const seriesId = overrides.seriesId ?? (await createSeries()).id;
   const isRejected = overrides.status === 'REJECTED';
 
   return prisma.funko.create({
@@ -66,7 +67,7 @@ export async function createFunko(
       name: overrides.name ?? nextName('Funko'),
       number: overrides.number ?? String(sequence),
       categoryId,
-      seriesId: overrides.seriesId ?? null,
+      seriesId,
       type: overrides.type ?? 'POP',
       isChase: overrides.isChase ?? false,
       exclusive: overrides.exclusive ?? '',

@@ -166,7 +166,7 @@ export function toExportLine(funko: FunkoRow, item: ItemRow | null, lookups: Loo
     name: funko.name,
     number: funko.number,
     category: lookups.categoryNames.get(funko.categoryId) ?? '',
-    series: funko.seriesId === null ? null : (lookups.seriesNames.get(funko.seriesId) ?? ''),
+    series: lookups.seriesNames.get(funko.seriesId) ?? '',
     type: funko.type,
     isChase: funko.isChase,
     exclusive: funko.exclusive,

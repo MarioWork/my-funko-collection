@@ -20,18 +20,32 @@ vi.mock('../categories/categories.service.ts', () => ({
   isUsableCategory: vi.fn(),
 }));
 
+vi.mock('../series/series.service.ts', () => ({
+  isUsableSeries: vi.fn(),
+}));
+
 const { funkosRepository } = await import('./funkos.repository.ts');
 const { isUsableCategory } = await import('../categories/categories.service.ts');
+const { isUsableSeries } = await import('../series/series.service.ts');
 
 const ADMIN = { userId: 1, isAdmin: true };
 const MEMBER = { userId: 2, isAdmin: false };
 const EXISTING_ID = 42;
 const CATEGORY_ID = 1;
-const INPUT = { name: 'Thanos', number: '78', categoryId: CATEGORY_ID, seriesId: null, exclusive: '', barcode: null };
+const SERIES_ID = 3;
+const INPUT = {
+  name: 'Thanos',
+  number: '78',
+  categoryId: CATEGORY_ID,
+  seriesId: SERIES_ID,
+  exclusive: '',
+  barcode: null,
+};
 
 describe('addFunko', () => {
   it('throws ConflictError carrying the existing id when the identity is taken', async () => {
     vi.mocked(isUsableCategory).mockResolvedValue(true);
+    vi.mocked(isUsableSeries).mockResolvedValue(true);
     vi.mocked(funkosRepository.findIdByIdentity).mockResolvedValue({ id: EXISTING_ID });
 
     const attempt = addFunko(ADMIN, INPUT);
@@ -43,6 +57,7 @@ describe('addFunko', () => {
 
   it('checks the catalogue, then the member’s own waiting ones, when a member sends one in', async () => {
     vi.mocked(isUsableCategory).mockResolvedValue(true);
+    vi.mocked(isUsableSeries).mockResolvedValue(true);
     vi.mocked(funkosRepository.findIdByIdentity).mockResolvedValueOnce(undefined).mockResolvedValueOnce({
       id: EXISTING_ID,
     });
@@ -81,8 +96,8 @@ const WAITING_ROW: FunkoRow = {
   barcode: '0889698123456',
   categoryId: CATEGORY_ID,
   categoryName: 'Pop! Marvel',
-  seriesId: null,
-  seriesName: null,
+  seriesId: SERIES_ID,
+  seriesName: 'Avengers: Endgame',
   status: 'WAITING',
   submittedById: MEMBER.userId,
   createdAt: new Date(),
@@ -104,7 +119,7 @@ describe('approveSubmission', () => {
     vi.mocked(funkosRepository.findById).mockResolvedValue(WAITING_ROW);
     vi.mocked(funkosRepository.findCatalogueReferences).mockResolvedValue({
       categoryId: approvedCategoryId,
-      seriesId: null,
+      seriesId: SERIES_ID,
     });
     vi.mocked(funkosRepository.findIdByIdentity).mockResolvedValue({ id: EXISTING_ID });
 
