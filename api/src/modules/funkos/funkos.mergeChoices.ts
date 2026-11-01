@@ -7,7 +7,7 @@ import type { FunkoType, MergeChoices, MergeField } from './funkos.type.ts';
 
 // One side of a merge as the picker compares it: the catalogue fields. The submission's category and series are the
 // ones it would have in the catalogue (its own, or the approved one of the same name), as approval would set them.
-export type MergeSide = {
+export type MergeComparableFields = {
   name: string;
   number: string;
   type: FunkoType;
@@ -19,12 +19,12 @@ export type MergeSide = {
 };
 
 // The values the catalogue funko takes from the submission; every column left out keeps its own.
-export type PickedFields = Partial<MergeSide>;
+export type PickedFields = Partial<MergeComparableFields>;
 
 // The images a merge moves onto the catalogue funko (in the submission's order) and the ones it removes from it.
 export type MergeImagePlan = { moved: ImageFile[]; removed: ImageFile[] };
 
-const MERGE_FIELD_COLUMNS: Record<MergeField, keyof MergeSide> = {
+const MERGE_FIELD_COLUMNS: Record<MergeField, keyof MergeComparableFields> = {
   NAME: 'name',
   NUMBER: 'number',
   TYPE: 'type',
@@ -51,7 +51,11 @@ const SUBMISSION_OWNER = 'the submission';
 
 // The picked fields' values from the submission. A field that is the same on both has nothing to pick: the client
 // shows it once, so asking for it is a mistake (400).
-export function pickedFieldsOf(original: MergeSide, submission: MergeSide, fields: MergeField[]): PickedFields {
+export function pickedFieldsOf(
+  original: MergeComparableFields,
+  submission: MergeComparableFields,
+  fields: MergeField[],
+): PickedFields {
   let picked: PickedFields = {};
 
   for (const field of fields) {
