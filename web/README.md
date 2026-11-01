@@ -187,7 +187,10 @@ HttpOnly cookie the app never sees.
   routes, like the API. Funkos, categories and series carry `status` and `submittedById` in the store: a member's
   new one is a waiting submission, and the handlers show other members' waiting ones to nobody and let a member
   change only their own (`mockCatalogueUtils.ts`, `findEditableFunko`), like the API. `addMockSubmission()` (tests)
-  puts one in, the signed-in user's unless `submittedById` names another member; the seed has none. `mockStore.users` holds the other users (`mockUsers.ts`: leia, an admin; luke, with the
+  puts one in, the signed-in user's unless `submittedById` names another member (null: a removed user's); the
+  seed has none. Deleting a user in the mocks settles their submissions as the API's trigger does (rejected ones
+  go, the rest lose their sender), and an admin opening a submission sees "Sent in by ..." or "Removed user"
+  (`@utils/removedUserUtils`, shared with the Images page). `mockStore.users` holds the other users (`mockUsers.ts`: leia, an admin; luke, with the
   temporary password `MOCK_TEMPORARY_PASSWORD`; han, whose one expired): `GET /users` lists them after the
   signed-in user (`isLastAdmin` worked out from every row), `POST /users` adds one with a made-up temporary password,
   `PATCH|DELETE /users/:userId` and `POST /users/:userId/temporary-password` change them like the API (a change to

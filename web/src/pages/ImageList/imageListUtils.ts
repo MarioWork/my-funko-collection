@@ -5,6 +5,7 @@ import type { SortField } from '@components/SortSelect';
 import { ImageApiSortingFields } from '@services/imageService/imageService';
 import { FALSE_VALUE, TRUE_VALUE } from '@utils/listParamsUtils';
 import { formatDateTime } from '@utils/dateUtils';
+import { REMOVED_USER, REMOVED_USER_IN_SENTENCE, userNameOrRemoved } from '@utils/removedUserUtils';
 import { ALPHABETICAL_LABELS, DATE_LABELS, SIZE_LABELS } from '@utils/sortUtils';
 
 export const IMAGE_PAGE_SIZE = '50';
@@ -53,8 +54,6 @@ export const HAS_FUNKO_OPTIONS: FilterOption[] = [
 ];
 
 const UNKNOWN = '—';
-const REMOVED_USER = 'Removed user';
-const REMOVED_USER_IN_SENTENCE = 'a removed user';
 
 // "Eleven #421", or "No funko" for a loose file.
 export function imageTitle(image: ImageListEntryApiModel): string {
@@ -69,7 +68,7 @@ export function imageDimensions(image: ImageListEntryApiModel): string {
 // The uploader's name, or the given words once that user was deleted. Loose files are never uploaded: callers
 // check them first.
 function uploaderName(image: ImageListEntryApiModel, removedUserText: string): string {
-  return image.uploadedBy?.name ?? removedUserText;
+  return userNameOrRemoved(image.uploadedBy, removedUserText);
 }
 
 // Who uploaded it: their name, "Removed user" once that user was deleted, or a dash for a loose file (no upload).
