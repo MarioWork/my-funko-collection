@@ -132,24 +132,24 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 
 ## Pages
 
-| Path                                     | What                                                                                                                                                                                                                                |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/home`                                  | Your stats (the funkos in your collections), recent funkos, your collections, by category, quick actions                                                                                                                            |
-| `/funkos`, `/funkos/:id`                 | The catalog: grid or table, search + filters + sort, detail with gallery                                                                                                                                                            |
-| `/add`, `/add/manual`                    | Scan-first add page: images, details, a card per collection (own copy)                                                                                                                                                              |
-| `/collections`, `/collections/:id`       | Your lists and their items (table on desktop, cards on phones)                                                                                                                                                                      |
-| `/items`                                 | Every item across collections (filter by tag to find a box)                                                                                                                                                                         |
-| `/search`                                | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                                                                                                                                                       |
-| `/categories`, `/tags`, `/settings`      | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports                                                                                                                                          |
-| `/submissions`                           | Members only (in the normal sidebar): the funkos you sent in, each with its state as a chip in words, why one was rejected (Send again), what it was merged into and whether an admin changed it                                    |
-| `/submissions/review`                    | Admin group, admins only: every member's submissions, Waiting (Approve, Merge into a catalogue funko, Reject with a reason, "Maybe a double") and Done tabs (`?state=DONE`)                                                         |
-| `/notifications`                         | Everyone (the bell at the top of the sidebar, or in the phone header, with the unread count): your notifications, newest first; opening one marks it read and goes to the funko, your submissions or the review list; Mark all read |
-| `/users`, `/users/add`, `/users/:userId` | Admin group, admins only: every user with role (and read-only) and state; New user shows the temporary password once; Manage changes a role, makes read-only or undoes it, gives a new temporary password or deletes                |
-| `/images`                                | Admin group, admins only: every stored image, loose files included, with who uploaded it and when                                                                                                                                   |
-| `/settings` → Security                   | Passkeys (add, remove), sign out, sign out everywhere                                                                                                                                                                               |
-| `/login`                                 | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                                                                                                                                              |
-| `/setup?code=...`                        | First run: your name and the first passkey, from the link in the log                                                                                                                                                                |
-| `/set-password`                          | Outside the shell: a user signed in with a temporary password chooses their own before anything else                                                                                                                                |
+| Path                                     | What                                                                                                                                                                                                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/home`                                  | Your stats (the funkos in your collections), recent funkos, your collections, by category, quick actions                                                                                                                         |
+| `/funkos`, `/funkos/:id`                 | The catalog: grid or table, search + filters + sort, detail with gallery (who uploaded the image on show, under it)                                                                                                              |
+| `/add`, `/add/manual`                    | Scan-first add page: images, details, a card per collection (own copy)                                                                                                                                                           |
+| `/collections`, `/collections/:id`       | Your lists and their items (table on desktop, cards on phones)                                                                                                                                                                   |
+| `/items`                                 | Every item across collections (filter by tag to find a box); its grid cards show the collection as a tag on the photo, then number + name, series, chase and exclusive                                                           |
+| `/search`                                | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                                                                                                                                                    |
+| `/categories`, `/tags`, `/settings`      | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports                                                                                                                                       |
+| `/submissions`                           | Members only (in the normal sidebar): the funkos you sent in, each with its state as a chip in words, why one was rejected (Send again), what it was merged into and whether an admin changed it                                 |
+| `/submissions/review`                    | Admin group, admins only: every member's submissions, Waiting (Approve, Merge into a catalogue funko, Reject with a reason, "Maybe a double") and Done tabs (`?state=DONE`)                                                      |
+| `/notifications`                         | Everyone (a sidebar item on desktop, the bell in the phone header, with the unread count): your notifications, newest first; opening one marks it read and goes to the funko, your submissions or the review list; Mark all read |
+| `/users`, `/users/add`, `/users/:userId` | Admin group, admins only: every user with role (and read-only) and state; New user shows the temporary password once; Manage changes a role, makes read-only or undoes it, gives a new temporary password or deletes             |
+| `/images`                                | Admin group, admins only: every stored image, loose files included, with who uploaded it and when                                                                                                                                |
+| `/settings` → Security                   | Passkeys (add, remove), sign out, sign out everywhere                                                                                                                                                                            |
+| `/login`                                 | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                                                                                                                                           |
+| `/setup?code=...`                        | First run: your name and the first passkey, from the link in the log                                                                                                                                                             |
+| `/set-password`                          | Outside the shell: a user signed in with a temporary password chooses their own before anything else                                                                                                                             |
 
 ## How data flows
 
@@ -174,7 +174,7 @@ HttpOnly cookie the app never sees.
   user's name, username and role for `useSignedInUser()` / `useIsAdmin()`. Its `shouldRevalidate` is off (no status call per navigation),
   except after saving a password, which sets the username.
 - **Roles.** Only an admin changes the catalogue. For a member `useIsAdmin()` hides rename / delete on Categories
-  and Series (read-only, Export stays). The sidebar's Admin group (and the phone menu's) holds Users and Images,
+  and Series (read-only, Export stays). The sidebar's Admin group (below a divider; and the phone menu's) holds Users and Images,
   admins only, and the admins' Submissions review. A member who opens `/images`, `/users` or `/submissions/review`
   gets the "This page is for admins" error page (`assertAdmin()` in those loaders).
 - **Read-only.** An admin can make a user read-only (`isReadOnly` on the signed-in user and on each user). Every write
@@ -206,8 +206,9 @@ HttpOnly cookie the app never sees.
   with the reason, and a read-only member Send again. One `useReviewActions()` fetcher owns all three, so the toast
   and a refusal (the catalogue already has the funko or barcode, with a link to it) outlive the row that leaves the
   tab.
-- **Notifications.** The bell (`NotificationBell`, top of the sidebar on desktop, the header on phones) links to
-  `/notifications` and carries the unread count, in its name too ("Notifications, 2 unread"). The count comes from
+- **Notifications.** The sidebar's Notifications item on desktop (`SidebarNotificationsEntry`, after the four
+  destinations) and the bell in the phone header (`NotificationBell`) link to `/notifications` and carry the unread
+  count (`UnreadBadge`), in their name too ("Notifications, 2 unread", `describeNotificationsLink`). The count comes from
   the app shell's loader as a promise it never waits for (`UnreadCountAwait`; a failed count only hides the number),
   and the shell's `shouldRevalidate` re-runs it after every write and on every move to another page (not on search
   param changes): no poll, so a notification that arrives while the user stays on one page shows at their next
@@ -320,6 +321,10 @@ HttpOnly cookie the app never sees.
 - Route paths come from `routesUtils.ts`. A literal path in `navigate()`, `to` or `href` is an error.
 - Colours are semantic tokens only (`bg-background`, `text-muted-foreground`, `bg-primary`): the palette lives in
   `src/index.css`. No `dark:` colour overrides, no raw hex in components.
+- Every clickable control gets the hand cursor and a hover colour from one rule in `src/index.css` (base layer; an
+  unlayered one for the vendored menu, select and combobox items, which set `cursor-default`). A control's own
+  `cursor-*`, `bg-*` or `hover:bg-*` utility still wins, so give a new control its own hover look only when the
+  muted background does not suit it.
 - `src/common/components/ui/**` is vendored shadcn code (kebab-case files, several exports per file) and is the one
   folder exempt from the naming rules. Wrap it; do not restyle it in place.
 - A file in `src/types/` that only exports types must end in `.type.ts`.
