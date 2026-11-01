@@ -69,6 +69,11 @@ export function addMockSubmission(options: MockSubmissionOptions = {}): MockFunk
   return row;
 }
 
+// For a test that signs in as a read-only user. resetMockStore() lets the user make changes again.
+export function setMockReadOnly(): void {
+  mockStore.auth.isReadOnly = true;
+}
+
 // For a test that starts signed in with a temporary password. resetMockStore() gives the user their own again.
 export function setMockMustChangePassword(): void {
   mockStore.auth.mustChangePassword = true;

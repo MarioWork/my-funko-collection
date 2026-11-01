@@ -4,7 +4,8 @@ import { categoryRoutes } from '@application/routes/featureRoutes/categoryRoutes
 import { tagRoutes } from '@application/routes/featureRoutes/tagRoutes';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { UserRoleUtil } from '@app-types/utility';
-import { setMockUserRole } from '@mocks/mockStore';
+import { setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
+import RouteError from '@pages/Error/RouteError';
 
 const PHOTOS_REQUIRED_MESSAGE = 'Add at least one image';
 const PREVIEW_URL = 'blob:photo-preview';
@@ -165,4 +166,12 @@ it('marks a category a member typed in as waiting for review in the dropdown', a
   const categorySelect = screen.getByRole('combobox', { name: 'Category' });
 
   await waitFor(() => expect(categorySelect).toHaveDisplayValue('Pop! Rocks (waiting for review)'));
+});
+
+it('says the account is read-only, instead of the scanner, when a read-only user opens Add', async () => {
+  setMockReadOnly();
+
+  renderRoutes([{ errorElement: <RouteError />, children: addRoutes }], { initialEntries: [ADD_ROUTES_PATHS.BASE] });
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Your account is read-only' })).toBeVisible();
 });

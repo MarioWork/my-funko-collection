@@ -46,6 +46,7 @@ export function createMockAuth(state: AuthState): MockAuth {
     userName: hasUser ? MOCK_USER_NAME : '',
     username: null,
     role: UserRoleUtil.ADMIN,
+    isReadOnly: false,
     password: null,
     mustChangePassword: false,
     isSignInRecent: true,

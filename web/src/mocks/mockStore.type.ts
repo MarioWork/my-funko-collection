@@ -71,6 +71,7 @@ export type MockAuth = {
   userName: string;
   username: string | null;
   role: UserRole;
+  isReadOnly: boolean;
   password: string | null;
   mustChangePassword: boolean;
   isSignInRecent: boolean;

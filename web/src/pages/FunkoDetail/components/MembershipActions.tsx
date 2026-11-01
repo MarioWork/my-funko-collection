@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
 import { Spinner } from '@components/ui/spinner';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 
 type Props = {
@@ -47,8 +48,9 @@ function MembershipActionsContent({ item, editPath, onRemove }: MembershipAction
 }
 
 // The row's ⋯: Edit (the item sheet over this page) and Remove from the collection (undoable from the toast). The
-// button spins while a removal runs.
+// button spins while a removal runs. Both are writes, so a read-only user gets the button disabled, saying why.
 function MembershipActions({ item, isBusy, onRemove }: Props) {
+  const readOnlyReason = useReadOnlyReason();
   const editPath = FUNKO_ROUTES_PATHS.editItem(String(item.funko.id), String(item.collection.id), String(item.id));
 
   return (
@@ -60,8 +62,8 @@ function MembershipActions({ item, isBusy, onRemove }: Props) {
             variant="ghost"
             size="sm"
             className="rounded-full"
-            disabled={isBusy}
-            disabledReason={DISABLED_REASONS.WORKING}
+            disabled={isBusy || readOnlyReason !== undefined}
+            disabledReason={readOnlyReason ?? DISABLED_REASONS.WORKING}
           />
         }
       >

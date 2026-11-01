@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@components/ui/dropdown-menu';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 import ExportSubmenu from './ExportSubmenu';
 
@@ -21,19 +22,44 @@ type Props = {
 
 type MenuActionItemProps = {
   isDefault: boolean;
-  isBusy: boolean;
   // Why the item is disabled, or undefined while it can be used.
   reason: string | undefined;
   onClick: () => void;
 };
 
+type EditItemProps = {
+  collectionId: string;
+  readOnlyReason: string | undefined;
+};
+
 const IS_DEFAULT_REASON = 'This is already the default collection.';
 const DELETE_DEFAULT_REASON = 'The default collection cannot be deleted. Make another one the default first.';
 
-function MakeDefaultItem({ isDefault, isBusy, reason, onClick }: MenuActionItemProps) {
+// Edit opens the collection's dialog; a read-only user gets it disabled, saying why.
+function EditItem({ collectionId, readOnlyReason }: EditItemProps) {
+  if (readOnlyReason) {
+    return (
+      <DisabledReason reason={readOnlyReason} mode="wrapper" wrapperClassName="block">
+        <DropdownMenuItem disabled>
+          <Pencil aria-hidden="true" />
+          Edit
+        </DropdownMenuItem>
+      </DisabledReason>
+    );
+  }
+
+  return (
+    <DropdownMenuItem render={<Link to={COLLECTION_ROUTES_PATHS.editInList(collectionId)} />}>
+      <Pencil aria-hidden="true" />
+      Edit
+    </DropdownMenuItem>
+  );
+}
+
+function MakeDefaultItem({ isDefault, reason, onClick }: MenuActionItemProps) {
   return (
     <DisabledReason reason={reason} mode="wrapper" wrapperClassName="block">
-      <DropdownMenuItem disabled={isDefault || isBusy} onClick={onClick}>
+      <DropdownMenuItem disabled={reason !== undefined} onClick={onClick}>
         <Star aria-hidden="true" fill={isDefault ? 'currentColor' : 'none'} />
         {isDefault ? 'Default' : 'Make default'}
       </DropdownMenuItem>
@@ -41,10 +67,10 @@ function MakeDefaultItem({ isDefault, isBusy, reason, onClick }: MenuActionItemP
   );
 }
 
-function DeleteItem({ isDefault, isBusy, reason, onClick }: MenuActionItemProps) {
+function DeleteItem({ reason, onClick }: Omit<MenuActionItemProps, 'isDefault'>) {
   return (
     <DisabledReason reason={reason} mode="wrapper" wrapperClassName="block">
-      <DropdownMenuItem variant="destructive" disabled={isDefault || isBusy} onClick={onClick}>
+      <DropdownMenuItem variant="destructive" disabled={reason !== undefined} onClick={onClick}>
         <Trash2 aria-hidden="true" />
         Delete
       </DropdownMenuItem>
@@ -52,31 +78,33 @@ function DeleteItem({ isDefault, isBusy, reason, onClick }: MenuActionItemProps)
   );
 }
 
-// The ⋯ menu of one collection: edit, make default, export, delete.
+// Why an item is disabled, in order: the account is read-only, the collection is the default, a change is running.
+function firstReason(...reasons: (string | undefined)[]): string | undefined {
+  return reasons.find((reason) => reason !== undefined);
+}
+
+// The ⋯ menu of one collection: edit, make default, export, delete. Export stays open to a read-only user.
 function CollectionMenu({ collection, isBusy, onMakeDefault, onDelete }: Props) {
   const id = String(collection.id);
+  const readOnlyReason = useReadOnlyReason();
   const busyReason = reasonWhen(isBusy, DISABLED_REASONS.WORKING);
-  const makeDefaultReason = collection.isDefault ? IS_DEFAULT_REASON : busyReason;
-  const deleteReason = collection.isDefault ? DELETE_DEFAULT_REASON : busyReason;
+  const makeDefaultReason = firstReason(
+    readOnlyReason,
+    reasonWhen(collection.isDefault, IS_DEFAULT_REASON),
+    busyReason,
+  );
+  const deleteReason = firstReason(readOnlyReason, reasonWhen(collection.isDefault, DELETE_DEFAULT_REASON), busyReason);
 
   return (
     <DropdownMenuContent align="end">
       <DropdownMenuGroup>
-        <DropdownMenuItem render={<Link to={COLLECTION_ROUTES_PATHS.editInList(id)} />}>
-          <Pencil aria-hidden="true" />
-          Edit
-        </DropdownMenuItem>
-        <MakeDefaultItem
-          isDefault={collection.isDefault}
-          isBusy={isBusy}
-          reason={makeDefaultReason}
-          onClick={onMakeDefault}
-        />
+        <EditItem collectionId={id} readOnlyReason={readOnlyReason} />
+        <MakeDefaultItem isDefault={collection.isDefault} reason={makeDefaultReason} onClick={onMakeDefault} />
         <ExportSubmenu collection={collection} />
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
-        <DeleteItem isDefault={collection.isDefault} isBusy={isBusy} reason={deleteReason} onClick={onDelete} />
+        <DeleteItem reason={deleteReason} onClick={onDelete} />
       </DropdownMenuGroup>
     </DropdownMenuContent>
   );

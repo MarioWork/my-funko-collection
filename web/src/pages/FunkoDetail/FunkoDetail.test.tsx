@@ -5,7 +5,7 @@ import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { UserRoleUtil } from '@app-types/utility';
 import RouteError from '@pages/Error/RouteError';
 import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
-import { addMockSubmission, mockStore, setMockUserRole } from '@mocks/mockStore';
+import { addMockSubmission, mockStore, setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
 import { SERVER_ERROR_STATUS } from '@utils/httpStatusUtils';
 
@@ -157,4 +157,35 @@ it('tells an admin who sent a submission in, and says Removed user once that mem
 
   expect(await screen.findByText('Sent in by Removed user')).toBeVisible();
   expect(screen.getByText('Waiting')).toBeVisible();
+});
+
+it('shows the collection toggles, Edit and Delete disabled, saying why, to a read-only admin', async () => {
+  setMockReadOnly();
+  const [funko] = mockStore.funkos;
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(funko?.id))] });
+
+  const wishlist = await screen.findByRole('button', { name: WISHLIST_NAME });
+  await userEvent.click(screen.getByRole('button', { name: `Actions for ${funko?.name}` }));
+  await screen.findByRole('menuitem', { name: 'Export' });
+  const items = ['Edit', 'Delete'].map((name) => screen.getByRole('menuitem', { name }));
+
+  expect(wishlist).toBeDisabled();
+  for (const control of [wishlist, ...items]) {
+    expect(control).toHaveAccessibleDescription(/Your account is read-only/);
+  }
+  for (const item of items) {
+    expect(item).toHaveAttribute('aria-disabled', 'true');
+  }
+  expect(screen.getByRole('menuitem', { name: 'Export' })).not.toHaveAttribute('aria-disabled');
+});
+
+it('says the account is read-only when a read-only admin opens the Edit funko address', async () => {
+  setMockReadOnly();
+  const [funko] = mockStore.funkos;
+
+  renderRoutes([{ errorElement: <RouteError />, children: funkoRoutes }], {
+    initialEntries: [FUNKO_ROUTES_PATHS.edit(String(funko?.id))],
+  });
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Your account is read-only' })).toBeVisible();
 });

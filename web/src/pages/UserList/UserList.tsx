@@ -3,6 +3,7 @@ import { Outlet, useLoaderData } from 'react-router';
 import type { LoaderDataUtil } from '@app-types/utility';
 import { USER_ROUTES_PATHS } from '@application/routes/routesUtils';
 import LinkButton from '@components/LinkButton';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import PageHeader from '@components/PageHeader';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
 import { PAGE_ICONS } from '@utils/navigationUtils';
@@ -15,6 +16,7 @@ import { describeUserCount } from './userListUtils';
 function UserList() {
   const childPage = useMobileChildPage();
   const { usersResponse } = useLoaderData<LoaderDataUtil<typeof loader>>();
+  const readOnlyReason = useReadOnlyReason();
 
   if (childPage) return childPage;
 
@@ -25,7 +27,7 @@ function UserList() {
         title="Users"
         description={describeUserCount(usersResponse.totalResultNumber)}
         actions={
-          <LinkButton to={USER_ROUTES_PATHS.ADD}>
+          <LinkButton to={USER_ROUTES_PATHS.ADD} disabledReason={readOnlyReason}>
             <UserPlus data-icon="inline-start" aria-hidden="true" />
             New user
           </LinkButton>

@@ -6,6 +6,7 @@ import { COLLECTION_ROUTES_PATHS, ITEM_ROUTES_PATHS } from '@application/routes/
 import AddFab from '@components/AddFab';
 import EmptyState from '@components/EmptyState';
 import LinkButton from '@components/LinkButton';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import ListExportMenu from '@components/ListExportMenu';
 import PageHeader from '@components/PageHeader';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
@@ -33,6 +34,7 @@ const LAYOUT_OPTIONS: ViewOption<CollectionLayoutUtil>[] = [
 function CollectionList() {
   const childPage = useMobileChildPage();
   const { collections } = useLoaderData<LoaderDataUtil<typeof loader>>();
+  const readOnlyReason = useReadOnlyReason();
   const { getParam, setParams } = useListParams();
   const query = getParam(CollectionApiSearchFields.NAME) ?? '';
   const setQuery = (value: string) => setParams({ [CollectionApiSearchFields.NAME]: value });
@@ -62,7 +64,12 @@ function CollectionList() {
               <List data-icon="inline-start" aria-hidden="true" />
               All items
             </LinkButton>
-            <LinkButton to={COLLECTION_ROUTES_PATHS.ADD} aria-label="New collection" className="hidden lg:inline-flex">
+            <LinkButton
+              to={COLLECTION_ROUTES_PATHS.ADD}
+              aria-label="New collection"
+              disabledReason={readOnlyReason}
+              className="hidden lg:inline-flex"
+            >
               <FolderHeart data-icon="inline-start" aria-hidden="true" />
               New
             </LinkButton>

@@ -53,6 +53,7 @@ function BrokenActions() {
 const ACTIONS_MAP: Record<ErrorKind, () => ReactNode> = {
   notFound: HomeActions,
   adminOnly: HomeActions,
+  readOnly: HomeActions,
   broken: BrokenActions,
 };
 
@@ -83,7 +84,7 @@ function ErrorCard({ copy, children }: ErrorCardProps) {
 
 // The one error boundary, on the root route: an unknown address, a failed loader, a thrown read or a failed chunk
 // lands here, outside the app shell. A 404 gets the empty-shelf page, an admin-only page opened by a member says
-// so; anything else offers a reload. The error
+// so, and so does a page made only for writing opened by a read-only user; anything else offers a reload. The error
 // itself is never shown: it can carry request details.
 function RouteError() {
   const kind = errorKindOf(useRouteError());

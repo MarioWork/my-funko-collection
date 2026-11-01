@@ -32,12 +32,13 @@ function findOtherUser({ username, password }: PasswordSignIn): MockUserRow | un
   return mockStore.users.find((user) => user.username === typedUsername && user.password === password);
 }
 
-// The browser becomes that user's: their name and role, and the temporary password still to replace.
+// The browser becomes that user's: their name, role and read-only setting, and the temporary password still to replace.
 function signInAs(user: MockUserRow): void {
   Object.assign(mockStore.auth, {
     userName: user.name,
     username: user.username,
     role: user.role,
+    isReadOnly: user.isReadOnly,
     password: user.password,
     mustChangePassword: user.state === UserStateUtil.TEMPORARY_PASSWORD,
     passkeys: [],

@@ -21,6 +21,7 @@ export function createMockUsers(): MockUserRow[] {
       name: 'leia',
       username: 'leia',
       role: UserRoleUtil.ADMIN,
+      isReadOnly: false,
       state: UserStateUtil.ACTIVE,
       temporaryPasswordExpiresAt: null,
       createdAt: mockDate(30),
@@ -31,6 +32,7 @@ export function createMockUsers(): MockUserRow[] {
       name: 'luke',
       username: 'luke',
       role: UserRoleUtil.MEMBER,
+      isReadOnly: false,
       state: UserStateUtil.TEMPORARY_PASSWORD,
       // Far in the future, so the mock clock never reaches it.
       temporaryPasswordExpiresAt: '2099-01-01T00:00:00.000Z',
@@ -42,6 +44,7 @@ export function createMockUsers(): MockUserRow[] {
       name: 'han',
       username: 'han',
       role: UserRoleUtil.MEMBER,
+      isReadOnly: false,
       state: UserStateUtil.TEMPORARY_PASSWORD_EXPIRED,
       temporaryPasswordExpiresAt: mockDate(97),
       createdAt: mockDate(90),
@@ -60,6 +63,7 @@ export function mockUserRowOf(auth: MockAuth): MockUserRow {
     name: auth.userName,
     username: auth.username,
     role: auth.role,
+    isReadOnly: auth.isReadOnly,
     state: auth.mustChangePassword ? UserStateUtil.TEMPORARY_PASSWORD : ownState,
     temporaryPasswordExpiresAt: null,
     createdAt: mockDate(0),
@@ -77,11 +81,16 @@ export function mockTemporaryPasswordFor(id: number): string {
   return `vinyl-${String(id).padStart(5, '0')}-shelf-heads`;
 }
 
-// A row as the API answers it: never a password, and whether it is the only admin left.
-export function toMockUserModel({ password: _password, ...user }: MockUserRow, everyone: MockUserRow[]): UserApiModel {
-  const adminCount = everyone.filter((row) => row.role === UserRoleUtil.ADMIN).length;
+// An admin who can still make changes: there is always at least one, as on the API.
+export function isWorkingMockAdmin({ role, isReadOnly }: Pick<MockUserRow, 'role' | 'isReadOnly'>): boolean {
+  return role === UserRoleUtil.ADMIN && !isReadOnly;
+}
 
-  return { ...user, isLastAdmin: user.role === UserRoleUtil.ADMIN && adminCount === 1 };
+// A row as the API answers it: never a password, and whether it is the only admin left who can make changes.
+export function toMockUserModel({ password: _password, ...user }: MockUserRow, everyone: MockUserRow[]): UserApiModel {
+  const adminCount = everyone.filter(isWorkingMockAdmin).length;
+
+  return { ...user, isLastAdmin: isWorkingMockAdmin(user) && adminCount === 1 };
 }
 
 // A new user with an app-made temporary password, dead 7 days from the mock clock's now.
@@ -94,6 +103,7 @@ export function newMockUserRow(id: number, username: string, role: UserRoleUtil)
     name: username,
     username,
     role,
+    isReadOnly: false,
     state: UserStateUtil.TEMPORARY_PASSWORD,
     temporaryPasswordExpiresAt: expiresAt,
     createdAt,

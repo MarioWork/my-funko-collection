@@ -7,6 +7,7 @@ import ListExportMenu from '@components/ListExportMenu';
 import ManageList, { ManageListContext, type ManageRow } from '@components/ManageList';
 import PageHeader from '@components/PageHeader';
 import { useMobileChildPage } from '@hooks/useMobileChildPage';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import { reasonWhen } from '@utils/disabledReasonUtils';
 
 type Props = {
@@ -31,7 +32,7 @@ type Props = {
 
 // The page around a ManageList (categories, series, tags): a header with New and Export, the list, the phone's
 // add button, and the routed New form. On phones that form is its own page instead. Read-only when `canEdit` is
-// false: the list and Export stay.
+// false: the list and Export stay. For a read-only user New, rename and delete show disabled, saying why.
 function ManageListPage({
   icon: Icon,
   title,
@@ -48,11 +49,13 @@ function ManageListPage({
   canEdit,
 }: Props) {
   const childPage = useMobileChildPage();
+  const readOnlyReason = useReadOnlyReason();
+  const canWrite = canEdit && !readOnlyReason;
   const addLabel = `New ${noun}`;
   const isEmpty = rows.length === 0;
 
-  // On phones the New form is its own page; never for a read-only list.
-  if (childPage && canEdit) return childPage;
+  // On phones the New form is its own page; never for a read-only list or user.
+  if (childPage && canWrite) return childPage;
 
   return (
     <div className="flex flex-col gap-4">
@@ -62,7 +65,12 @@ function ManageListPage({
         description={description}
         actions={
           canEdit ? (
-            <LinkButton to={addPath} aria-label={addLabel} className="hidden lg:inline-flex">
+            <LinkButton
+              to={addPath}
+              aria-label={addLabel}
+              disabledReason={readOnlyReason}
+              className="hidden lg:inline-flex"
+            >
               <Icon data-icon="inline-start" aria-hidden="true" />
               New
             </LinkButton>
@@ -76,7 +84,7 @@ function ManageListPage({
           />
         }
       />
-      <ManageListContext value={{ canEdit }}>
+      <ManageListContext value={{ canEdit, readOnlyReason }}>
         <ManageList
           rows={rows}
           noun={noun}
@@ -87,7 +95,7 @@ function ManageListPage({
         />
       </ManageListContext>
       {canEdit ? <AddFab to={addPath} label={addLabel} /> : null}
-      {canEdit ? <Outlet /> : null}
+      {canWrite ? <Outlet /> : null}
     </div>
   );
 }

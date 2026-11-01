@@ -2,7 +2,7 @@ import { renderRoutes, screen, userEvent } from '@test-utils';
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
-import { addMockSubmission, mockStore } from '@mocks/mockStore';
+import { addMockSubmission, mockStore, setMockReadOnly } from '@mocks/mockStore';
 import { nextId } from '@mocks/mockStoreUtils';
 import { FUNKO_PAGE_SIZE } from './funkoListUtils';
 
@@ -59,4 +59,19 @@ it('lists the signed-in user’s own waiting submission and never another member
 
   expect(await screen.findByText('Hulk Mine')).toBeVisible();
   expect(screen.queryByText('Hulk Theirs')).not.toBeInTheDocument();
+});
+
+it('shows Scan and New disabled, saying the account is read-only, to a read-only user', async () => {
+  setMockReadOnly();
+  renderPage();
+
+  const scanButtons = await screen.findAllByRole('button', { name: 'Scan' });
+  const newButtons = screen.getAllByRole('button', { name: 'New funko' });
+  const addButton = screen.getByRole('button', { name: 'Add funko' });
+
+  for (const button of [...scanButtons, ...newButtons, addButton]) {
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(button).toHaveAccessibleDescription(/Your account is read-only/);
+  }
+  expect(screen.queryByRole('link', { name: 'New funko' })).not.toBeInTheDocument();
 });

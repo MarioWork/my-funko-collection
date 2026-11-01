@@ -3,7 +3,12 @@ import type {
   PublicKeyCredentialRequestOptionsJSON,
 } from '@simplewebauthn/browser';
 import axios from 'axios';
-import { ADMIN_ONLY_ERROR_CODE, PASSWORD_CHANGE_REQUIRED_ERROR_CODE, axiosActions } from '@api/axiosActions';
+import {
+  ADMIN_ONLY_ERROR_CODE,
+  PASSWORD_CHANGE_REQUIRED_ERROR_CODE,
+  READ_ONLY_ERROR_CODE,
+  axiosActions,
+} from '@api/axiosActions';
 import type {
   AuthSessionApiModel,
   AuthStatusApiModel,
@@ -118,6 +123,8 @@ export const AuthApiErrorCodes = {
   TEMPORARY_PASSWORD_EXPIRED: 'TEMPORARY_PASSWORD_EXPIRED',
   // Signed in with a temporary password: every route but replacing it and signing out answers this (403).
   PASSWORD_CHANGE_REQUIRED: PASSWORD_CHANGE_REQUIRED_ERROR_CODE,
+  // A read-only user's write, other than their own password, passkeys and signing out (403).
+  READ_ONLY: READ_ONLY_ERROR_CODE,
   TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
 } as const;
 export type AuthApiErrorCodes = (typeof AuthApiErrorCodes)[keyof typeof AuthApiErrorCodes];

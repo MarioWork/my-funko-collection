@@ -5,6 +5,7 @@ import { Toggle } from '@components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip';
 import { cn } from '@utils/classNameUtils';
 import { WISHLIST_COLLECTION_NAME } from '@utils/collectionUtils';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
 import { useFunkoMemberships } from '../hooks/useFunkoMemberships';
 
@@ -19,6 +20,8 @@ type ToggleProps = {
   icon: LucideIcon;
   isMember: boolean;
   isBusy: boolean;
+  // Set for a read-only user: the toggle shows disabled, saying why.
+  readOnlyReason: string | undefined;
   onToggle: (collection: CollectionApiModel) => void;
 };
 
@@ -29,14 +32,15 @@ type QuickCollection = { collection: CollectionApiModel; icon: LucideIcon };
 const TOGGLE_CLASS =
   'size-9 rounded-full bg-card p-0 aria-pressed:border-primary aria-pressed:bg-selected aria-pressed:text-selected-foreground motion-safe:aria-pressed:animate-pop';
 
-function CollectionToggle({ collection, icon: Icon, isMember, isBusy, onToggle }: ToggleProps) {
+function CollectionToggle({ collection, icon: Icon, isMember, isBusy, readOnlyReason, onToggle }: ToggleProps) {
   const hint = isMember ? `In ${collection.name} · tap to remove` : `Add to ${collection.name}`;
+  const disabledReason = readOnlyReason ?? (isBusy ? DISABLED_REASONS.WORKING : undefined);
   const toggle = (
     <Toggle
       variant="outline"
       aria-label={collection.name}
       pressed={isMember}
-      disabled={isBusy}
+      disabled={disabledReason !== undefined}
       onPressedChange={() => onToggle(collection)}
       className={TOGGLE_CLASS}
     >
@@ -44,9 +48,9 @@ function CollectionToggle({ collection, icon: Icon, isMember, isBusy, onToggle }
     </Toggle>
   );
 
-  if (isBusy) {
+  if (disabledReason) {
     return (
-      <DisabledReason reason={DISABLED_REASONS.WORKING} mode="wrapper">
+      <DisabledReason reason={disabledReason} mode="wrapper">
         {toggle}
       </DisabledReason>
     );
@@ -64,6 +68,7 @@ function CollectionToggle({ collection, icon: Icon, isMember, isBusy, onToggle }
 // bookmark) and the Wishlist (a heart). Every other collection is in ⋯ → Lists.
 function FunkoCollectionToggles({ funko, collections, items }: Props) {
   const { memberIds, isBusy, toggle } = useFunkoMemberships({ funko, items });
+  const readOnlyReason = useReadOnlyReason();
   const defaultCollection = collections.find((collection) => collection.isDefault);
   const wishlist = collections.find(
     (collection) => collection.name === WISHLIST_COLLECTION_NAME && !collection.isDefault,
@@ -82,6 +87,7 @@ function FunkoCollectionToggles({ funko, collections, items }: Props) {
           icon={icon}
           isMember={memberIds.has(collection.id)}
           isBusy={isBusy}
+          readOnlyReason={readOnlyReason}
           onToggle={toggle}
         />
       ))}

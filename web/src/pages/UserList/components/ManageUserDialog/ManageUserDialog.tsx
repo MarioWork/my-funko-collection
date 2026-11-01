@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import type { UserApiModel } from '@app-types/models';
-import { USER_ROLE_LABELS } from '@app-types/utility';
 import { USER_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FormPanel from '@components/FormPanel';
-import { userTitle } from '../../userListUtils';
+import { describeUserRole, userTitle } from '../../userListUtils';
 import UserStateBadge from '../UserStateBadge';
 import ChangeRoleDialog from './components/ChangeRoleDialog';
 import DeleteUserDialog from './components/DeleteUserDialog';
+import ReadOnlyDialog from './components/ReadOnlyDialog';
 import TemporaryPasswordDialog from './components/TemporaryPasswordDialog';
 import UserActions from './components/UserActions';
 import { useManagedUser } from './hooks/useManagedUser';
@@ -24,6 +24,7 @@ type ChangeDialogProps = {
 function ChangeDialog({ user, change, onClose, onDeleted }: ChangeDialogProps) {
   const dialogs: Record<UserChange, React.ReactNode> = {
     [UserChange.ROLE]: <ChangeRoleDialog user={user} onClose={onClose} />,
+    [UserChange.READ_ONLY]: <ReadOnlyDialog user={user} onClose={onClose} />,
     [UserChange.TEMPORARY_PASSWORD]: <TemporaryPasswordDialog user={user} onClose={onClose} />,
     [UserChange.DELETE]: <DeleteUserDialog user={user} onClose={onClose} onDeleted={onDeleted} />,
   };
@@ -39,7 +40,7 @@ function UserFacts({ user }: UserFactsProps) {
   return (
     <dl className="grid grid-cols-[auto_1fr] items-start gap-x-4 gap-y-2 text-sm">
       <dt className="text-muted-foreground">Role</dt>
-      <dd>{USER_ROLE_LABELS[user.role]}</dd>
+      <dd>{describeUserRole(user)}</dd>
       <dt className="text-muted-foreground">Sign-in</dt>
       <dd>
         <UserStateBadge user={user} />
@@ -48,7 +49,8 @@ function UserFacts({ user }: UserFactsProps) {
   );
 }
 
-// Routed under /users/:userId: change one user's role, give them a new temporary password, or delete them. Each asks
+// Routed under /users/:userId: change one user's role, make them read-only or undo it, give them a new temporary
+// password, or delete them. Each asks
 // first in its own dialog and needs a recent sign-in. The user comes from the list behind it, which every change
 // reloads; a link to a user the list does not hold sends the admin back to the list.
 function ManageUserDialog() {
