@@ -9,11 +9,20 @@ import type { Prisma } from '../src/generated/prisma/client.ts';
 import type { ItemCondition } from '../src/modules/collections/items/collectionItems.type.ts';
 import type { FunkoType } from '../src/modules/funkos/funkos.type.ts';
 
-type SeedFunko = {
+// What every seeded funko row names, catalogue funko or submission: the category and series by name.
+type SeedFunkoBasics = {
   name: string;
   number: string;
   category: string;
   series: string;
+};
+// How an admin reviewed a submission, if they did: why it was rejected, or the catalogue funko (by name, the regular
+// one) it was merged into.
+type SeedReviewOutcome = {
+  rejectionReason?: string;
+  mergedInto?: string;
+};
+type SeedFunko = SeedFunkoBasics & {
   type?: FunkoType;
   isChase?: boolean;
   exclusive?: string;
@@ -21,16 +30,10 @@ type SeedFunko = {
 // Other members' submissions, so the admins' Submissions page has something to review: two waiting (the Thanos is
 // maybe a double of the catalogue's #78 in Pop! Marvel), each with a photo of its sender's, one rejected with its
 // reason and one merged. Mirrors web/src/mocks/mockSeed.ts.
-type SeedSubmission = {
-  name: string;
-  number: string;
-  category: string;
-  series: string;
-  sender: string;
-  rejectionReason?: string;
-  // The catalogue funko (by name, the regular one) an admin merged it into.
-  mergedInto?: string;
-};
+type SeedSubmission = SeedFunkoBasics &
+  SeedReviewOutcome & {
+    sender: string;
+  };
 type SeedItem = {
   funko: string;
   collection: string;
@@ -150,19 +153,14 @@ const PERSONA_ADMINS = ['leia', 'lando'];
 const TO_PERSONA_ADMINS = 'admins';
 
 // rey's submissions in every state a member meets, and an orphan submission (no sender) for the review list.
-type SeedPersonaSubmission = {
-  name: string;
-  number: string;
-  category: string;
-  series: string;
-  sender: string | null;
-  status: NonNullable<Prisma.FunkoCreateManyInput['status']>;
-  rejectionReason?: string;
-  mergedInto?: string;
-  // Waiting again after a rejection: reviewed before.
-  isResent?: boolean;
-  isChangedByAdmin?: boolean;
-};
+type SeedPersonaSubmission = SeedFunkoBasics &
+  SeedReviewOutcome & {
+    sender: string | null;
+    status: NonNullable<Prisma.FunkoCreateManyInput['status']>;
+    // Waiting again after a rejection: reviewed before.
+    isResent?: boolean;
+    isChangedByAdmin?: boolean;
+  };
 
 const STEVE_REJECTION = 'The number on the box is 1300, not 1030. Please check it.';
 const HOPPER_REJECTION = 'This one is a Walmart exclusive. Please add the store.';
@@ -531,13 +529,20 @@ const seriesRows = await prisma.series.createManyAndReturn({
 });
 const seriesIds = new Map(seriesRows.map((row) => [row.name, row.id]));
 
-const funkoRows = await prisma.funko.createManyAndReturn({
-  data: FUNKOS.map((funko) => ({
+// The columns every seeded funko row shares, with its category and series looked up by name.
+function basicColumnsOf(funko: SeedFunkoBasics) {
+  return {
     name: funko.name,
     number: funko.number,
-    type: funko.type ?? 'POP',
     categoryId: idFor(categoryIds, 'category', funko.category),
     seriesId: idFor(seriesIds, 'series', funko.series),
+  };
+}
+
+const funkoRows = await prisma.funko.createManyAndReturn({
+  data: FUNKOS.map((funko) => ({
+    ...basicColumnsOf(funko),
+    type: funko.type ?? 'POP',
     isChase: funko.isChase ?? false,
     exclusive: funko.exclusive ?? '',
   })),
@@ -626,10 +631,7 @@ const submissionRows = await prisma.funko.createManyAndReturn({
     const isMerged = submission.mergedInto !== undefined;
 
     return {
-      name: submission.name,
-      number: submission.number,
-      categoryId: idFor(categoryIds, 'category', submission.category),
-      seriesId: idFor(seriesIds, 'series', submission.series),
+      ...basicColumnsOf(submission),
       status: submissionStatusOf(submission),
       submittedById: idFor(memberIds, 'member', submission.sender),
       rejectionReason: submission.rejectionReason ?? null,
@@ -699,10 +701,7 @@ const personaSubmissionRows = await prisma.funko.createManyAndReturn({
     const isReviewed = submission.status !== 'WAITING' || submission.isResent === true;
 
     return {
-      name: submission.name,
-      number: submission.number,
-      categoryId: idFor(categoryIds, 'category', submission.category),
-      seriesId: idFor(seriesIds, 'series', submission.series),
+      ...basicColumnsOf(submission),
       status: submission.status,
       submittedById: submission.sender === null ? null : idFor(personaIds, 'persona', submission.sender),
       rejectionReason: submission.rejectionReason ?? null,
