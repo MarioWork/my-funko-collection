@@ -5,8 +5,8 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/checkProductionBundle.ts",
+    "dev": "yarn wasm:copy && vite",
+    "build": "yarn wasm:copy && tsc -b && vite build && node scripts/checkProductionBundle.ts",
     "build:demo": "cross-env VITE_USE_MOCKS=true VITE_DEMO=true yarn build && cp dist/index.html dist/404.html",
     "lint": "eslint . && prettier --check .",
     "preview": "vite preview",
@@ -26,10 +26,7 @@
     "dev:setup": "cross-env VITE_USE_MOCKS=true VITE_MOCK_AUTH_STATE=setup yarn dev",
     "format": "prettier --write .",
     "icons": "node scripts/generateIcons.ts",
-    "wasm:copy": "node scripts/copyWasm.ts",
-    "predev": "yarn wasm:copy",
-    "prebuild": "yarn wasm:copy",
-    "pretest-e2e": "yarn wasm:copy"
+    "wasm:copy": "node scripts/copyWasm.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
