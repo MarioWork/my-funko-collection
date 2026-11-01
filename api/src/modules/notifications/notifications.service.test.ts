@@ -35,7 +35,7 @@ describe('notifyFunkoRemoved', () => {
     await expect(notifying).resolves.toBeUndefined();
   });
 
-  it('writes one notification per user with the name and the reason and no funko link', async () => {
+  it('writes one notification per user with the name, the reason and no funko link when the write works', async () => {
     vi.mocked(notificationsRepository.createAndTrim).mockResolvedValueOnce();
 
     await notifyFunkoRemoved([7, 8], 'Grogu', 'Two entries for the same figure');

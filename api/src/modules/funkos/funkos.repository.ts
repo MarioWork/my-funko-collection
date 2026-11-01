@@ -121,8 +121,12 @@ export type NewFunko = Omit<Prisma.FunkoUncheckedCreateInput, 'id' | 'createdAt'
 // The natural key the duplicate guard checks: the columns of `funkos_identity_uidx`.
 export type FunkoIdentity = Pick<FunkoRow, 'categoryId' | 'number' | 'name' | 'isChase' | 'exclusive'>;
 
-// A forced delete that went through: the funko's id, and the users whose items went with it.
-export type DeletedWithItems = { id: number; holderIds: number[] };
+// How a forced delete went: the users whose items went with the funko, or refused (nothing changed) because users
+// other than the deleter have it and no reason was given. Undefined when the funko was not there.
+export type DeletedWithItems = { isRefused: false; holderIds: number[] } | { isRefused: true };
+
+// Who deletes, and whether they gave a reason that lets the delete take the funko from other users.
+export type ForcedDeleter = { userId: number; hasReason: boolean };
 
 // The client a query runs on: the shared one, or a transaction's.
 type QueryClient = Pick<typeof prisma, 'user'>;
@@ -714,11 +718,15 @@ export const funkosRepository = {
     return deletedIdOrUndefined(id, write);
   },
 
-  // The forced delete: its collection items go first (their tags cascade), then the funko, all or nothing. Answers
-  // the users whose items went, read in the same transaction, so the ones told are the ones who lost it.
-  deleteWithItems: (id: number): Promise<DeletedWithItems | undefined> =>
+  // The forced delete: its collection items go first (their tags cascade), then the funko, all or nothing. The users
+  // who have it are read in the same transaction, so a user who added it after the service's check is still
+  // refused without a reason, and the ones told are the ones who lost it.
+  deleteWithItems: (id: number, deleter: ForcedDeleter): Promise<DeletedWithItems | undefined> =>
     prisma.$transaction(async (tx) => {
       const holderIds = await findHolderIdsIn(tx, id);
+      const isInOtherUsersCollections = holderIds.some((holderId) => holderId !== deleter.userId);
+
+      if (isInOtherUsersCollections && !deleter.hasReason) return { isRefused: true };
 
       await tx.collectionItem.deleteMany({ where: { funkoId: id } });
 
@@ -726,6 +734,6 @@ export const funkosRepository = {
 
       if (deleted.count === 0) return undefined;
 
-      return { id, holderIds };
+      return { isRefused: false, holderIds };
     }),
 };

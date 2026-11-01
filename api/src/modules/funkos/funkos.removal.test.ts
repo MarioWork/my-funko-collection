@@ -2,6 +2,7 @@
 // whose collections; a reason is needed; and each user who had it is told, with the reason.
 import { buildApp, type App } from '../../app.ts';
 import { resetTestDb } from '../../testDb.ts';
+import { funkosRepository } from './funkos.repository.ts';
 import {
   createCollection,
   createFunko,
@@ -48,7 +49,9 @@ async function notificationsOf(client: SignedInClient): Promise<NotificationBody
   return response.json<{ data: NotificationBody[] }>().data;
 }
 
-function forceDelete(client: SignedInClient, payload?: { reason: string }) {
+type RemovalBody = { reason: string };
+
+function forceDelete(client: SignedInClient, payload?: RemovalBody) {
   return client.inject({ method: 'DELETE', url: `/funkos/${funkoId}`, query: { force: 'true' }, payload });
 }
 
@@ -80,7 +83,7 @@ describe('DELETE /funkos/:funkoId (in other users’ collections)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('deletes it from every collection and tells each user who had it, with its name and the reason', async () => {
+  it('deletes it everywhere and tells each user who had it its name and the reason when force=true comes with a reason', async () => {
     const response = await forceDelete(admin, { reason: REASON });
 
     expect(response.statusCode).toBe(204);
@@ -106,7 +109,7 @@ describe('DELETE /funkos/:funkoId (in other users’ collections)', () => {
 });
 
 describe('DELETE /funkos/:funkoId (only in the signed-in user’s collections)', () => {
-  it('deletes it with force=true and no reason, and tells nobody', async () => {
+  it('deletes it and tells nobody when force=true comes without a reason', async () => {
     const ownFunko = await createFunko({ name: 'Mando' });
     await createItem(await defaultCollectionId(admin.userId), ownFunko.id);
 
@@ -127,15 +130,32 @@ describe('DELETE /funkos/:funkoId (only in the signed-in user’s collections)',
 });
 
 describe('GET /funkos/:funkoId (userCount)', () => {
-  it('tells an admin how many users have it', async () => {
+  it('tells how many users have it when an admin asks', async () => {
     const response = await admin.inject({ method: 'GET', url: `/funkos/${funkoId}` });
 
     expect(response.json<{ userCount?: number }>().userCount).toBe(2);
   });
 
-  it('leaves userCount out for a member', async () => {
+  it('leaves userCount out when a member asks', async () => {
     const response = await luke.inject({ method: 'GET', url: `/funkos/${funkoId}` });
 
     expect(response.json<{ userCount?: number }>()).not.toHaveProperty('userCount');
+  });
+});
+
+// The service checks the reason first; the repository checks again in its transaction, for a user who added the
+// funko in between.
+describe('funkosRepository.deleteWithItems', () => {
+  it('refuses and deletes nothing when other users have it and no reason was given', async () => {
+    const outcome = await funkosRepository.deleteWithItems(funkoId, { userId: admin.userId, hasReason: false });
+
+    expect(outcome).toEqual({ isRefused: true });
+    expect((await admin.inject({ method: 'GET', url: `/funkos/${funkoId}` })).statusCode).toBe(200);
+  });
+
+  it('answers every user who had it when the deleter gave a reason', async () => {
+    const outcome = await funkosRepository.deleteWithItems(funkoId, { userId: admin.userId, hasReason: true });
+
+    expect(outcome).toEqual({ isRefused: false, holderIds: [luke.userId, han.userId] });
   });
 });
