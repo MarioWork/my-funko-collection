@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { IdParamSchema, IdSchema } from '../../../lib/ids.ts';
-import { FunkoImageResponseSchema } from './funkoImages.type.ts';
+import { FunkoImageResponseSchema } from './images.type.ts';
 
 export const ROTATION_DEGREES = [90, 180, 270] as const;
 

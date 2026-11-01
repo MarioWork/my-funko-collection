@@ -1,9 +1,9 @@
 // What other modules may import from funkos (node-ts-api §3): the funko shape they embed (collection items,
 // suggest, submissions) as a zod schema for their response contracts, and its types. Everything else stays in
-// funkos.schema.ts.
+// the jobs' own schemas.
 import { z } from 'zod';
 import type { SubmissionStatus } from '../submissions/submissions.type.ts';
-import type { FunkoResponseSchema } from './funkos.schema.ts';
+import type { FunkoResponseSchema } from './basics/basics.schema.ts';
 
 // Matches the `FunkoType` enum in prisma/schema.prisma; the repositories fail to compile if the two drift apart.
 export const FUNKO_TYPES = [

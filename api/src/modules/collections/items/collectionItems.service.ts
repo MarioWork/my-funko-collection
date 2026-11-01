@@ -1,6 +1,6 @@
 import { InternalError } from '../../../lib/errors.ts';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../lib/httpErrors.ts';
-import { getFunkoSummaries, getFunkoSummary } from '../../funkos/funkos.service.ts';
+import { getFunkoSummaries, getFunkoSummary } from '../../funkos/basics/basics.service.ts';
 import type { FunkoSummary } from '../../funkos/funkos.type.ts';
 import { assertOwnTags } from '../../tags/tags.service.ts';
 import { getCollection } from '../collections.service.ts';

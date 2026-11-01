@@ -2,7 +2,7 @@ import type { SubmitterScope } from '../../../lib/catalogueVisibility.ts';
 import { isUniqueViolation } from '../../../lib/databaseErrors.ts';
 import { ConflictError, NotFoundError } from '../../../lib/httpErrors.ts';
 import { logger } from '../../../lib/logger.ts';
-import { getFunkoSummariesOf } from '../../funkos/funkos.service.ts';
+import { getFunkoSummariesOf } from '../../funkos/basics/basics.service.ts';
 import type { FunkoIdentity, FunkoRow } from '../../funkos/funkos.type.ts';
 import { notifySubmissionApproved, notifySubmissionRejected } from '../../notifications/notifications.service.ts';
 import { submissionsRepository, type CatalogueReferences, type SubmissionRow } from '../submissions.repository.ts';

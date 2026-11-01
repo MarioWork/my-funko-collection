@@ -1,6 +1,6 @@
 // What the submissions jobs share: a submission as the API answers it, and the guard that it is still waiting.
 import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
-import { getFunkoSummariesOf } from '../funkos/funkos.service.ts';
+import { getFunkoSummariesOf } from '../funkos/basics/basics.service.ts';
 import type { FunkoIdentity, FunkoRow, FunkoSummary } from '../funkos/funkos.type.ts';
 import { submissionsRepository, type SubmissionRow } from './submissions.repository.ts';
 import type { SubmissionResponse } from './submissions.type.ts';

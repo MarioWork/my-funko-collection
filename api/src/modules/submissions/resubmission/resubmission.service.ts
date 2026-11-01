@@ -2,7 +2,7 @@ import { ConflictError } from '../../../lib/httpErrors.ts';
 import { logger } from '../../../lib/logger.ts';
 import type { SignedInUser } from '../../auth/auth.type.ts';
 import { assertCanEditFunko } from '../../funkos/funkos.access.ts';
-import { assertUniqueFunko } from '../../funkos/funkos.service.ts';
+import { assertUniqueFunko } from '../../funkos/basics/basics.service.ts';
 import type { FunkoStanding } from '../../funkos/funkos.type.ts';
 import { notifyAdminsOfResentSubmission } from '../../notifications/notifications.service.ts';
 import { submissionsRepository } from '../submissions.repository.ts';

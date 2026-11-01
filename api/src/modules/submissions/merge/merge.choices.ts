@@ -2,7 +2,7 @@
 // submission, and which images it keeps. The rules that check the picks live here, beside the service, which reads
 // both funkos and hands them in; the merge repository applies the result inside the merge's transaction.
 import { BadRequestError } from '../../../lib/httpErrors.ts';
-import type { ImageFile } from '../../funkos/images/funkoImages.type.ts';
+import type { ImageFile } from '../../funkos/images/images.type.ts';
 import type { FunkoType } from '../../funkos/funkos.type.ts';
 import type { MergeChoices, MergeField } from './merge.type.ts';
 

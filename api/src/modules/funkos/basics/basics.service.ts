@@ -1,41 +1,33 @@
-import { normaliseBarcode } from '../../lib/barcode.ts';
-import { BadRequestError, ConflictError, HeldByUsersError, NotFoundError } from '../../lib/httpErrors.ts';
-import { removeFunkoFolder, sizeUrl } from '../../lib/imageStorage.ts';
-import { logger } from '../../lib/logger.ts';
-import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
-import type { SignedInUser } from '../auth/auth.type.ts';
-import { isUsableCategory } from '../categories/categories.service.ts';
-import { notifyAdminsOfNewSubmission, notifyFunkoRemoved } from '../notifications/notifications.service.ts';
-import { isUsableSeries } from '../series/series.service.ts';
+import { normaliseBarcode } from '../../../lib/barcode.ts';
+import { BadRequestError, ConflictError, NotFoundError } from '../../../lib/httpErrors.ts';
+import { sizeUrl } from '../../../lib/imageStorage.ts';
+import { logger } from '../../../lib/logger.ts';
+import type { SubmitterScope } from '../../../lib/catalogueVisibility.ts';
+import type { SignedInUser } from '../../auth/auth.type.ts';
+import { isUsableCategory } from '../../categories/categories.service.ts';
+import { notifyAdminsOfNewSubmission } from '../../notifications/notifications.service.ts';
+import { isUsableSeries } from '../../series/series.service.ts';
 import {
   assertCanEditFunko,
   canSeeFunko,
   isAdminChangingSubmission,
   isInCatalogueOf,
   isOpenSubmission,
-} from './funkos.access.ts';
-import { getImages } from './images/funkoImages.service.ts';
-import {
-  funkosRepository,
-  type CollectionSummaryRow,
-  type ForcedDeleter,
-  type ListedFunkoRow,
-  type PrimaryImageRow,
-} from './funkos.repository.ts';
+} from '../funkos.access.ts';
+import { funkosRepository, type CollectionSummaryRow } from '../funkos.repository.ts';
+import type { FunkoIdentity, FunkoRow, FunkoStanding, FunkoSummary, PrimaryImageSummary } from '../funkos.type.ts';
+import { getImages } from '../images/images.service.ts';
+import { basicsRepository, type ListedFunkoRow, type PrimaryImageRow } from './basics.repository.ts';
 import type {
   CreateFunko,
-  DeleteFunko,
-  DeleteFunkoQuery,
   FunkoDetailResponse,
   FunkoListResponse,
   FunkoResponse,
   ListFunkosQuery,
   UpdateFunko,
-} from './funkos.schema.ts';
-import type { FunkoIdentity, FunkoRow, FunkoStanding, FunkoSummary, PrimaryImageSummary } from './funkos.type.ts';
+} from './basics.schema.ts';
 
 const ENTITY = 'Funko';
-const REASON_NEEDED_MESSAGE = 'Removing a funko other users have needs a reason to tell them';
 
 const log = logger.child({ module: 'funkos' });
 
@@ -61,16 +53,15 @@ function toPrimaryImage(row: PrimaryImageRow | undefined): PrimaryImageSummary |
 // A category or series a body points at that the funko may not use is the caller's input error: 400. A funko may
 // use the approved ones, and a waiting submission also the ones its sender typed in (`submitterId`, null for a
 // funko in the catalogue). Another member's waiting one answers like one that does not exist.
-async function assertCategoryUsable(categoryId: number, submitterId: number | null): Promise<void> {
-  const isUsable = await isUsableCategory(categoryId, submitterId);
+type ReferenceCheck = { label: string; isUsable: (id: number, submitterId: number | null) => Promise<boolean> };
 
-  if (!isUsable) throw new BadRequestError(`Category ${categoryId} does not exist`);
-}
+const CATEGORY_CHECK: ReferenceCheck = { label: 'Category', isUsable: isUsableCategory };
+const SERIES_CHECK: ReferenceCheck = { label: 'Series', isUsable: isUsableSeries };
 
-async function assertSeriesUsable(seriesId: number, submitterId: number | null): Promise<void> {
-  const isUsable = await isUsableSeries(seriesId, submitterId);
+async function assertUsable(check: ReferenceCheck, id: number, submitterId: number | null): Promise<void> {
+  const isUsable = await check.isUsable(id, submitterId);
 
-  if (!isUsable) throw new BadRequestError(`Series ${seriesId} does not exist`);
+  if (!isUsable) throw new BadRequestError(`${check.label} ${id} does not exist`);
 }
 
 // Whose waiting categories and series a funko may use: its sender's while it waits (or is rejected, for them to fix
@@ -114,7 +105,7 @@ function toResponse(userId: number, row: FunkoRow | ListedFunkoRow, extras: Funk
 async function loadExtras(userId: number, rows: FunkoRow[]): Promise<Map<number, FunkoExtras>> {
   const ids = rows.map((row) => row.id);
   const [primaryImages, collectionsByFunko] = await Promise.all([
-    funkosRepository.primaryImagesByFunkoIds(ids),
+    basicsRepository.primaryImagesByFunkoIds(ids),
     funkosRepository.collectionsByFunkoIds(userId, ids),
   ]);
 
@@ -160,14 +151,14 @@ async function assertUniqueIn(
   barcode: string | null | undefined,
   selfId?: number,
 ): Promise<void> {
-  const sameIdentity = await funkosRepository.findIdByIdentity(identity, scope);
+  const sameIdentity = await basicsRepository.findIdByIdentity(identity, scope);
   const isOtherIdentity = sameIdentity !== undefined && sameIdentity.id !== selfId;
 
   if (isOtherIdentity) throw new ConflictError('This funko already exists', sameIdentity.id);
 
   if (!barcode) return;
 
-  const sameBarcode = await funkosRepository.findIdByBarcode(normaliseBarcode(barcode), scope);
+  const sameBarcode = await basicsRepository.findIdByBarcode(normaliseBarcode(barcode), scope);
   const isOtherBarcode = sameBarcode !== undefined && sameBarcode.id !== selfId;
 
   if (isOtherBarcode) throw new ConflictError('This barcode belongs to another funko', sameBarcode.id);
@@ -193,7 +184,7 @@ export async function assertUniqueFunko(
 
 export async function getFunkos(userId: number, query: ListFunkosQuery): Promise<FunkoListResponse> {
   const normalisedQuery = query.barcode ? { ...query, barcode: normaliseBarcode(query.barcode) } : query;
-  const { data, totalResultNumber } = await funkosRepository.list(userId, normalisedQuery);
+  const { data, totalResultNumber } = await basicsRepository.list(userId, normalisedQuery);
   const responses = await toResponses(userId, data);
 
   return { data: responses, totalResultNumber, currentPage: query.page };
@@ -207,7 +198,7 @@ async function reviewDetailsFor(user: SignedInUser, row: FunkoRow): Promise<Part
 
   if (!isSender && !user.isAdmin) return {};
 
-  const review = await funkosRepository.findReview(row.id);
+  const review = await basicsRepository.findReview(row.id);
 
   if (!review) return {};
 
@@ -242,7 +233,7 @@ export async function getFunko(user: SignedInUser, id: number): Promise<FunkoDet
 }
 
 export async function getFunkoByBarcode(userId: number, barcode: string): Promise<FunkoResponse> {
-  const row = await funkosRepository.findByBarcode(userId, normaliseBarcode(barcode));
+  const row = await basicsRepository.findByBarcode(userId, normaliseBarcode(barcode));
 
   if (!row) throw new NotFoundError(ENTITY, barcode);
 
@@ -263,11 +254,11 @@ export async function addFunko(user: SignedInUser, input: CreateFunko): Promise<
     exclusive: data.exclusive ?? '',
   };
 
-  await assertCategoryUsable(data.categoryId, referenceOwnerOf(standing));
-  await assertSeriesUsable(data.seriesId, referenceOwnerOf(standing));
+  await assertUsable(CATEGORY_CHECK, data.categoryId, referenceOwnerOf(standing));
+  await assertUsable(SERIES_CHECK, data.seriesId, referenceOwnerOf(standing));
   await assertUniqueFunko(standing, identity, data.barcode);
 
-  const row = await funkosRepository.create({ ...data, ...standing });
+  const row = await basicsRepository.create({ ...data, ...standing });
 
   log.info({ funkoId: row.id, status: row.status }, 'funko created');
 
@@ -290,112 +281,24 @@ export async function updateFunko(user: SignedInUser, id: number, input: UpdateF
     exclusive: data.exclusive ?? current.exclusive,
   };
 
-  if (data.categoryId !== undefined) await assertCategoryUsable(data.categoryId, referenceOwnerOf(current));
-  if (data.seriesId !== undefined) await assertSeriesUsable(data.seriesId, referenceOwnerOf(current));
+  if (data.categoryId !== undefined) await assertUsable(CATEGORY_CHECK, data.categoryId, referenceOwnerOf(current));
+  if (data.seriesId !== undefined) await assertUsable(SERIES_CHECK, data.seriesId, referenceOwnerOf(current));
   await assertUniqueFunko(current, identity, data.barcode === undefined ? current.barcode : data.barcode, id);
 
   const adminChange = isAdminChangingSubmission(user, current) ? { changedByAdminAt: new Date() } : {};
-  const row = await funkosRepository.update(id, { ...data, ...adminChange });
+  const row = await basicsRepository.update(id, { ...data, ...adminChange });
 
   if (!row) throw new NotFoundError(ENTITY, id);
 
   return toSingleResponse(user.userId, row);
 }
 
-// The user's own collections by name; anyone else's only as how many other users have it, never whose.
-function describeCollections(ownCollectionNames: string[], otherHolderCount: number): string {
-  const places = ownCollectionNames.map((name) => `"${name}"`);
-  const otherUsers = otherHolderCount === 1 ? '1 other user' : `${otherHolderCount} other users`;
-
-  if (otherHolderCount > 0) places.push(`the collections of ${otherUsers}`);
-
-  return places.join(', ');
-}
-
-// Where the funko sits, seen from the user deleting it: their own collections by name, and every other user only
-// as a number.
-type FunkoHolders = { ownCollectionNames: string[]; holderIds: number[]; otherHolderCount: number };
-
-async function findHolders(userId: number, funkoId: number): Promise<FunkoHolders> {
-  const [collectionsByFunko, holderIds] = await Promise.all([
-    funkosRepository.collectionsByFunkoIds(userId, [funkoId]),
-    funkosRepository.findHolderIds(funkoId),
-  ]);
-  const ownCollectionNames = (collectionsByFunko.get(funkoId) ?? []).map((collection) => collection.name);
-  const otherHolderCount = holderIds.filter((holderId) => holderId !== userId).length;
-
-  return { ownCollectionNames, holderIds, otherHolderCount };
-}
-
-// A funko in a collection stays unless `force` is set, and taking it from other users needs a reason to tell them.
-function assertCanDeleteFrom(holders: FunkoHolders, force: boolean, reason: string | undefined): void {
-  const isInCollections = holders.holderIds.length > 0;
-  const isInOtherUsersCollections = holders.otherHolderCount > 0;
-
-  if (isInCollections && !force) {
-    const places = describeCollections(holders.ownCollectionNames, holders.otherHolderCount);
-    const howToForce = isInOtherUsersCollections ? 'force=true and a reason' : 'force=true';
-
-    throw new HeldByUsersError(
-      `The funko is in ${places}. Send ${howToForce} to remove it from them and delete it`,
-      holders.holderIds.length,
-    );
-  }
-
-  if (isInOtherUsersCollections && !reason) throw new BadRequestError(REASON_NEEDED_MESSAGE);
-}
-
-// Deletes the funko (with its items when it has any) and answers the users whose items went.
-async function deleteRows(id: number, isInCollections: boolean, deleter: ForcedDeleter): Promise<number[]> {
-  if (!isInCollections) {
-    const deleted = await funkosRepository.delete(id);
-
-    if (!deleted) throw new NotFoundError(ENTITY, id);
-
-    return [];
-  }
-
-  const deleted = await funkosRepository.deleteWithItems(id, deleter);
-
-  if (!deleted) throw new NotFoundError(ENTITY, id);
-
-  if (deleted.isRefused) throw new BadRequestError(REASON_NEEDED_MESSAGE);
-
-  return deleted.holderIds;
-}
-
-// A funko inside anyone's collection is kept unless `force` is set; then every item of it goes with it, and when
-// other users had it, each user who had it (the one deleting too, if they had it) is told why. Files go after the
-// rows. An admin deletes any funko; a member only their own submission (which only sits in their own collections).
-export async function deleteFunko(
-  user: SignedInUser,
-  id: number,
-  { force }: DeleteFunkoQuery,
-  body: DeleteFunko | null,
-): Promise<void> {
-  const funko = assertCanEditFunko(user, id, await funkosRepository.findById(id));
-  const holders = await findHolders(user.userId, id);
-  const reason = body?.reason;
-
-  assertCanDeleteFrom(holders, force, reason);
-
-  const isInCollections = holders.holderIds.length > 0;
-  const removedFrom = await deleteRows(id, isInCollections, { userId: user.userId, hasReason: reason !== undefined });
-
-  await removeFunkoFolder(id);
-  log.info({ funkoId: id, force, holderCount: removedFrom.length }, 'funko deleted');
-
-  const isRemovedFromOthers = removedFrom.some((holderId) => holderId !== user.userId);
-
-  if (isRemovedFromOthers && reason) await notifyFunkoRemoved(removedFrom, funko.name, reason);
-}
-
 // For other modules (collection items): summaries keyed by id, with the primary image resolved.
 export async function getFunkoSummaries(ids: number[]): Promise<Map<number, FunkoSummary>> {
   const uniqueIds = [...new Set(ids)];
   const [rows, primaryImages] = await Promise.all([
-    funkosRepository.findManyByIds(uniqueIds),
-    funkosRepository.primaryImagesByFunkoIds(uniqueIds),
+    basicsRepository.findManyByIds(uniqueIds),
+    basicsRepository.primaryImagesByFunkoIds(uniqueIds),
   ]);
 
   return new Map(rows.map((row) => [row.id, toSummary(row, primaryImages.get(row.id))]));
@@ -408,7 +311,7 @@ export async function getFunkoSummary(userId: number, id: number): Promise<Funko
 
   if (!row || !isInCatalogueOf(userId, row)) throw new NotFoundError(ENTITY, id);
 
-  const primaryImages = await funkosRepository.primaryImagesByFunkoIds([id]);
+  const primaryImages = await basicsRepository.primaryImagesByFunkoIds([id]);
 
   return toSummary(row, primaryImages.get(id));
 }
@@ -416,7 +319,7 @@ export async function getFunkoSummary(userId: number, id: number): Promise<Funko
 // For other modules (submissions): funko rows they read themselves, each beside its summary with the primary image
 // resolved. One image query for them all.
 export async function getFunkoSummariesOf<Row extends FunkoRow>(rows: Row[]): Promise<[Row, FunkoSummary][]> {
-  const primaryImages = await funkosRepository.primaryImagesByFunkoIds(rows.map((row) => row.id));
+  const primaryImages = await basicsRepository.primaryImagesByFunkoIds(rows.map((row) => row.id));
 
   return rows.map((row) => [row, toSummary(row, primaryImages.get(row.id))]);
 }

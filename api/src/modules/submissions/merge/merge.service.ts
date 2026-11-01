@@ -5,8 +5,8 @@ import { BadRequestError, ConflictError, NotFoundError } from '../../../lib/http
 import { copyImageFiles, removeImageFiles } from '../../../lib/imageStorage.ts';
 import { logger } from '../../../lib/logger.ts';
 import type { FunkoIdentity, FunkoRow } from '../../funkos/funkos.type.ts';
-import { getImageFiles } from '../../funkos/images/funkoImages.service.ts';
-import type { ImageFile } from '../../funkos/images/funkoImages.type.ts';
+import { getImageFiles } from '../../funkos/images/images.service.ts';
+import type { ImageFile } from '../../funkos/images/images.type.ts';
 import { notifySubmissionMerged } from '../../notifications/notifications.service.ts';
 import { submissionsRepository, type CatalogueReferences } from '../submissions.repository.ts';
 import { ENTITY, NOT_WAITING_MESSAGE, findWaitingSubmission, toSingleSubmission } from '../submissions.service.ts';
