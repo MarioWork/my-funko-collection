@@ -17,7 +17,7 @@ const ADMIN_ONLY_MESSAGE = 'Only an admin can change a funko in the catalogue';
 export const DUPLICATE_FUNKO_MESSAGE = 'This funko already exists';
 export const DUPLICATE_BARCODE_MESSAGE = 'This barcode belongs to another funko';
 // The API refuses a body without a series in its schema, so it answers with its generic validation message.
-const SERIES_REQUIRED_MESSAGE = 'Request validation failed';
+const VALIDATION_MESSAGE = 'Request validation failed';
 
 type BarcodeCandidate = MockSubmissionColumns & { barcode: string | null };
 type ReferenceCandidate = MockSubmissionColumns & { categoryId: number; seriesId: number };
@@ -65,7 +65,7 @@ export function findBarcodeTwin(candidate: BarcodeCandidate, selfId?: number): M
 export function missingSeriesRefusal(seriesId: unknown): Response | undefined {
   const isGiven = typeof seriesId === 'number';
 
-  return isGiven ? undefined : badRequest(SERIES_REQUIRED_MESSAGE);
+  return isGiven ? undefined : badRequest(VALIDATION_MESSAGE);
 }
 
 // Why this funko may not use the body's category or series (a 400, as the API answers), or undefined.

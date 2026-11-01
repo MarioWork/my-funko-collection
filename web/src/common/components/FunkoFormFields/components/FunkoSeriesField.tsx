@@ -18,6 +18,9 @@ type SeriesOptions = {
   series: SeriesApiModel[];
 };
 
+// The placeholder option's value: nothing picked yet, which the form refuses.
+const NO_SERIES_PICKED = '';
+
 // Required, like the category: the series the funko belongs to, and a "+" to create a missing one on the spot.
 function FunkoSeriesField({ control, id }: Props) {
   const { series } = useLoaderData<SeriesOptions>();
@@ -39,7 +42,7 @@ function FunkoSeriesField({ control, id }: Props) {
               aria-invalid={fieldState.invalid || undefined}
               aria-describedby={fieldState.error ? `${descriptionId} ${errorId}` : descriptionId}
             >
-              <NativeSelectOption value="">Pick a series…</NativeSelectOption>
+              <NativeSelectOption value={NO_SERIES_PICKED}>Pick a series…</NativeSelectOption>
               {series.map((entry) => (
                 <NativeSelectOption key={entry.id} value={String(entry.id)}>
                   {referenceOptionLabel(entry)}
