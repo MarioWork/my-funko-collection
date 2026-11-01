@@ -9,6 +9,7 @@ const UNKNOWN_USER: AuthUserApiModel = {
   name: '',
   username: null,
   role: UserRoleUtil.MEMBER,
+  isReadOnly: false,
   mustChangePassword: false,
 };
 

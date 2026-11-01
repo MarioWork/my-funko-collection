@@ -7,6 +7,7 @@ export class UsersPage {
   readonly heading: Locator;
   readonly temporaryPassword: Locator;
   readonly makeMemberButton: Locator;
+  readonly allowChangesButton: Locator;
 
   private readonly page: Page;
 
@@ -15,6 +16,7 @@ export class UsersPage {
     this.heading = page.getByRole('heading', { level: 1, name: 'Users' });
     // Exact: the dialogs around it are titled "... new temporary password" too.
     this.makeMemberButton = page.getByRole('button', { name: 'Make member' });
+    this.allowChangesButton = page.getByRole('button', { name: 'Allow changes' });
     this.temporaryPassword = page.getByLabel('Temporary password', { exact: true });
   }
 
@@ -46,6 +48,11 @@ export class UsersPage {
   async makeMember() {
     await this.makeMemberButton.click();
     await this.confirm('Make member');
+  }
+
+  async makeReadOnly() {
+    await this.page.getByRole('button', { name: 'Make read-only' }).click();
+    await this.confirm('Make read-only');
   }
 
   async giveNewTemporaryPassword() {

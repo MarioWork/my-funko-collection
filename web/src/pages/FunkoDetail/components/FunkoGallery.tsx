@@ -6,6 +6,7 @@ import Lightbox from '@components/Lightbox';
 import PhotoThumbnail from '@components/PhotoThumbnail';
 import { reasonWhen } from '@utils/disabledReasonUtils';
 import ImageDownloadButton from '@components/ImageDownloadButton';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import { useCanEditFunko } from '../hooks/useCanEditFunko';
 
 type Props = {
@@ -75,7 +76,10 @@ function FunkoGallery({ funko }: Props) {
   const heroIndex = isShownIndexValid ? shownIndex : MAIN_PHOTO_INDEX;
   const hero = images[heroIndex];
   const hasStrip = images.length > 1;
-  const canEdit = useCanEditFunko(funko);
+  const canEditFunko = useCanEditFunko(funko);
+  const readOnlyReason = useReadOnlyReason();
+  // A read-only user can't open Edit either: the no-photo hint then names an admin.
+  const canEdit = canEditFunko && readOnlyReason === undefined;
 
   return (
     <section aria-label="Images" className="flex flex-col gap-3 rounded-xl border bg-card p-4">

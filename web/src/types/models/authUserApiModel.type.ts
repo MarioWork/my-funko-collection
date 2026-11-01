@@ -7,6 +7,9 @@ export interface AuthUserApiModel {
   name: string;
   username: string | null;
   role: UserRoleUtil;
+  // An admin limited this user to looking: the app shows every write disabled, saying why, and the API refuses them
+  // (403 READ_ONLY). Their own password, passkeys and signing out still work.
+  isReadOnly: boolean;
   // Signed in with a temporary password an admin made: the app goes straight to "choose your password", and the
   // API refuses everything else until it is replaced.
   mustChangePassword: boolean;

@@ -2,7 +2,7 @@ import { renderRoutes, screen, userEvent, waitFor, within } from '@test-utils';
 import { categoryRoutes } from '@application/routes/featureRoutes/categoryRoutes';
 import { CATEGORY_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { UserRoleUtil } from '@app-types/utility';
-import { setMockUserRole } from '@mocks/mockStore';
+import { setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
 
 const renderPage = () => renderRoutes(categoryRoutes, { initialEntries: [CATEGORY_ROUTES_PATHS.BASE] });
 
@@ -111,4 +111,22 @@ it('shows the categories read-only, with no New, rename or delete, to a member',
   expect(screen.queryByRole('link', { name: 'New category' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Rename/ })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Delete/ })).not.toBeInTheDocument();
+});
+
+it('shows New, rename and delete disabled, saying why, to a read-only admin', async () => {
+  setMockReadOnly();
+  renderPage();
+
+  expect(await screen.findByText('Pop! Marvel')).toBeVisible();
+  const controls = [
+    ...screen.getAllByRole('button', { name: 'New category' }),
+    screen.getByRole('button', { name: 'Rename Pop! Marvel' }),
+    screen.getByRole('button', { name: /^Delete Pop! Marvel/ }),
+  ];
+
+  for (const control of controls) {
+    expect(control).toHaveAttribute('aria-disabled', 'true');
+    expect(control).toHaveAccessibleDescription(/Your account is read-only/);
+  }
+  expect(screen.getByRole('button', { name: 'Export Pop! Marvel' })).toBeEnabled();
 });

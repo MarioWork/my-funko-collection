@@ -4,6 +4,7 @@ import type { LoaderDataUtil } from '@app-types/utility';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import EmptyState from '@components/EmptyState';
 import LinkButton from '@components/LinkButton';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import PageHeader from '@components/PageHeader';
 import { PAGE_ICONS } from '@utils/navigationUtils';
 import SubmissionTable from './components/SubmissionTable';
@@ -20,6 +21,7 @@ const EMPTY_TITLE = 'Nothing sent in yet';
 function SubmissionList() {
   const { submissionsResponse } = useLoaderData<LoaderDataUtil<typeof loader>>();
   const hasSubmissions = submissionsResponse.data.length > 0;
+  const readOnlyReason = useReadOnlyReason();
 
   return (
     <div className="flex flex-col gap-4">
@@ -35,7 +37,7 @@ function SubmissionList() {
         </div>
       ) : (
         <EmptyState pose="waiting" title={EMPTY_TITLE} description={EMPTY_DESCRIPTION}>
-          <LinkButton to={ADD_ROUTES_PATHS.BASE}>
+          <LinkButton to={ADD_ROUTES_PATHS.BASE} disabledReason={readOnlyReason}>
             <ScanBarcode data-icon="inline-start" aria-hidden="true" />
             Add a funko
           </LinkButton>

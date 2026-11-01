@@ -1,24 +1,23 @@
-import { Download, ListChecks, Pencil, Trash2 } from 'lucide-react';
-import { Link } from 'react-router';
+import { Download, ListChecks } from 'lucide-react';
 import type { CollectionApiModel, CollectionItemApiModel, FunkoDetailApiModel } from '@app-types/models';
 import { ExportFunkosScopeUtil } from '@app-types/utility';
-import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import DisabledReason from '@components/DisabledReason';
 import ExportFormatItems from '@components/ExportFormatItems';
 import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@components/ui/dropdown-menu';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import exportService from '@services/exportService/exportService';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 import { useCanEditFunko } from '../hooks/useCanEditFunko';
 import { useFunkoMemberships } from '../hooks/useFunkoMemberships';
+import FunkoDeleteMenuGroup from './FunkoDeleteMenuGroup';
+import FunkoEditMenuItem from './FunkoEditMenuItem';
 
 type Props = {
   funko: FunkoDetailApiModel;
@@ -27,11 +26,17 @@ type Props = {
   onDelete: () => void;
 };
 
-type ListsSubmenuProps = Pick<Props, 'funko' | 'collections' | 'items'>;
+type ReadOnlyProps = {
+  // Set for a read-only user: the item shows disabled, saying why.
+  readOnlyReason: string | undefined;
+};
+
+type ListsSubmenuProps = Pick<Props, 'funko' | 'collections' | 'items'> & ReadOnlyProps;
 
 // Every collection as a checkbox: ticked while the funko is in it, a tap adds or removes it.
-function ListsSubmenu({ funko, collections, items }: ListsSubmenuProps) {
+function ListsSubmenu({ funko, collections, items, readOnlyReason }: ListsSubmenuProps) {
   const { memberIds, isBusy, toggle } = useFunkoMemberships({ funko, items });
+  const reason = readOnlyReason ?? reasonWhen(isBusy, DISABLED_REASONS.WORKING);
 
   return (
     <DropdownMenuSub>
@@ -41,15 +46,10 @@ function ListsSubmenu({ funko, collections, items }: ListsSubmenuProps) {
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
         {collections.map((collection) => (
-          <DisabledReason
-            key={collection.id}
-            reason={reasonWhen(isBusy, DISABLED_REASONS.WORKING)}
-            mode="wrapper"
-            wrapperClassName="block"
-          >
+          <DisabledReason key={collection.id} reason={reason} mode="wrapper" wrapperClassName="block">
             <DropdownMenuCheckboxItem
               checked={memberIds.has(collection.id)}
-              disabled={isBusy}
+              disabled={reason !== undefined}
               onCheckedChange={() => toggle(collection)}
             >
               {collection.name}
@@ -80,40 +80,21 @@ function ExportSubmenu({ funko }: ExportSubmenuProps) {
   );
 }
 
-type DeleteGroupProps = Pick<Props, 'onDelete'>;
-
-function DeleteGroup({ onDelete }: DeleteGroupProps) {
-  return (
-    <>
-      <DropdownMenuSeparator />
-      <DropdownMenuGroup>
-        <DropdownMenuItem variant="destructive" onClick={onDelete}>
-          <Trash2 aria-hidden="true" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuGroup>
-    </>
-  );
-}
-
 // The open ⋯ menu: Edit, Lists (every collection), Export, then Delete on its own. Edit and Delete change the shared
 // catalogue, so only an admin gets them, and a member on their own waiting submission; anyone keeps Lists and Export.
+// A read-only user sees Edit, Lists and Delete disabled, saying why; Export stays.
 function FunkoActionsMenuContent({ funko, collections, items, onDelete }: Props) {
   const canEdit = useCanEditFunko(funko);
+  const readOnlyReason = useReadOnlyReason();
 
   return (
     <DropdownMenuContent align="end">
       <DropdownMenuGroup>
-        {canEdit ? (
-          <DropdownMenuItem render={<Link viewTransition to={FUNKO_ROUTES_PATHS.edit(String(funko.id))} />}>
-            <Pencil aria-hidden="true" />
-            Edit
-          </DropdownMenuItem>
-        ) : null}
-        <ListsSubmenu funko={funko} collections={collections} items={items} />
+        {canEdit ? <FunkoEditMenuItem funkoId={funko.id} readOnlyReason={readOnlyReason} /> : null}
+        <ListsSubmenu funko={funko} collections={collections} items={items} readOnlyReason={readOnlyReason} />
         <ExportSubmenu funko={funko} />
       </DropdownMenuGroup>
-      {canEdit ? <DeleteGroup onDelete={onDelete} /> : null}
+      {canEdit ? <FunkoDeleteMenuGroup readOnlyReason={readOnlyReason} onDelete={onDelete} /> : null}
     </DropdownMenuContent>
   );
 }

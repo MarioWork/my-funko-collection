@@ -1,9 +1,9 @@
 import type { createMemoryRouter } from 'react-router';
-import { act, renderRoutes, screen, waitFor } from '@test-utils';
+import { act, renderRoutes, screen, userEvent, waitFor } from '@test-utils';
 import { AuthStateUtil } from '@app-types/utility';
-import { setMockAuthState } from '@mocks/mockStore';
+import { mockStore, setMockAuthState } from '@mocks/mockStore';
 import routes from '.';
-import { AUTH_ROUTES_PATHS, BASE_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from './routesUtils';
+import { AUTH_ROUTES_PATHS, BASE_ROUTES_PATHS, COLLECTION_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from './routesUtils';
 
 // The whole route table, so the root middleware, the app shell's gate and the auth pages all take part.
 function renderApp(initialEntry: string) {
@@ -63,4 +63,19 @@ it('never follows a redirectTo that leaves the app', async () => {
   const router = renderApp(`${AUTH_ROUTES_PATHS.LOGIN}?redirectTo=%2F%2Fevil.example`);
 
   await waitFor(() => expect(router.state.location.pathname).toBe(BASE_ROUTES_PATHS.HOME));
+});
+
+it('shows the writes disabled once the API refuses one as read-only, without signing in again', async () => {
+  renderApp(COLLECTION_ROUTES_PATHS.BASE);
+  await userEvent.click(await screen.findByRole('button', { name: 'Actions for Wishlist' }));
+
+  // An admin makes the user read-only while the app is open: the next write answers 403 READ_ONLY.
+  mockStore.auth.isReadOnly = true;
+  await userEvent.click(await screen.findByRole('menuitem', { name: 'Make default' }));
+
+  await waitFor(() =>
+    expect(screen.getAllByRole('button', { name: 'New collection' })[0]).toHaveAccessibleDescription(
+      /Your account is read-only/,
+    ),
+  );
 });

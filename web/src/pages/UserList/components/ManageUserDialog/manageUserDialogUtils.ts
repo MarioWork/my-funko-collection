@@ -15,16 +15,30 @@ export type UsernameFormValues = InferType<typeof usernameFormSchema>;
 
 export const USERNAME_FORM_DEFAULT_VALUES: UsernameFormValues = { username: '' };
 
-// The admin manages one user at a time: these are the three changes, each confirmed in its own dialog.
+// The admin manages one user at a time: these are the four changes, each confirmed in its own dialog.
 export const UserChange = {
   ROLE: 'role',
+  READ_ONLY: 'readOnly',
   TEMPORARY_PASSWORD: 'temporaryPassword',
   DELETE: 'delete',
 } as const;
 export type UserChange = (typeof UserChange)[keyof typeof UserChange];
 
-// Why the last admin's "Make member" and "Delete user" are disabled (docs/GLOSSARY.md: there is always one admin).
-export const LAST_ADMIN_REASON = 'There must always be at least one admin. Make someone else an admin first.';
+// Why the last admin's "Make member", "Make read-only" and "Delete user" are disabled (docs/GLOSSARY.md: there is
+// always one admin who is not read-only).
+export const LAST_ADMIN_REASON =
+  'There must always be at least one admin who can make changes. Make someone else an admin first.';
+
+// What a read-only user may do, and what everyone else may, in the manage panel and the read-only confirm.
+export const READ_ONLY_HINTS = {
+  READ_ONLY: 'Read-only: they look, and look after their own password and passkeys, but change nothing else.',
+  CAN_CHANGE: 'They can make changes, as their role allows.',
+} as const;
+
+// "Make read-only" / "Allow changes": the button offers the other setting.
+export function readOnlyLabel(isReadOnly: boolean): string {
+  return isReadOnly ? 'Allow changes' : 'Make read-only';
+}
 
 // What each role may do, in the manage panel and the role change's confirm.
 export const ROLE_HINTS: Record<UserRoleUtil, string> = {

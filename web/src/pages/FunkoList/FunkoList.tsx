@@ -5,6 +5,7 @@ import type { LoaderDataUtil } from '@app-types/utility';
 import { ADD_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AddFab from '@components/AddFab';
 import LinkButton from '@components/LinkButton';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import InfiniteListFooter from '@components/InfiniteListFooter';
 import PageHeader from '@components/PageHeader';
 import { useInfiniteList } from '@hooks/useInfiniteList';
@@ -30,15 +31,18 @@ function funkosPageOf(loaderData: unknown) {
   return (loaderData as FunkoListLoaderData)?.funkosResponse;
 }
 
-// Scan and New for everyone: an admin's new funko joins the catalogue, a member's waits for an admin.
+// Scan and New for everyone: an admin's new funko joins the catalogue, a member's waits for an admin. Disabled,
+// saying why, for a read-only user.
 function DesktopActions() {
+  const readOnlyReason = useReadOnlyReason();
+
   return (
     <>
-      <LinkButton to={ADD_ROUTES_PATHS.BASE} variant="outline">
+      <LinkButton to={ADD_ROUTES_PATHS.BASE} variant="outline" disabledReason={readOnlyReason}>
         <ScanBarcode data-icon="inline-start" aria-hidden="true" />
         Scan
       </LinkButton>
-      <LinkButton to={ADD_ROUTES_PATHS.MANUAL} aria-label="New funko">
+      <LinkButton to={ADD_ROUTES_PATHS.MANUAL} aria-label="New funko" disabledReason={readOnlyReason}>
         <Package data-icon="inline-start" aria-hidden="true" />
         New
       </LinkButton>

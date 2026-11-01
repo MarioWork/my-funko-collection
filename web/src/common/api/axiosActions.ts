@@ -68,6 +68,18 @@ export function isAdminOnlyFailure(value: unknown): boolean {
   return isForbidden && isAdminOnly;
 }
 
+// The envelope code of a write by a read-only user (403): an admin limited their account to looking.
+export const READ_ONLY_ERROR_CODE = 'READ_ONLY';
+
+// Whether a write was refused because the user is read-only (now).
+export function isReadOnlyFailure(value: unknown): boolean {
+  const failure = failureOf(value);
+  const isForbidden = failure?.statusCode === FORBIDDEN_STATUS;
+  const isReadOnly = failure?.code === READ_ONLY_ERROR_CODE;
+
+  return isForbidden && isReadOnly;
+}
+
 // The envelope code of a request made while signed in with a temporary password (403): it must be replaced first.
 export const PASSWORD_CHANGE_REQUIRED_ERROR_CODE = 'PASSWORD_CHANGE_REQUIRED';
 

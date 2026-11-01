@@ -1,5 +1,6 @@
 import { isRouteErrorResponse } from 'react-router';
 import { FORBIDDEN_STATUS, NOT_FOUND_STATUS } from '@utils/httpStatusUtils';
+import { isReadOnlyRouteError } from '@utils/readOnlyRouteUtils';
 import type { ErrorCopy, ErrorKind } from './types';
 
 export const ERROR_COPY: Record<ErrorKind, ErrorCopy> = {
@@ -12,6 +13,11 @@ export const ERROR_COPY: Record<ErrorKind, ErrorCopy> = {
     label: 'Admins only',
     title: 'This page is for admins',
     description: 'Only an admin can open it. Your collections and the catalogue are a tap away.',
+  },
+  readOnly: {
+    label: 'Look only',
+    title: 'Your account is read-only',
+    description: 'An admin limited it to looking, so this page has nothing for you. Ask them if you need a change.',
   },
   broken: {
     label: 'Oops',
@@ -29,6 +35,7 @@ export function errorKindOf(error: unknown): ErrorKind {
   const isNotFound = isRouteErrorResponse(error) && error.status === NOT_FOUND_STATUS;
 
   if (isNotFound) return 'notFound';
+  if (isReadOnlyRouteError(error)) return 'readOnly';
   if (isAdminOnlyError(error)) return 'adminOnly';
 
   return 'broken';

@@ -43,6 +43,7 @@ export default (baseUrl: string) => [
       userName: name,
       username: null,
       role: UserRoleUtil.ADMIN,
+      isReadOnly: false,
       password: null,
       mustChangePassword: false,
       isSignInRecent: true,

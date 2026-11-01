@@ -6,7 +6,7 @@ import { USER_ROUTES_PATHS } from '@application/routes/routesUtils';
 import RouteError from '@pages/Error/RouteError';
 import { createAuthenticationResponseMockModel } from '@mocks/handlers/auth/models/passkeyResponseMockModel.mock';
 import { MOCK_USER_ID } from '@mocks/mockAuth';
-import { mockStore, setMockUserRole } from '@mocks/mockStore';
+import { mockStore, setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
 
 vi.mock('@simplewebauthn/browser', () => ({
   browserSupportsWebAuthn: vi.fn(() => true),
@@ -184,4 +184,66 @@ describe('managing a user', () => {
     expect(deleteUser).toHaveAttribute('aria-disabled', 'true');
     expect(deleteUser).toHaveAccessibleDescription(/always be at least one admin/);
   });
+
+  it('makes a user read-only once confirmed, says so in their row, and lets them make changes again', async () => {
+    manageUser(LUKE_ID);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Make read-only' }));
+    await confirmIn('Make luke read-only?', 'Make read-only');
+
+    const panel = await screen.findByRole('dialog', { name: 'Manage luke' });
+    expect(await within(panel).findByText('Member, read-only')).toBeVisible();
+    expect(storedUser(LUKE_ID)?.isReadOnly).toBe(true);
+
+    await userEvent.click(within(panel).getByRole('button', { name: 'Allow changes' }));
+    await confirmIn('Let luke make changes again?', 'Allow changes');
+
+    expect(await within(panel).findByRole('button', { name: 'Make read-only' })).toBeVisible();
+    expect(storedUser(LUKE_ID)?.isReadOnly).toBe(false);
+  });
+
+  it('keeps the last admin who can make changes: making them read-only is disabled, with the reason', async () => {
+    const leia = storedUser(LEIA_ID);
+    if (leia) leia.isReadOnly = true;
+    manageUser(MARIO_ID);
+
+    const makeReadOnly = await screen.findByRole('button', { name: 'Make read-only' });
+
+    expect(makeReadOnly).toHaveAttribute('aria-disabled', 'true');
+    expect(makeReadOnly).toHaveAccessibleDescription(/always be at least one admin who can make changes/);
+  });
+
+  it('shows every change disabled, saying the account is read-only, when the admin is read-only', async () => {
+    setMockReadOnly();
+    manageUser(LUKE_ID);
+
+    const panel = await screen.findByRole('dialog', { name: 'Manage luke' });
+    const buttons = ['Make admin', 'Make read-only', 'New temporary password', 'Delete user'].map((name) =>
+      within(panel).getByRole('button', { name }),
+    );
+
+    for (const button of buttons) {
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+      expect(button).toHaveAccessibleDescription(/Your account is read-only/);
+    }
+  });
+});
+
+it('shows New user disabled, saying why, when the admin is read-only', async () => {
+  setMockReadOnly();
+  renderUsers();
+
+  const newUser = await screen.findByRole('button', { name: 'New user' });
+
+  expect(newUser).toHaveAttribute('aria-disabled', 'true');
+  expect(newUser).toHaveAccessibleDescription(/Your account is read-only/);
+  expect(screen.queryByRole('link', { name: 'New user' })).not.toBeInTheDocument();
+});
+
+it('says the account is read-only when a read-only admin opens the New user address', async () => {
+  setMockReadOnly();
+
+  renderUsers(`${USER_ROUTES_PATHS.BASE}/${USER_ROUTES_PATHS.ADD}`);
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Your account is read-only' })).toBeVisible();
 });

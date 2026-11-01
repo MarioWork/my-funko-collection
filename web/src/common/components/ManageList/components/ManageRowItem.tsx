@@ -30,7 +30,7 @@ const SUCCESS_MESSAGE_MAP: Record<string, (name: string) => string> = {
 // View mode: name, notes, what it is attached to, export its funkos, rename and delete (only when the list's
 // context says `canEdit`). Rename swaps the row for the inline form.
 function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
-  const { canEdit } = useManageListContext();
+  const { canEdit, readOnlyReason } = useManageListContext();
   const fetcher = useFetcher<JSONResponseUtil>();
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -105,6 +105,7 @@ function ManageRowItem({ row, rowPath, hasNotes, noun }: Props) {
           <ManageRowEditButtons
             row={row}
             isBusy={isBusy}
+            readOnlyReason={readOnlyReason}
             onRename={() => setIsEditing(true)}
             onDelete={() => setIsDeleteOpen(true)}
           />

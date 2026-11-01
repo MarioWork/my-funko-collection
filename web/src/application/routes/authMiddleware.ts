@@ -1,5 +1,10 @@
 import { redirect, type DataStrategyResult, type MiddlewareFunction } from 'react-router';
-import { isAdminOnlyFailure, isPasswordChangeFailure, isUnauthorizedFailure } from '@api/axiosActions';
+import {
+  isAdminOnlyFailure,
+  isPasswordChangeFailure,
+  isReadOnlyFailure,
+  isUnauthorizedFailure,
+} from '@api/axiosActions';
 import { loginPathFor, returnPathOf } from '@utils/authRedirectUtils';
 import { AUTH_ROUTES_PATHS } from './routesUtils';
 import { forgetSignedInUser } from './signedInUserMiddleware';
@@ -39,6 +44,9 @@ export const authMiddleware: MiddlewareFunction = async ({ request }, next) => {
 
   // The API refused an admin-only call: the user is no longer an admin, so the next request asks who they are again.
   if (hasResult(results, isAdminOnlyFailure)) forgetSignedInUser();
+
+  // The API refused a write as read-only: the next request asks again, so the app shows the writes disabled.
+  if (hasResult(results, isReadOnlyFailure)) forgetSignedInUser();
 
   // The API wants the temporary password replaced first: there, and nowhere else.
   if (hasResult(results, isPasswordChangeFailure)) {

@@ -102,22 +102,22 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 
 ## Pages
 
-| Path                                     | What                                                                                                                                                                   |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/home`                                  | Your stats (the funkos in your collections), recent funkos, your collections, by category, quick actions                                                               |
-| `/funkos`, `/funkos/:id`                 | The catalog: grid or table, search + filters + sort, detail with gallery                                                                                               |
-| `/add`, `/add/manual`                    | Scan-first add page: images, details, a card per collection (own copy)                                                                                                 |
-| `/collections`, `/collections/:id`       | Your lists and their items (table on desktop, cards on phones)                                                                                                         |
-| `/items`                                 | Every item across collections (filter by tag to find a box)                                                                                                            |
-| `/search`                                | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                                                                                          |
-| `/categories`, `/tags`, `/settings`      | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports                                                                             |
-| `/submissions`                           | Members only (in the normal sidebar): the funkos you sent in, each with its state as a chip in words                                                                   |
-| `/users`, `/users/add`, `/users/:userId` | Admin group, admins only: every user with role and state; New user shows the temporary password once; Manage changes a role, gives a new temporary password or deletes |
-| `/images`                                | Admin group, admins only: every stored image, loose files included, with who uploaded it and when                                                                      |
-| `/settings` → Security                   | Passkeys (add, remove), sign out, sign out everywhere                                                                                                                  |
-| `/login`                                 | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                                                                                 |
-| `/setup?code=...`                        | First run: your name and the first passkey, from the link in the log                                                                                                   |
-| `/set-password`                          | Outside the shell: a user signed in with a temporary password chooses their own before anything else                                                                   |
+| Path                                     | What                                                                                                                                                                                                                 |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/home`                                  | Your stats (the funkos in your collections), recent funkos, your collections, by category, quick actions                                                                                                             |
+| `/funkos`, `/funkos/:id`                 | The catalog: grid or table, search + filters + sort, detail with gallery                                                                                                                                             |
+| `/add`, `/add/manual`                    | Scan-first add page: images, details, a card per collection (own copy)                                                                                                                                               |
+| `/collections`, `/collections/:id`       | Your lists and their items (table on desktop, cards on phones)                                                                                                                                                       |
+| `/items`                                 | Every item across collections (filter by tag to find a box)                                                                                                                                                          |
+| `/search`                                | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                                                                                                                                        |
+| `/categories`, `/tags`, `/settings`      | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports                                                                                                                           |
+| `/submissions`                           | Members only (in the normal sidebar): the funkos you sent in, each with its state as a chip in words                                                                                                                 |
+| `/users`, `/users/add`, `/users/:userId` | Admin group, admins only: every user with role (and read-only) and state; New user shows the temporary password once; Manage changes a role, makes read-only or undoes it, gives a new temporary password or deletes |
+| `/images`                                | Admin group, admins only: every stored image, loose files included, with who uploaded it and when                                                                                                                    |
+| `/settings` → Security                   | Passkeys (add, remove), sign out, sign out everywhere                                                                                                                                                                |
+| `/login`                                 | Sign in with a passkey (outside the app shell); `?redirectTo=` returns                                                                                                                                               |
+| `/setup?code=...`                        | First run: your name and the first passkey, from the link in the log                                                                                                                                                 |
+| `/set-password`                          | Outside the shell: a user signed in with a temporary password chooses their own before anything else                                                                                                                 |
 
 ## How data flows
 
@@ -145,6 +145,14 @@ HttpOnly cookie the app never sees.
   and Series (read-only, Export stays). The sidebar's Admin group (and the phone menu's) holds Users and Images,
   admins only. A member who opens `/images` or `/users` gets the "This page is for admins" error page
   (`assertAdmin()` in those loaders).
+- **Read-only.** An admin can make a user read-only (`isReadOnly` on the signed-in user and on each user). Every write
+  control then shows disabled with the reason "Your account is read-only…" (`useReadOnlyReason()` +
+  `DisabledReason`: hover, keyboard focus, tap, and the control's description); `LinkButton`'s `disabledReason` and
+  the `AddFab` turn the "New ..." / Scan links into disabled buttons. Reads, Export, their own password and passkeys
+  and signing out stay. Pages made only for writing (Add, Edit funko, the collection and item dialogs, New user) call
+  `assertCanWrite()` in their loader, so their URL shows the "Your account is read-only" error page. If the API
+  refuses a write with 403 `READ_ONLY` (made read-only while the app was open), `authMiddleware` forgets the cached
+  user and the shell asks again.
 - **Submissions.** Everyone gets the Add form and the New funko buttons: an admin's funko joins the catalogue, a
   member's is a waiting submission only they see (`status`, `isSubmittedByMe` on a funko). The form and the saved
   card say so; a category or series the member types in with the "+" waits too and reads "(waiting for review)" in
@@ -160,11 +168,12 @@ HttpOnly cookie the app never sees.
   the same for any 403 `PASSWORD_CHANGE_REQUIRED`. That page (outside the shell) saves the new password under the
   username the admin gave, or signs out; saving opens Home.
 - **Managing users.** Each row's _Manage_ link opens `/users/:userId` (a routed dialog over the list, its own page on
-  phones; the user comes from the list's loader, `USER_LIST_ROUTE_ID`): _Make admin_ / _Make member_, _New temporary
+  phones; the user comes from the list's loader, `USER_LIST_ROUTE_ID`): _Make admin_ / _Make member_, _Make read-only_
+  / _Allow changes_ (the row's role then reads "Member, read-only"), _New temporary
   password_ (asks for a username when the user has none; the password is shown once, like New user) and _Delete user_.
   Each confirms in an alert dialog, needs a recent sign-in (the shared "confirm with passkey" step), and ends that
-  user's sessions. The last admin (`isLastAdmin` from the API) keeps _Make member_ and _Delete user_ disabled, saying
-  why (`DisabledReason`: hover, keyboard focus, tap, and the button's description). Changing or deleting yourself
+  user's sessions. The last admin who can make changes (`isLastAdmin` from the API) keeps _Make member_, _Make read-only_
+  and _Delete user_ disabled, saying why; a read-only admin sees all four disabled (`DisabledReason`: hover, keyboard focus, tap, and the button's description). Changing or deleting yourself
   signs you out: the list reload answers 401 and `authMiddleware` goes to the login page.
 - **Lost session.** The root route's `authMiddleware` lets every loader and action run, then turns any 401
   `UNAUTHORIZED` (a thrown read or an action's envelope) into a redirect to the login page, remembering the page.
@@ -195,7 +204,9 @@ HttpOnly cookie the app never sees.
   signed-in user (`isLastAdmin` worked out from every row), `POST /users` adds one with a made-up temporary password,
   `PATCH|DELETE /users/:userId` and `POST /users/:userId/temporary-password` change them like the API (a change to
   Mario signs this browser out), and a password sign-in as one of them makes the browser theirs. `setMockMustChangePassword()` (tests) starts signed in with a temporary password;
-  `requirePasswordChange.mock.handler.ts` then answers 403 `PASSWORD_CHANGE_REQUIRED` like the API. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
+  `requirePasswordChange.mock.handler.ts` then answers 403 `PASSWORD_CHANGE_REQUIRED` like the API. `setMockReadOnly()`
+  (tests; `test.use({ isReadOnly: true })` in Playwright) makes Mario read-only, and `requireWriteAccess.mock.handler.ts`
+  then answers 403 `READ_ONLY` on every write but his own password, passkeys and signing out. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
   mock user (`shellRoute()` for a table that needs it placed by hand). The store holds only Mario's own collections,
   items and tags, as the API sends them; an item write naming a tag that is not in it answers 404, like the API.
 - **E2E.** `auth.e2e.test.ts` runs the real ceremonies against Chrome's virtual authenticator (the
