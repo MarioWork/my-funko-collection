@@ -19,7 +19,8 @@ type SeedFunko = {
   exclusive?: string;
 };
 // Other members' submissions, so the admins' Submissions page has something to review: two waiting (the Thanos is
-// maybe a double of the catalogue's #78 in Pop! Marvel) and one rejected with its reason. Mirrors web/src/mocks/mockSeed.ts.
+// maybe a double of the catalogue's #78 in Pop! Marvel), each with a photo of its sender's, one rejected with its
+// reason and one merged. Mirrors web/src/mocks/mockSeed.ts.
 type SeedSubmission = {
   name: string;
   number: string;
@@ -710,6 +711,22 @@ for (const [index, row] of funkoRows.entries()) {
     await prisma.funkoImage.create({ data: { funkoId: row.id, uploadedById: seedUser.id, position, ...stored } });
     imageCount += 1;
   }
+}
+
+// Each waiting submission's own photo, uploaded by its sender, so merging one has an image to pick. Mirrors
+// web/src/mocks/mockSeed.ts.
+for (const [index, submission] of SUBMISSIONS.entries()) {
+  const row = submissionRows.find((candidate) => candidate.name === submission.name);
+  const isWaiting = submissionStatusOf(submission) === 'WAITING';
+
+  if (!row || !isWaiting) continue;
+
+  const stored = await processImage(row.id, await seedImage((index * HUE_STEP) % HUE_MAX));
+
+  await prisma.funkoImage.create({
+    data: { funkoId: row.id, uploadedById: idFor(memberIds, 'member', submission.sender), position: 0, ...stored },
+  });
+  imageCount += 1;
 }
 
 logger.info(
