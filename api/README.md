@@ -103,7 +103,7 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   ends after 7 days unused, and a new one replaces the browser's old one at every sign-in. It records how it was
   opened (`PASSKEY` or `PASSWORD`); only a passkey session points at its passkey.
 - **Passkeys.** `@simplewebauthn/server`: discoverable, user verification required, no attestation (any passkey
-  manager works, Bitwarden included). Adding or removing one needs a sign-in from the last 10 minutes; the last one can't go, and
+  manager works, Bitwarden included). Adding or removing one needs a recent sign-in (10 minutes); the last one can't go, and
   removing one ends every session it opened.
 - **Password.** Set or changed in Settings (`PUT /auth/password`, with the username; answers the user), which needs a sign-in from the
   last 10 minutes and ends every other session a password opened. At least 15 characters, no character-mix rules,
@@ -285,7 +285,7 @@ One envelope: `{ code, message, issues?, existingId? }`.
 | 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                                                 |
 | 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                                                 |
 | 401    | `TEMPORARY_PASSWORD_EXPIRED`                             | The right temporary password, after its 7 days                                                   |
-| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey, password or user change needs a fresh sign-in              |
+| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey, password or user change needs a recent sign-in              |
 | 403    | `ADMIN_ONLY`                                             | A member called an admin-only route, or changed a funko that is not their own waiting submission |
 | 403    | `PASSWORD_CHANGE_REQUIRED`                               | Signed in with a temporary password: replace it first                                            |
 | 404    | `NOT_FOUND`                                              |                                                                                                  |

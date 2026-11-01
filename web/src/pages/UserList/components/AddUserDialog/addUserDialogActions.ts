@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { withFreshSignIn } from '@api/freshSignIn';
+import { withRecentSignIn } from '@api/recentSignIn';
 import type { UserWithTemporaryPasswordApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import userService from '@services/userService/userService';
@@ -9,8 +9,8 @@ import { assertAdmin } from '@utils/adminRouteUtils';
 import { parseFormData } from '@utils/formDataUtils';
 import type { AddUserFormData } from './addUserDialogUtils';
 
-// Creating a user needs the admin's sign-in from the last 10 minutes: the first try may answer REAUTH_REQUIRED, and
-// the dialog then submits again with `reauth` (see withFreshSignIn). The answer carries the temporary password.
+// Creating a user needs the admin's recent sign-in (10 minutes): the first try may answer REAUTH_REQUIRED, and
+// the dialog then submits again with `reauth` (see withRecentSignIn). The answer carries the temporary password.
 export const addUserAction = async ({
   request,
   context,
@@ -22,6 +22,6 @@ export const addUserAction = async ({
   return failWhenInvalid(async () => {
     const fields = await CreateUserSchema.validate(user);
 
-    return withFreshSignIn(reauth, () => userService.addUser(fields));
+    return withRecentSignIn(reauth, () => userService.addUser(fields));
   });
 };

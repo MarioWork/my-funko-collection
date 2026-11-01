@@ -1,5 +1,5 @@
 import { redirect, type ActionFunctionArgs } from 'react-router';
-import { withFreshSignIn } from '@api/freshSignIn';
+import { withRecentSignIn } from '@api/recentSignIn';
 import type { AuthSessionApiModel, PasskeyApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS } from '@application/routes/routesUtils';
@@ -18,7 +18,7 @@ import { failWhenInvalid } from '@utils/actionUtils';
 
 // Settings → Security. The passkey actions run their browser ceremony here too, started by the dialog's submit.
 // Changing a passkey or the password needs a recent sign-in: the first try may answer REAUTH_REQUIRED, and the
-// dialog then submits again with `reauth` (see withFreshSignIn).
+// dialog then submits again with `reauth` (see withRecentSignIn).
 
 async function registerPasskey(name: string): Promise<JSONResponseUtil<PasskeyApiModel>> {
   const options = await authService.startAddPasskey();
@@ -40,14 +40,14 @@ export const addPasskeyAction = async ({ request }: ActionFunctionArgs): Promise
   return failWhenInvalid(async () => {
     const { name } = await addPasskeyFormSchema.validate(passkey);
 
-    return withFreshSignIn(reauth, () => registerPasskey(name));
+    return withRecentSignIn(reauth, () => registerPasskey(name));
   });
 };
 
 export const deletePasskeyAction = async ({ request, params }: ActionFunctionArgs): Promise<JSONResponseUtil> => {
   const { reauth } = parseFormData<DeletePasskeyFormData>(await request.formData());
 
-  return withFreshSignIn(reauth, () => authService.deletePasskey(String(params.passkeyId)));
+  return withRecentSignIn(reauth, () => authService.deletePasskey(String(params.passkeyId)));
 };
 
 export const setPasswordAction = async ({
@@ -58,7 +58,7 @@ export const setPasswordAction = async ({
   return failWhenInvalid(async () => {
     const fields = await SetPasswordSchema.validate(credentials);
 
-    const result = await withFreshSignIn(reauth, () => authService.setPassword(fields));
+    const result = await withRecentSignIn(reauth, () => authService.setPassword(fields));
 
     // The user now has a username: the shell asks for it again when it revalidates.
     if (result.success) forgetSignedInUser();

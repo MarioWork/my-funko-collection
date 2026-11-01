@@ -1,4 +1,4 @@
-// How the user confirms it's them when a change needs a sign-in from the last 10 minutes (403 REAUTH_REQUIRED): a
+// How the user confirms it's them when a change needs a recent sign-in (10 minutes) (403 REAUTH_REQUIRED): a
 // fresh passkey sign-in, or their own password (only for a user who has one).
 export const ReauthMethodUtil = {
   PASSKEY: 'passkey',

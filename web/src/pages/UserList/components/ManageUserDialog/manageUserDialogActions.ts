@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { withFreshSignIn } from '@api/freshSignIn';
+import { withRecentSignIn } from '@api/recentSignIn';
 import type { UserId } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import userService from '@services/userService/userService';
@@ -11,8 +11,8 @@ import type { ManageUserFormData } from './manageUserDialogUtils';
 
 type ManageUserRequest = ManageUserFormData & { userId: UserId };
 
-// Every change to a user needs the admin's sign-in from the last 10 minutes: the first try may answer
-// REAUTH_REQUIRED, and the dialog then submits again with `reauth` (see withFreshSignIn).
+// Every change to a user needs the admin's recent sign-in (10 minutes): the first try may answer
+// REAUTH_REQUIRED, and the dialog then submits again with `reauth` (see withRecentSignIn).
 async function readRequest({ request, params, context }: ActionFunctionArgs): Promise<ManageUserRequest> {
   assertAdmin(context);
 
@@ -28,7 +28,7 @@ export const updateUserAction = async (args: ActionFunctionArgs): Promise<JSONRe
   return failWhenInvalid(async () => {
     const fields = await UpdateUserSchema.validate(user);
 
-    return withFreshSignIn(reauth, () => userService.updateUser(userId, fields));
+    return withRecentSignIn(reauth, () => userService.updateUser(userId, fields));
   });
 };
 
@@ -39,14 +39,14 @@ export const addTemporaryPasswordAction = async (args: ActionFunctionArgs): Prom
   return failWhenInvalid(async () => {
     const fields = await CreateTemporaryPasswordSchema.validate(user ?? {});
 
-    return withFreshSignIn(reauth, () => userService.addTemporaryPassword(userId, fields));
+    return withRecentSignIn(reauth, () => userService.addTemporaryPassword(userId, fields));
   });
 };
 
 export const deleteUserAction = async (args: ActionFunctionArgs): Promise<JSONResponseUtil> => {
   const { reauth, userId } = await readRequest(args);
 
-  return withFreshSignIn(reauth, () => userService.deleteUser(userId));
+  return withRecentSignIn(reauth, () => userService.deleteUser(userId));
 };
 
 const MANAGE_USER_ACTION_MAP: VerbActionMap = {
