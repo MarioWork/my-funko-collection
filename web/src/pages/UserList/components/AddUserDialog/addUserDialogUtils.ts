@@ -8,7 +8,7 @@ export const addUserFormSchema = CreateUserSchema;
 
 export type AddUserFormValues = InferType<typeof addUserFormSchema>;
 
-// `reauth`: how the admin confirms it's them once asked (403 REAUTH_REQUIRED), see withFreshSignIn.
+// `reauth`: how the admin confirms it's them once asked (403 REAUTH_REQUIRED), see withRecentSignIn.
 export type AddUserFormData = { user: AddUserFormValues; reauth?: ReauthUtil };
 
 // A new user is a member unless the admin says otherwise.

@@ -12,7 +12,7 @@ type Props = {
   onConfirm: (method: ReauthMethodUtil) => void;
 };
 
-// The password half of "confirm it's you", shown once the server asked for a fresh sign-in and only to a user who
+// The password half of "confirm it's you", shown once the server asked for a recent sign-in and only to a user who
 // has a password. A wrong one is shown on the field.
 function ConfirmPasswordField({ step, formId, onConfirm }: Props) {
   if (!step.needsReauth || !step.canUsePassword) return null;

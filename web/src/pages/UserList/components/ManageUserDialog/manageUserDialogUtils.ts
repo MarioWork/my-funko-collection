@@ -5,7 +5,7 @@ import type { CreateTemporaryPassword, UpdateUser } from '@services/userService/
 import { AuthApiErrorCodes } from '@services/authService/authService';
 
 // What the manage dialog sends: the change itself (none for a delete), and `reauth` once the admin has been asked
-// to confirm it's them (403 REAUTH_REQUIRED, see withFreshSignIn).
+// to confirm it's them (403 REAUTH_REQUIRED, see withRecentSignIn).
 export type ManageUserFormData = { user?: UpdateUser | CreateTemporaryPassword; reauth?: ReauthUtil };
 
 // A user with no username yet gets one with their new temporary password.

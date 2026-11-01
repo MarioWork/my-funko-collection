@@ -42,7 +42,7 @@ function getTags(token: string) {
   return app.inject({ method: 'GET', url: '/tags', cookies: { [SESSION_COOKIE_NAME]: token } });
 }
 
-// Adding a passkey is one of the changes that needs a sign-in from the last 10 minutes.
+// Adding a passkey is one of the changes that needs a recent sign-in (10 minutes).
 function startAddPasskey(token: string) {
   return app.inject({ method: 'POST', url: '/auth/passkeys/options', cookies: { [SESSION_COOKIE_NAME]: token } });
 }
