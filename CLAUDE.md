@@ -114,7 +114,7 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 Inside `api/`:
 
 ```
-yarn dev            # http://localhost:3000, OpenAPI at /docs
+yarn dev            # applies pending migrations, then http://localhost:3000, OpenAPI at /docs
 yarn test           # Vitest: a copy of a migrated template db + temp uploads folder per test file
 yarn typecheck && yarn lint && yarn test   # the definition of green
 yarn db:migrate     # prisma migrate dev: apply, or --name=<change> after a schema edit (commit prisma/)
@@ -148,7 +148,8 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   `contains` does not escape `%`/`_`: always use `containsText()`. Check constraints, the one-default-per-user
   partial index and the default-collections trigger live by hand in the migration SQL (Prisma ignores them, so
   `migrate dev` never drops them).
-  Migrations run in their own one-shot `migrate` container before the api (`compose.yaml`), never at app start.
+  In production, migrations run in their own one-shot `migrate` container before the api (`compose.yaml`), never at
+  app start. In dev, `yarn dev` runs `prisma migrate deploy` + `prisma generate` first (never makes or resets one).
   Prisma refuses `migrate reset` from an AI agent: ask Mario, or have him run it.
 - `src/lib/imageStorage.ts` is the only file that imports `sharp` or touches the uploads folder.
 - Run the `node-ts-audit` skill on `api/` and `react-ts-audit` on `web/` before calling a change done.
