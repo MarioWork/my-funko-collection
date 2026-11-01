@@ -29,7 +29,13 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   Each image records who uploaded it (`uploaded_by_id`); deleting that user clears it ("Removed user" on the Images
   page) and never deletes the image.
 - One search endpoint: `GET /funkos?q=` searches every field, named params narrow one field. No separate `/search`.
-- `DELETE /funkos/:id` answers 409 while the funko is in a collection; `?force=true` removes it from all of them.
+- `DELETE /funkos/:id` answers 409 `IN_COLLECTIONS` with `userCount` while the funko is in a collection; `?force=true`
+  removes it from all of them. Taking it from other users' collections (issue #13) needs `{ reason }` in the body (400
+  without; the body keeps it out of request logs), and every user who had it (the admin too, if they had it) gets a
+  `FUNKO_REMOVED` notification with the funko's name and the reason, no funko link. The admin learns how many users
+  have it (the 409's `userCount`, `userCount` on the admin's `GET /funkos/:id`), never whose; the web's
+  `FunkoRemoveDialog` says so and asks why. A delete that only touches the deleter's own items needs no reason and
+  tells nobody.
 - Deleting a tag only removes the label from items. Deleting a collection removes its items, never the funkos.
 - Collections, items and tags belong to one user (`docs/adr/0001-shared-catalogue-own-collections.md`); the
   catalogue is shared. Every collection/item/tag read and write takes the signed-in user's id
@@ -110,8 +116,9 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   are named for what they check, not with the get/add/update/delete verbs. Approve / reject / merge is issue #10.
 - Notifications (issue #11): approve and reject tell the sender (reject with its reason; an orphan submission has
   nobody to tell), a new or resent submission tells every admin. One `notifications` table: `kind` (an enum),
-  `funko_id` (the funko to open, cleared when it goes) and the funko's name as written, `reason?`, `read_at`. Merge
-  (#12) and force-delete (#13) add their own `kind`, no new column. A user sees and marks only their own (404
+  `funko_id` (the funko to open, cleared when it goes) and the funko's name as written, `reason?`, `read_at`.
+  Force-delete (#13) added `FUNKO_REMOVED` (`funko_id` null from the start); merge (#12) adds its own `kind`, no new
+  column. A user sees and marks only their own (404
   otherwise); marking read is open to read-only users. Kept 90 days with no scheduler: reads skip older rows and
   every new notification deletes everyone's older ones in the same transaction. No email, no push. The web bell's
   count comes from the app shell loader, refreshed by revalidation (every write, every page change), never a poll.

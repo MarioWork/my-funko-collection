@@ -1,7 +1,8 @@
 // The in-memory data behind every mock handler. One store per page load (and per test, through resetMockStore()),
 // so an add or a delete changes the next list the way the real API would. It holds the catalogue with every
 // submission in it (the handlers show other members' waiting ones to nobody, as the API does: mockCatalogueUtils),
-// and only the signed-in user's own collections, items and tags (the API never sends another user's).
+// and only the signed-in user's own collections, items and tags (the API never sends another user's); of other users'
+// items only which user has which funko, for the count an admin sees before deleting one.
 import {
   FunkoTypeUtil,
   NotificationKindUtil,

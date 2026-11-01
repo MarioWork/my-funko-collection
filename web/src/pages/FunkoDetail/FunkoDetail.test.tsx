@@ -2,8 +2,9 @@ import { http, HttpResponse } from 'msw/http';
 import { deferred, renderRoutes, screen, userEvent, waitFor, within } from '@test-utils';
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { SubmissionStatusUtil, UserRoleUtil } from '@app-types/utility';
+import { NotificationKindUtil, SubmissionStatusUtil, UserRoleUtil } from '@app-types/utility';
 import RouteError from '@pages/Error/RouteError';
+import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
 import { addMockSubmission, mockStore, setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
@@ -51,6 +52,51 @@ it('announces why the delete failed, as an alert in the dialog, when the funko i
   await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
   expect(await within(dialog).findByRole('alert')).toHaveTextContent(/still in a collection/);
+});
+
+const FUNKO_TWO_OTHER_USERS_HAVE = 'Grogu';
+const HAN_ID = MOCK_MEMBER_ID + 1;
+
+// The funko luke and han have in their own collections (the mock seed's other users' items).
+function funkoOtherUsersHave() {
+  return mockStore.funkos.find((funko) => funko.name === FUNKO_TWO_OTHER_USERS_HAVE);
+}
+
+async function openDeleteOf(funkoName: string | undefined) {
+  await userEvent.click(await screen.findByRole('button', { name: `Actions for ${funkoName}` }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+
+  return screen.findByRole('dialog', { name: `Delete ${funkoName}?` });
+}
+
+it('tells an admin how many other users have the funko, never who, and asks for a reason', async () => {
+  const funko = funkoOtherUsersHave();
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(funko?.id))] });
+
+  const dialog = await openDeleteOf(funko?.name);
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+  expect(within(dialog).getByText(/2 other users have it in their collections/)).toBeVisible();
+  expect(dialog).not.toHaveTextContent(/luke|han/);
+  expect(within(dialog).getByRole('textbox', { name: 'Why?' })).toHaveAccessibleDescription(/Say why/);
+});
+
+it('deletes a funko other users have with the reason, and tells each of them', async () => {
+  const funko = funkoOtherUsersHave();
+  const reason = 'A double of another Grogu';
+  const { router } = renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(funko?.id))] });
+
+  const dialog = await openDeleteOf(funko?.name);
+  await userEvent.type(within(dialog).getByRole('textbox', { name: 'Why?' }), reason);
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+  await waitFor(() => expect(router.state.location.pathname).toBe(FUNKO_ROUTES_PATHS.BASE));
+  const told = mockStore.notifications.filter(
+    (row) => row.kind === NotificationKindUtil.FUNKO_REMOVED && row.funkoName === funko?.name,
+  );
+  // luke and han, and the signed-in admin, who had it too.
+  expect(told.map((row) => row.userId).toSorted()).toEqual([MOCK_USER_ID, MOCK_MEMBER_ID, HAN_ID].toSorted());
+  expect(told.every((row) => row.reason === reason && row.funkoId === null)).toBe(true);
 });
 
 it('shows the Wishlist toggle pressed at once and flips it back when the add fails', async () => {

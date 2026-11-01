@@ -10,4 +10,6 @@ export interface FunkoDetailApiModel extends FunkoApiModel {
   // before approving it (null if never). Left out for everyone else.
   rejectionReason?: string | null;
   changedByAdminAt?: string | null;
+  // Admins only: how many users have it in a collection (never who), for deleting it. Left out for members.
+  userCount?: number;
 }

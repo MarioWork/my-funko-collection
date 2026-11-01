@@ -1,11 +1,16 @@
 // What the notification handlers share, and what other handlers call to tell someone something, as the API's
-// notifications service does: approving or rejecting tells the sender, a new or resent submission every admin.
+// notifications service does: approving or rejecting tells the sender, a new or resent submission every admin, a
+// forced delete every user who had the funko.
 import type { NotificationApiModel } from '@app-types/models';
-import { UserRoleUtil, type NotificationKindUtil } from '@app-types/utility';
+import { NotificationKindUtil, UserRoleUtil } from '@app-types/utility';
 import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow, MockNotificationRow } from '@mocks/mockStore.type';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
+
+function notifiedFunkoOf(funko: MockFunkoRow): NotifiedFunko {
+  return { funkoId: funko.id, funkoName: funko.name };
+}
 
 export function toNotificationModel({ userId: _userId, ...row }: MockNotificationRow): NotificationApiModel {
   return row;
@@ -42,14 +47,16 @@ function adminIds(): number[] {
   return isMockUserAdmin ? [MOCK_USER_ID, ...otherAdminIds] : otherAdminIds;
 }
 
-function notify(userIds: number[], kind: NotificationKindUtil, funko: MockFunkoRow, reason: string | null): void {
+// The funko a notification names: null `funkoId` once it is gone, its name kept.
+type NotifiedFunko = { funkoId: number | null; funkoName: string };
+
+function notify(userIds: number[], kind: NotificationKindUtil, funko: NotifiedFunko, reason: string | null): void {
   for (const userId of userIds) {
     mockStore.notifications.push({
       id: nextId(mockStore.notifications),
       userId,
       kind,
-      funkoId: funko.id,
-      funkoName: funko.name,
+      ...funko,
       reason,
       isRead: false,
       createdAt: nowIso(),
@@ -61,9 +68,14 @@ function notify(userIds: number[], kind: NotificationKindUtil, funko: MockFunkoR
 export function notifyMockSender(kind: NotificationKindUtil, funko: MockFunkoRow, reason: string | null = null): void {
   if (funko.submittedById === null) return;
 
-  notify([funko.submittedById], kind, funko, reason);
+  notify([funko.submittedById], kind, notifiedFunkoOf(funko), reason);
 }
 
 export function notifyMockAdmins(kind: NotificationKindUtil, funko: MockFunkoRow): void {
-  notify(adminIds(), kind, funko, null);
+  notify(adminIds(), kind, notifiedFunkoOf(funko), null);
+}
+
+// To every user who had it: an admin deleted the funko, and why. It is gone, so only its name is kept.
+export function notifyMockFunkoRemoved(userIds: number[], funkoName: string, reason: string): void {
+  notify(userIds, NotificationKindUtil.FUNKO_REMOVED, { funkoId: null, funkoName }, reason);
 }
