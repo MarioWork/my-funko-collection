@@ -11,12 +11,13 @@ import {
 import { logger } from '../../../lib/logger.ts';
 import { fetchRemoteFile } from '../../../lib/remoteFetch.ts';
 import type { SignedInUser } from '../../auth/auth.type.ts';
-import { assertCanEditFunko } from '../funkos.access.ts';
+import { assertCanEditFunko, canSeeFunko } from '../funkos.access.ts';
 import { funkoImagesRepository, type FunkoImageRow } from './funkoImages.repository.ts';
 import type { ReorderImages, RotateImage } from './funkoImages.schema.ts';
 import type { FunkoImageResponse } from './funkoImages.type.ts';
 
 const ENTITY = 'Image';
+const FILE_ENTITY = 'Image file';
 
 const log = logger.child({ module: 'funkoImages' });
 
@@ -52,6 +53,19 @@ async function assertNotDuplicate(funkoId: number, contentHash: string): Promise
 // they cannot see it, 403 ADMIN_ONLY when they see it but may not change it.
 async function assertCanEditImagesOf(user: SignedInUser, funkoId: number): Promise<void> {
   assertCanEditFunko(user, funkoId, await funkoImagesRepository.findFunkoAccess(funkoId));
+}
+
+// For the image files under /uploads: a funko's photos are seen by whoever may open the funko. Once approved that is
+// everyone signed in; a waiting, rejected or merged submission's only by admins and its sender (whoever uploaded
+// each photo), so an orphaned one (its sender deleted) by admins only. A file outside any funko the user may open
+// (no such funko, a loose file) answers 404 to a member; an admin sees every file, as the Images page lists them.
+export async function assertCanSeeImageFiles(user: SignedInUser, funkoId: number | undefined): Promise<void> {
+  if (user.isAdmin) return;
+
+  const funko = funkoId === undefined ? undefined : await funkoImagesRepository.findFunkoAccess(funkoId);
+  const isVisible = funko !== undefined && canSeeFunko(user, funko);
+
+  if (!isVisible) throw new NotFoundError(FILE_ENTITY, funkoId ?? 'unknown');
 }
 
 // `userId` is the signed-in user: every image records who uploaded it.
