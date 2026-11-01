@@ -6,6 +6,11 @@ import { logger } from '../../lib/logger.ts';
 import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
 import { isUsableCategory } from '../categories/categories.service.ts';
+import {
+  notifyAdminsOfSubmission,
+  notifySubmissionApproved,
+  notifySubmissionRejected,
+} from '../notifications/notifications.service.ts';
 import { isUsableSeries } from '../series/series.service.ts';
 import type {
   DoubleMatchField,
@@ -306,6 +311,8 @@ export async function addFunko(user: SignedInUser, input: CreateFunko): Promise<
 
   log.info({ funkoId: row.id, status: row.status }, 'funko created');
 
+  if (row.status === 'WAITING') await notifyAdminsOfSubmission({ funkoId: row.id, funkoName: row.name }, false);
+
   return toSingleResponse(user.userId, row);
 }
 
@@ -536,6 +543,10 @@ export async function approveSubmission(id: number): Promise<SubmissionResponse>
 
   log.info({ funkoId: id }, 'submission approved');
 
+  // An orphan submission has no sender left to tell.
+  if (row.submittedById !== null)
+    await notifySubmissionApproved(row.submittedById, { funkoId: id, funkoName: row.name });
+
   return toSingleSubmission(id);
 }
 
@@ -554,15 +565,17 @@ async function deleteRejectedOrphan(id: number): Promise<RejectionOutcome> {
 // to fix and send again, or delete. An orphan submission is deleted instead.
 export async function rejectSubmission(id: number, reason: string): Promise<RejectionOutcome> {
   const current = await findWaitingSubmission(id);
-  const isOrphan = current.submittedById === null;
+  const senderId = current.submittedById;
 
-  if (isOrphan) return deleteRejectedOrphan(id);
+  if (senderId === null) return deleteRejectedOrphan(id);
 
   const row = await funkosRepository.reject(id, reason);
 
   if (!row) throw new ConflictError(NOT_WAITING_MESSAGE);
 
   log.info({ funkoId: id }, 'submission rejected');
+
+  await notifySubmissionRejected(senderId, { funkoId: id, funkoName: current.name }, reason);
 
   return { isDeleted: false, submission: await toSingleSubmission(id) };
 }
@@ -582,6 +595,8 @@ export async function resendSubmission(user: SignedInUser, id: number): Promise<
   if (!row) throw new ConflictError(NOT_REJECTED_MESSAGE);
 
   log.info({ funkoId: id }, 'submission sent again');
+
+  await notifyAdminsOfSubmission({ funkoId: id, funkoName: current.name }, true);
 
   return toSingleSubmission(id);
 }

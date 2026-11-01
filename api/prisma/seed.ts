@@ -45,6 +45,7 @@ const REFERENCE_COLLECTION_NAMES = ['Owned', 'Wishlist'];
 const SEED_USER_NAME = 'Collector';
 const WEBAUTHN_USER_ID_BYTES = 32;
 const TAG_NAMES = ['Box 1', 'Box 2', 'Display shelf'];
+const HOUR_MS = 60 * 60 * 1000;
 // Members who sent funkos in. No password or passkey: an admin gives one a temporary password on the Users page to
 // sign in as them. Found by username, so seeding again keeps them (and their collections).
 const SEED_MEMBER_USERNAMES = ['luke', 'han'];
@@ -239,8 +240,9 @@ if (env.NODE_ENV === 'production') {
 }
 
 // One delete per table, children first, and the uploads folder with them. Users, sign-in data and every user's
-// reference collections are left alone.
+// reference collections are left alone; every notification goes, since the funkos they name go.
 await prisma.$transaction([
+  prisma.notification.deleteMany(),
   prisma.collectionItemTag.deleteMany(),
   prisma.collectionItem.deleteMany(),
   prisma.funkoImage.deleteMany(),
@@ -329,6 +331,36 @@ const submissionRows = await prisma.funko.createManyAndReturn({
       reviewedAt: isRejected ? new Date() : null,
     };
   }),
+  select: NAME_SELECT,
+});
+
+// What the submissions above would have told people: every admin heard of each one sent in (the oldest already read),
+// and the sender of the rejected one heard why. Mirrors web/src/mocks/mockSeed.ts.
+const submissionIds = new Map(submissionRows.map((row) => [row.name, row.id]));
+const adminRows = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+const notificationRows = await prisma.notification.createManyAndReturn({
+  data: SUBMISSIONS.flatMap((submission, index) => {
+    const funko = { funkoId: idFor(submissionIds, 'submission', submission.name), funkoName: submission.name };
+    const sentAt = new Date(Date.now() - (SUBMISSIONS.length - index) * HOUR_MS);
+    const toAdmins = adminRows.map((admin) => ({
+      userId: admin.id,
+      kind: 'SUBMISSION_SENT' as const,
+      ...funko,
+      readAt: index === 0 ? sentAt : null,
+      createdAt: sentAt,
+    }));
+
+    if (submission.rejectionReason === undefined) return toAdmins;
+
+    const toSender = {
+      userId: idFor(memberIds, 'member', submission.sender),
+      kind: 'SUBMISSION_REJECTED' as const,
+      ...funko,
+      reason: submission.rejectionReason,
+    };
+
+    return [...toAdmins, toSender];
+  }),
   select: { id: true },
 });
 
@@ -391,6 +423,7 @@ logger.info(
     funkos: funkoRows.length,
     members: memberRows.length,
     submissions: submissionRows.length,
+    notifications: notificationRows.length,
     collections: collectionRows.length,
     tags: tagRows.length,
     items: ITEMS.length,
