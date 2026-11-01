@@ -8,11 +8,15 @@ type Props = {
   // The browser's passkey prompt is open (or the request around it is running).
   isWaiting: boolean;
   isSupported: boolean;
+  // Something else the dialog started is running (a password confirm next to it): off, with the reason.
+  isBusy?: boolean;
   // Shown before the label; a spinner takes its place while waiting.
   icon: ReactNode;
   type?: 'button' | 'submit';
   form?: string;
   size?: ComponentProps<typeof Button>['size'];
+  // "outline" when it is the second choice next to another button.
+  variant?: ComponentProps<typeof Button>['variant'];
   className?: string;
   onClick?: () => void;
   children: ReactNode;
@@ -20,10 +24,14 @@ type Props = {
 
 const WAITING_LABEL = 'Waiting for your passkey…';
 
-function disabledReasonOf(isSupported: boolean, isWaiting: boolean): string | undefined {
+type DisabledState = Pick<Props, 'isSupported' | 'isWaiting' | 'isBusy'>;
+
+function disabledReasonOf({ isSupported, isWaiting, isBusy }: DisabledState): string | undefined {
   if (!isSupported) return DISABLED_REASONS.PASSKEY_UNSUPPORTED;
 
   if (isWaiting) return DISABLED_REASONS.PASSKEY_WAITING;
+
+  if (isBusy) return DISABLED_REASONS.WORKING;
 
   return undefined;
 }
@@ -33,15 +41,17 @@ function disabledReasonOf(isSupported: boolean, isWaiting: boolean): string | un
 function PasskeyButton({
   isWaiting,
   isSupported,
+  isBusy = false,
   icon,
   type = 'button',
   form,
   size,
+  variant,
   className,
   onClick,
   children,
 }: Props) {
-  const disabledReason = disabledReasonOf(isSupported, isWaiting);
+  const disabledReason = disabledReasonOf({ isSupported, isWaiting, isBusy });
 
   return (
     <DisabledReason reason={disabledReason}>
@@ -49,6 +59,7 @@ function PasskeyButton({
         type={type}
         form={form}
         size={size}
+        variant={variant}
         className={className}
         disabled={disabledReason !== undefined}
         onClick={onClick}

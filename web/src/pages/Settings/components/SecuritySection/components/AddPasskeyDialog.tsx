@@ -1,10 +1,12 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { Fingerprint, KeyRound } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { useFetcher } from 'react-router';
 import type { PasskeyApiModel } from '@app-types/models';
-import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
+import { HttpVerbsUtil, ReauthMethodUtil, type JSONResponseUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS } from '@application/routes/routesUtils';
 import CancelButton from '@components/CancelButton';
+import ConfirmIdentityButtons from '@components/ConfirmIdentityButtons';
+import ConfirmPasswordField from '@components/ConfirmPasswordField';
 import InlineAlert from '@components/InlineAlert';
 import PasskeyButton from '@components/PasskeyButton';
 import {
@@ -18,12 +20,10 @@ import {
 import { useActionToast } from '@hooks/useActionToast';
 import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
 import { useFormCompat } from '@hooks/useFormCompat';
-import { AuthApiErrorCodes } from '@services/authService/authService';
 import { authFailureMessage } from '@utils/authMessageUtils';
 import { createFormData } from '@utils/formDataUtils';
 import { useConfirmIdentityStep } from '@hooks/useConfirmIdentityStep';
 import ReauthNotice from '@components/ReauthNotice';
-import { CONFIRM_IDENTITY_COPY } from '@utils/reauthUtils';
 import { addPasskeyFormSchema, PASSKEY_FAILURE_MESSAGES, type AddPasskeyFormValues } from '../../../settingsUtils';
 import PasskeyNameField from './PasskeyNameField';
 
@@ -32,6 +32,7 @@ type Props = {
 };
 
 const FORM_ID = 'add-passkey';
+const CONFIRM_PASSWORD_FORM_ID = `${FORM_ID}-confirm`;
 
 // Mounted while open, so every opening starts with an empty form and a fresh fetcher. The submit goes to the
 // passkeys action, which runs the browser's "save a passkey" prompt.
@@ -43,19 +44,22 @@ function AddPasskeyDialog({ onClose }: Props) {
   });
   const isAdding = fetcher.state !== 'idle';
   const failure = fetcher.data?.success === false && !isAdding ? fetcher.data.error : undefined;
-  const needsReauth = useConfirmIdentityStep(failure);
-  // The REAUTH_REQUIRED answer itself is shown as the "confirm it's you" notice, not as an error.
-  const shownFailure = failure?.code === AuthApiErrorCodes.REAUTH_REQUIRED ? undefined : failure;
+  const step = useConfirmIdentityStep(failure);
+  // The confirm step shows its own answers (the notice, a wrong password on its field), not as an error here.
+  const shownFailure = step.isStepFailure ? undefined : failure;
 
   useActionToast(fetcher, { successMessage: 'Passkey added' });
   useCloseOnSuccess(fetcher, onClose);
 
-  const onSubmit = handleSubmit((values) => {
-    void fetcher.submit(createFormData({ passkey: values, isReauth: needsReauth }), {
-      method: HttpVerbsUtil.POST,
-      action: AUTH_ROUTES_PATHS.PASSKEYS,
+  const submitWith = (method: ReauthMethodUtil) =>
+    handleSubmit((values) => {
+      void fetcher.submit(createFormData({ passkey: values, reauth: step.reauthFor(method) }), {
+        method: HttpVerbsUtil.POST,
+        action: AUTH_ROUTES_PATHS.PASSKEYS,
+      });
     });
-  });
+
+  const confirm = (method: ReauthMethodUtil) => void submitWith(method)();
 
   // Closing mid-ceremony would hide its result; the Cancel button says why it is off.
   const changeOpen = (isOpen: boolean) => {
@@ -69,30 +73,44 @@ function AddPasskeyDialog({ onClose }: Props) {
           <DialogTitle>Add a passkey</DialogTitle>
           <DialogDescription>Give it a name, then your browser asks where to save it.</DialogDescription>
         </DialogHeader>
-        <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-4">
+        <form
+          id={FORM_ID}
+          onSubmit={(event) => void submitWith(ReauthMethodUtil.PASSKEY)(event)}
+          noValidate
+          className="flex flex-col gap-4"
+        >
           <PasskeyNameField control={control} idPrefix={FORM_ID} />
-          {needsReauth ? <ReauthNotice nextStep="Then your browser asks where to save the new one." /> : null}
-          {shownFailure ? (
-            <InlineAlert tone="error">{authFailureMessage(shownFailure, PASSKEY_FAILURE_MESSAGES)}</InlineAlert>
+          {step.needsReauth ? (
+            <ReauthNotice
+              nextStep="Then your browser asks where to save the new one."
+              canUsePassword={step.canUsePassword}
+            />
           ) : null}
         </form>
+        <ConfirmPasswordField step={step} formId={CONFIRM_PASSWORD_FORM_ID} onConfirm={confirm} />
+        {shownFailure ? (
+          <InlineAlert tone="error">{authFailureMessage(shownFailure, PASSKEY_FAILURE_MESSAGES)}</InlineAlert>
+        ) : null}
         <DialogFooter>
           <CancelButton isSubmitting={isAdding} onCancel={onClose} />
-          <PasskeyButton
-            type="submit"
-            form={FORM_ID}
-            isWaiting={isAdding}
-            isSupported
-            icon={
-              needsReauth ? (
-                <Fingerprint data-icon="inline-start" aria-hidden="true" />
-              ) : (
-                <KeyRound data-icon="inline-start" aria-hidden="true" />
-              )
-            }
-          >
-            {needsReauth ? CONFIRM_IDENTITY_COPY.BUTTON : 'Create passkey'}
-          </PasskeyButton>
+          {step.needsReauth ? (
+            <ConfirmIdentityButtons
+              step={step}
+              isSaving={isAdding}
+              passwordFormId={CONFIRM_PASSWORD_FORM_ID}
+              onConfirm={confirm}
+            />
+          ) : (
+            <PasskeyButton
+              type="submit"
+              form={FORM_ID}
+              isWaiting={isAdding}
+              isSupported
+              icon={<KeyRound data-icon="inline-start" aria-hidden="true" />}
+            >
+              Create passkey
+            </PasskeyButton>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,8 +1,9 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useFetcher } from 'react-router';
 import type { AuthSessionApiModel } from '@app-types/models';
-import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
+import { HttpVerbsUtil, ReauthMethodUtil, type JSONResponseUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS } from '@application/routes/routesUtils';
+import ConfirmPasswordField from '@components/ConfirmPasswordField';
 import InlineAlert from '@components/InlineAlert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
 import { useActionToast } from '@hooks/useActionToast';
@@ -24,8 +25,7 @@ type Props = {
 };
 
 const FORM_ID = 'set-password';
-// Answers the dialog shows elsewhere than in its alert: the reauth one as the notice, the common one on its field.
-const NOT_ALERTED_CODES = new Set<string>([AuthApiErrorCodes.REAUTH_REQUIRED, AuthApiErrorCodes.COMMON_PASSWORD]);
+const CONFIRM_PASSWORD_FORM_ID = `${FORM_ID}-confirm`;
 
 // Mounted while open, so every opening starts fresh. The username is filled in from the last one; the password
 // field is "new-password", so a password manager offers to make one and saves it after.
@@ -37,20 +37,24 @@ function SetPasswordDialog({ username, onClose }: Props) {
   });
   const isSaving = fetcher.state !== 'idle';
   const failure = fetcher.data?.success === false && !isSaving ? fetcher.data.error : undefined;
-  const needsReauth = useConfirmIdentityStep(failure);
+  const step = useConfirmIdentityStep(failure);
   const passwordError = failure?.code === AuthApiErrorCodes.COMMON_PASSWORD ? failure.message : undefined;
-  const alertedFailure = failure?.code && NOT_ALERTED_CODES.has(failure.code) ? undefined : failure;
+  // The confirm step's answers show in the step, a common password on its field; anything else in the alert.
+  const alertedFailure = step.isStepFailure || passwordError !== undefined ? undefined : failure;
   const title = username ? 'Change your password' : 'Set a password';
 
   useActionToast(fetcher, { successMessage: 'Password saved' });
   useCloseOnSuccess(fetcher, onClose);
 
-  const onSubmit = handleSubmit((credentials) => {
-    void fetcher.submit(createFormData({ credentials, isReauth: needsReauth }), {
-      method: HttpVerbsUtil.PUT,
-      action: AUTH_ROUTES_PATHS.PASSWORD,
+  const submitWith = (method: ReauthMethodUtil) =>
+    handleSubmit((credentials) => {
+      void fetcher.submit(createFormData({ credentials, reauth: step.reauthFor(method) }), {
+        method: HttpVerbsUtil.PUT,
+        action: AUTH_ROUTES_PATHS.PASSWORD,
+      });
     });
-  });
+
+  const confirm = (method: ReauthMethodUtil) => void submitWith(method)();
 
   const changeOpen = (isOpen: boolean) => {
     if (!isOpen && !isSaving) onClose();
@@ -63,14 +67,29 @@ function SetPasswordDialog({ username, onClose }: Props) {
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>Sign in with it on any device, next to your passkeys.</DialogDescription>
         </DialogHeader>
-        <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-4">
+        <form
+          id={FORM_ID}
+          onSubmit={(event) => void submitWith(ReauthMethodUtil.PASSKEY)(event)}
+          noValidate
+          className="flex flex-col gap-4"
+        >
           <SetPasswordFields control={control} idPrefix={FORM_ID} passwordError={passwordError} />
-          {needsReauth ? <ReauthNotice nextStep="Then the password is saved." /> : null}
-          {alertedFailure ? (
-            <InlineAlert tone="error">{authFailureMessage(alertedFailure, PASSWORD_FAILURE_MESSAGES)}</InlineAlert>
+          {step.needsReauth ? (
+            <ReauthNotice nextStep="Then the password is saved." canUsePassword={step.canUsePassword} />
           ) : null}
         </form>
-        <SetPasswordFooter formId={FORM_ID} isSaving={isSaving} needsReauth={needsReauth} onCancel={onClose} />
+        <ConfirmPasswordField step={step} formId={CONFIRM_PASSWORD_FORM_ID} onConfirm={confirm} />
+        {alertedFailure ? (
+          <InlineAlert tone="error">{authFailureMessage(alertedFailure, PASSWORD_FAILURE_MESSAGES)}</InlineAlert>
+        ) : null}
+        <SetPasswordFooter
+          formId={FORM_ID}
+          passwordFormId={CONFIRM_PASSWORD_FORM_ID}
+          isSaving={isSaving}
+          step={step}
+          onConfirm={confirm}
+          onCancel={onClose}
+        />
       </DialogContent>
     </Dialog>
   );

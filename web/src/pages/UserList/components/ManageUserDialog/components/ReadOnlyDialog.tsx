@@ -6,7 +6,7 @@ import { useCloseOnSuccess } from '@hooks/useCloseOnSuccess';
 import { userTitle } from '../../../userListUtils';
 import { useUserChange } from '../hooks/useUserChange';
 import { READ_ONLY_HINTS, SIGNS_OUT_EVERYWHERE, readOnlyLabel } from '../manageUserDialogUtils';
-import UserChangeDialog from './UserChangeDialog';
+import UserChangeDialog, { type UserChangeConfirm } from './UserChangeDialog';
 import UserChangeFooter from './UserChangeFooter';
 
 type Props = {
@@ -24,6 +24,8 @@ type ReadOnlyChangeCopy = {
 };
 
 type ReadOnlyChangeDirection = 'makeReadOnly' | 'allowChanges';
+
+const CONFIRM_PASSWORD_FORM_ID = 'read-only-confirm';
 
 const COPY_MAP: Record<ReadOnlyChangeDirection, ReadOnlyChangeCopy> = {
   makeReadOnly: {
@@ -50,6 +52,11 @@ function ReadOnlyDialog({ user, onClose }: Props) {
   const isMakingReadOnly = !user.isReadOnly;
   const copy = COPY_MAP[isMakingReadOnly ? 'makeReadOnly' : 'allowChanges'];
   const Icon = copy.icon;
+  const confirm: UserChangeConfirm = {
+    step: change.step,
+    passwordFormId: CONFIRM_PASSWORD_FORM_ID,
+    onConfirm: (reauthMethod) => change.submit(HttpVerbsUtil.PATCH, { isReadOnly: isMakingReadOnly }, reauthMethod),
+  };
 
   useActionToast(change.fetcher, { successMessage: copy.outcome(name) });
   useCloseOnSuccess(change.fetcher, onClose);
@@ -59,7 +66,7 @@ function ReadOnlyDialog({ user, onClose }: Props) {
       title={copy.title(name)}
       description={`${copy.hint} ${SIGNS_OUT_EVERYWHERE}`}
       nextStep={copy.nextStep(name)}
-      isReauthNeeded={change.isReauthNeeded}
+      confirm={confirm}
       isSaving={change.isSaving}
       failure={change.failure}
       onClose={onClose}
@@ -69,8 +76,7 @@ function ReadOnlyDialog({ user, onClose }: Props) {
           confirmIcon={<Icon data-icon="inline-start" aria-hidden="true" />}
           isDestructive={false}
           isSaving={change.isSaving}
-          isReauthNeeded={change.isReauthNeeded}
-          onConfirm={() => change.submit(HttpVerbsUtil.PATCH, { isReadOnly: isMakingReadOnly })}
+          confirm={confirm}
         />
       }
     />

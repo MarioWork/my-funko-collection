@@ -1,7 +1,7 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { KeyRound } from 'lucide-react';
 import type { UserApiModel, UserWithTemporaryPasswordApiModel } from '@app-types/models';
-import { HttpVerbsUtil } from '@app-types/utility';
+import { HttpVerbsUtil, ReauthMethodUtil } from '@app-types/utility';
 import TextField from '@components/TextField';
 import { AlertDialogFooter } from '@components/ui/alert-dialog';
 import { Button } from '@components/ui/button';
@@ -16,7 +16,7 @@ import {
   usernameFormSchema,
   type UsernameFormValues,
 } from '../manageUserDialogUtils';
-import UserChangeDialog from './UserChangeDialog';
+import UserChangeDialog, { type UserChangeConfirm } from './UserChangeDialog';
 import UserChangeFooter from './UserChangeFooter';
 
 type Props = {
@@ -25,6 +25,7 @@ type Props = {
 };
 
 const FORM_ID = 'new-temporary-password';
+const CONFIRM_PASSWORD_FORM_ID = `${FORM_ID}-confirm`;
 const CONFIRM_LABEL = 'Make password';
 const NEW_PASSWORD_DESCRIPTION = 'Their old password stops working. Passkeys they added keep working.';
 const NEEDS_USERNAME_DESCRIPTION = 'They have no username yet: pick the one they sign in with.';
@@ -42,14 +43,29 @@ function TemporaryPasswordDialog({ user, onClose }: Props) {
   const isUsernameTaken = change.failure?.statusCode === CONFLICT_STATUS;
   const description = `${needsUsername ? NEEDS_USERNAME_DESCRIPTION : NEW_PASSWORD_DESCRIPTION} ${SIGNS_OUT_EVERYWHERE}`;
 
-  const submitWithUsername = handleSubmit((values) => change.submit(HttpVerbsUtil.POST, values));
+  const submitWithUsername = (reauthMethod: ReauthMethodUtil) =>
+    handleSubmit((values) => change.submit(HttpVerbsUtil.POST, values, reauthMethod));
+
+  const makePassword = (reauthMethod: ReauthMethodUtil) => {
+    if (needsUsername) {
+      void submitWithUsername(reauthMethod)();
+      return;
+    }
+
+    change.submit(HttpVerbsUtil.POST, {}, reauthMethod);
+  };
+
+  const confirm: UserChangeConfirm = {
+    step: change.step,
+    passwordFormId: CONFIRM_PASSWORD_FORM_ID,
+    onConfirm: makePassword,
+  };
 
   if (change.result) {
     return (
       <UserChangeDialog
         title="New temporary password"
         description={`Give it to ${name}.`}
-        isReauthNeeded={false}
         isSaving={false}
         failure={undefined}
         onClose={onClose}
@@ -69,7 +85,7 @@ function TemporaryPasswordDialog({ user, onClose }: Props) {
       title={`Give ${name} a new temporary password?`}
       description={description}
       nextStep={`Then ${name} gets a new temporary password.`}
-      isReauthNeeded={change.isReauthNeeded}
+      confirm={confirm}
       isSaving={change.isSaving}
       failure={isUsernameTaken ? undefined : change.failure}
       onClose={onClose}
@@ -79,14 +95,13 @@ function TemporaryPasswordDialog({ user, onClose }: Props) {
           confirmIcon={<KeyRound data-icon="inline-start" aria-hidden="true" />}
           isDestructive={false}
           isSaving={change.isSaving}
-          isReauthNeeded={change.isReauthNeeded}
+          confirm={confirm}
           formId={needsUsername ? FORM_ID : undefined}
-          onConfirm={() => change.submit(HttpVerbsUtil.POST, {})}
         />
       }
     >
       {needsUsername ? (
-        <form id={FORM_ID} onSubmit={(event) => void submitWithUsername(event)} noValidate>
+        <form id={FORM_ID} onSubmit={(event) => void submitWithUsername(ReauthMethodUtil.PASSKEY)(event)} noValidate>
           <TextField
             control={control}
             idPrefix={FORM_ID}
