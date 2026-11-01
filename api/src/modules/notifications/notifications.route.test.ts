@@ -168,7 +168,7 @@ describe('POST /submissions/:funkoId/resubmission', () => {
 });
 
 describe('GET /notifications', () => {
-  it('lists only the signed-in user’s own notifications, newest first', async () => {
+  it('lists only the signed-in user’s own notifications, newest first, when several users have some', async () => {
     const olderId = await createNotification(member.userId, 2);
     const newerId = await createNotification(member.userId, 1);
     await createNotification(admin.userId);
@@ -192,7 +192,7 @@ describe('GET /notifications', () => {
     expect(await notificationsOf(member)).toMatchObject([{ funkoId: null, funkoName: 'Thanos' }]);
   });
 
-  it('leaves out notifications older than 90 days', async () => {
+  it('leaves out a notification when it is older than 90 days', async () => {
     await createNotification(member.userId, 91);
     const recentId = await createNotification(member.userId, 89);
 
@@ -228,7 +228,7 @@ describe('notification clean-up', () => {
 });
 
 describe('GET /notifications/unread-count', () => {
-  it('counts only the signed-in user’s unread notifications', async () => {
+  it('counts only the signed-in user’s unread ones when others are read or another user’s', async () => {
     await createNotification(member.userId);
     const readId = await createNotification(member.userId);
     await prisma.notification.update({ where: { id: readId }, data: { readAt: new Date() } });
@@ -250,15 +250,6 @@ describe('PATCH /notifications/:notificationId', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ id, isRead: true });
     expect(await unreadCountOf(member)).toBe(0);
-  });
-
-  it('marks it unread again when asked', async () => {
-    const id = await createNotification(member.userId);
-    await member.inject({ method: 'PATCH', url: `/notifications/${id}`, payload: { isRead: true } });
-
-    const response = await member.inject({ method: 'PATCH', url: `/notifications/${id}`, payload: { isRead: false } });
-
-    expect(response.json()).toMatchObject({ id, isRead: false });
   });
 
   it('lets a read-only user mark their own notification read', async () => {
@@ -289,6 +280,14 @@ describe('PATCH /notifications/:notificationId', () => {
     const response = await member.inject({ method: 'PATCH', url: `/notifications/${id}`, payload: { isRead: true } });
 
     expect(response.statusCode).toBe(404);
+  });
+
+  it('returns 400 when the body marks it unread', async () => {
+    const id = await createNotification(member.userId);
+
+    const response = await member.inject({ method: 'PATCH', url: `/notifications/${id}`, payload: { isRead: false } });
+
+    expect(response.statusCode).toBe(400);
   });
 
   it('returns 400 when the body carries an unknown field', async () => {

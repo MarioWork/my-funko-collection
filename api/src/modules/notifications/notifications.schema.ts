@@ -10,9 +10,9 @@ export const NotificationParamsSchema = z.object({
 // Always newest first: a list of messages has no other useful order.
 export const ListNotificationsQuerySchema = PaginationQuerySchema.pick({ page: true, size: true });
 
-// Opening a notification marks it read; `false` makes it unread again.
+// Opening a notification marks it read. Only `true`: nothing marks one unread again.
 export const UpdateNotificationSchema = z.strictObject({
-  isRead: z.boolean(),
+  isRead: z.literal(true),
 });
 
 // "Mark all read". Only `true`: nothing marks every notification unread.
@@ -41,7 +41,6 @@ export const UnreadCountResponseSchema = z.object({
 });
 
 export type ListNotificationsQuery = z.infer<typeof ListNotificationsQuerySchema>;
-export type UpdateNotification = z.infer<typeof UpdateNotificationSchema>;
 export type NotificationResponse = z.infer<typeof NotificationResponseSchema>;
 export type NotificationListResponse = z.infer<typeof NotificationListResponseSchema>;
 export type UnreadCountResponse = z.infer<typeof UnreadCountResponseSchema>;

@@ -17,7 +17,7 @@ const NOTIFICATION_SELECT = {
 export type NotificationRow = Prisma.NotificationGetPayload<{ select: typeof NOTIFICATION_SELECT }>;
 
 // One message to write, to one or more users.
-export type NewNotifications = {
+export type NewNotification = {
   userIds: number[];
   kind: NotificationKind;
   funkoId: number;
@@ -62,8 +62,8 @@ export const notificationsRepository = {
 
   // Writes the new ones and deletes everyone's past the cut-off, in one go: writing is when the table grows, so that
   // is when it is trimmed.
-  createAndTrim: async (notifications: NewNotifications, cutoff: Date): Promise<void> => {
-    const { userIds, ...message } = notifications;
+  createAndTrim: async (notification: NewNotification, cutoff: Date): Promise<void> => {
+    const { userIds, ...message } = notification;
 
     await prisma.$transaction([
       prisma.notification.createMany({ data: userIds.map((userId) => ({ userId, ...message })) }),
@@ -71,7 +71,7 @@ export const notificationsRepository = {
     ]);
   },
 
-  setReadAt: async (userId: number, id: number, readAt: Date | null, cutoff: Date) => {
+  setReadAt: async (userId: number, id: number, readAt: Date, cutoff: Date) => {
     const write = await prisma.notification.updateMany({
       where: { id, ...ownRecent(userId, cutoff) },
       data: { readAt },
