@@ -43,18 +43,20 @@ export const NOTIFICATION_WORDING: Record<NotificationKindUtil, NotificationWord
 };
 
 // Where opening each kind goes: an approved funko's page, the sender's own submissions (to fix and send again), or
-// the admins' review list. A removed funko is gone (its `funkoId` is always null), so targetOf() never opens it.
-const NOTIFICATION_TARGETS: Record<NotificationKindUtil, (funkoId: number) => string> = {
+// the admins' review list. A removed funko is gone: nothing to open.
+const NOTIFICATION_TARGETS: Record<NotificationKindUtil, ((funkoId: number) => string) | null> = {
   [NotificationKindUtil.SUBMISSION_APPROVED]: (funkoId) => FUNKO_ROUTES_PATHS.detail(String(funkoId)),
   [NotificationKindUtil.SUBMISSION_REJECTED]: () => SUBMISSION_ROUTES_PATHS.BASE,
   [NotificationKindUtil.SUBMISSION_SENT]: () => SUBMISSION_ROUTES_PATHS.REVIEW,
   [NotificationKindUtil.SUBMISSION_RESENT]: () => SUBMISSION_ROUTES_PATHS.REVIEW,
-  [NotificationKindUtil.FUNKO_REMOVED]: () => FUNKO_ROUTES_PATHS.BASE,
+  [NotificationKindUtil.FUNKO_REMOVED]: null,
 };
 
-// Undefined once the funko was deleted: there is nothing left to open.
+// Undefined once the funko was deleted, or for a kind with nothing to open.
 export function targetOf({ kind, funkoId }: NotificationApiModel): string | undefined {
-  if (funkoId === null) return undefined;
+  const target = NOTIFICATION_TARGETS[kind];
 
-  return NOTIFICATION_TARGETS[kind](funkoId);
+  if (funkoId === null || target === null) return undefined;
+
+  return target(funkoId);
 }

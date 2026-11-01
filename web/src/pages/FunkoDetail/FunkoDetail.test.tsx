@@ -5,7 +5,7 @@ import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { NotificationKindUtil, SubmissionStatusUtil, UserRoleUtil } from '@app-types/utility';
 import RouteError from '@pages/Error/RouteError';
 import { MOCK_USER_ID } from '@mocks/mockAuth';
-import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
+import { MOCK_MEMBER_ID, MOCK_SECOND_MEMBER_ID } from '@mocks/mockUsers';
 import { addMockSubmission, mockStore, setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
 import { SERVER_ERROR_STATUS } from '@utils/httpStatusUtils';
@@ -55,11 +55,14 @@ it('announces why the delete failed, as an alert in the dialog, when the funko i
 });
 
 const FUNKO_TWO_OTHER_USERS_HAVE = 'Grogu';
-const HAN_ID = MOCK_MEMBER_ID + 1;
 
 // The funko luke and han have in their own collections (the mock seed's other users' items).
 function funkoOtherUsersHave() {
-  return mockStore.funkos.find((funko) => funko.name === FUNKO_TWO_OTHER_USERS_HAVE);
+  const funko = mockStore.funkos.find((candidate) => candidate.name === FUNKO_TWO_OTHER_USERS_HAVE);
+
+  if (!funko) throw new Error(`The mock seed has no ${FUNKO_TWO_OTHER_USERS_HAVE}`);
+
+  return funko;
 }
 
 async function openDeleteOf(funkoName: string | undefined) {
@@ -95,7 +98,9 @@ it('deletes a funko other users have with the reason, and tells each of them', a
     (row) => row.kind === NotificationKindUtil.FUNKO_REMOVED && row.funkoName === funko?.name,
   );
   // luke and han, and the signed-in admin, who had it too.
-  expect(told.map((row) => row.userId).toSorted()).toEqual([MOCK_USER_ID, MOCK_MEMBER_ID, HAN_ID].toSorted());
+  expect(told.map((row) => row.userId).toSorted()).toEqual(
+    [MOCK_USER_ID, MOCK_MEMBER_ID, MOCK_SECOND_MEMBER_ID].toSorted(),
+  );
   expect(told.every((row) => row.reason === reason && row.funkoId === null)).toBe(true);
 });
 
