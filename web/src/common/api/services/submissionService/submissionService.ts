@@ -63,7 +63,8 @@ export default {
       data: fields,
     }),
 
-  // Admins only: the sender's items move onto a catalogue funko and the submission reads as merged into it.
+  // Admins only: the sender's items move onto a catalogue funko, which takes the picked fields and images, and the
+  // submission reads as merged into it.
   mergeSubmission: async (id: SubmissionId, fields: MergeSubmission): Promise<JSONResponseUtil<SubmissionApiModel>> =>
     axiosActions<SubmissionApiModel>({
       url: `${BASE_SUBMISSIONS_URL}/${id}/merge`,
@@ -93,6 +94,19 @@ export const SubmissionApiReviewStates = {
   DONE: 'DONE',
 } as const;
 export type SubmissionApiReviewStates = (typeof SubmissionApiReviewStates)[keyof typeof SubmissionApiReviewStates];
+
+// The catalogue fields a merge can take from the submission instead of keeping the catalogue funko's own.
+export const SubmissionApiMergeFields = {
+  NAME: 'NAME',
+  NUMBER: 'NUMBER',
+  TYPE: 'TYPE',
+  CATEGORY: 'CATEGORY',
+  SERIES: 'SERIES',
+  CHASE: 'CHASE',
+  EXCLUSIVE: 'EXCLUSIVE',
+  BARCODE: 'BARCODE',
+} as const;
+export type SubmissionApiMergeFields = (typeof SubmissionApiMergeFields)[keyof typeof SubmissionApiMergeFields];
 
 export const SubmissionApiReviewSearchFields = {
   STATE: 'state',

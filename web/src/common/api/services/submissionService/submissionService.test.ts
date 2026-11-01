@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw/http';
 import { SortingDirectionUtil, SubmissionStatusUtil } from '@app-types/utility';
 import { TEST_BASE_API_URL, server } from '@mocks/server';
 import submissionService, {
+  SubmissionApiMergeFields,
   SubmissionApiReviewSearchFields,
   SubmissionApiReviewStates,
   SubmissionApiSearchFields,
@@ -107,7 +108,7 @@ describe('rejectSubmission', () => {
 });
 
 describe('mergeSubmission', () => {
-  it('posts the target to the submission’s merge and returns it merged', async () => {
+  it('posts the target and the picked fields and images to the submission’s merge and returns it merged', async () => {
     let received: ReceivedRequest | undefined;
     server.use(
       http.post(`${TEST_BASE_API_URL}/submissions/:funkoId/merge`, async ({ request, params }) => {
@@ -117,9 +118,16 @@ describe('mergeSubmission', () => {
       }),
     );
 
-    const result = await submissionService.mergeSubmission(7, { targetFunkoId: 3 });
+    const choices = {
+      targetFunkoId: 3,
+      fieldsFromSubmission: [SubmissionApiMergeFields.NAME, SubmissionApiMergeFields.BARCODE],
+      imageIdsFromSubmission: [21],
+      removedImageIds: [11],
+    };
 
-    expect(received).toEqual({ path: '7', body: { targetFunkoId: 3 } });
+    const result = await submissionService.mergeSubmission(7, choices);
+
+    expect(received).toEqual({ path: '7', body: choices });
     expect(result).toMatchObject({ success: true, data: { status: SubmissionStatusUtil.MERGED } });
   });
 
@@ -130,7 +138,12 @@ describe('mergeSubmission', () => {
       ),
     );
 
-    const result = await submissionService.mergeSubmission(7, { targetFunkoId: 3 });
+    const result = await submissionService.mergeSubmission(7, {
+      targetFunkoId: 3,
+      fieldsFromSubmission: [],
+      imageIdsFromSubmission: [],
+      removedImageIds: [],
+    });
 
     expect(result).toMatchObject({ success: false, error: { statusCode: 400 } });
   });

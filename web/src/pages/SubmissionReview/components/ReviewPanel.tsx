@@ -5,7 +5,6 @@ import type { SubmissionApiReviewStates } from '@services/submissionService/subm
 import { useReviewActions } from '../hooks/useReviewActions';
 import { ReviewActionsContext } from '../ReviewActionsContext';
 import { REVIEW_EMPTY_COPY } from '../submissionReviewUtils';
-import MergeSubmissionDialog from './MergeSubmissionDialog';
 import RejectSubmissionDialog from './RejectSubmissionDialog';
 import ReviewTable from './ReviewTable';
 
@@ -14,11 +13,11 @@ type Props = {
   state: SubmissionApiReviewStates;
 };
 
-// One tab's content: its submissions, or a word on why there are none. It owns approve, reject and merge (and their
-// dialogs), so their toast and errors outlive the row they came from.
+// One tab's content: its submissions, or a word on why there are none. It owns approve and reject (and the reject
+// dialog), so their toast and errors outlive the row they came from. Merge opens its own routed dialog.
 function ReviewPanel({ submissions, state }: Props) {
   const actions = useReviewActions();
-  const { rejecting, merging } = actions;
+  const { rejecting } = actions;
   const hasSubmissions = submissions.length > 0;
   const { title, description } = REVIEW_EMPTY_COPY[state];
 
@@ -39,15 +38,6 @@ function ReviewPanel({ submissions, state }: Props) {
           isSaving={actions.isBusy}
           failure={actions.rejectFailure}
           onReject={(values) => actions.reject(rejecting, values)}
-          onClose={actions.closeDialogs}
-        />
-      ) : null}
-      {merging ? (
-        <MergeSubmissionDialog
-          submission={merging}
-          isSaving={actions.isBusy}
-          failure={actions.mergeFailure}
-          onMerge={(values) => actions.merge(merging, values)}
           onClose={actions.closeDialogs}
         />
       ) : null}

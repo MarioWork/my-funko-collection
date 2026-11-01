@@ -143,6 +143,7 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 | `/categories`, `/tags`, `/settings`      | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports                                                                                                                                       |
 | `/submissions`                           | Members only (in the normal sidebar): the funkos you sent in, each with its state as a chip in words, why one was rejected (Send again), what it was merged into and whether an admin changed it                                 |
 | `/submissions/review`                    | Admin group, admins only: every member's submissions, Waiting (Approve, Merge into a catalogue funko, Reject with a reason, "Maybe a double") and Done tabs (`?state=DONE`)                                                      |
+| `/submissions/review/:funkoId/merge`     | Admins only, a dialog over the review page: pick the catalogue funko a submission is the same as, then (`?into=<id>`) pick side by side what that funko keeps                                                                    |
 | `/notifications`                         | Everyone (a sidebar item on desktop, the bell in the phone header, with the unread count): your notifications, newest first; opening one marks it read and goes to the funko, your submissions or the review list; Mark all read |
 | `/users`, `/users/add`, `/users/:userId` | Admin group, admins only: every user with role (and read-only) and state; New user shows the temporary password once; Manage changes a role, makes read-only or undoes it, gives a new temporary password or deletes             |
 | `/images`                                | Admin group, admins only: every stored image, loose files included, with who uploaded it and when                                                                                                                                |
@@ -196,16 +197,27 @@ HttpOnly cookie the app never sees.
   (`SubmissionReviewNotes`, also on the funko page and the Done tab) and Send again on a rejected one.
 - **Reviewing submissions.** Admins review on _Submissions_ in the Admin group (`/submissions/review`, Waiting and
   Done tabs as `?state=`). A waiting row says who sent it ("Removed user" for a deleted member), flags "Maybe a
-  double" with links to the other funkos (same barcode, or same number and category), and has Approve, Merge and
-  Reject;
+  double" with links to the other funkos (same barcode, or same number and category), and has Approve, "This is a
+  double of…" (every waiting row), Merge (only when a maybe-double is in the catalogue) and Reject;
   the funko's name opens its page, where an admin can fix it first (the sender is then told). Reject asks for a
-  reason in a dialog (for an orphan submission it says rejecting deletes it). Merge opens a dialog listing the
-  approved maybe-doubles first (the first one picked; each labelled by `funkoLabelOf`, so "#78 Thanos (Chase)" never reads like the regular one) and a search of the catalogue (`useMergeTargets`, reusing the
+  reason in a dialog (for an orphan submission it says rejecting deletes it). Merge is a routed dialog
+  (`MergeSubmissionDialog`, `/submissions/review/:funkoId/merge`, its own loader and action) with two steps, one
+  flow for both ways in (`detectedMergeLinkOf`): with exactly one catalogue maybe-double, Merge opens straight on
+  the side-by-side step (`?into=<id>`); with several, or by hand with "This is a double of…", it opens on the pick
+  step,
+  which lists the catalogue maybe-doubles first (the first one picked; each labelled by `funkoLabelOf`, so "#78
+  Thanos (Chase)" never reads like the regular one) and searches the catalogue (`useMergeTargets`, reusing the
   `useSuggestions` type-ahead, so no new read outside a loader); a picked search result stays listed while the admin
-  searches again, and Enter in the search never submits. A read-only admin sees Approve, Merge and Reject disabled
-  with the reason, and a read-only member Send again. One `useReviewActions()` fetcher owns all three, so the toast
-  and a refusal (the catalogue already has the funko or barcode, with a link to it) outlive the row that leaves the
-  tab.
+  searches again, Enter in the search never submits, and Next puts the pick in the URL (Back returns). The
+  side-by-side step (issue #39) shows each field that differs as a radio group named after the field, "Original"
+  (picked to start with) or "Submission"; fields that are the same show once under "Same on both". Category and
+  series compare by name, as the API brings a waiting one onto the approved one of that name. A submission barcode
+  another catalogue funko holds is offered disabled, saying whose it is (the loader looks it up with
+  `GET /funkos?barcode=`). Images are checkboxes ("Original image 1", "Submission image 1"): the original's ticked,
+  the submission's not; "Pick another funko" goes back. A refusal shows in the dialog in the API's words; success
+  toasts and closes. A read-only admin sees Approve, "This is a double of…", Merge and Reject disabled with the
+  reason (and opening the dialog's URL shows the read-only page), and a read-only member Send again. One `useReviewActions()` fetcher owns approve and reject, so the toast and a refusal (the catalogue
+  already has the funko or barcode, with a link to it) outlive the row that leaves the tab.
 - **Notifications.** The sidebar's Notifications item on desktop (`SidebarNotificationsEntry`, after the four
   destinations) and the bell in the phone header (`NotificationBell`) link to `/notifications` and carry the unread
   count (`UnreadBadge`), in their name too ("Notifications, 2 unread", `describeNotificationsLink`). The count comes from
@@ -267,11 +279,14 @@ HttpOnly cookie the app never sees.
   puts one in, the signed-in user's unless `submittedById` names another member (null: a removed user's); a
   rejected one carries a reason, a merged one its `mergedIntoId`. The seed (`mockSeed.ts`) adds four of other
   members' after everything else, so the review page has something: luke's waiting "Thanos (Infinity Gauntlet)"
-  (maybe a double of #78), han's waiting "Mandalorian with Grogu", luke's rejected "Bluey" and han's "Baby Yoda",
+  (maybe a double of #78), han's waiting "Mandalorian with Grogu" (each with one photo its sender uploaded, so a
+  merge has an image to pick), luke's rejected "Bluey" and han's "Baby Yoda",
   merged into Grogu, with the notifications they sent (each admin heard of all four, the oldest and the merged one
   read; luke of his rejection, han of his merge), as in the api seed. The review handlers (`handlers/submission/`)
   approve (moving a waiting category or series into the catalogue), reject, merge (`mergeSubmission.mock.handler.ts`:
-  the items move, a clash in one collection becomes one item) and resend like the API, and an admin's change to
+  the picked fields and images are checked and applied as the API does in `mergeChoicesMockUtils.ts`, all but the
+  same-picture rule, as the store keeps no picture hashes; the items move, a clash in one collection becomes one
+  item) and resend like the API, and an admin's change to
   someone's submission (fields, or a photo added or removed) sets `changedByAdminAt` (`recordMockAdminChange`);
   sending it again clears it, and rejecting an orphan submission deletes it, as on the API. Approving, rejecting,
   merging, sending again and a member's new funko write notifications into `mockStore.notifications`
