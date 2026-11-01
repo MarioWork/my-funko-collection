@@ -79,5 +79,5 @@ it('says why a rejected submission cannot be sent again while the member waits o
   const row = await screen.findByRole('row', { name: /Rejected Twin/ });
   await userEvent.click(within(row).getByRole('button', { name: 'Send again' }));
 
-  expect(await within(row).findByRole('alert')).toHaveTextContent('This funko already exists');
+  expect(await within(row).findByRole('alert')).toHaveTextContent('This barcode belongs to another funko');
 });

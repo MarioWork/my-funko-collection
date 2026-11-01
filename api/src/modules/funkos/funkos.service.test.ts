@@ -1,5 +1,6 @@
 import { ConflictError } from '../../lib/httpErrors.ts';
-import { addFunko } from './funkos.service.ts';
+import type { FunkoRow } from './funkos.repository.ts';
+import { addFunko, approveSubmission } from './funkos.service.ts';
 
 vi.mock('./funkos.repository.ts', () => ({
   funkosRepository: {
@@ -9,6 +10,9 @@ vi.mock('./funkos.repository.ts', () => ({
     findManyByIds: vi.fn(),
     primaryImagesByFunkoIds: vi.fn(),
     collectionsByFunkoIds: vi.fn(),
+    findById: vi.fn(),
+    findCatalogueReferences: vi.fn(),
+    approve: vi.fn(),
   },
 }));
 
@@ -64,5 +68,53 @@ describe('addFunko', () => {
     });
     expect(isUsableCategory).toHaveBeenCalledWith(CATEGORY_ID, MEMBER.userId);
     expect(funkosRepository.findIdByIdentity).not.toHaveBeenCalled();
+  });
+});
+
+const WAITING_ROW: FunkoRow = {
+  id: 7,
+  name: 'Thanos',
+  number: '78',
+  type: 'POP',
+  isChase: false,
+  exclusive: '',
+  barcode: '0889698123456',
+  categoryId: CATEGORY_ID,
+  categoryName: 'Pop! Marvel',
+  seriesId: null,
+  seriesName: null,
+  status: 'WAITING',
+  submittedById: MEMBER.userId,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+describe('approveSubmission', () => {
+  it('throws ConflictError and approves nothing when the submission is no longer waiting', async () => {
+    vi.mocked(funkosRepository.findById).mockResolvedValue({ ...WAITING_ROW, status: 'REJECTED' });
+
+    const attempt = approveSubmission(WAITING_ROW.id);
+
+    await expect(attempt).rejects.toMatchObject({ code: 'CONFLICT', statusCode: 409 });
+    expect(funkosRepository.approve).not.toHaveBeenCalled();
+  });
+
+  it('checks the identity under the category it will have once approved, and points at the catalogue funko', async () => {
+    const approvedCategoryId = 9;
+    vi.mocked(funkosRepository.findById).mockResolvedValue(WAITING_ROW);
+    vi.mocked(funkosRepository.findCatalogueReferences).mockResolvedValue({
+      categoryId: approvedCategoryId,
+      seriesId: null,
+    });
+    vi.mocked(funkosRepository.findIdByIdentity).mockResolvedValue({ id: EXISTING_ID });
+
+    const attempt = approveSubmission(WAITING_ROW.id);
+
+    await expect(attempt).rejects.toMatchObject({ code: 'CONFLICT', existingId: EXISTING_ID });
+    expect(funkosRepository.findIdByIdentity).toHaveBeenCalledWith(
+      expect.objectContaining({ categoryId: approvedCategoryId }),
+      { submittedById: null },
+    );
+    expect(funkosRepository.approve).not.toHaveBeenCalled();
   });
 });

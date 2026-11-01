@@ -2,7 +2,13 @@ import { http, HttpResponse } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { SubmissionStatusUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
-import { findBarcodeTwin, findDuplicate, findEditableFunko } from '@mocks/handlers/funko/funkoMockUtils';
+import {
+  DUPLICATE_BARCODE_MESSAGE,
+  DUPLICATE_FUNKO_MESSAGE,
+  findBarcodeTwin,
+  findDuplicate,
+  findEditableFunko,
+} from '@mocks/handlers/funko/funkoMockUtils';
 import { badRequest, conflict, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow, MockSubmissionColumns } from '@mocks/mockStore.type';
@@ -99,9 +105,13 @@ function catalogueClashOf(funko: MockFunkoRow): Response | undefined {
 // Sending a rejected one again checks it as a waiting one: against the catalogue and the sender's other waiting ones.
 function waitingClashOf(funko: MockFunkoRow): Response | undefined {
   const candidate = { ...funko, status: SubmissionStatusUtil.WAITING };
-  const duplicate = findDuplicate(candidate, funko.id) ?? findBarcodeTwin(candidate, funko.id);
+  const duplicate = findDuplicate(candidate, funko.id);
 
-  return duplicate ? conflict('This funko already exists', duplicate.id) : undefined;
+  if (duplicate) return conflict(DUPLICATE_FUNKO_MESSAGE, duplicate.id);
+
+  const sameBarcode = findBarcodeTwin(candidate, funko.id);
+
+  return sameBarcode ? conflict(DUPLICATE_BARCODE_MESSAGE, sameBarcode.id) : undefined;
 }
 
 function rejectionReasonOf(body: Partial<RejectSubmission>): string | undefined {

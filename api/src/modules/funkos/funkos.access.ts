@@ -35,7 +35,7 @@ export function canSeeFunko(user: SignedInUser, funko: FunkoAccess): boolean {
 }
 
 // A submission its sender still looks after: waiting for an admin, or rejected and theirs to fix or delete.
-function isOpenSubmission(funko: FunkoAccess): boolean {
+export function isOpenSubmission(funko: FunkoAccess): boolean {
   return funko.status === 'WAITING' || funko.status === 'REJECTED';
 }
 

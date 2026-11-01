@@ -1,6 +1,8 @@
 import type { Locator, Page } from '@playwright/test';
 import { SUBMISSION_ROUTES_PATHS } from '../../src/application/routes/routesUtils';
 
+type ReviewTabName = 'Waiting' | 'Done';
+
 // The admins' Submissions page: every member's, Waiting and Done.
 export class SubmissionReviewPage {
   readonly heading: Locator;
@@ -21,7 +23,7 @@ export class SubmissionReviewPage {
     return this.page.getByRole('row').filter({ has: this.page.getByRole('link', { name, exact: true }) });
   }
 
-  async openTab(name: 'Waiting' | 'Done') {
+  async openTab(name: ReviewTabName) {
     await this.page.getByRole('tab', { name }).click();
   }
 
