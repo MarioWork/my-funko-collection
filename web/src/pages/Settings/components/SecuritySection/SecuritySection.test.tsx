@@ -94,6 +94,70 @@ it('asks the user to confirm it is them when the sign-in is old, then removes th
   expect(startAuthentication).toHaveBeenCalledTimes(1);
 });
 
+describe('confirming it is them with a password', () => {
+  const PASSWORD = 'the old password here';
+
+  beforeEach(() => {
+    Object.assign(mockStore.auth, { username: 'mario', password: PASSWORD, isSignInRecent: false });
+  });
+
+  async function openRemoveConfirm(): Promise<HTMLElement> {
+    renderSettings();
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove YubiKey' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove passkey' }));
+
+    return screen.findByRole('alertdialog', { name: "Confirm it's you" });
+  }
+
+  it('offers the password next to the passkey, held until something is typed', async () => {
+    const confirm = await openRemoveConfirm();
+
+    expect(within(confirm).getByLabelText('Your current password')).toHaveAttribute('autocomplete', 'current-password');
+    expect(within(confirm).getByRole('button', { name: 'Confirm with passkey' })).toBeVisible();
+    const passwordButton = within(confirm).getByRole('button', { name: 'Confirm with password' });
+    expect(passwordButton).toHaveAttribute('aria-disabled', 'true');
+    expect(passwordButton).toHaveAccessibleDescription('Type your password first.');
+  });
+
+  it('removes the passkey once the right password is typed, with no passkey prompt', async () => {
+    const confirm = await openRemoveConfirm();
+
+    await userEvent.type(within(confirm).getByLabelText('Your current password'), PASSWORD);
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Confirm with password' }));
+
+    expect(await passkeyNamesAfterDialog()).toEqual(['Remove iPhone']);
+    expect(startAuthentication).not.toHaveBeenCalled();
+  });
+
+  it('says on the password field when it is wrong, and keeps the passkey', async () => {
+    const confirm = await openRemoveConfirm();
+
+    await userEvent.type(within(confirm).getByLabelText('Your current password'), 'not my password at all');
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Confirm with password' }));
+
+    const field = within(confirm).getByLabelText('Your current password');
+    await waitFor(() => expect(field).toHaveAttribute('aria-invalid', 'true'));
+    expect(field).toHaveAccessibleDescription("That password doesn't match. Try again.");
+    // Only the field's own error: no second copy in the dialog's alert.
+    expect(within(confirm).getAllByText("That password doesn't match. Try again.")).toHaveLength(1);
+    expect(mockStore.auth.passkeys).toHaveLength(2);
+  });
+});
+
+it('offers only the passkey to confirm when the user has no password', async () => {
+  mockStore.auth.isSignInRecent = false;
+  renderSettings();
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Remove YubiKey' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Remove passkey' }));
+  const confirm = await screen.findByRole('alertdialog', { name: "Confirm it's you" });
+
+  expect(within(confirm).getByRole('button', { name: 'Confirm with passkey' })).toBeVisible();
+  expect(within(confirm).queryByRole('button', { name: 'Confirm with password' })).not.toBeInTheDocument();
+  expect(within(confirm).queryByLabelText('Your current password')).not.toBeInTheDocument();
+  expect(within(confirm).getByText(/Use any of your passkeys to confirm\./)).toBeVisible();
+});
+
 it('adds a passkey with the name given', async () => {
   vi.mocked(startRegistration).mockResolvedValue(createRegistrationResponseMockModel());
   renderSettings();

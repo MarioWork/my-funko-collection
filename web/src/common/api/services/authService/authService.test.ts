@@ -236,6 +236,40 @@ describe('getPasskeys', () => {
   });
 });
 
+describe('addRecentSignIn', () => {
+  const PASSWORD = 'the password I typed in';
+
+  it('posts only the password and renews the recent sign-in when it is right', async () => {
+    Object.assign(mockStore.auth, { username: 'mario', password: PASSWORD, isSignInRecent: false });
+    let receivedBody: unknown;
+    server.use(
+      http.post(`${TEST_BASE_API_URL}/auth/recent-sign-in`, async ({ request }) => {
+        receivedBody = await request.clone().json();
+
+        return undefined;
+      }),
+    );
+
+    const result = await authService.addRecentSignIn({ password: PASSWORD });
+
+    expect(receivedBody).toEqual({ password: PASSWORD });
+    expect(result).toMatchObject({ success: true, data: { user: { name: 'Mario', username: 'mario' } } });
+    expect(mockStore.auth.isSignInRecent).toBe(true);
+  });
+
+  it('returns 401 SIGN_IN_FAILED for a wrong password, and the sign-in stays old', async () => {
+    Object.assign(mockStore.auth, { username: 'mario', password: PASSWORD, isSignInRecent: false });
+
+    const result = await authService.addRecentSignIn({ password: 'not the password at all' });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { statusCode: 401, code: AuthApiErrorCodes.SIGN_IN_FAILED },
+    });
+    expect(mockStore.auth.isSignInRecent).toBe(false);
+  });
+});
+
 describe('startAddPasskey', () => {
   it('excludes the passkeys already registered', async () => {
     const result = await authService.startAddPasskey();

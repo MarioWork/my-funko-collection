@@ -12,13 +12,15 @@ import {
   otherRoleOf,
   roleWithArticle,
 } from '../manageUserDialogUtils';
-import UserChangeDialog from './UserChangeDialog';
+import UserChangeDialog, { type UserChangeConfirm } from './UserChangeDialog';
 import UserChangeFooter from './UserChangeFooter';
 
 type Props = {
   user: UserApiModel;
   onClose: () => void;
 };
+
+const CONFIRM_PASSWORD_FORM_ID = 'change-role-confirm';
 
 // Gives the user the other role. Their sessions end, so the new role applies from their next sign-in. The toast has
 // no Undo on purpose: changing back ends their sessions again and needs its own confirmation and recent sign-in.
@@ -28,6 +30,12 @@ function ChangeRoleDialog({ user, onClose }: Props) {
   const name = userTitle(user);
   const label = makeRoleLabel(newRole);
 
+  const confirm: UserChangeConfirm = {
+    step: change.step,
+    passwordFormId: CONFIRM_PASSWORD_FORM_ID,
+    onConfirm: (reauthMethod) => change.submit(HttpVerbsUtil.PATCH, { role: newRole }, reauthMethod),
+  };
+
   useActionToast(change.fetcher, { successMessage: `${name} is now ${roleWithArticle(newRole)}` });
   useCloseOnSuccess(change.fetcher, onClose);
 
@@ -36,7 +44,7 @@ function ChangeRoleDialog({ user, onClose }: Props) {
       title={`Make ${name} ${roleWithArticle(newRole)}?`}
       description={`${ROLE_HINTS[newRole]} ${SIGNS_OUT_EVERYWHERE}`}
       nextStep={`Then ${name} becomes ${roleWithArticle(newRole)}.`}
-      isReauthNeeded={change.isReauthNeeded}
+      confirm={confirm}
       isSaving={change.isSaving}
       failure={change.failure}
       onClose={onClose}
@@ -46,8 +54,7 @@ function ChangeRoleDialog({ user, onClose }: Props) {
           confirmIcon={<UserCog data-icon="inline-start" aria-hidden="true" />}
           isDestructive={false}
           isSaving={change.isSaving}
-          isReauthNeeded={change.isReauthNeeded}
-          onConfirm={() => change.submit(HttpVerbsUtil.PATCH, { role: newRole })}
+          confirm={confirm}
         />
       }
     />

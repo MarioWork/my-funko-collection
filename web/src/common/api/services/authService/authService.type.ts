@@ -34,6 +34,11 @@ export const PasswordSignInSchema = object({
   password: passwordSchema,
 });
 
+// "Confirm it's you" with the signed-in user's own password: no username, the session says whose it must be.
+export const ConfirmPasswordSchema = object({
+  password: passwordSchema,
+});
+
 export const SetPasswordSchema = object({
   username: usernameSchema,
   password: newPasswordSchema,
@@ -49,4 +54,5 @@ export type FinishSetup = InferType<typeof FinishSetupSchema>;
 export type FinishLogin = InferType<typeof FinishLoginSchema>;
 export type CreatePasskey = InferType<typeof CreatePasskeySchema>;
 export type PasswordSignIn = InferType<typeof PasswordSignInSchema>;
+export type ConfirmPassword = InferType<typeof ConfirmPasswordSchema>;
 export type SetPassword = InferType<typeof SetPasswordSchema>;

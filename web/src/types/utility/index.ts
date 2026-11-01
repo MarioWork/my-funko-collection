@@ -24,3 +24,5 @@ export { ThemeUtil } from './themeUtil.type';
 export { USER_ROLE_LABELS, UserRoleUtil } from './userRoleUtil.type';
 export { USER_STATE_LABELS, UserStateUtil } from './userStateUtil.type';
 export { SUBMISSION_STATUS_LABELS, SubmissionStatusUtil } from './submissionStatusUtil.type';
+export { ReauthMethodUtil } from './reauthUtil.type';
+export type { ReauthUtil } from './reauthUtil.type';

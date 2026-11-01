@@ -1,4 +1,5 @@
 import addPasskeyHandler from './addPasskey.mock.handler';
+import addRecentSignInHandler from './addRecentSignIn.mock.handler';
 import deletePasskeyHandler from './deletePasskey.mock.handler';
 import finishLoginHandler from './finishLogin.mock.handler';
 import finishSetupHandler from './finishSetup.mock.handler';
@@ -29,6 +30,7 @@ export const authMockHandlers = (baseUrl: string) => [
   ...startLoginHandler(baseUrl),
   ...finishLoginHandler(baseUrl),
   ...passwordLoginHandler(baseUrl),
+  ...addRecentSignInHandler(baseUrl),
   ...setPasswordHandler(baseUrl),
   ...logoutHandler(baseUrl),
   ...logoutEverywhereHandler(baseUrl),

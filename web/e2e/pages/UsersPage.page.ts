@@ -32,6 +32,12 @@ export class UsersPage {
     await this.page.getByRole('button', { name: 'Create user' }).click();
   }
 
+  // The "confirm it's you" step, when the sign-in is older than 10 minutes: the admin's own password.
+  async confirmWithPassword(password: string) {
+    await this.page.getByLabel('Your current password').fill(password);
+    await this.page.getByRole('button', { name: 'Confirm with password' }).click();
+  }
+
   async closeCreatedUser() {
     await this.page.getByRole('button', { name: 'Done' }).click();
   }

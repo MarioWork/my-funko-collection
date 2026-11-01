@@ -1,45 +1,52 @@
-import { Fingerprint, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { ReauthMethodUtil } from '@app-types/utility';
+import ConfirmIdentityButtons from '@components/ConfirmIdentityButtons';
 import DisabledReason from '@components/DisabledReason';
 import { AlertDialogCancel, AlertDialogFooter } from '@components/ui/alert-dialog';
 import { Button } from '@components/ui/button';
 import { Spinner } from '@components/ui/spinner';
-import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
+import type { ConfirmIdentityStep } from '@hooks/useConfirmIdentityStep';
+import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
 
 type Props = {
+  step: ConfirmIdentityStep;
   isRemoving: boolean;
-  needsReauth: boolean;
-  confirmLabel: string;
-  onConfirm: () => void;
+  passwordFormId: string;
+  onConfirm: (method: ReauthMethodUtil) => void;
 };
 
-type RemoveIconProps = {
-  isRemoving: boolean;
-  needsReauth: boolean;
-};
+type RemoveButtonProps = Pick<Props, 'isRemoving' | 'onConfirm'>;
 
-function RemoveIcon({ isRemoving, needsReauth }: RemoveIconProps) {
-  if (isRemoving) return <Spinner data-icon="inline-start" />;
+const REMOVE_LABEL = 'Remove passkey';
 
-  if (needsReauth) return <Fingerprint data-icon="inline-start" aria-hidden="true" />;
-
-  return <Trash2 data-icon="inline-start" aria-hidden="true" />;
+function RemoveButton({ isRemoving, onConfirm }: RemoveButtonProps) {
+  return (
+    <DisabledReason reason={reasonWhen(isRemoving, DISABLED_REASONS.WORKING)}>
+      <Button variant="destructive" disabled={isRemoving} onClick={() => onConfirm(ReauthMethodUtil.PASSKEY)}>
+        {isRemoving ? <Spinner data-icon="inline-start" /> : <Trash2 data-icon="inline-start" aria-hidden="true" />}
+        {REMOVE_LABEL}
+      </Button>
+    </DisabledReason>
+  );
 }
 
-// Cancel and the confirm button: red for the removal itself, the primary colour for "Confirm with passkey".
-function RemovePasskeyFooter({ isRemoving, needsReauth, confirmLabel, onConfirm }: Props) {
-  const busyReason = isRemoving ? DISABLED_REASONS.PASSKEY_WAITING : undefined;
-
+// Cancel and the confirm button: red for the removal itself, the ways to confirm it's you once the server asks.
+function RemovePasskeyFooter({ step, isRemoving, passwordFormId, onConfirm }: Props) {
   return (
     <AlertDialogFooter>
-      <DisabledReason reason={busyReason} mode="wrapper">
+      <DisabledReason reason={reasonWhen(isRemoving, DISABLED_REASONS.WORKING)} mode="wrapper">
         <AlertDialogCancel disabled={isRemoving}>Cancel</AlertDialogCancel>
       </DisabledReason>
-      <DisabledReason reason={busyReason}>
-        <Button variant={needsReauth ? 'default' : 'destructive'} disabled={isRemoving} onClick={onConfirm}>
-          <RemoveIcon isRemoving={isRemoving} needsReauth={needsReauth} />
-          {confirmLabel}
-        </Button>
-      </DisabledReason>
+      {step.needsReauth ? (
+        <ConfirmIdentityButtons
+          step={step}
+          isSaving={isRemoving}
+          passwordFormId={passwordFormId}
+          onConfirm={onConfirm}
+        />
+      ) : (
+        <RemoveButton isRemoving={isRemoving} onConfirm={onConfirm} />
+      )}
     </AlertDialogFooter>
   );
 }
