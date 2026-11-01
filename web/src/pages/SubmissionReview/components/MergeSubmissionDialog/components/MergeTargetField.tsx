@@ -2,10 +2,10 @@ import { Controller, type Control } from 'react-hook-form';
 import { Field, FieldDescription, FieldError, FieldLabel, FieldLegend, FieldSet } from '@components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@components/ui/radio-group';
 import { Spinner } from '@components/ui/spinner';
-import type { MergeSubmissionFormValues, MergeTarget } from '../submissionReviewUtils';
+import type { MergePickFormValues, MergeTarget } from '../mergeSubmissionDialogUtils';
 
 type Props = {
-  control: Control<MergeSubmissionFormValues>;
+  control: Control<MergePickFormValues>;
   idPrefix: string;
   targets: MergeTarget[];
   isSearching: boolean;

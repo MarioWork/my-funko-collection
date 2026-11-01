@@ -123,11 +123,28 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   collection keeps the older item, adds the quantities, joins notes and tags, capped at the item limits
   (`MAX_QUANTITY`, `MAX_TAGS_PER_ITEM` in `collectionItems.type.ts`; the older item's tags first, the newer one's
   extras dropped) so the member can still edit it. The rule is `funkos/funkos.merge.ts`, handed to the repository.
-  The submission becomes `MERGED` with `merged_into_id` (a check: only while merged) and keeps its images, category
-  and series; its sender gets `SUBMISSION_MERGED` with the target's `funkoId`.
-  Web: Merge on the review page opens `MergeSubmissionDialog` (approved maybe-doubles first, then a catalogue search
-  through the existing `useSuggestions` type-ahead, not a new read); `mergeSubmission.mock.handler.ts` mirrors the
-  item rule. `SubmissionReviewNotes` shows "Merged into" with a link wherever a submission's review is shown.
+  The submission becomes `MERGED` with `merged_into_id` (a check: only while merged) and keeps its own fields,
+  category, series and unpicked images as the record of what was sent; its sender gets `SUBMISSION_MERGED` with the
+  target's `funkoId`.
+  Picking what the target keeps (issue #39): the body adds `fieldsFromSubmission` (`MERGE_FIELDS` in
+  `funkos.type.ts`; each once, only one that differs: 400), `imageIdsFromSubmission` and `removedImageIds` (only
+  images of those two funkos: 400; the target keeps to `MAX_IMAGES_PER_FUNKO`). The rules are
+  `funkos/funkos.mergeChoices.ts` (pure); "differs" compares the submission's category and series as approval would
+  set them (`findCatalogueReferences`), and a picked waiting one joins the catalogue in the merge's transaction. A
+  picked barcode or identity another catalogue funko has is a 409 in words with `existingId` (pre-checked, and
+  `isUniqueViolation()` in a race). A moved image keeps its uploader; its files are copied into the target's folder
+  before the transaction (`copyImageFiles` in `imageStorage.ts`) and the originals removed after it, or the copies
+  when the merge is refused. A removed image goes like a normal delete. A picked image that is the very same picture
+  as one the target keeps stays with the submission (the target never holds a picture twice).
+  Web: `MergeSubmissionDialog` is a routed dialog (`/submissions/review/:funkoId/merge`, child of the review route,
+  which has the id `SUBMISSION_REVIEW_ROUTE_ID`; its own loader and action). Without `?into=` it is the pick step
+  (catalogue maybe-doubles first, then a catalogue search through the existing `useSuggestions` type-ahead, not a new
+  read); with it, the side-by-side step: a radio group per differing field ("Original" / "Submission"), the same
+  fields once, images as checkboxes. "This is a double of…" (every waiting row) opens the pick step; Merge, only
+  with catalogue maybe-doubles, opens straight on `?into=` when there is one (`detectedMergeLinkOf`). The loader
+  calls `assertCanWrite()`. `mergeSubmission.mock.handler.ts` mirrors the item rule and
+  `mergeChoicesMockUtils.ts` the picks. `SubmissionReviewNotes` shows "Merged into" with a link wherever a
+  submission's review is shown.
 - Notifications (issue #11): approve and reject tell the sender (reject with its reason; an orphan submission has
   nobody to tell), a new or resent submission tells every admin. One `notifications` table: `kind` (an enum),
   `funko_id` (the funko to open, cleared when it goes) and the funko's name as written, `reason?`, `read_at`.

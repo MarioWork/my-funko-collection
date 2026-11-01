@@ -80,6 +80,9 @@ export const IMAGE_ROUTES_PATHS = {
   BASE: '/images',
 };
 
+// The search param of the merge dialog that names the catalogue funko the submission is compared with.
+export const MERGE_TARGET_PARAM = 'into';
+
 // What the signed-in member sent in: their submissions, each with its state, and sending a rejected one again.
 // REVIEW is the admins' Submissions page (every member's, Waiting and Done), with its approve and reject actions.
 export const SUBMISSION_ROUTES_PATHS = {
@@ -89,11 +92,22 @@ export const SUBMISSION_ROUTES_PATHS = {
     funkoId ? `/submissions/review/${funkoId}/approval` : '/submissions/review/:funkoId/approval',
   reject: (funkoId?: string) =>
     funkoId ? `/submissions/review/${funkoId}/rejection` : '/submissions/review/:funkoId/rejection',
+  // The merge dialog (a routed dialog over the review page) and the action it posts to.
   merge: (funkoId?: string) =>
     funkoId ? `/submissions/review/${funkoId}/merge` : '/submissions/review/:funkoId/merge',
+  // The merge dialog opened on the side-by-side step with that catalogue funko as the original, or on the step that
+  // picks one when none is given.
+  mergeInto: (funkoId: string, targetFunkoId?: string) => {
+    const path = SUBMISSION_ROUTES_PATHS.merge(funkoId);
+
+    return targetFunkoId ? `${path}?${MERGE_TARGET_PARAM}=${targetFunkoId}` : path;
+  },
   resend: (funkoId?: string) =>
     funkoId ? `/submissions/${funkoId}/resubmission` : '/submissions/:funkoId/resubmission',
 };
+
+// The review page's route: the merge dialog reads the submission (and its maybe-doubles) from its list.
+export const SUBMISSION_REVIEW_ROUTE_ID = 'submissionReview';
 
 // The signed-in user's notifications (the bell opens it), and the action-only routes that mark one, or all, read.
 export const NOTIFICATION_ROUTES_PATHS = {

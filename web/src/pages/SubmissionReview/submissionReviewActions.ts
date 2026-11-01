@@ -2,11 +2,11 @@ import type { ActionFunctionArgs } from 'react-router';
 import type { SubmissionApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import submissionService from '@services/submissionService/submissionService';
-import { MergeSubmissionSchema, RejectSubmissionSchema } from '@services/submissionService/submissionService.type';
+import { RejectSubmissionSchema } from '@services/submissionService/submissionService.type';
 import { failWhenInvalid } from '@utils/actionUtils';
 import { assertAdmin } from '@utils/adminRouteUtils';
 import { parseFormData } from '@utils/formDataUtils';
-import type { MergeSubmissionFormData, RejectSubmissionFormData } from './submissionReviewUtils';
+import type { RejectSubmissionFormData } from './submissionReviewUtils';
 
 // Admins only: the waiting funko joins the catalogue for everyone.
 export const approveSubmissionAction = async ({
@@ -32,22 +32,5 @@ export const rejectSubmissionAction = async ({
     const fields = await RejectSubmissionSchema.validate(rejection);
 
     return submissionService.rejectSubmission(Number(params.funkoId), fields);
-  });
-};
-
-// Admins only: the same funko as one in the catalogue; the sender's items move onto it.
-export const mergeSubmissionAction = async ({
-  request,
-  params,
-  context,
-}: ActionFunctionArgs): Promise<JSONResponseUtil<SubmissionApiModel>> => {
-  assertAdmin(context);
-
-  const { merge } = parseFormData<MergeSubmissionFormData>(await request.formData());
-
-  return failWhenInvalid(async () => {
-    const fields = await MergeSubmissionSchema.validate(merge);
-
-    return submissionService.mergeSubmission(Number(params.funkoId), fields);
   });
 };
