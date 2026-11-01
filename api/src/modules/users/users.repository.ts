@@ -80,7 +80,8 @@ async function countAdmins(client: Transaction | typeof prisma = prisma): Promis
   return client.user.count({ where: WORKING_ADMIN_WHERE });
 }
 
-function isWorkingAdmin({ role, isReadOnly }: AdminStanding): boolean {
+// An admin who is not read-only: the last-admin rule keeps at least one. The service marks that user `isLastAdmin`.
+export function isWorkingAdmin({ role, isReadOnly }: AdminStanding): boolean {
   return role === 'ADMIN' && !isReadOnly;
 }
 

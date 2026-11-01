@@ -6,7 +6,7 @@ import {
   createWebauthnUserId,
   type AuthSession,
 } from '../auth/auth.service.ts';
-import { usersRepository, type GuardedChange, type UserRow } from './users.repository.ts';
+import { isWorkingAdmin, usersRepository, type GuardedChange, type UserRow } from './users.repository.ts';
 import type {
   CreateUser,
   ListUsersQuery,
@@ -68,7 +68,7 @@ function toResponse(row: UserRow, adminCount: number, now = Date.now()): UserRes
     isReadOnly: row.isReadOnly,
     state: toUserState(row, now),
     temporaryPasswordExpiresAt: row.temporaryPasswordExpiresAt?.toISOString() ?? null,
-    isLastAdmin: row.role === 'ADMIN' && !row.isReadOnly && adminCount === 1,
+    isLastAdmin: isWorkingAdmin(row) && adminCount === 1,
     createdAt: row.createdAt.toISOString(),
   };
 }

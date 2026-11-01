@@ -81,8 +81,11 @@ export function mockTemporaryPasswordFor(id: number): string {
   return `vinyl-${String(id).padStart(5, '0')}-shelf-heads`;
 }
 
+// What the last-admin rule looks at on a user, before or after a change.
+export type MockAdminStanding = Pick<MockUserRow, 'role' | 'isReadOnly'>;
+
 // An admin who can still make changes: there is always at least one, as on the API.
-export function isWorkingMockAdmin({ role, isReadOnly }: Pick<MockUserRow, 'role' | 'isReadOnly'>): boolean {
+export function isWorkingMockAdmin({ role, isReadOnly }: MockAdminStanding): boolean {
   return role === UserRoleUtil.ADMIN && !isReadOnly;
 }
 

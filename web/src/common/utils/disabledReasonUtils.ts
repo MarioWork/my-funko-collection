@@ -12,6 +12,11 @@ export const DISABLED_REASONS = {
   READ_ONLY: 'Your account is read-only. Ask an admin if you need to change something.',
 } as const;
 
+// The first reason that applies, for a control disabled for several: `firstReason(readOnlyReason, busyReason)`.
+export function firstReason(...reasons: (string | undefined)[]): string | undefined {
+  return reasons.find((reason) => reason !== undefined);
+}
+
 // The reason while `isBusy`, nothing otherwise: `disabledReason={reasonWhen(isSubmitting, DISABLED_REASONS.SAVING)}`.
 export function reasonWhen(condition: boolean, reason: string): string | undefined {
   return condition ? reason : undefined;

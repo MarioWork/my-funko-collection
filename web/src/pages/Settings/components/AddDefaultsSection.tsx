@@ -4,6 +4,7 @@ import CollectionPicker from '@components/CollectionPicker';
 import TagPicker from '@components/TagPicker';
 import { Field, FieldDescription, FieldLabel } from '@components/ui/field';
 import { useAddDestination } from '@hooks/useAddDestination';
+import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import SettingsSection from './SettingsSection';
 
 type Props = {
@@ -15,7 +16,9 @@ const COLLECTIONS_ID = 'add-default-collections';
 const TAGS_ID = 'add-default-tags';
 
 // Where "Add" puts things on this device: collections and tags, kept in the browser, changeable on the Add page too.
+// Picking stays open to a read-only user (it is only this browser's setting); creating a new tag does not.
 function AddDefaultsSection({ collections, tags }: Props) {
+  const isReadOnly = useReadOnlyReason() !== undefined;
   const { destination, isCatalogOnly, selectedTags, setCollectionIds, setTags } = useAddDestination({
     collections,
     tags,
@@ -34,7 +37,7 @@ function AddDefaultsSection({ collections, tags }: Props) {
         <Field>
           <FieldLabel htmlFor={TAGS_ID}>Tags</FieldLabel>
           <TagPicker
-            createActionPath={TAG_ROUTES_PATHS.BASE}
+            createActionPath={isReadOnly ? undefined : TAG_ROUTES_PATHS.BASE}
             id={TAGS_ID}
             tags={tags}
             value={selectedTags}

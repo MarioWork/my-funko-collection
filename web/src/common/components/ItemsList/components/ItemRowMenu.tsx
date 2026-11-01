@@ -3,7 +3,7 @@ import type { CollectionItemApiModel } from '@app-types/models';
 import IconButton from '@components/IconButton';
 import { DropdownMenu, DropdownMenuTrigger } from '@components/ui/dropdown-menu';
 import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
-import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
+import { DISABLED_REASONS, firstReason } from '@utils/disabledReasonUtils';
 import { useItemsListContext } from '../hooks/useItemsListContext';
 import ItemRowMenuContent from './ItemRowMenuContent';
 
@@ -29,7 +29,7 @@ function ItemRowMenu({ item, isOnPhoto = false }: Props) {
             variant={isOnPhoto ? 'secondary' : 'ghost'}
             size={isOnPhoto ? 'sm' : 'md'}
             disabled={isBusy || readOnlyReason !== undefined}
-            disabledReason={readOnlyReason ?? DISABLED_REASONS.WORKING}
+            disabledReason={firstReason(readOnlyReason, DISABLED_REASONS.WORKING)}
           />
         }
       >

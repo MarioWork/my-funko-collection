@@ -169,12 +169,10 @@ it('shows the collection toggles, Edit and Delete disabled, saying why, to a rea
   await screen.findByRole('menuitem', { name: 'Export' });
   const items = ['Edit', 'Delete'].map((name) => screen.getByRole('menuitem', { name }));
 
-  expect(wishlist).toBeDisabled();
+  expect(wishlist).toHaveAttribute('aria-pressed', 'false');
   for (const control of [wishlist, ...items]) {
+    expect(control).toHaveAttribute('aria-disabled', 'true');
     expect(control).toHaveAccessibleDescription(/Your account is read-only/);
-  }
-  for (const item of items) {
-    expect(item).toHaveAttribute('aria-disabled', 'true');
   }
   expect(screen.getByRole('menuitem', { name: 'Export' })).not.toHaveAttribute('aria-disabled');
 });
