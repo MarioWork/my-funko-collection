@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { NOTIFICATION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import IconButton from '@components/IconButton';
 import { PAGE_ICONS } from '@utils/navigationUtils';
-import { describeNotificationsLink } from '@utils/notificationUtils';
+import { describeNotificationsLink, hasUnreadNotifications } from '@utils/notificationUtils';
 import UnreadBadge from './UnreadBadge';
 import UnreadCountAwait from './UnreadCountAwait';
 
@@ -13,7 +13,6 @@ type BellLinkProps = {
 };
 
 function BellLink({ count }: BellLinkProps) {
-  const hasUnread = count !== undefined && count > 0;
   const label = describeNotificationsLink(count);
 
   return (
@@ -26,7 +25,9 @@ function BellLink({ count }: BellLinkProps) {
       className="relative"
     >
       <BellIcon aria-hidden="true" />
-      {hasUnread ? <UnreadBadge count={count} className="absolute -top-1 -right-1 ring-2 ring-card" /> : null}
+      {hasUnreadNotifications(count) ? (
+        <UnreadBadge count={count} className="absolute -top-1 -right-1 ring-2 ring-card" />
+      ) : null}
     </IconButton>
   );
 }

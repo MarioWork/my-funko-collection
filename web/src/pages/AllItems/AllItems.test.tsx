@@ -2,32 +2,39 @@ import { renderRoutes, screen, within } from '@test-utils';
 import { itemRoutes } from '@application/routes/featureRoutes/itemRoutes';
 import { ITEM_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { mockStore } from '@mocks/mockStore';
+import type { MockFunkoRow, MockItemRow } from '@mocks/mockStore.type';
 
 const FUNKO_NAME = 'Pikachu';
 const EXCLUSIVE = 'Pokémon Center';
 const QUANTITY = 3;
 const PRICE_CENTS = 1299;
+const PIKACHU_ITEMS_URL = `${ITEM_ROUTES_PATHS.BASE}?q=${FUNKO_NAME}`;
 
-// The seed's Pikachu as the only item it is in, made a chase exclusive in a series, with three copies and a price.
-function pikachuItem() {
+type PikachuItem = {
+  funko: MockFunkoRow;
+  item: MockItemRow;
+};
+
+// The seed's Pikachu and the first item it is in; its other items go, so the page shows one card.
+function onlyPikachuItem(): PikachuItem {
   const funko = mockStore.funkos.find((candidate) => candidate.name === FUNKO_NAME);
-  const [item] = mockStore.items.filter((candidate) => candidate.funkoId === funko?.id);
-  const series = mockStore.series[0];
-  const collection = mockStore.collections.find((candidate) => candidate.id === item?.collectionId);
-  const category = mockStore.categories.find((candidate) => candidate.id === funko?.categoryId);
+  const item = mockStore.items.find((candidate) => candidate.funkoId === funko?.id);
 
-  if (!funko || !item || !series || !collection || !category)
-    throw new Error(`The mock seed has no ${FUNKO_NAME} item`);
+  if (!funko || !item) throw new Error(`The mock seed has no ${FUNKO_NAME} item`);
 
-  for (let index = mockStore.items.length - 1; index >= 0; index -= 1) {
-    const isOtherPikachuItem = mockStore.items[index]?.funkoId === funko.id && mockStore.items[index] !== item;
+  const otherItems = mockStore.items.filter((candidate) => candidate.funkoId === funko.id && candidate !== item);
 
-    if (isOtherPikachuItem) mockStore.items.splice(index, 1);
-  }
-  Object.assign(funko, { isChase: true, exclusive: EXCLUSIVE, seriesId: series.id });
-  Object.assign(item, { quantity: QUANTITY, purchasePriceCents: PRICE_CENTS });
+  for (const otherItem of otherItems) mockStore.items.splice(mockStore.items.indexOf(otherItem), 1);
 
-  return { funko, series, collection, category };
+  return { funko, item };
+}
+
+function rowById<Row extends { id: number }>(rows: Row[], id: number | null | undefined): Row {
+  const row = rows.find((candidate) => candidate.id === id);
+
+  if (!row) throw new Error(`The mock seed has no row ${id}`);
+
+  return row;
 }
 
 async function findCard(name: string) {
@@ -42,8 +49,13 @@ async function findCard(name: string) {
 }
 
 it('shows an item card with its collection, copies and menu on the photo, and number, name, series, chase and exclusive under it', async () => {
-  const { funko, series, collection, category } = pikachuItem();
-  renderRoutes(itemRoutes, { initialEntries: [`${ITEM_ROUTES_PATHS.BASE}?q=${FUNKO_NAME}`] });
+  const { funko, item } = onlyPikachuItem();
+  const series = rowById(mockStore.series, mockStore.series[0]?.id);
+  Object.assign(funko, { isChase: true, exclusive: EXCLUSIVE, seriesId: series.id });
+  Object.assign(item, { quantity: QUANTITY, purchasePriceCents: PRICE_CENTS });
+  const collection = rowById(mockStore.collections, item.collectionId);
+  const category = rowById(mockStore.categories, funko.categoryId);
+  renderRoutes(itemRoutes, { initialEntries: [PIKACHU_ITEMS_URL] });
 
   const card = await findCard(FUNKO_NAME);
 
@@ -58,11 +70,10 @@ it('shows an item card with its collection, copies and menu on the photo, and nu
 });
 
 it('leaves out the copies, chase and exclusive lines when the item has none of them', async () => {
-  const { funko } = pikachuItem();
+  const { funko, item } = onlyPikachuItem();
   Object.assign(funko, { isChase: false, exclusive: '' });
-  const item = mockStore.items.find((candidate) => candidate.funkoId === funko.id);
-  if (item) item.quantity = 1;
-  renderRoutes(itemRoutes, { initialEntries: [`${ITEM_ROUTES_PATHS.BASE}?q=${FUNKO_NAME}`] });
+  item.quantity = 1;
+  renderRoutes(itemRoutes, { initialEntries: [PIKACHU_ITEMS_URL] });
 
   const card = await findCard(FUNKO_NAME);
 
