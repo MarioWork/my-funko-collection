@@ -64,21 +64,21 @@ Read once in `src/config/env.ts` (zod); the process exits on an invalid value. O
 
 ## Data model
 
-| Table                  | What                                                                                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"; `status` and `submitted_by_id` like a funko's                                |
-| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"; `status` and `submitted_by_id` like a funko's                                |
-| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode, `status`, and the member who sent it in (`submitted_by_id`)        |
-| `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder, uploader and time                                                   |
-| `collections`          | One user's own list (`user_id`, name unique per user): "Owned" (each user's one default), "Wishlist"                                              |
-| `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                                                                    |
-| `collection_item_tags` | Item ↔ tag                                                                                                                                        |
-| `tags`                 | One user's own label for their items (`user_id`, name unique per user), mainly the box ("Box 3")                                                  |
-| `users`                | A person who signs in: name, role, WebAuthn user handle, lower-case username, argon2id hash and, while it is temporary, when the password expires |
-| `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device)                                                                |
-| `sessions`             | A signed-in browser: SHA-256 of the cookie token, how it signed in, sign-in and last-seen times                                                   |
-| `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                                                                               |
-| `setup_codes`          | SHA-256 of the first-run code, only until someone sets the app up                                                                                 |
+| Table                  | What                                                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `categories`           | A Funko line as printed on the box: "Pop! Marvel", "Pop! Star Wars"; `status` and `submitted_by_id` like a funko's                                                  |
+| `series`               | The show, film or game a figure comes from: "Daredevil: Born Again"; `status` and `submitted_by_id` like a funko's                                                  |
+| `funkos`               | One figure: name, number, type, category, series?, chase / exclusive, barcode, `status`, and the member who sent it in (`submitted_by_id`)                          |
+| `funko_images`         | A photo of a funko: position, byte size, three WebP sizes + blur placeholder, uploader and time                                                                     |
+| `collections`          | One user's own list (`user_id`, name unique per user): "Owned" (each user's one default), "Wishlist"                                                                |
+| `collection_items`     | One funko in one collection: quantity, condition, price, currency, date, notes                                                                                      |
+| `collection_item_tags` | Item ↔ tag                                                                                                                                                          |
+| `tags`                 | One user's own label for their items (`user_id`, name unique per user), mainly the box ("Box 3")                                                                    |
+| `users`                | A person who signs in: name, role, read-only or not, WebAuthn user handle, lower-case username, argon2id hash and, while it is temporary, when the password expires |
+| `passkeys`             | A passkey's public key, counter and name (the private key never leaves the device)                                                                                  |
+| `sessions`             | A signed-in browser: SHA-256 of the cookie token, how it signed in, sign-in and last-seen times                                                                     |
+| `auth_challenges`      | One-use, 5-minute challenges for passkey ceremonies                                                                                                                 |
+| `setup_codes`          | SHA-256 of the first-run code, only until someone sets the app up                                                                                                   |
 
 Value sets: funko `type` is one of `POP`, `POP_DELUXE`, `POP_RIDES`, `POP_MOMENT`, `POP_TOWN`, `POP_ALBUM`,
 `POP_JUMBO`, `POP_KEYCHAIN`, `SODA`, `BITTY_POP`, `MYSTERY_MINI`, `OTHER`; item `condition` is `MINT_IN_BOX`,
@@ -120,6 +120,14 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   submission: another member's answers 404, a catalogue funko (or their own once it is no longer waiting) 403
   `ADMIN_ONLY`. `auth.route.test.ts` keeps both lists (`ADMIN_ONLY_ROUTES`, `SUBMISSION_ROUTES`) and fails when a
   catalogue write is on neither.
+- **Read-only.** An admin can limit a user to looking (`users.is_read_only`, `isReadOnly` in `GET /auth/status`
+  and the sign-in answer). They still sign in and read everything they could before, but every write answers 403
+  `READ_ONLY` except their own password (`PUT /auth/password`), their own passkeys (`POST /auth/passkeys/options`,
+  `/verify`, `DELETE /auth/passkeys/:passkeyId`) and signing out (`POST /auth/logout`, `/logout-everywhere`), which
+  say so with `config: { isAllowedWhenReadOnly: true }`. The check runs in the same `onRequest` hook, after the
+  temporary-password one and before the admin gate, on the user's row as it is now (the session reads it on every
+  request). `auth.route.test.ts` calls every write in the OpenAPI document as a read-only member and admin
+  (`ALLOWED_WHEN_READ_ONLY`).
 - **New users.** Only an admin creates a user (`POST /users` with a username and a role), and it needs the admin's
   sign-in from the last 10 minutes. The user is named after the username and gets an app-made temporary password:
   four groups of five characters with no look-alikes (`abcde-fghjk-...`, ~99 bits), never on the common list,
@@ -132,14 +140,15 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   temporary one: 400 `PASSWORD_REUSED`) makes it the user's own and opens the app. The database trigger gives the
   new user their own "Owned" and "Wishlist".
   `auth.route.test.ts` lists every admin-only route in `ADMIN_ONLY_ROUTES` and calls every route as a member.
-- **Managing users.** An admin changes a user's role (`PATCH /users/:userId`), gives one who forgot their password a
+- **Managing users.** An admin changes a user's role or makes them read-only and back (`PATCH /users/:userId`), gives one who forgot their password a
   new temporary password (`POST /users/:userId/temporary-password`, same rules as on create: shown once, 7 days, must
   be replaced; the old password stops working, passkeys stay; a user with no username gets one in the body (one who has a username keeps it: another answers 400), else 400
   `USERNAME_REQUIRED`) or deletes one (`DELETE /users/:userId`). Each needs the admin's sign-in from the last 10
   minutes and ends every session of that user at once, the admin's own included when they change themselves. There
-  is always at least one admin: making the last one a member or deleting them answers 409 `LAST_ADMIN` (checked
-  under a table lock, so two admins demoting each other can't both win), and `GET /users` marks that user
-  `isLastAdmin`. Deleting a user deletes their sessions, passkeys, collections, items and tags (database cascades);
+  is always at least one admin who is not read-only: making the last one a member, read-only or deleting them answers
+  409 `LAST_ADMIN` (checked under a table lock, so two admins demoting each other can't both win), and `GET /users`
+  marks that user `isLastAdmin`. Ending the sessions on a role or read-only change makes the app ask
+  `GET /auth/status` again at the next sign-in, so it shows the new role or the read-only controls at once. Deleting a user deletes their sessions, passkeys, collections, items and tags (database cascades);
   catalogue funkos stay, and images they uploaded keep showing with a removed user as uploader. What they sent in:
   see "Submissions" below.
 - **Cross-site writes.** Any non-GET request whose `Sec-Fetch-Site` is not `same-origin`/`none`, or whose `Origin`
@@ -237,9 +246,9 @@ uploads plugin's hook, `assertCanSeeImageFiles()`). Approving, rejecting and mer
 | `GET /export/funkos.{csv,json,xlsx}`                               | The funkos of one `categoryId`, `seriesId`, `collectionId`, `tagId` or `funkoId` (all funkos without one): CSV and spreadsheet one line per funko and item, JSON one entry per funko with its items; every format links each photo (`image_urls` / `imageUrls`), and a single funko's spreadsheet embeds its photos on a Photos sheet; named after the filter (`category-pop-marvel.xlsx`), 404 for an unknown id |
 | `GET /export/{categories,series,collections,tags}.{csv,json,xlsx}` | A whole list (names, counts, notes, totals); `?includeFunkos=true` adds their funkos: a second sheet, the CSV's lines (each once), or nested per entry in the JSON                                                                                                                                                                                                                                                |
 | `GET /export/images.{csv,json,xlsx}`                               | Every stored image: its funko, file, size, upload date and absolute links to the three sizes (never the files)                                                                                                                                                                                                                                                                                                    |
-| `GET /users`                                                       | Admins only: every user with `role` and `state` (`ACTIVE`, `TEMPORARY_PASSWORD`, `TEMPORARY_PASSWORD_EXPIRED`, `NO_SIGN_IN`) `temporaryPasswordExpiresAt` and `isLastAdmin`; sort `USERNAME` (default, users with none last) / `NAME` / `CREATION_DATE`                                                                                                                                                           |
+| `GET /users`                                                       | Admins only: every user with `role`, `isReadOnly` and `state` (`ACTIVE`, `TEMPORARY_PASSWORD`, `TEMPORARY_PASSWORD_EXPIRED`, `NO_SIGN_IN`) `temporaryPasswordExpiresAt` and `isLastAdmin`; sort `USERNAME` (default, users with none last) / `NAME` / `CREATION_DATE`                                                                                                                                             |
 | `POST /users`                                                      | Admins only, recent sign-in: `{ username, role }`; 201 `{ user, temporaryPassword }` (the only time the password is sent); 409 when the username is taken                                                                                                                                                                                                                                                         |
-| `PATCH /users/:userId`                                             | Admins only, recent sign-in: `{ role }`; ends the user's sessions when the role changes; 409 `LAST_ADMIN` for the last admin                                                                                                                                                                                                                                                                                      |
+| `PATCH /users/:userId`                                             | Admins only, recent sign-in: `{ role?, isReadOnly? }` (at least one); ends the user's sessions when either changes; 409 `LAST_ADMIN` for the last admin who is not read-only                                                                                                                                                                                                                                      |
 | `POST /users/:userId/temporary-password`                           | Admins only, recent sign-in: `{ username? }` (only for a user who has none, and then needed); 200 `{ user, temporaryPassword }`; ends the user's sessions                                                                                                                                                                                                                                                         |
 | `DELETE /users/:userId`                                            | Admins only, recent sign-in: the user with their sessions, passkeys, collections, items and tags; 409 `LAST_ADMIN` for the last admin                                                                                                                                                                                                                                                                             |
 | `GET /uploads/...`                                                 | The image files (immutable, cached for a year); a submission's only for admins and its sender, 404 otherwise                                                                                                                                                                                                                                                                                                      |

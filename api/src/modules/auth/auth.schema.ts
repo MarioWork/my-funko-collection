@@ -103,11 +103,13 @@ export const AddPasskeyVerifySchema = z.strictObject({
 export const PasskeyParamsSchema = z.object({ passkeyId: base64Url(ID_MAX_LENGTH) });
 
 // `username` is null until the user sets a password. `mustChangePassword`: signed in with a temporary password, which
-// must be replaced before anything else.
+// must be replaced before anything else. `isReadOnly`: an admin limited this user to looking (every write but their
+// own password, passkeys and signing out answers 403 READ_ONLY).
 const AuthUserSchema = z.object({
   name: z.string(),
   username: z.string().nullable(),
   role: z.enum(USER_ROLES),
+  isReadOnly: z.boolean(),
   mustChangePassword: z.boolean(),
 });
 

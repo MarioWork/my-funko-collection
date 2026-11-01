@@ -24,10 +24,16 @@ export const UserParamsSchema = z.object({
   userId: IdParamSchema,
 });
 
-// The only thing an admin changes on an existing user is their role.
-export const UpdateUserSchema = z.strictObject({
-  role: z.enum(USER_ROLES),
-});
+const UPDATE_USER_EMPTY_MESSAGE = 'Send a role, isReadOnly or both';
+
+// What an admin changes on an existing user: their role, and whether they are read-only (limited to looking).
+// At least one of the two.
+export const UpdateUserSchema = z
+  .strictObject({
+    role: z.enum(USER_ROLES).optional(),
+    isReadOnly: z.boolean().optional(),
+  })
+  .refine((change) => change.role !== undefined || change.isReadOnly !== undefined, UPDATE_USER_EMPTY_MESSAGE);
 
 // A user with no username yet (signed in with a passkey only, or after yarn auth:reset) needs one to use the
 // temporary password: the admin picks it here. A user who has one keeps it (another one answers 400).
@@ -45,10 +51,13 @@ export const UserResponseSchema = z
     name: z.string(),
     username: z.string().nullable(),
     role: z.enum(USER_ROLES),
+    // Limited to looking: signs in and reads, changes only their own password and passkeys.
+    isReadOnly: z.boolean(),
     state: z.enum(USER_STATES),
     // When the temporary password stops working, while the user has one.
     temporaryPasswordExpiresAt: z.iso.datetime().nullable(),
-    // The only admin left: they can't be made a member or deleted, so there is always at least one.
+    // The only admin left who is not read-only: they can't be made a member, made read-only or deleted, so there is
+    // always at least one admin who can change things.
     isLastAdmin: z.boolean(),
     createdAt: z.iso.datetime(),
   })

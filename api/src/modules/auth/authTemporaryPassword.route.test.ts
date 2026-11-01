@@ -89,7 +89,7 @@ describe('POST /auth/login/password', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      user: { name: USERNAME, username: USERNAME, role: 'MEMBER', mustChangePassword: true },
+      user: { name: USERNAME, username: USERNAME, role: 'MEMBER', isReadOnly: false, mustChangePassword: true },
     });
     const status = await asToken(tokenOf(response.headers['set-cookie']))({ method: 'GET', url: '/auth/status' });
     expect(status.json()).toMatchObject({ state: 'signedIn', user: { mustChangePassword: true } });

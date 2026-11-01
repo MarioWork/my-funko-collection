@@ -2,7 +2,15 @@ import type { InjectOptions } from 'fastify';
 import { buildApp, type App } from '../../app.ts';
 import { resetTestDb } from '../../testDb.ts';
 import { SESSION_COOKIE_NAME } from '../../lib/sessionCookie.ts';
-import { createFunko, createPasskeyRow, createTag, makeImage, signIn, toFormData } from '../../testFixtures.ts';
+import {
+  createFunko,
+  createPasskeyRow,
+  createTag,
+  createUser,
+  makeImage,
+  signIn,
+  toFormData,
+} from '../../testFixtures.ts';
 import type { AuthenticationOptionsResponse, RegistrationOptionsResponse } from './auth.schema.ts';
 import { addSetupCode, deleteSignIns } from './auth.service.ts';
 import { TestPasskey } from './TestPasskey.ts';
@@ -35,6 +43,18 @@ const ALLOWED_WITH_TEMPORARY_PASSWORD = new Set([
   'POST /auth/logout',
   'POST /auth/logout-everywhere',
 ]);
+// The writes a read-only user may still make besides the public ones: their own password and passkeys, and
+// signing out. Every other write answers 403 READ_ONLY to them; reads stay open.
+const ALLOWED_WHEN_READ_ONLY = new Set([
+  'PUT /auth/password',
+  'POST /auth/logout',
+  'POST /auth/logout-everywhere',
+  'POST /auth/passkeys/options',
+  'POST /auth/passkeys/verify',
+  'DELETE /auth/passkeys/{passkeyId}',
+]);
+// Fewer than this many refused writes would mean the OpenAPI walk missed most of the API's writes.
+const MIN_READ_ONLY_REFUSED_WRITES = 25;
 // The paths under which every write changes the catalogue, so every write there must be admin-only or a submission
 // route below.
 const CATALOGUE_PATH_PREFIXES = ['/funkos', '/categories', '/series'];
@@ -186,7 +206,7 @@ describe('GET /auth/status', () => {
 
     expect(response.json()).toEqual({
       state: 'signedIn',
-      user: { name: 'Tester', username: null, role: 'ADMIN', mustChangePassword: false },
+      user: { name: 'Tester', username: null, role: 'ADMIN', isReadOnly: false, mustChangePassword: false },
     });
   });
 
@@ -197,7 +217,7 @@ describe('GET /auth/status', () => {
 
     expect(response.json()).toEqual({
       state: 'signedIn',
-      user: { name: 'Member', username: null, role: 'MEMBER', mustChangePassword: false },
+      user: { name: 'Member', username: null, role: 'MEMBER', isReadOnly: false, mustChangePassword: false },
     });
   });
 
@@ -237,7 +257,7 @@ describe('POST /auth/setup/verify', () => {
 
     expect(verifyResponse.statusCode).toBe(200);
     expect(verifyResponse.json()).toEqual({
-      user: { name: OWNER_NAME, username: null, role: 'ADMIN', mustChangePassword: false },
+      user: { name: OWNER_NAME, username: null, role: 'ADMIN', isReadOnly: false, mustChangePassword: false },
     });
     const cookie = sessionCookieOf(verifyResponse.headers['set-cookie']) ?? '';
     expect(cookie).toContain('HttpOnly');
@@ -251,7 +271,7 @@ describe('POST /auth/setup/verify', () => {
     });
     expect(status.json()).toEqual({
       state: 'signedIn',
-      user: { name: OWNER_NAME, username: null, role: 'ADMIN', mustChangePassword: false },
+      user: { name: OWNER_NAME, username: null, role: 'ADMIN', isReadOnly: false, mustChangePassword: false },
     });
   });
 
@@ -361,7 +381,7 @@ describe('POST /auth/login/verify', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      user: { name: OWNER_NAME, username: null, role: 'ADMIN', mustChangePassword: false },
+      user: { name: OWNER_NAME, username: null, role: 'ADMIN', isReadOnly: false, mustChangePassword: false },
     });
     const newToken = tokenOf(response.headers['set-cookie']);
     expect(newToken).not.toBe(firstToken);
@@ -598,6 +618,66 @@ describe('ANY /<every route> with a temporary password', () => {
     }
 
     expect(refused.length).toBeGreaterThan(MIN_LOCKED_ROUTES);
+  });
+});
+
+describe('ANY /<every write route> when the user is read-only', () => {
+  it.each(['MEMBER', 'ADMIN'] as const)(
+    'returns 403 READ_ONLY on every write but their own password, passkeys and signing out when a read-only %s calls it',
+    async (role) => {
+      const user = await createUser('Read only', role);
+      const readOnly = await signIn(app, { userId: user.id, isReadOnly: true });
+      const document = app.swagger() as { paths: Record<string, Record<string, unknown>> };
+      const refused: string[] = [];
+
+      for (const [path, operations] of Object.entries(document.paths)) {
+        for (const method of Object.keys(operations)) {
+          const route = `${method.toUpperCase()} ${path}`;
+          const isAllowed = ALLOWED_WHEN_READ_ONLY.has(route) || PUBLIC_ROUTES.has(route);
+
+          if (!isWriteRoute(route) || isAllowed) continue;
+
+          const url = path.replace(/\{[^}]+\}/g, '1');
+          const response = await readOnly.inject({ method: method.toUpperCase(), url });
+          const code = response.statusCode === 403 ? response.json<{ code: string }>().code : undefined;
+
+          expect({ route, code }).toEqual({ route, code: 'READ_ONLY' });
+          refused.push(route);
+        }
+      }
+
+      expect(refused.length).toBeGreaterThan(MIN_READ_ONLY_REFUSED_WRITES);
+    },
+  );
+
+  it('lets every allowed write through when a read-only user calls it', async () => {
+    const user = await createUser('Read only');
+
+    for (const route of ALLOWED_WHEN_READ_ONLY) {
+      const [method = 'GET', path = '/'] = route.split(' ');
+      // A fresh session per call: signing out must not sign the next call out.
+      const readOnly = await signIn(app, { userId: user.id, isReadOnly: true });
+      const url = path.replace(/\{[^}]+\}/g, '1');
+
+      const response = await readOnly.inject({ method, url });
+
+      const code = response.statusCode === 403 ? response.json<{ code: string }>().code : undefined;
+      expect({ route, code }).not.toEqual({ route, code: 'READ_ONLY' });
+    }
+  });
+
+  it('still answers the reads when a read-only user looks at their collections and the catalogue', async () => {
+    const user = await createUser('Read only');
+    const readOnly = await signIn(app, { userId: user.id, isReadOnly: true });
+
+    const answers = [
+      await readOnly.inject({ method: 'GET', url: '/collections' }),
+      await readOnly.inject({ method: 'GET', url: '/funkos' }),
+      await readOnly.inject({ method: 'GET', url: '/auth/status' }),
+    ];
+
+    expect(answers.map((answer) => answer.statusCode)).toEqual([200, 200, 200]);
+    expect(answers[2]?.json()).toMatchObject({ state: 'signedIn', user: { isReadOnly: true } });
   });
 });
 
