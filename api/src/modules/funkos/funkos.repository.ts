@@ -57,11 +57,14 @@ const REVIEW_SELECT = {
 
 const SUBMISSION_SELECT = { ...FUNKO_SELECT, ...REVIEW_SELECT } as const satisfies Prisma.FunkoSelect;
 
-// What the double check compares: the barcode, and the number with the category's name.
+// What the double check compares: the barcode, and the number with the category's name; plus chase and exclusive, so
+// look-alikes (a regular and a chase of the same number and name) can be told apart.
 const DOUBLE_CANDIDATE_SELECT = {
   id: true,
   name: true,
   number: true,
+  isChase: true,
+  exclusive: true,
   barcode: true,
   status: true,
   category: { select: { name: true } },

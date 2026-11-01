@@ -1,6 +1,7 @@
 import type { ReviewSubmissionApiModel } from '@app-types/models';
 import { DOUBLE_MATCH_FIELD_LABELS, SubmissionStatusUtil } from '@app-types/utility';
 import { useSuggestions } from '@hooks/useSuggestions';
+import { funkoLabelOf } from '@utils/funkoUtils';
 import type { MergeTarget } from '../submissionReviewUtils';
 
 const DOUBLE_HINT_PREFIX = 'Maybe a double';
@@ -12,8 +13,7 @@ function doubleTargetsOf(submission: ReviewSubmissionApiModel): MergeTarget[] {
     .filter((double) => double.status === SubmissionStatusUtil.APPROVED)
     .map((double) => ({
       id: double.id,
-      name: double.name,
-      number: double.number,
+      label: funkoLabelOf(double),
       hint: `${DOUBLE_HINT_PREFIX}: ${double.matchedOn.map((field) => DOUBLE_MATCH_FIELD_LABELS[field]).join(', ')}`,
     }));
 }
@@ -34,7 +34,7 @@ export function useMergeTargets(
 
   const foundTargets: MergeTarget[] = (suggestions?.funkos ?? [])
     .filter((funko) => !listedIds.has(funko.id))
-    .map((funko) => ({ id: funko.id, name: funko.name, number: funko.number, hint: funko.category.name }));
+    .map((funko) => ({ id: funko.id, label: funkoLabelOf(funko), hint: funko.category.name }));
 
   return { targets: [...keptTargets, ...foundTargets], isSearching: isLoading };
 }
