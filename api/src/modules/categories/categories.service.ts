@@ -1,3 +1,4 @@
+import { isRestrictViolation } from '../../lib/databaseErrors.ts';
 import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
 import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
@@ -12,6 +13,7 @@ import type {
 } from './categories.schema.ts';
 
 const ENTITY = 'Category';
+const IN_USE_MESSAGE = 'Funkos still use this category. Move them to another category first';
 
 type CategoryAccess = { status: SubmissionStatus; submittedById: number | null };
 
@@ -85,11 +87,22 @@ export async function updateCategory(user: SignedInUser, id: number, data: Updat
   return toResponse(row);
 }
 
-// Deleting a category that still has funkos fails on the FK (restrict), which the error handler answers as 409.
+// Every funko has a category, so one that funkos use (any funko: approved, waiting, rejected or merged) is refused
+// by the database (`onDelete: Restrict`), answered here in words.
 export async function deleteCategory(id: number): Promise<void> {
-  const deleted = await categoriesRepository.delete(id);
+  const deleted = await deleteOrExplain(id);
 
   if (!deleted) throw new NotFoundError(ENTITY, id);
+}
+
+async function deleteOrExplain(id: number): Promise<{ id: number } | undefined> {
+  try {
+    return await categoriesRepository.delete(id);
+  } catch (error: unknown) {
+    if (isRestrictViolation(error)) throw new ConflictError(IN_USE_MESSAGE);
+
+    throw error;
+  }
 }
 
 // For funkos: whether a funko sent in by `submitterId` may sit in this category. Every funko may use an approved
