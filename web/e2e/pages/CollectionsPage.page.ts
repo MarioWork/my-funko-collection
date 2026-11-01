@@ -21,7 +21,7 @@ export class CollectionsPage {
   }
 
   // Keyboard focus on the button, where a keyboard user lands when tabbing to it.
-  async tabToNewCollection() {
+  async focusNewCollection() {
     await this.newCollectionButton.focus();
   }
 }
