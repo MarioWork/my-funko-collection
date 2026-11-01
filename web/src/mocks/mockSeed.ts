@@ -642,6 +642,21 @@ function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
   );
 }
 
+// Each waiting submission's own photo, uploaded by its sender, so merging one has an image to pick (as the API seed).
+function createSubmissionImages(submissions: MockFunkoRow[], startId: number): MockImageRow[] {
+  const waiting = submissions.filter((submission) => submission.status === SubmissionStatusUtil.WAITING);
+
+  return waiting.map((submission, offset) => ({
+    id: startId + offset,
+    funkoId: submission.id,
+    position: 0,
+    sizeBytes: MOCK_IMAGE_SIZE_BYTES,
+    createdAt: submission.createdAt,
+    uploadedById: submission.submittedById,
+    ...createMockImageUrls(submission.name, startId + offset),
+  }));
+}
+
 // Every table but auth, fresh: the seed rows, plus the generated ones for `yarn dev:big`.
 export function createSeedData(users: MockUserRow[]): MockSeedData {
   const categories = CATEGORY_NAMES.map((name, index) => ({
@@ -725,6 +740,7 @@ export function createSeedData(users: MockUserRow[]): MockSeedData {
   const allFunkos = [...funkos, ...extraFunkos, ...submissions, ...personaSubmissions];
   const notifications = createNotifications(submissions, users);
   const personaNotifications = createPersonaNotifications(allFunkos, notifications.length + 1);
+  const submissionImages = createSubmissionImages(submissions, seedImages.length + extraImages.length + 1);
 
   return {
     categories,
@@ -732,7 +748,7 @@ export function createSeedData(users: MockUserRow[]): MockSeedData {
     tags,
     collections,
     funkos: allFunkos,
-    images: [...seedImages, ...extraImages],
+    images: [...seedImages, ...extraImages, ...submissionImages],
     items: [...items, ...extraItems],
     otherUsersItems: createOtherUsersItems(funkos),
     notifications: [...notifications, ...personaNotifications],
