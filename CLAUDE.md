@@ -164,7 +164,8 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - Passkeys are bound to the host name in `APP_ORIGIN` (`x-app-address` in `compose.yaml`): never an IP address, and
   changing it orphans every passkey (`yarn auth:reset` then makes new ones).
 - Every funko has a series (issue #40); the barcode stays optional (and unique). `funkos.series_id` is NOT NULL with
-  `ON DELETE RESTRICT`: `DELETE /series/:id` answers 409 in words while any funko (a submission too) uses it. No
+  `ON DELETE RESTRICT`: `DELETE /series/:id`, like `DELETE /categories/:id`, answers 409 in words while any funko
+  (a submission too) uses it (caught by SQLSTATE with `isRestrictViolation()`; the mock handlers say the same). No
   made-up "Unknown" series: the migration stops on a funko without one (reseed). Create, update, submissions,
   approval and merge never leave a funko without one; the web forms, yup schemas and mock handlers refuse it too.
 - Barcodes are stored and looked up in the 13-digit EAN form: a 12-digit UPC-A gets a leading zero on both sides

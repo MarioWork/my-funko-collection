@@ -1,6 +1,6 @@
 import { buildApp, type App } from '../../app.ts';
 import { resetTestDb } from '../../testDb.ts';
-import { createCategory, createFunko, type SignedInClient, signIn } from '../../testFixtures.ts';
+import { createCategory, createFunko, createUser, type SignedInClient, signIn } from '../../testFixtures.ts';
 
 const URL = '/categories';
 const MISSING_ID = 999;
@@ -197,14 +197,29 @@ describe('DELETE /categories/:categoryId', () => {
     expect(response.statusCode).toBe(204);
   });
 
-  it('returns 409 when funkos still use it', async () => {
+  it('returns 409 in words and keeps the category and its funkos when funkos still use it', async () => {
     const created = await createCategory();
-    await createFunko({ categoryId: created.id });
+    const funko = await createFunko({ categoryId: created.id });
 
     const response = await api.inject({ method: 'DELETE', url: `${URL}/${created.id}` });
 
     expect(response.statusCode).toBe(409);
-    expect(response.json()).toMatchObject({ code: 'CONFLICT' });
+    expect(response.json()).toEqual({
+      code: 'CONFLICT',
+      message: 'Funkos still use this category. Move them to another category first',
+    });
+    const funkoResponse = await api.inject({ method: 'GET', url: `/funkos/${funko.id}` });
+    expect(funkoResponse.json()).toMatchObject({ id: funko.id, category: { id: created.id } });
+  });
+
+  it('returns 409 when only a submission uses it', async () => {
+    const member = await createUser();
+    const created = await createCategory();
+    await createFunko({ categoryId: created.id, status: 'WAITING', submittedById: member.id });
+
+    const response = await api.inject({ method: 'DELETE', url: `${URL}/${created.id}` });
+
+    expect(response.statusCode).toBe(409);
   });
 
   it('returns 400 when the id is not a positive integer', async () => {
