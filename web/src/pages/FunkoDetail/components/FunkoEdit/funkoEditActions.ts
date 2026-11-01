@@ -9,7 +9,7 @@ import { parseFormData } from '@utils/formDataUtils';
 import { newItemPayload } from '@utils/newItemUtils';
 import { FUNKO_ITEMS_PAGE_SIZE } from '../../funkoDetailUtils';
 import { failWhenInvalid } from '@utils/actionUtils';
-import { assertCanEditFunko } from '@utils/funkoRouteUtils';
+import { assertCanEditFunko } from './funkoEditUtils';
 
 type EditFunkoFormData = { funko: UpdateFunko; collectionIds: number[] };
 

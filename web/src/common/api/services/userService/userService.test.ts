@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw/http';
 import { SortingDirectionUtil, SubmissionStatusUtil, UserRoleUtil, UserStateUtil } from '@app-types/utility';
 import { MOCK_USER_ID } from '@mocks/mockAuth';
+import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
 import { addMockSubmission, mockStore } from '@mocks/mockStore';
 import { TEST_BASE_API_URL, server } from '@mocks/server';
 import userService, { UserApiSortingFields } from './userService';
@@ -114,15 +115,14 @@ describe('deleteUser', () => {
   });
 
   it('keeps the user’s waiting submission with no sender and drops the rejected one when the user is deleted', async () => {
-    const lukeId = MOCK_USER_ID + 2;
-    const waiting = addMockSubmission({ name: 'Luke Waiting', submittedById: lukeId });
+    const waiting = addMockSubmission({ name: 'Luke Waiting', submittedById: MOCK_MEMBER_ID });
     const rejected = addMockSubmission({
       name: 'Luke Rejected',
-      submittedById: lukeId,
+      submittedById: MOCK_MEMBER_ID,
       status: SubmissionStatusUtil.REJECTED,
     });
 
-    await userService.deleteUser(lukeId);
+    await userService.deleteUser(MOCK_MEMBER_ID);
 
     const remaining = mockStore.funkos.filter((funko) => funko.id === waiting.id || funko.id === rejected.id);
     expect(remaining).toEqual([expect.objectContaining({ id: waiting.id, submittedById: null })]);

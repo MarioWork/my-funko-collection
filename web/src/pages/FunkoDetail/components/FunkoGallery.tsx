@@ -6,7 +6,7 @@ import Lightbox from '@components/Lightbox';
 import PhotoThumbnail from '@components/PhotoThumbnail';
 import { reasonWhen } from '@utils/disabledReasonUtils';
 import ImageDownloadButton from '@components/ImageDownloadButton';
-import { useCanEditFunko } from '@hooks/useCanEditFunko';
+import { useCanEditFunko } from '../hooks/useCanEditFunko';
 
 type Props = {
   funko: FunkoDetailApiModel;

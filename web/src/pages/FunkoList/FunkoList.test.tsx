@@ -1,7 +1,7 @@
 import { renderRoutes, screen, userEvent } from '@test-utils';
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { MOCK_USER_ID } from '@mocks/mockAuth';
+import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
 import { addMockSubmission, mockStore } from '@mocks/mockStore';
 import { nextId } from '@mocks/mockStoreUtils';
 import { FUNKO_PAGE_SIZE } from './funkoListUtils';
@@ -54,7 +54,7 @@ it('starts over from the first page when the search changes', async () => {
 
 it('lists the signed-in user’s own waiting submission and never another member’s', async () => {
   addMockSubmission({ name: 'Hulk Mine' });
-  addMockSubmission({ name: 'Hulk Theirs', submittedById: MOCK_USER_ID + 2 });
+  addMockSubmission({ name: 'Hulk Theirs', submittedById: MOCK_MEMBER_ID });
   renderRoutes(funkoRoutes, { initialEntries: [`${FUNKO_ROUTES_PATHS.BASE}?q=${EXTRA_FUNKO_NAME}`] });
 
   expect(await screen.findByText('Hulk Mine')).toBeVisible();

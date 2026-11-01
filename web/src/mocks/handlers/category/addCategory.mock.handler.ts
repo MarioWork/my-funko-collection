@@ -8,6 +8,9 @@ import { mockStore } from '@mocks/mockStore';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
 import type { CreateCategory } from '@services/categoryService/categoryService.type';
 
+// A member typing a name the catalogue already has, as the API words it.
+const IN_CATALOGUE_MESSAGE = 'This category is already in the catalogue';
+
 export default (baseUrl: string) => [
   http.post(`${baseUrl}/categories`, async ({ request }) => {
     await delay(MOCK_DELAY);
@@ -20,7 +23,7 @@ export default (baseUrl: string) => [
     const isMember = standing.submittedById !== null;
 
     // A member typing a name the catalogue has is pointed at it, as the API does.
-    if (inCatalogue && isMember) return conflict('This category is already in the catalogue', inCatalogue.id);
+    if (inCatalogue && isMember) return conflict(IN_CATALOGUE_MESSAGE, inCatalogue.id);
 
     if (inCatalogue) return conflict(DUPLICATE_CONFLICT_MESSAGE);
 

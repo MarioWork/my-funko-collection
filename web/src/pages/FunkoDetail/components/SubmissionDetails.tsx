@@ -1,6 +1,6 @@
 import type { FunkoDetailApiModel } from '@app-types/models';
 import SubmissionStatusBadge from '@components/SubmissionStatusBadge';
-import { isOwnWaitingSubmission } from '@utils/funkoAccessUtils';
+import { isOwnWaitingSubmission } from '../funkoAccessUtils';
 import { userNameOrRemoved } from '@utils/removedUserUtils';
 
 type Props = {

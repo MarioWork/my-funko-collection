@@ -8,10 +8,10 @@ import { mockStore } from '@mocks/mockStore';
 import { nextId } from '@mocks/mockStoreUtils';
 import type { ReorderImages, RotateImage } from '@services/funkoImageService/funkoImageService.type';
 
-// Every image write is refused, as the API refuses it, unless the user may change the funko (see findEditableFunko).
 // Turns that swap the picture's width and height.
 const QUARTER_TURN_DEGREES: number[] = [90, 270];
 
+// Every image write is refused, as the API refuses it, unless the user may change the funko (see findEditableFunko).
 export default (baseUrl: string) => [
   http.patch(`${baseUrl}/funkos/:funkoId/images/order`, async ({ params, request }) => {
     await delay(MOCK_DELAY);

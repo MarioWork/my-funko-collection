@@ -43,12 +43,16 @@ type MockSubmissionOptions = Partial<Pick<MockFunkoRow, 'name' | 'barcode' | 'st
 // For a test that needs a submission: a funko sent in by the signed-in user (a waiting one unless `status` says
 // otherwise), by another member when `submittedById` names one, or by a removed user when it is null. Filed under the seed's first category.
 export function addMockSubmission(options: MockSubmissionOptions = {}): MockFunkoRow {
+  const [firstCategory] = mockStore.categories;
+
+  if (!firstCategory) throw new Error('The mock seed has no categories');
+
   const row: MockFunkoRow = {
     id: nextId(mockStore.funkos),
     name: options.name ?? SUBMISSION_NAME,
     number: SUBMISSION_NUMBER,
     type: FunkoTypeUtil.POP,
-    categoryId: mockStore.categories[0]?.id ?? 1,
+    categoryId: firstCategory.id,
     seriesId: null,
     isChase: false,
     exclusive: '',
