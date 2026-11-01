@@ -1,8 +1,8 @@
 import type { Locator, Page } from '@playwright/test';
 import { BASE_ROUTES_PATHS } from '../../src/application/routes/routesUtils';
 
-// The bell (top of the sidebar on desktop, in the header on phones; only one is on screen) and the notifications
-// page it opens.
+// The way to the notifications (the sidebar's Notifications item on desktop, the top bar's bell on phones; one link
+// with the same name either way) and the notifications page it opens.
 export class NotificationsPage {
   readonly heading: Locator;
 
@@ -17,7 +17,7 @@ export class NotificationsPage {
     await this.page.goto(BASE_ROUTES_PATHS.HOME);
   }
 
-  // The bell link, named "Notifications" or "Notifications, 2 unread".
+  // The bell or sidebar link, named "Notifications" or "Notifications, 2 unread".
   bell(name: string | RegExp): Locator {
     return this.page.getByRole('link', { name, exact: typeof name === 'string' });
   }

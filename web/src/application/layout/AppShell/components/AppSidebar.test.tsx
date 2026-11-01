@@ -70,11 +70,24 @@ it('gives an admin only the review Submissions page: their own new funkos join t
   ]);
 });
 
-it('puts a bell at the top that names how many notifications are unread and opens them', async () => {
+it('lists Notifications as a sidebar item that names how many are unread and opens them, with no bell above', async () => {
   renderSidebar();
 
-  const bell = await screen.findByRole('link', { name: 'Notifications, 2 unread' });
+  const item = await screen.findByRole('link', { name: 'Notifications, 2 unread' });
 
-  expect(bell).toHaveAttribute('href', NOTIFICATION_ROUTES_PATHS.BASE);
-  expect(within(bell).getByText('2')).toBeVisible();
+  expect(item).toHaveAttribute('href', NOTIFICATION_ROUTES_PATHS.BASE);
+  expect(within(item).getByText('Notifications')).toBeVisible();
+  expect(within(item).getByText('2')).toBeVisible();
+  expect(screen.getAllByRole('link', { name: /^Notifications/ })).toHaveLength(1);
+});
+
+it('draws a divider above the Admin group', async () => {
+  renderSidebar();
+
+  const adminGroup = await screen.findByRole('list', { name: ADMIN_GROUP });
+
+  expect(adminGroup.closest('[data-sidebar="group"]')?.previousElementSibling).toHaveAttribute(
+    'data-sidebar',
+    'separator',
+  );
 });
