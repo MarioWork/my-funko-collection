@@ -2,18 +2,21 @@
 // so an add or a delete changes the next list the way the real API would. It holds the catalogue with every
 // submission in it (the handlers show other members' waiting ones to nobody, as the API does: mockCatalogueUtils),
 // and only the signed-in user's own collections, items and tags (the API never sends another user's); of other users'
-// items only which user has which funko, for the count an admin sees before deleting one.
+// items only which user has which funko, for the count an admin sees before deleting one. Signing in as another user
+// (mockPersonas.ts) changes whose submissions and notifications are their own; the collections, items and tags stay
+// the same ones, whoever is signed in.
 import {
   FunkoTypeUtil,
   NotificationKindUtil,
   SubmissionStatusUtil,
-  type AuthStateUtil as AuthState,
+  type AuthStateUtil,
   type UserRoleUtil as UserRole,
 } from '@app-types/utility';
-import { createMockAuth, initialAuthState, MOCK_USER_ID } from './mockAuth';
+import { createMockAuth, initialAuthState } from './mockAuth';
+import { initialMockPersona, signedInAs, withMockPersona, type MockPersona } from './mockPersonas';
 import { createMockUsers } from './mockUsers';
 import { createSeedData } from './mockSeed';
-import type { MockFunkoRow, MockNotificationRow, MockStore } from './mockStore.type';
+import type { MockFunkoRow, MockNotificationRow, MockStore, MockUserRow } from './mockStore.type';
 import { nextId, nowIso, resetMockClock } from './mockStoreUtils';
 
 const SUBMISSION_NAME = 'Sent-in funko';
@@ -21,11 +24,22 @@ const SUBMISSION_NUMBER = '9001';
 
 function createMockStore(): MockStore {
   const users = createMockUsers();
+  const seedSignIn = withMockPersona({ auth: createMockAuth(initialAuthState), users }, initialMockPersona);
 
-  return { auth: createMockAuth(initialAuthState), users, ...createSeedData(users) };
+  return { ...seedSignIn, ...createSeedData(users) };
 }
 
 export let mockStore: MockStore = createMockStore();
+
+// A password sign-in as another user (mockPersonas.ts, signedInAs).
+export function signInAsMockUser(user: MockUserRow): void {
+  Object.assign(mockStore, signedInAs(mockStore, user));
+}
+
+// For a test that signs in as a persona (a member, a read-only user...). resetMockStore() signs back in as the mock user.
+export function setMockPersona(persona: MockPersona): void {
+  Object.assign(mockStore, withMockPersona(mockStore, persona));
+}
 
 export function resetMockStore(): void {
   resetMockClock();
@@ -33,7 +47,7 @@ export function resetMockStore(): void {
 }
 
 // For a test that starts signed out or before the first run. resetMockStore() signs back in.
-export function setMockAuthState(state: AuthState): void {
+export function setMockAuthState(state: AuthStateUtil): void {
   mockStore.auth = createMockAuth(state);
 }
 
@@ -72,7 +86,7 @@ export function addMockSubmission(options: MockSubmissionOptions = {}): MockFunk
     barcode: options.barcode ?? null,
     status,
     // null is a removed user's submission, so only a missing option means the signed-in user's.
-    submittedById: options.submittedById === undefined ? MOCK_USER_ID : options.submittedById,
+    submittedById: options.submittedById === undefined ? mockStore.auth.userId : options.submittedById,
     reviewedAt: isReviewed ? nowIso() : null,
     rejectionReason: isRejected ? REJECTION_REASON : null,
     changedByAdminAt: options.changedByAdminAt ?? null,
@@ -103,7 +117,7 @@ type MockNotificationOptions = Partial<Omit<MockNotificationRow, 'id' | 'created
 export function addMockNotification(options: MockNotificationOptions = {}): MockNotificationRow {
   const row: MockNotificationRow = {
     id: nextId(mockStore.notifications),
-    userId: MOCK_USER_ID,
+    userId: mockStore.auth.userId,
     kind: NotificationKindUtil.SUBMISSION_APPROVED,
     funkoId: null,
     funkoName: SUBMISSION_NAME,

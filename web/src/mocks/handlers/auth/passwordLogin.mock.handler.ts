@@ -5,7 +5,7 @@ import { AuthStateUtil, UserStateUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { errorResponse } from '@mocks/mockResponses';
 import { UNAUTHORIZED_STATUS } from '@utils/httpStatusUtils';
-import { mockStore } from '@mocks/mockStore';
+import { mockStore, signInAsMockUser } from '@mocks/mockStore';
 import type { MockUserRow } from '@mocks/mockStore.type';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import type { PasswordSignIn } from '@services/authService/authService.type';
@@ -32,19 +32,6 @@ function findOtherUser({ username, password }: PasswordSignIn): MockUserRow | un
   return mockStore.users.find((user) => user.username === typedUsername && user.password === password);
 }
 
-// The browser becomes that user's: their name, role and read-only setting, and the temporary password still to replace.
-function signInAs(user: MockUserRow): void {
-  Object.assign(mockStore.auth, {
-    userName: user.name,
-    username: user.username,
-    role: user.role,
-    isReadOnly: user.isReadOnly,
-    password: user.password,
-    mustChangePassword: user.state === UserStateUtil.TEMPORARY_PASSWORD,
-    passkeys: [],
-  });
-}
-
 // Like the API: the username is matched lower-case, the password exactly, and every failure gets the same answer,
 // but the right temporary password after its 7 days says so.
 export default (baseUrl: string) => [
@@ -59,15 +46,15 @@ export default (baseUrl: string) => [
 
     if (otherUser?.state === UserStateUtil.TEMPORARY_PASSWORD_EXPIRED) return temporaryPasswordExpired();
 
-    if (otherUser) signInAs(otherUser);
+    if (otherUser) signInAsMockUser(otherUser);
 
     const isSignedInUser = (isKnownUsername && isRightPassword) || otherUser !== undefined;
 
     if (!isSignedInUser) return signInFailed();
 
-    auth.state = AuthStateUtil.SIGNED_IN;
-    auth.isSignInRecent = true;
+    // Read again: signing in as another user replaced the sign-in.
+    Object.assign(mockStore.auth, { state: AuthStateUtil.SIGNED_IN, isSignInRecent: true });
 
-    return HttpResponse.json<AuthSessionApiModel>({ user: mockUserOf(auth) });
+    return HttpResponse.json<AuthSessionApiModel>({ user: mockUserOf(mockStore.auth) });
   }),
 ];

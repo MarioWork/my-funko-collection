@@ -42,6 +42,7 @@ export function createMockAuth(state: AuthState): MockAuth {
   const hasUser = state !== AuthStateUtil.SETUP;
 
   return {
+    userId: MOCK_USER_ID,
     state,
     userName: hasUser ? MOCK_USER_NAME : '',
     username: null,

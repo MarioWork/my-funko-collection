@@ -1,5 +1,4 @@
 import { AuthStateUtil } from '@app-types/utility';
-import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { errorResponse, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockUserRow } from '@mocks/mockStore.type';
@@ -22,7 +21,7 @@ export function everyMockUser(): MockUserRow[] {
 }
 
 export function isSignedInMockUser(userId: number): boolean {
-  return userId === MOCK_USER_ID;
+  return userId === mockStore.auth.userId;
 }
 
 // The row of a user id, or undefined. The signed-in user's row is built from the sign-in, so a change to them is

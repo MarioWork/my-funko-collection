@@ -2,7 +2,6 @@ import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { forgetNotifiedFunkos, notifyMockFunkoRemoved } from '@mocks/handlers/notification/notificationMockUtils';
-import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { mockHolderIdsOf } from '@mocks/mockCatalogueUtils';
 import { isTrueParam } from '@mocks/mockListUtils';
 import { badRequest, inCollections, noContent } from '@mocks/mockResponses';
@@ -79,7 +78,7 @@ export default (baseUrl: string) => [
     const row = target.funko;
     const isForced = isTrueParam(new URL(request.url).searchParams.get(FORCE_PARAM));
     const holderIds = mockHolderIdsOf(row.id);
-    const otherHolderCount = holderIds.filter((holderId) => holderId !== MOCK_USER_ID).length;
+    const otherHolderCount = holderIds.filter((holderId) => holderId !== mockStore.auth.userId).length;
     const isInCollections = holderIds.length > 0;
     const isInOtherUsersCollections = otherHolderCount > 0;
     const reason = await reasonOf(request);

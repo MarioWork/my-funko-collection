@@ -20,7 +20,6 @@ import {
   NOT_FOUND_STATUS,
 } from '@utils/httpStatusUtils';
 import { SubmissionStatusUtil } from '@app-types/utility';
-import { MOCK_USER_ID } from './mockAuth';
 import { catalogueFunkos, isMockAdmin, isSubmittedByMockUser, mockHolderIdsOf } from './mockCatalogueUtils';
 import { toPrimaryImage } from './mockImageUtils';
 import { mockStore } from './mockStore';
@@ -125,7 +124,7 @@ export function toFunkoImageModel({
 
 // Who sent a submission in, for an admin: the signed-in user, another user, or null once deleted (a removed user).
 export function senderOf(row: MockFunkoRow): NamedApiModel | null {
-  if (row.submittedById === MOCK_USER_ID) return { id: MOCK_USER_ID, name: mockStore.auth.userName };
+  if (row.submittedById === mockStore.auth.userId) return { id: mockStore.auth.userId, name: mockStore.auth.userName };
 
   const sender = mockStore.users.find((user) => user.id === row.submittedById);
 

@@ -39,7 +39,7 @@ test('an admin makes a member an admin, then deletes another user', async ({ pag
   await users.deleteUser();
 
   await expect(users.heading).toBeVisible();
-  await expect(users.userCount(3)).toBeVisible();
+  await expect(users.userCount(7)).toBeVisible();
   await expect(users.rowOf('han')).toHaveCount(0);
   await expect(users.rowOf('luke')).toContainText('Admin');
 });

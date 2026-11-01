@@ -5,7 +5,7 @@ import { AuthStateUtil, UserRoleUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { errorResponse } from '@mocks/mockResponses';
 import { CONFLICT_STATUS, UNAUTHORIZED_STATUS } from '@utils/httpStatusUtils';
-import { MOCK_SETUP_CODE } from '@mocks/mockAuth';
+import { MOCK_SETUP_CODE, MOCK_USER_ID } from '@mocks/mockAuth';
 import { mockStore } from '@mocks/mockStore';
 import { nowIso } from '@mocks/mockStoreUtils';
 import { AuthApiErrorCodes } from '@services/authService/authService';
@@ -39,6 +39,7 @@ export default (baseUrl: string) => [
     const createdAt = nowIso();
 
     mockStore.auth = {
+      userId: MOCK_USER_ID,
       state: AuthStateUtil.SIGNED_IN,
       userName: name,
       username: null,

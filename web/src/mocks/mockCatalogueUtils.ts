@@ -2,7 +2,6 @@
 // everyone sees the approved ones, a sender also what they sent in, an admin opens anything by id. A member's new
 // funko, category or series is a waiting submission; they change only their own while it waits or once rejected.
 import { SubmissionStatusUtil, UserRoleUtil } from '@app-types/utility';
-import { MOCK_USER_ID } from './mockAuth';
 import { mockStore } from './mockStore';
 import type { MockCategoryRow, MockFunkoRow, MockSeriesRow, MockSubmissionColumns } from './mockStore.type';
 
@@ -17,13 +16,13 @@ export function mockHolderIdsOf(funkoId: number): number[] {
   const otherHolderIds = mockStore.otherUsersItems
     .filter((item) => item.funkoId === funkoId)
     .map((item) => item.userId);
-  const holderIds = isOwnFunko ? [MOCK_USER_ID, ...otherHolderIds] : otherHolderIds;
+  const holderIds = isOwnFunko ? [mockStore.auth.userId, ...otherHolderIds] : otherHolderIds;
 
   return [...new Set(holderIds)];
 }
 
 export function isSubmittedByMockUser(row: MockSubmissionColumns): boolean {
-  return row.submittedById === MOCK_USER_ID;
+  return row.submittedById === mockStore.auth.userId;
 }
 
 // A submission its sender still looks after: waiting for an admin, or rejected and theirs to fix or delete.
@@ -67,7 +66,7 @@ export function canEditMockFunko(row: MockSubmissionColumns): boolean {
 export function newMockSubmissionColumns(): MockSubmissionColumns {
   if (isMockAdmin()) return { status: SubmissionStatusUtil.APPROVED, submittedById: null };
 
-  return { status: SubmissionStatusUtil.WAITING, submittedById: MOCK_USER_ID };
+  return { status: SubmissionStatusUtil.WAITING, submittedById: mockStore.auth.userId };
 }
 
 export function catalogueFunkos(): MockFunkoRow[] {
