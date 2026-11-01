@@ -1,10 +1,10 @@
 // An admin creates users with an app-made temporary password (docs/adr/0002-passwords-next-to-passkeys.md).
-import { buildApp, type App } from '../../app.ts';
-import { prisma } from '../../lib/prisma.ts';
-import { SESSION_COOKIE_NAME } from '../../lib/sessionCookie.ts';
-import { resetTestDb } from '../../testDb.ts';
-import { createCollection, createUser, signIn, type SignedInClient } from '../../testFixtures.ts';
-import { isCommonPassword } from '../auth/password/password.commonPasswords.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { prisma } from '../../../lib/prisma.ts';
+import { SESSION_COOKIE_NAME } from '../../../lib/sessionCookie.ts';
+import { resetTestDb } from '../../../testDb.ts';
+import { createCollection, createUser, signIn, type SignedInClient } from '../../../testFixtures.ts';
+import { isCommonPassword } from '../../auth/password/password.commonPasswords.ts';
 
 type CreatedUser = { user: { id: number; username: string; role: string; state: string }; temporaryPassword: string };
 type UserRow = { id: number; name: string; username: string | null; role: string; state: string };

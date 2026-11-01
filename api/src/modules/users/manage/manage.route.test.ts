@@ -1,8 +1,8 @@
 // An admin manages existing users: their role, read-only or not, a new temporary password, or deleting them
 // (issues #7 and #8, ADR 0002).
-import { buildApp, type App } from '../../app.ts';
-import { prisma } from '../../lib/prisma.ts';
-import { resetTestDb } from '../../testDb.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { prisma } from '../../../lib/prisma.ts';
+import { resetTestDb } from '../../../testDb.ts';
 import {
   createCollection,
   createFunko,
@@ -11,8 +11,8 @@ import {
   createUser,
   signIn,
   type SignedInClient,
-} from '../../testFixtures.ts';
-import { isCommonPassword } from '../auth/password/password.commonPasswords.ts';
+} from '../../../testFixtures.ts';
+import { isCommonPassword } from '../../auth/password/password.commonPasswords.ts';
 
 type ManagedUser = {
   id: number;

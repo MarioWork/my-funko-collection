@@ -5,7 +5,7 @@
 // rows in the same transaction, so the table never holds much more than the last 90 days.
 import { NotFoundError } from '../../lib/httpErrors.ts';
 import { logger } from '../../lib/logger.ts';
-import { getAdminIds } from '../users/users.service.ts';
+import { getAdminIds } from '../users/basics/basics.service.ts';
 import { notificationsRepository, type NewNotification, type NotificationRow } from './notifications.repository.ts';
 import type {
   ListNotificationsQuery,
