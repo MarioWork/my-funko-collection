@@ -24,7 +24,7 @@ import { suggestRoutes } from './modules/suggest/suggest.route.ts';
 import { submissionsRoutes } from './modules/submissions/submissions.route.ts';
 import { categoriesRoutes } from './modules/categories/categories.route.ts';
 import { collectionsRoutes } from './modules/collections/collections.route.ts';
-import { allItemsRoutes } from './modules/collections/items/collectionItems.route.ts';
+import { allItemsRoutes } from './modules/collections/items/items.route.ts';
 import { exportRoutes } from './modules/export/export.route.ts';
 import { funkosRoutes } from './modules/funkos/funkos.route.ts';
 import { imagesRoutes } from './modules/images/images.route.ts';

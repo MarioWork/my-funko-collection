@@ -3,8 +3,8 @@ import { BadRequestError, ConflictError, NotFoundError } from '../../../lib/http
 import { getFunkoSummaries, getFunkoSummary } from '../../funkos/basics/basics.service.ts';
 import type { FunkoSummary } from '../../funkos/funkos.type.ts';
 import { assertOwnTags } from '../../tags/tags.service.ts';
-import { getCollection } from '../collections.service.ts';
-import { collectionItemsRepository, type ItemRow, type TagRow } from './collectionItems.repository.ts';
+import { getCollection } from '../basics/basics.service.ts';
+import { itemsRepository, type ItemRow, type TagRow } from './items.repository.ts';
 import type {
   CollectionItemListResponse,
   CollectionItemResponse,
@@ -13,7 +13,7 @@ import type {
   ListCollectionItemsQuery,
   MoveCollectionItem,
   UpdateCollectionItem,
-} from './collectionItems.schema.ts';
+} from './items.schema.ts';
 
 const ENTITY = 'Collection item';
 
@@ -38,7 +38,7 @@ function toResponse(row: ItemRow, funko: FunkoSummary, itemTags: TagRow[]): Coll
 async function toResponses(rows: ItemRow[]): Promise<CollectionItemResponse[]> {
   const [funkosById, tagsByItem] = await Promise.all([
     getFunkoSummaries(rows.map((row) => row.funkoId)),
-    collectionItemsRepository.tagsByItemIds(rows.map((row) => row.id)),
+    itemsRepository.tagsByItemIds(rows.map((row) => row.id)),
   ]);
 
   return rows.flatMap((row) => {
@@ -70,14 +70,14 @@ async function assertFunkoExists(userId: number, funkoId: number): Promise<void>
 }
 
 async function assertNotAlreadyInCollection(collectionId: number, funkoId: number): Promise<void> {
-  const existing = await collectionItemsRepository.findIdByFunko(collectionId, funkoId);
+  const existing = await itemsRepository.findIdByFunko(collectionId, funkoId);
 
   if (existing) throw new ConflictError('This funko is already in the collection', existing.id);
 }
 
 // The signed-in user's item, or NotFoundError: one in another user's collection is not found either.
 async function findOwnItem(userId: number, collectionId: number, itemId: number): Promise<ItemRow> {
-  const current = await collectionItemsRepository.findById(userId, collectionId, itemId);
+  const current = await itemsRepository.findById(userId, collectionId, itemId);
 
   if (!current) throw new NotFoundError(ENTITY, itemId);
 
@@ -96,7 +96,7 @@ export async function getCollectionItems(
 
 // Only the signed-in user's items: a collectionId of another user's narrows the list to nothing.
 export async function getAllItems(userId: number, query: ListAllItemsQuery): Promise<CollectionItemListResponse> {
-  const { data, totalResultNumber } = await collectionItemsRepository.list(userId, query);
+  const { data, totalResultNumber } = await itemsRepository.list(userId, query);
 
   return { data: await toResponses(data), totalResultNumber, currentPage: query.page };
 }
@@ -106,7 +106,7 @@ export async function getCollectionItem(
   collectionId: number,
   itemId: number,
 ): Promise<CollectionItemResponse> {
-  const row = await collectionItemsRepository.findById(userId, collectionId, itemId);
+  const row = await itemsRepository.findById(userId, collectionId, itemId);
 
   return toSingleResponse(row, itemId);
 }
@@ -121,7 +121,7 @@ export async function addCollectionItem(
   await assertOwnTags(userId, tagIds ?? []);
   await assertNotAlreadyInCollection(collectionId, data.funkoId);
 
-  const row = await collectionItemsRepository.create({ ...data, collectionId }, [...new Set(tagIds ?? [])]);
+  const row = await itemsRepository.create({ ...data, collectionId }, [...new Set(tagIds ?? [])]);
 
   if (!row) throw new InternalError('The collection item was not found right after its insert');
 
@@ -139,7 +139,7 @@ export async function updateCollectionItem(
   await findOwnItem(userId, collectionId, itemId);
   await assertOwnTags(userId, tagIds ?? []);
 
-  const row = await collectionItemsRepository.update(userId, itemId, data, tagIds ? [...new Set(tagIds)] : undefined);
+  const row = await itemsRepository.update(userId, itemId, data, tagIds ? [...new Set(tagIds)] : undefined);
 
   return toSingleResponse(row, itemId);
 }
@@ -159,13 +159,13 @@ export async function moveCollectionItem(
   await assertCollectionExists(userId, toCollectionId);
   await assertNotAlreadyInCollection(toCollectionId, current.funkoId);
 
-  const row = await collectionItemsRepository.move(userId, itemId, toCollectionId);
+  const row = await itemsRepository.move(userId, itemId, toCollectionId);
 
   return toSingleResponse(row, itemId);
 }
 
 export async function deleteCollectionItem(userId: number, collectionId: number, itemId: number): Promise<void> {
-  const deleted = await collectionItemsRepository.delete(userId, collectionId, itemId);
+  const deleted = await itemsRepository.delete(userId, collectionId, itemId);
 
   if (!deleted) throw new NotFoundError(ENTITY, itemId);
 }

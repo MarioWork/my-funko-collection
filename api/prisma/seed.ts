@@ -6,7 +6,7 @@ import { logger } from '../src/lib/logger.ts';
 import { hashPassword } from '../src/lib/passwordHash.ts';
 import { prisma } from '../src/lib/prisma.ts';
 import type { Prisma } from '../src/generated/prisma/client.ts';
-import type { ItemCondition } from '../src/modules/collections/items/collectionItems.type.ts';
+import type { ItemCondition } from '../src/modules/collections/collections.type.ts';
 import type { FunkoType } from '../src/modules/funkos/funkos.type.ts';
 
 // What every seeded funko row names, catalogue funko or submission: the category and series by name.

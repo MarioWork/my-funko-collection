@@ -12,7 +12,7 @@ import {
   ListCollectionItemsQuerySchema,
   MoveCollectionItemSchema,
   UpdateCollectionItemSchema,
-} from './collectionItems.schema.ts';
+} from './items.schema.ts';
 import {
   addCollectionItem,
   deleteCollectionItem,
@@ -21,7 +21,7 @@ import {
   getCollectionItems,
   moveCollectionItem,
   updateCollectionItem,
-} from './collectionItems.service.ts';
+} from './items.service.ts';
 
 const TAGS = ['collection items'];
 
