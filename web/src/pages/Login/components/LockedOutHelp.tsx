@@ -5,7 +5,7 @@ import { RESET_COMMAND } from '../loginUtils';
 function LockedOutHelp() {
   return (
     <details className="group rounded-xl border bg-muted/50 text-sm">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 font-medium outline-none select-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-11 list-none items-center gap-2 rounded-xl px-3 font-medium outline-none select-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <LifeBuoy className="size-4 text-primary" aria-hidden="true" />
         Locked out?
         <ChevronRight
