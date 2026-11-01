@@ -47,7 +47,7 @@ export default {
       data: fields,
     }),
 
-  markAllNotificationsRead: async (): Promise<JSONResponseUtil> =>
+  updateAllNotifications: async (): Promise<JSONResponseUtil> =>
     axiosActions({ url: BASE_NOTIFICATIONS_URL, method: HttpVerbsUtil.PATCH, data: MARK_ALL_READ_BODY }),
 };
 
