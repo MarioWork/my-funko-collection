@@ -1,6 +1,8 @@
 // What other modules may import from funkos (node-ts-api §3): the funko shape they embed (collection items,
-// suggest) as a zod schema for their response contracts, and its types. Everything else stays in funkos.schema.ts.
+// suggest, submissions) as a zod schema for their response contracts, and its types. Everything else stays in
+// funkos.schema.ts.
 import { z } from 'zod';
+import type { SubmissionStatus } from '../submissions/submissions.type.ts';
 import type { FunkoResponseSchema } from './funkos.schema.ts';
 
 // Matches the `FunkoType` enum in prisma/schema.prisma; the repositories fail to compile if the two drift apart.
@@ -48,19 +50,30 @@ export const FunkoSummarySchema = z
 // The catalogue funko a merged submission went into (submissions lists and the funko page).
 export const MergedIntoSchema = z.object({ id: z.number().int(), name: z.string() }).nullable();
 
-// The catalogue fields an admin merging a submission can take from it instead of keeping the original entry's
-// (issue #39).
-export const MERGE_FIELDS = ['NAME', 'NUMBER', 'TYPE', 'CATEGORY', 'SERIES', 'CHASE', 'EXCLUSIVE', 'BARCODE'] as const;
-export type MergeField = (typeof MERGE_FIELDS)[number];
-
-// What the admin picked for the catalogue funko a submission merges into: the fields it takes from the submission,
-// the submission's images that move onto it, and its own images that go. Everything else stays the original entry's.
-export type MergeChoices = {
-  targetFunkoId: number;
-  fieldsFromSubmission: MergeField[];
-  imageIdsFromSubmission: number[];
-  removedImageIds: number[];
+// A funko as the funkos and submissions repositories read it: its columns, with its category's and series' names.
+export type FunkoRow = {
+  id: number;
+  name: string;
+  number: string;
+  type: FunkoType;
+  isChase: boolean;
+  exclusive: string;
+  barcode: string | null;
+  categoryId: number;
+  categoryName: string;
+  seriesId: number;
+  seriesName: string;
+  status: SubmissionStatus;
+  submittedById: number | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
+
+// The natural key the duplicate guard checks: the columns of `funkos_identity_uidx`.
+export type FunkoIdentity = Pick<FunkoRow, 'categoryId' | 'number' | 'name' | 'isChase' | 'exclusive'>;
+
+// Where a funko stands: in the catalogue, or a submission and who sent it.
+export type FunkoStanding = Pick<FunkoRow, 'status' | 'submittedById'>;
 
 export type PrimaryImageSummary = z.infer<typeof PrimaryImageSchema>;
 export type FunkoSummary = z.infer<typeof FunkoSummarySchema>;

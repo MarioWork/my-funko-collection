@@ -1,32 +1,12 @@
-import { env } from '../../config/env.ts';
 import { normaliseBarcode } from '../../lib/barcode.ts';
-import { isForeignKeyViolation, isUniqueViolation } from '../../lib/databaseErrors.ts';
 import { BadRequestError, ConflictError, HeldByUsersError, NotFoundError } from '../../lib/httpErrors.ts';
-import { copyImageFiles, removeFunkoFolder, removeImageFiles, sizeUrl } from '../../lib/imageStorage.ts';
+import { removeFunkoFolder, sizeUrl } from '../../lib/imageStorage.ts';
 import { logger } from '../../lib/logger.ts';
 import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
 import { isUsableCategory } from '../categories/categories.service.ts';
-import {
-  notifyAdminsOfNewSubmission,
-  notifyAdminsOfResentSubmission,
-  notifyFunkoRemoved,
-  notifySubmissionApproved,
-  notifySubmissionMerged,
-  notifySubmissionRejected,
-} from '../notifications/notifications.service.ts';
+import { notifyAdminsOfNewSubmission, notifyFunkoRemoved } from '../notifications/notifications.service.ts';
 import { isUsableSeries } from '../series/series.service.ts';
-import type {
-  DoubleMatchField,
-  ListReviewQuery,
-  ListSubmissionsQuery,
-  PossibleDouble,
-  RejectionOutcome,
-  ReviewSubmissionListResponse,
-  SubmissionListResponse,
-  SubmissionResponse,
-  SubmissionStatus,
-} from '../submissions/submissions.type.ts';
 import {
   assertCanEditFunko,
   canSeeFunko,
@@ -34,30 +14,13 @@ import {
   isInCatalogueOf,
   isOpenSubmission,
 } from './funkos.access.ts';
-import { getImageFiles, getImages } from './images/funkoImages.service.ts';
-import type { ImageFile } from './images/funkoImages.type.ts';
-import { combineClashingItems } from './funkos.merge.ts';
-import {
-  imagePlanOf,
-  pickedFieldsOf,
-  type MergeImagePlan,
-  type MergeComparableFields,
-  type PickedFields,
-} from './funkos.mergeChoices.ts';
+import { getImages } from './images/funkoImages.service.ts';
 import {
   funkosRepository,
-  type CatalogueReferences,
   type CollectionSummaryRow,
-  type DoubleCandidateRow,
-  type DoubleProbe,
-  type FunkoIdentity,
   type ForcedDeleter,
-  type FunkoRow,
   type ListedFunkoRow,
-  type MergeChange,
-  type MergeOutcome,
   type PrimaryImageRow,
-  type SubmissionRow,
 } from './funkos.repository.ts';
 import type {
   CreateFunko,
@@ -69,24 +32,10 @@ import type {
   ListFunkosQuery,
   UpdateFunko,
 } from './funkos.schema.ts';
-import type { FunkoSummary, MergeChoices, PrimaryImageSummary } from './funkos.type.ts';
+import type { FunkoIdentity, FunkoRow, FunkoStanding, FunkoSummary, PrimaryImageSummary } from './funkos.type.ts';
 
 const ENTITY = 'Funko';
-const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved, rejected or merged';
-const SELF_MERGE_MESSAGE = 'A submission cannot be merged into itself';
-const NOT_REJECTED_MESSAGE = 'Only a rejected submission can be sent again';
 const REASON_NEEDED_MESSAGE = 'Removing a funko other users have needs a reason to tell them';
-const CATALOGUE_HAS_FUNKO_MESSAGE = 'The catalogue already has this funko. Reject this submission, or change it first';
-const CATALOGUE_HAS_BARCODE_MESSAGE =
-  'This barcode belongs to another funko in the catalogue. Reject this submission, or change it first';
-const PICK_HAS_FUNKO_MESSAGE =
-  'With the picked details, this would be the same as another funko in the catalogue. Keep more of the original entry';
-const PICK_HAS_BARCODE_MESSAGE =
-  'The submission’s barcode belongs to another funko in the catalogue. Keep the original entry’s barcode';
-const MERGE_CLASH_MESSAGE =
-  'The catalogue now has a funko that clashes with the picked details. Reload and check them again';
-const CATALOGUE_CLASH_MESSAGE =
-  'The catalogue now has a funko, category or series that clashes with this submission. Reload and check it again';
 
 const log = logger.child({ module: 'funkos' });
 
@@ -108,9 +57,6 @@ function toPrimaryImage(row: PrimaryImageRow | undefined): PrimaryImageSummary |
     height: row.height,
   };
 }
-
-// Where a funko stands: in the catalogue, or a submission and who sent it.
-type FunkoStanding = { status: SubmissionStatus; submittedById: number | null };
 
 // A category or series a body points at that the funko may not use is the caller's input error: 400. A funko may
 // use the approved ones, and a waiting submission also the ones its sender typed in (`submitterId`, null for a
@@ -206,16 +152,6 @@ function withNormalisedBarcode<Data extends { barcode?: string | null }>(data: D
 
 const CATALOGUE_SCOPE: SubmitterScope = { submittedById: null };
 
-function identityOf(row: FunkoRow): FunkoIdentity {
-  return {
-    categoryId: row.categoryId,
-    number: row.number,
-    name: row.name,
-    isChase: row.isChase,
-    exclusive: row.exclusive,
-  };
-}
-
 // The duplicate guard within one scope: same (category, number, name, chase, exclusive) or same barcode answers 409
 // with the existing id.
 async function assertUniqueIn(
@@ -239,8 +175,9 @@ async function assertUniqueIn(
 
 // The unique rules hold in the approved catalogue and within one member's waiting submissions, never across
 // members: two members may each wait on the same box. A waiting submission is also checked against the catalogue,
-// so the member is pointed at the funko already there. Rejected and merged ones are not checked.
-async function assertUnique(
+// so the member is pointed at the funko already there. Rejected and merged ones are not checked. Submissions asks it
+// too, before a rejected one is sent again.
+export async function assertUniqueFunko(
   funko: FunkoStanding,
   identity: FunkoIdentity,
   barcode: string | null | undefined,
@@ -328,7 +265,7 @@ export async function addFunko(user: SignedInUser, input: CreateFunko): Promise<
 
   await assertCategoryUsable(data.categoryId, referenceOwnerOf(standing));
   await assertSeriesUsable(data.seriesId, referenceOwnerOf(standing));
-  await assertUnique(standing, identity, data.barcode);
+  await assertUniqueFunko(standing, identity, data.barcode);
 
   const row = await funkosRepository.create({ ...data, ...standing });
 
@@ -355,7 +292,7 @@ export async function updateFunko(user: SignedInUser, id: number, input: UpdateF
 
   if (data.categoryId !== undefined) await assertCategoryUsable(data.categoryId, referenceOwnerOf(current));
   if (data.seriesId !== undefined) await assertSeriesUsable(data.seriesId, referenceOwnerOf(current));
-  await assertUnique(current, identity, data.barcode === undefined ? current.barcode : data.barcode, id);
+  await assertUniqueFunko(current, identity, data.barcode === undefined ? current.barcode : data.barcode, id);
 
   const adminChange = isAdminChangingSubmission(user, current) ? { changedByAdminAt: new Date() } : {};
   const row = await funkosRepository.update(id, { ...data, ...adminChange });
@@ -476,361 +413,10 @@ export async function getFunkoSummary(userId: number, id: number): Promise<Funko
   return toSummary(row, primaryImages.get(id));
 }
 
-function toSubmission(row: SubmissionRow, primaryImage: PrimaryImageRow | undefined): SubmissionResponse {
-  return {
-    ...toSummary(row, primaryImage),
-    status: row.status,
-    reviewedAt: row.reviewedAt?.toISOString() ?? null,
-    rejectionReason: row.rejectionReason,
-    changedByAdminAt: row.changedByAdminAt?.toISOString() ?? null,
-    mergedInto: row.mergedInto,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  };
-}
-
-async function toSingleSubmission(id: number): Promise<SubmissionResponse> {
-  const row = await funkosRepository.findSubmission(id);
-
-  if (!row) throw new NotFoundError(ENTITY, id);
-
-  const primaryImages = await funkosRepository.primaryImagesByFunkoIds([id]);
-
-  return toSubmission(row, primaryImages.get(id));
-}
-
-// For the submissions module: what `userId` sent in, whatever became of it.
-export async function getSubmittedFunkos(userId: number, query: ListSubmissionsQuery): Promise<SubmissionListResponse> {
-  const { data, totalResultNumber } = await funkosRepository.listSubmissions(userId, query);
-  const primaryImages = await funkosRepository.primaryImagesByFunkoIds(data.map((row) => row.id));
-  const submissions = data.map((row) => toSubmission(row, primaryImages.get(row.id)));
-
-  return { data: submissions, totalResultNumber, currentPage: query.page };
-}
-
-const SAME_TEXT = new Intl.Collator('en', { sensitivity: 'accent' });
-
-// Why `candidate` may be the same funko as `probe`: the same barcode, or the same number in a category of the same
-// name (any case, as the query matched it).
-function doubleMatchesOf(probe: DoubleProbe, candidate: DoubleCandidateRow): DoubleMatchField[] {
-  const isSameBarcode = probe.barcode !== null && probe.barcode === candidate.barcode;
-  const isSameNumber = probe.number === candidate.number;
-  const isSameCategory = SAME_TEXT.compare(probe.categoryName, candidate.category.name) === 0;
-  const matches: DoubleMatchField[] = [];
-
-  if (isSameBarcode) matches.push('BARCODE');
-  if (isSameNumber && isSameCategory) matches.push('NUMBER_AND_CATEGORY');
-
-  return matches;
-}
-
-function possibleDoublesOf(probe: DoubleProbe, candidates: DoubleCandidateRow[]): PossibleDouble[] {
-  return candidates.flatMap((candidate) => {
-    const matchedOn = candidate.id === probe.id ? [] : doubleMatchesOf(probe, candidate);
-
-    if (matchedOn.length === 0) return [];
-
-    return [
-      {
-        id: candidate.id,
-        name: candidate.name,
-        number: candidate.number,
-        isChase: candidate.isChase,
-        exclusive: candidate.exclusive,
-        status: candidate.status,
-        matchedOn,
-      },
-    ];
-  });
-}
-
-// "Maybe a double", for the waiting ones only: every other approved or waiting funko that shares the barcode, or the
-// number and category. One query for the whole page.
-async function possibleDoublesByFunko(rows: SubmissionRow[]): Promise<Map<number, PossibleDouble[]>> {
-  const probes: DoubleProbe[] = rows
-    .filter((row) => row.status === 'WAITING')
-    .map((row) => ({ id: row.id, barcode: row.barcode, number: row.number, categoryName: row.categoryName }));
-  const candidates = await funkosRepository.findDoubleCandidates(probes);
-
-  return new Map(probes.map((probe) => [probe.id, possibleDoublesOf(probe, candidates)]));
-}
-
-// For the submissions module: every member's submissions as the admins review them, waiting or done.
-export async function getReviewSubmissions(query: ListReviewQuery): Promise<ReviewSubmissionListResponse> {
-  const { data, totalResultNumber } = await funkosRepository.listForReview(query);
-  const ids = data.map((row) => row.id);
-  const [primaryImages, doubles] = await Promise.all([
-    funkosRepository.primaryImagesByFunkoIds(ids),
-    possibleDoublesByFunko(data),
-  ]);
-  const submissions = data.map((row) => ({
-    ...toSubmission(row, primaryImages.get(row.id)),
-    submittedBy: row.submittedBy,
-    possibleDoubles: doubles.get(row.id) ?? [],
-  }));
-
-  return { data: submissions, totalResultNumber, currentPage: query.page };
-}
-
-async function findWaitingSubmission(id: number): Promise<FunkoRow> {
-  const row = await funkosRepository.findById(id);
-
-  if (!row) throw new NotFoundError(ENTITY, id);
-
-  if (row.status !== 'WAITING') throw new ConflictError(NOT_WAITING_MESSAGE);
-
-  return row;
-}
-
-// The clear refusals first: the same funko or barcode already in the catalogue (pointing at it). A clash that slips
-// in between (another admin approving the same box at once) is the unique index's 23505, answered in words too.
-async function assertFitsCatalogue(row: FunkoRow, categoryId: number): Promise<void> {
-  const identity: FunkoIdentity = { ...identityOf(row), categoryId };
-  const sameIdentity = await funkosRepository.findIdByIdentity(identity, CATALOGUE_SCOPE);
-
-  if (sameIdentity) throw new ConflictError(CATALOGUE_HAS_FUNKO_MESSAGE, sameIdentity.id);
-
-  const sameBarcode = row.barcode ? await funkosRepository.findIdByBarcode(row.barcode, CATALOGUE_SCOPE) : undefined;
-
-  if (sameBarcode) throw new ConflictError(CATALOGUE_HAS_BARCODE_MESSAGE, sameBarcode.id);
-}
-
-async function approveOrExplain(id: number, references: CatalogueReferences): Promise<boolean> {
-  try {
-    return await funkosRepository.approve(id, references);
-  } catch (error: unknown) {
-    if (isUniqueViolation(error)) throw new ConflictError(CATALOGUE_CLASH_MESSAGE);
-
-    throw error;
-  }
-}
-
-// An admin approves a waiting submission: the funko joins the catalogue for everyone, with any waiting category and
-// series of its own (one the catalogue now has by name takes their place). Refused while its identity or barcode
-// clashes with the catalogue.
-export async function approveSubmission(id: number): Promise<SubmissionResponse> {
-  const row = await findWaitingSubmission(id);
-  const references = await funkosRepository.findCatalogueReferences(id);
-
-  if (!references) throw new NotFoundError(ENTITY, id);
-
-  await assertFitsCatalogue(row, references.categoryId);
-
-  const isApproved = await approveOrExplain(id, references);
-
-  if (!isApproved) throw new ConflictError(NOT_WAITING_MESSAGE);
-
-  log.info({ funkoId: id }, 'submission approved');
-
-  // An orphan submission has no sender left to tell.
-  if (row.submittedById !== null)
-    await notifySubmissionApproved(row.submittedById, { funkoId: id, funkoName: row.name });
-
-  return toSingleSubmission(id);
-}
-
-// An orphan submission (its sender removed) has nobody to fix it: rejecting it deletes it.
-async function deleteRejectedOrphan(id: number): Promise<RejectionOutcome> {
-  const isDeleted = await funkosRepository.deleteOrphan(id);
-
-  if (!isDeleted) throw new ConflictError(NOT_WAITING_MESSAGE);
-
-  log.info({ funkoId: id }, 'orphan submission rejected and deleted');
-
-  return { isDeleted: true };
-}
-
-// An admin rejects a waiting submission, saying why: it stays in its sender's collections, still private, for them
-// to fix and send again, or delete. An orphan submission is deleted instead.
-export async function rejectSubmission(id: number, reason: string): Promise<RejectionOutcome> {
-  const current = await findWaitingSubmission(id);
-  const senderId = current.submittedById;
-
-  if (senderId === null) return deleteRejectedOrphan(id);
-
-  const row = await funkosRepository.reject(id, reason);
-
-  if (!row) throw new ConflictError(NOT_WAITING_MESSAGE);
-
-  log.info({ funkoId: id }, 'submission rejected');
-
-  await notifySubmissionRejected(senderId, { funkoId: id, funkoName: current.name }, reason);
-
-  return { isDeleted: false, submission: await toSingleSubmission(id) };
-}
-
-// The sender sends a rejected submission in again, once it fits their other waiting ones and the catalogue.
-export async function resendSubmission(user: SignedInUser, id: number): Promise<SubmissionResponse> {
-  const current = assertCanEditFunko(user, id, await funkosRepository.findById(id));
-
-  if (current.status !== 'REJECTED') throw new ConflictError(NOT_REJECTED_MESSAGE);
-
-  const waiting: FunkoStanding = { status: 'WAITING', submittedById: current.submittedById };
-
-  await assertUnique(waiting, identityOf(current), current.barcode, id);
-
-  const row = await funkosRepository.resend(id);
-
-  if (!row) throw new ConflictError(NOT_REJECTED_MESSAGE);
-
-  log.info({ funkoId: id }, 'submission sent again');
-
-  await notifyAdminsOfResentSubmission({ funkoId: id, funkoName: current.name });
-
-  return toSingleSubmission(id);
-}
-
-// A merge target is a funko in the catalogue other than the submission: anything else is the caller's input error.
-function targetNotInCatalogue(targetId: number): BadRequestError {
-  return new BadRequestError(`Funko ${targetId} is not in the catalogue`);
-}
-
-const MERGE_REFUSAL_MAP: Record<Exclude<MergeOutcome, 'MERGED'>, (targetId: number) => Error> = {
-  NOT_WAITING: () => new ConflictError(NOT_WAITING_MESSAGE),
-  TARGET_NOT_IN_CATALOGUE: targetNotInCatalogue,
-};
-
-// The target is checked in the transaction but not locked: one deleted in between makes the item move fail on its
-// foreign key, and the merge answers as if the target had never been there. A picked value another admin gave a
-// catalogue funko meanwhile is the unique index's 23505, answered in words.
-async function mergeOrExplain(id: number, targetId: number, change: MergeChange): Promise<MergeOutcome> {
-  try {
-    return await funkosRepository.merge(id, targetId, change, combineClashingItems);
-  } catch (error: unknown) {
-    if (isForeignKeyViolation(error)) return 'TARGET_NOT_IN_CATALOGUE';
-
-    if (isUniqueViolation(error)) throw new ConflictError(MERGE_CLASH_MESSAGE);
-
-    throw error;
-  }
-}
-
-function mergeSideOf(row: FunkoRow, references: CatalogueReferences): MergeComparableFields {
-  return {
-    name: row.name,
-    number: row.number,
-    type: row.type,
-    isChase: row.isChase,
-    exclusive: row.exclusive,
-    barcode: row.barcode,
-    ...references,
-  };
-}
-
-// The fields the target takes from the submission, compared with the submission's category and series as the
-// catalogue would have them.
-async function pickFields(submission: FunkoRow, target: FunkoRow, choices: MergeChoices): Promise<PickedFields> {
-  if (choices.fieldsFromSubmission.length === 0) return {};
-
-  const references = await funkosRepository.findCatalogueReferences(submission.id);
-
-  if (!references) throw new NotFoundError(ENTITY, submission.id);
-
-  const original = mergeSideOf(target, { categoryId: target.categoryId, seriesId: target.seriesId });
-
-  return pickedFieldsOf(original, mergeSideOf(submission, references), choices.fieldsFromSubmission);
-}
-
-// The target with the picked fields must still fit the catalogue: no other catalogue funko with the same identity or
-// barcode (409 pointing at it, as approval refuses).
-async function assertPickFitsCatalogue(target: FunkoRow, fields: PickedFields): Promise<void> {
-  const identity: FunkoIdentity = {
-    categoryId: fields.categoryId ?? target.categoryId,
-    number: fields.number ?? target.number,
-    name: fields.name ?? target.name,
-    isChase: fields.isChase ?? target.isChase,
-    exclusive: fields.exclusive ?? target.exclusive,
-  };
-  const sameIdentity = await funkosRepository.findIdByIdentity(identity, CATALOGUE_SCOPE);
-
-  if (sameIdentity && sameIdentity.id !== target.id) throw new ConflictError(PICK_HAS_FUNKO_MESSAGE, sameIdentity.id);
-
-  const sameBarcode = fields.barcode
-    ? await funkosRepository.findIdByBarcode(fields.barcode, CATALOGUE_SCOPE)
-    : undefined;
-
-  if (sameBarcode && sameBarcode.id !== target.id) throw new ConflictError(PICK_HAS_BARCODE_MESSAGE, sameBarcode.id);
-}
-
-async function planImages(id: number, targetId: number, choices: MergeChoices): Promise<MergeImagePlan> {
-  const [originalImages, submissionImages] = await Promise.all([getImageFiles(targetId), getImageFiles(id)]);
-
-  return imagePlanOf(originalImages, submissionImages, choices, env.MAX_IMAGES_PER_FUNKO);
-}
-
-// Best effort, like a normal image delete: the rows are already gone or moved.
-async function removeImageFilesOf(funkoId: number, images: ImageFile[]): Promise<void> {
-  for (const image of images) await removeImageFiles(funkoId, image.fileKey);
-}
-
-// The merge itself, with the moving images' files copied into the target's folder first, so the target never points
-// at a missing file. If a copy or the merge fails, the copies go again (removing one never written is a logged no-op)
-// and nothing else changed.
-async function mergeWithCopiedFiles(
-  id: number,
-  targetId: number,
-  change: MergeChange,
-  moved: ImageFile[],
-): Promise<void> {
-  let outcome: MergeOutcome;
-
-  try {
-    for (const image of moved) await copyImageFiles(id, targetId, image.fileKey);
-
-    outcome = await mergeOrExplain(id, targetId, change);
-  } catch (error: unknown) {
-    await removeImageFilesOf(targetId, moved);
-    throw error;
-  }
-
-  if (outcome === 'MERGED') return;
-
-  await removeImageFilesOf(targetId, moved);
-  throw MERGE_REFUSAL_MAP[outcome](targetId);
-}
-
-// Merges, then removes the files no row points at any more: the moved images' originals, and the removed images'.
-async function mergeWithImages(
-  id: number,
-  targetId: number,
-  fields: PickedFields,
-  plan: MergeImagePlan,
-): Promise<void> {
-  const change: MergeChange = {
-    fields,
-    movedImageIds: plan.moved.map((image) => image.id),
-    removedImageIds: plan.removed.map((image) => image.id),
-  };
-
-  await mergeWithCopiedFiles(id, targetId, change, plan.moved);
-  await removeImageFilesOf(id, plan.moved);
-  await removeImageFilesOf(targetId, plan.removed);
-}
-
-// An admin merges a waiting submission into a funko already in the catalogue: the funko takes the fields and images
-// the admin picked (see funkos.mergeChoices.ts), every item of the submission moves onto it (two in one collection
-// become one, see funkos.merge.ts), and the submission reads as merged into it, still private, as its sender sent it.
-// Its sender is told, pointed at the catalogue funko.
-export async function mergeSubmission(id: number, choices: MergeChoices): Promise<SubmissionResponse> {
-  const targetId = choices.targetFunkoId;
-
-  if (id === targetId) throw new BadRequestError(SELF_MERGE_MESSAGE);
-
-  const row = await findWaitingSubmission(id);
-  const target = await funkosRepository.findById(targetId);
-
-  if (target?.status !== 'APPROVED') throw targetNotInCatalogue(targetId);
-
-  const fields = await pickFields(row, target, choices);
-
-  await assertPickFitsCatalogue(target, fields);
-  await mergeWithImages(id, targetId, fields, await planImages(id, targetId, choices));
-
-  log.info({ funkoId: id, targetFunkoId: targetId }, 'submission merged');
-
-  // An orphan submission has no sender left to tell.
-  if (row.submittedById !== null)
-    await notifySubmissionMerged(row.submittedById, { funkoId: targetId, funkoName: target.name });
-
-  return toSingleSubmission(id);
+// For other modules (submissions): funko rows they read themselves, each beside its summary with the primary image
+// resolved. One image query for them all.
+export async function getFunkoSummariesOf<Row extends FunkoRow>(rows: Row[]): Promise<[Row, FunkoSummary][]> {
+  const primaryImages = await funkosRepository.primaryImagesByFunkoIds(rows.map((row) => row.id));
+
+  return rows.map((row) => [row, toSummary(row, primaryImages.get(row.id))]);
 }
