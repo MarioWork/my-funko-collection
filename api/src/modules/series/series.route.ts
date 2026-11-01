@@ -86,9 +86,9 @@ export const seriesRoutes: FastifyPluginAsyncZod = async (app) => {
       config: { isAdminOnly: true },
       schema: {
         tags: TAGS,
-        summary: 'Delete a series (its funkos keep existing, without a series)',
+        summary: 'Delete a series (409 while funkos still use it)',
         params: SeriesParamsSchema,
-        response: { 204: z.undefined(), 400: ErrorResponseSchema, 404: ErrorResponseSchema },
+        response: { 204: z.undefined(), 400: ErrorResponseSchema, 404: ErrorResponseSchema, 409: ErrorResponseSchema },
       },
     },
     async (request, reply) => {
