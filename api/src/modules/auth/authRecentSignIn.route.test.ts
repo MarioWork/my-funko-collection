@@ -72,7 +72,7 @@ beforeEach(async () => {
 });
 
 describe('POST /auth/recent-sign-in', () => {
-  it('replaces the session with a fresh password one, so changes that need a recent sign-in work again', async () => {
+  it('replaces the session with a fresh password one when the password is right, so recent-sign-in changes work', async () => {
     const api = await staleOwnerWithPassword();
     expect((await startAddPasskey(api.token)).statusCode).toBe(403);
 
@@ -89,7 +89,7 @@ describe('POST /auth/recent-sign-in', () => {
     expect(session).toEqual({ signInMethod: 'PASSWORD', passkeyId: null });
   });
 
-  it('gives the same 401 SIGN_IN_FAILED for a wrong password and for a user with no password, and keeps the session', async () => {
+  it('returns the same 401 SIGN_IN_FAILED and keeps the session when the password is wrong or the user has none', async () => {
     const withPassword = await staleOwnerWithPassword();
     const passkeyOnly = await signIn(app, { role: 'MEMBER' });
 
@@ -106,7 +106,7 @@ describe('POST /auth/recent-sign-in', () => {
     expect((await startAddPasskey(withPassword.token)).statusCode).toBe(403);
   });
 
-  it('never switches users: another user’s password is a wrong password', async () => {
+  it('returns 401 SIGN_IN_FAILED and opens no session for them when the password is another user’s', async () => {
     const api = await staleOwnerWithPassword();
     const other = await prisma.user.create({ data: { name: 'Other', webauthnUserId: 'b3RoZXI' } });
     await givePassword(other.id, OTHER_PASSWORD, 'other');
@@ -118,7 +118,7 @@ describe('POST /auth/recent-sign-in', () => {
     expect(await prisma.session.count({ where: { userId: other.id } })).toBe(0);
   });
 
-  it('returns 429 after 5 tries a minute from one address, and never locks the account', async () => {
+  it('returns 429 but never locks the account when one address tries more than 5 times a minute', async () => {
     const api = await staleOwnerWithPassword();
     const remoteAddress = nextAddress();
 
@@ -132,7 +132,7 @@ describe('POST /auth/recent-sign-in', () => {
     expect(fromElsewhere.statusCode).toBe(200);
   });
 
-  it('confirms a temporary-password session with that temporary password, which still has to be replaced', async () => {
+  it('renews the session but still asks for a new password when a temporary-password session confirms with it', async () => {
     const api = await signIn(app, { role: 'MEMBER', signedInAt: new Date(Date.now() - STALE_SIGN_IN_MS) });
     await givePassword(api.userId, PASSWORD, 'luke');
     await prisma.user.update({
@@ -148,7 +148,7 @@ describe('POST /auth/recent-sign-in', () => {
     expect((await getTags(newToken)).json()).toMatchObject({ code: 'PASSWORD_CHANGE_REQUIRED' });
   });
 
-  it('returns 401 TEMPORARY_PASSWORD_EXPIRED for the right temporary password after its 7 days', async () => {
+  it('returns 401 TEMPORARY_PASSWORD_EXPIRED when the right temporary password is past its 7 days', async () => {
     const api = await signIn(app, { role: 'MEMBER', signedInAt: new Date(Date.now() - STALE_SIGN_IN_MS) });
     await givePassword(api.userId, PASSWORD, 'luke');
     await prisma.user.update({ where: { id: api.userId }, data: { temporaryPasswordExpiresAt: new Date() } });
