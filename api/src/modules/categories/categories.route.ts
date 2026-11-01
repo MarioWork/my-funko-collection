@@ -77,7 +77,7 @@ export const categoriesRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => updateCategory(signedInUser(request), request.params.categoryId, request.body),
+    async (request) => updateCategory(signedInUserId(request), request.params.categoryId, request.body),
   );
 
   app.delete(
