@@ -9,7 +9,8 @@ export function describeUnreadCount(count: number): string {
   return `${count} unread`;
 }
 
-// What the live region says when the count goes up: "1 unread notification", "3 unread notifications".
-export function describeNewNotifications(count: number): string {
+// The unread count in a sentence, for the live region (when it goes up) and the page header:
+// "1 unread notification", "3 unread notifications".
+export function describeUnreadNotifications(count: number): string {
   return `${count} unread ${plural(count, 'notification', 'notifications')}`;
 }

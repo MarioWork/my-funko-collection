@@ -178,7 +178,9 @@ HttpOnly cookie the app never sees.
   click. One polite live region (`NotificationAnnouncer`) says the count when it goes up, never on the first load
   or on every reload. On the page, each notification's title links to what it is about (an approval: the funko; a
   rejection, with its reason: _Submissions_; a new or resent submission: the review list) and marks it read as it
-  opens (a fetcher that outlives the page); one whose funko was deleted gets _Mark read_ instead. Unread ones say
+  opens: a plain click on an unread one submits to the mark-read action, which redirects to the link's target from
+  the API's answer, so the count reloads after the write (a middle click or "open in new tab" just follows the link
+  and leaves it unread); one whose funko was deleted gets _Mark read_ instead. Unread ones say
   "New" in words. _Mark all read_ is open to a read-only user (it only touches their own notifications) and is
   disabled, with the reason, once nothing is unread.
 - **New users.** An admin creates one on _Users_ → _New user_ (`/users/add`, a routed dialog): a username and a

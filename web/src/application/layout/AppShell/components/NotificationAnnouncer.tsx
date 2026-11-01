@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { describeNewNotifications } from '@utils/notificationUtils';
+import { describeUnreadNotifications } from '@utils/notificationUtils';
 import UnreadCountAwait from './UnreadCountAwait';
 
 type Props = {
@@ -13,13 +13,15 @@ function CountAnnouncement({ count }: Props) {
   const [previousCount, setPreviousCount] = useState(count);
   const [announcement, setAnnouncement] = useState('');
 
-  if (count !== previousCount) {
-    const isFirstKnownCount = previousCount === undefined;
-    const hasGoneUp = count !== undefined && !isFirstKnownCount && count > previousCount;
+  // An unknown count (one that failed to load) is skipped, so the next known one is still compared with the last.
+  const isNewKnownCount = count !== undefined && count !== previousCount;
+
+  if (isNewKnownCount) {
+    const hasGoneUp = previousCount !== undefined && count > previousCount;
 
     setPreviousCount(count);
 
-    if (hasGoneUp) setAnnouncement(describeNewNotifications(count));
+    if (hasGoneUp) setAnnouncement(describeUnreadNotifications(count));
   }
 
   return (

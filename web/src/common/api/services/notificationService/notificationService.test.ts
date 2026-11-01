@@ -71,7 +71,7 @@ describe('updateNotification', () => {
   });
 });
 
-describe('markAllNotificationsRead', () => {
+describe('updateAllNotifications', () => {
   it('patches every notification read', async () => {
     let received: ReceivedRequest | undefined;
     server.use(
@@ -82,7 +82,7 @@ describe('markAllNotificationsRead', () => {
       }),
     );
 
-    const result = await notificationService.markAllNotificationsRead();
+    const result = await notificationService.updateAllNotifications();
 
     expect(received).toEqual({ method: 'PATCH', path: '/api/notifications', body: { isRead: true } });
     expect(result.success).toBe(true);
