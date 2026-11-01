@@ -16,7 +16,8 @@ const ADMIN_ONLY_MESSAGE = 'Only an admin can change a funko in the catalogue';
 // The API's 409 messages for a duplicate funko.
 export const DUPLICATE_FUNKO_MESSAGE = 'This funko already exists';
 export const DUPLICATE_BARCODE_MESSAGE = 'This barcode belongs to another funko';
-const SERIES_REQUIRED_MESSAGE = 'Series is required';
+// The API refuses a body without a series in its schema, so it answers with its generic validation message.
+const SERIES_REQUIRED_MESSAGE = 'Request validation failed';
 
 type BarcodeCandidate = MockSubmissionColumns & { barcode: string | null };
 type ReferenceCandidate = MockSubmissionColumns & { categoryId: number; seriesId: number };
