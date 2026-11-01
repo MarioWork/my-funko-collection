@@ -141,7 +141,8 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   is always at least one admin: making the last one a member or deleting them answers 409 `LAST_ADMIN` (checked
   under a table lock, so two admins demoting each other can't both win), and `GET /users` marks that user
   `isLastAdmin`. Deleting a user deletes their sessions, passkeys, collections, items and tags (database cascades);
-  catalogue funkos stay, and images they uploaded keep showing with a removed user as uploader.
+  catalogue funkos stay, and images they uploaded keep showing with a removed user as uploader. What they sent in:
+  see "Submissions" below.
 - **Cross-site writes.** Any non-GET request whose `Sec-Fetch-Site` is not `same-origin`/`none`, or whose `Origin`
   is not `APP_ORIGIN`, answers 403 `CROSS_SITE_REQUEST`.
 - **Limits.** The ceremony routes allow 10 requests a minute per address (5 attempts); password sign-in allows 5.
@@ -179,9 +180,15 @@ unique rules (barcode, identity, category and series names) hold in the approved
 waiting ones, never across them (partial unique indexes in the `submissions` migration): two members may wait on
 the same box, and an admin may add one a member waits on. A member's funko, category or series that the catalogue
 already has answers 409 with its `existingId`. `GET /submissions` lists what the signed-in user sent in, whatever
-became of it. Deleting a user deletes what they sent in that never joined the catalogue (their items of it too; a
-trigger in the migration) and clears `submitted_by_id` on the approved ones. Approving, rejecting and merging are
-not built yet (issue #10).
+became of it. An admin opening a submission by id also gets `submittedBy` (`{ id, name }`, or null for a removed
+user). Deleting a user (`DELETE /users/:userId`, or any other code) runs a trigger from the migration: their
+rejected submissions go, with any item of them; their never-approved categories and series that no funko uses go;
+everything else they sent in stays with `submitted_by_id` cleared, so a waiting one waits on for an admin (an
+"orphan"). Orphans are in no member's scope: the partial unique indexes treat each null sender as distinct, so they
+never clash with each other or block a new submission. Image files of deleted rows stay until `yarn images:prune`.
+A submission's image files under `/uploads` follow the same rule as the funko: until it is approved only admins and
+its sender load them (whoever uploaded each photo); others, and everyone but admins for an orphan, get 404 (the
+uploads plugin's hook, `assertCanSeeImageFiles()`). Approving, rejecting and merging are not built yet (issue #10).
 
 | Method and path                                                    | What                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -236,7 +243,7 @@ not built yet (issue #10).
 | `PATCH /users/:userId`                                             | Admins only, recent sign-in: `{ role }`; ends the user's sessions when the role changes; 409 `LAST_ADMIN` for the last admin                                                                                                                                                                                                                                                                                      |
 | `POST /users/:userId/temporary-password`                           | Admins only, recent sign-in: `{ username? }` (only for a user who has none, and then needed); 200 `{ user, temporaryPassword }`; ends the user's sessions                                                                                                                                                                                                                                                         |
 | `DELETE /users/:userId`                                            | Admins only, recent sign-in: the user with their sessions, passkeys, collections, items and tags; 409 `LAST_ADMIN` for the last admin                                                                                                                                                                                                                                                                             |
-| `GET /uploads/...`                                                 | The image files (immutable, cached for a year)                                                                                                                                                                                                                                                                                                                                                                    |
+| `GET /uploads/...`                                                 | The image files (immutable, cached for a year); a submission's only for admins and its sender, 404 otherwise                                                                                                                                                                                                                                                                                                      |
 
 `GET /funkos` filters: `q`, `name`, `number`, `barcode`, `exclusive`, `type`, `isChase`, `categoryId`, `category`,
 `seriesId`, `series`, `tagId`, `tag`, `collectionId`, `collection`, `notInCollectionId`, `hasCollections`, `hasSeries`, `hasTags`, `hasImages`; sort

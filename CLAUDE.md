@@ -76,8 +76,12 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   (`funkos/funkos.access.ts`: an admin changes any funko, a member only their own waiting one, else 404 / 403
   `ADMIN_ONLY`). Those routes are `SUBMISSION_ROUTES` in `auth.route.test.ts`, which fails on a catalogue write in
   neither list. Barcode, identity and name uniqueness hold in the approved catalogue and within one member's waiting
-  ones (partial unique indexes in the `submissions` migration). A `BEFORE DELETE` trigger on `users` deletes a
-  user's never-approved submissions (and their items of them). The web mirrors the rule in `useCanEditFunko()` /
+  ones (partial unique indexes in the `submissions` migration). A `BEFORE DELETE` trigger on `users` deletes the
+  user's rejected submissions (with their items) and their unused never-approved categories and series; waiting,
+  approved and merged ones stay with a null sender ("Removed user", shown to admins on a submission), and orphaned
+  waiting ones never clash (null senders are distinct in the partial indexes). Until approved, a submission's image
+  files under `/uploads` are served only to admins and its sender (the uploads plugin's hook asks
+  `assertCanSeeImageFiles()`); others get 404. The web mirrors the rule in `useCanEditFunko()` /
   `assertCanEditFunko()` and the mocks in `mockCatalogueUtils.ts`. Approve / reject / merge is issue #10.
 - Deliberate exceptions to the Node skills for auth (decided 2026-10-23): the check is a global `onRequest` hook in
   `auth.plugin.ts` with server-side cookie sessions, not `@fastify/jwt` + `preHandler: [app.authenticate]`

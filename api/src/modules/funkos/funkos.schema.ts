@@ -108,6 +108,9 @@ export const FunkoResponseSchema = FunkoSummarySchema.extend({
 
 export const FunkoDetailResponseSchema = FunkoResponseSchema.extend({
   images: z.array(FunkoImageResponseSchema),
+  // Admins only, on a submission (not approved): who sent it in, or null once that user was deleted (a removed
+  // user). Left out otherwise.
+  submittedBy: z.object({ id: z.number().int(), name: z.string() }).nullable().optional(),
 }).meta({ id: 'FunkoDetail' });
 
 export const FunkoListResponseSchema = paginatedResponseSchema(FunkoResponseSchema);

@@ -214,9 +214,14 @@ export async function getFunko(user: SignedInUser, id: number): Promise<FunkoDet
 
   if (!row || !canSeeFunko(user, row)) throw new NotFoundError(ENTITY, id);
 
-  const [response, images] = await Promise.all([toSingleResponse(user.userId, row), getImages(id)]);
+  const isSubmissionForAdmin = user.isAdmin && row.status !== 'APPROVED';
+  const [response, images, submittedBy] = await Promise.all([
+    toSingleResponse(user.userId, row),
+    getImages(id),
+    isSubmissionForAdmin ? funkosRepository.findSubmitter(id) : undefined,
+  ]);
 
-  return { ...response, images };
+  return { ...response, images, submittedBy };
 }
 
 export async function getFunkoByBarcode(userId: number, barcode: string): Promise<FunkoResponse> {

@@ -334,6 +334,16 @@ function groupByFunkoId<Row extends { funkoId: number }>(rows: Row[]): Map<numbe
 export const funkosRepository = {
   findById: (id: number): Promise<FunkoRow | undefined> => findRow({ id }),
 
+  // Who sent the funko in, or null for no sender (an admin's funko, or a deleted user's).
+  findSubmitter: async (funkoId: number): Promise<{ id: number; name: string } | null> => {
+    const funko = await prisma.funko.findUnique({
+      where: { id: funkoId },
+      select: { submittedBy: { select: { id: true, name: true } } },
+    });
+
+    return funko?.submittedBy ?? null;
+  },
+
   findManyByIds: async (ids: number[]): Promise<FunkoRow[]> => {
     if (ids.length === 0) return [];
 
