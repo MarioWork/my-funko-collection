@@ -6,7 +6,9 @@ import { rejectionReasonSchema } from '@utils/submissionUtils';
 // shows the latest reviewed ones.
 export const REVIEW_PAGE_SIZE = '100';
 
-export const REVIEW_TABS: { value: SubmissionApiReviewStates; label: string }[] = [
+type ReviewTab = { value: SubmissionApiReviewStates; label: string };
+
+export const REVIEW_TABS: ReviewTab[] = [
   { value: SubmissionApiReviewStates.WAITING, label: 'Waiting' },
   { value: SubmissionApiReviewStates.DONE, label: 'Done' },
 ];
@@ -28,11 +30,14 @@ export function isReviewState(value: string | undefined): value is SubmissionApi
   return value === SubmissionApiReviewStates.WAITING || value === SubmissionApiReviewStates.DONE;
 }
 
+const REVIEW_COUNT_WORD_MAP: Record<SubmissionApiReviewStates, string> = {
+  [SubmissionApiReviewStates.WAITING]: 'waiting',
+  [SubmissionApiReviewStates.DONE]: 'reviewed',
+};
+
 // "2 waiting" / "1 reviewed".
 export function describeReviewCount(count: number, state: SubmissionApiReviewStates): string {
-  const word = state === SubmissionApiReviewStates.WAITING ? 'waiting' : 'reviewed';
-
-  return `${count} ${word}`;
+  return `${count} ${REVIEW_COUNT_WORD_MAP[state]}`;
 }
 
 export const rejectSubmissionFormSchema = object({
