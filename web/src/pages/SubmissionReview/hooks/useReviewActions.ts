@@ -5,26 +5,24 @@ import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import { SUBMISSION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { useActionToast } from '@hooks/useActionToast';
 import { createFormData } from '@utils/formDataUtils';
-import type { MergeSubmissionFormValues, RejectSubmissionFormValues } from '../submissionReviewUtils';
+import type { RejectSubmissionFormValues } from '../submissionReviewUtils';
 
-type ReviewKind = 'approve' | 'reject' | 'merge';
+type ReviewKind = 'approve' | 'reject';
 
 type Pending = { kind: ReviewKind; submission: ReviewSubmissionApiModel };
 
 const SUCCESS_MESSAGE_MAP: Record<ReviewKind, (name: string) => string> = {
   approve: (name) => `${name} approved`,
   reject: (name) => `${name} rejected`,
-  merge: (name) => `${name} merged`,
 };
 
-// Approve, reject and merge for the whole Waiting list, owned by the list: a reviewed row leaves the tab before its
-// own fetcher would settle, so the toast and the error must live in something that stays on screen. The reject and
-// merge dialogs are opened from here too, for the same reason.
+// Approve and reject for the whole Waiting list, owned by the list: a reviewed row leaves the tab before its own
+// fetcher would settle, so the toast and the error must live in something that stays on screen. The reject dialog is
+// opened from here too, for the same reason. Merging is its own routed dialog (MergeSubmissionDialog).
 export function useReviewActions() {
   const fetcher = useFetcher<JSONResponseUtil<SubmissionApiModel>>();
   const [pending, setPending] = useState<Pending | null>(null);
   const [rejecting, setRejecting] = useState<ReviewSubmissionApiModel | null>(null);
-  const [merging, setMerging] = useState<ReviewSubmissionApiModel | null>(null);
   const isBusy = fetcher.state !== 'idle';
   const busyId = isBusy ? pending?.submission.id : undefined;
   const failure = fetcher.data?.success === false && !isBusy ? fetcher.data.error : undefined;
@@ -49,15 +47,7 @@ export function useReviewActions() {
     });
   };
 
-  const merge = (submission: ReviewSubmissionApiModel, values: MergeSubmissionFormValues) => {
-    setPending({ kind: 'merge', submission });
-    void fetcher.submit(createFormData({ merge: { targetFunkoId: Number(values.targetFunkoId) } }), {
-      method: HttpVerbsUtil.POST,
-      action: SUBMISSION_ROUTES_PATHS.merge(String(submission.id)),
-    });
-  };
-
-  // Why the last approval of this row failed; a failed rejection or merge shows in its dialog instead.
+  // Why the last approval of this row failed; a failed rejection shows in its dialog instead.
   const approveFailureOf = (id: SubmissionId): ApiError | undefined => {
     const isThisApproval = pending?.kind === 'approve' && pending.submission.id === id;
 
@@ -65,7 +55,6 @@ export function useReviewActions() {
   };
 
   const rejectFailure = pending?.kind === 'reject' ? failure : undefined;
-  const mergeFailure = pending?.kind === 'merge' ? failure : undefined;
 
   return {
     fetcher,
@@ -73,17 +62,10 @@ export function useReviewActions() {
     isBusy,
     rejecting,
     rejectFailure,
-    merging,
-    mergeFailure,
     approve,
     reject,
-    merge,
     approveFailureOf,
     openReject: setRejecting,
-    openMerge: setMerging,
-    closeDialogs: () => {
-      setRejecting(null);
-      setMerging(null);
-    },
+    closeDialogs: () => setRejecting(null),
   };
 }

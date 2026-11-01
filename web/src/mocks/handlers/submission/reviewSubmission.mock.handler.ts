@@ -20,7 +20,13 @@ import type { MockFunkoRow, MockSubmissionColumns } from '@mocks/mockStore.type'
 import { nowIso } from '@mocks/mockStoreUtils';
 import type { RejectSubmission } from '@services/submissionService/submissionService.type';
 import { REJECTION_REASON_MAX_LENGTH } from '@utils/submissionUtils';
-import { findWaitingSubmission, toSubmissionModel } from './submissionMockUtils';
+import {
+  approveReference,
+  catalogueReferenceIdOf,
+  findWaitingSubmission,
+  toSubmissionModel,
+  type NamedSubmissionRow,
+} from './submissionMockUtils';
 
 // The API's answers, word for word where the page shows them.
 const NOT_REJECTED_MESSAGE = 'Only a rejected submission can be sent again';
@@ -28,26 +34,7 @@ const CATALOGUE_HAS_FUNKO_MESSAGE = 'The catalogue already has this funko. Rejec
 const CATALOGUE_HAS_BARCODE_MESSAGE =
   'This barcode belongs to another funko in the catalogue. Reject this submission, or change it first';
 
-type NamedSubmissionRow = MockSubmissionColumns & { id: number; name: string };
-
 const APPROVED: MockSubmissionColumns = { status: SubmissionStatusUtil.APPROVED, submittedById: null };
-
-// A waiting category or series gives way to the approved one of the same name; else it joins the catalogue itself.
-function approveReference(rows: NamedSubmissionRow[], id: number | null): number | null {
-  const row = rows.find((candidate) => candidate.id === id);
-
-  if (!row || row.status === SubmissionStatusUtil.APPROVED) return id;
-
-  const twin = rows.find(
-    (candidate) => candidate.status === SubmissionStatusUtil.APPROVED && candidate.name === row.name,
-  );
-
-  if (twin) return twin.id;
-
-  row.status = SubmissionStatusUtil.APPROVED;
-
-  return row.id;
-}
 
 // A waiting category or series the funko left for an approved twin goes once no funko uses it.
 function dropUnused<Row extends NamedSubmissionRow>(rows: Row[], id: number | null, isUsed: (id: number) => boolean) {
@@ -75,19 +62,13 @@ function approve(funko: MockFunkoRow): void {
   dropUnusedReferencesOf(leftCategoryId, leftSeriesId);
 }
 
-// The category the funko would have once approved: the approved one of the same name, when there is one.
-function catalogueCategoryIdOf(funko: MockFunkoRow): number {
-  const category = mockStore.categories.find((row) => row.id === funko.categoryId);
-  const twin = mockStore.categories.find(
-    (row) => row.status === SubmissionStatusUtil.APPROVED && row.name === category?.name,
-  );
-
-  return twin?.id ?? funko.categoryId;
-}
-
 // The same funko or barcode already in the catalogue refuses the approval, pointing at it.
 function catalogueClashOf(funko: MockFunkoRow): Response | undefined {
-  const candidate = { ...funko, ...APPROVED, categoryId: catalogueCategoryIdOf(funko) };
+  const candidate = {
+    ...funko,
+    ...APPROVED,
+    categoryId: catalogueReferenceIdOf(mockStore.categories, funko.categoryId) ?? funko.categoryId,
+  };
   const duplicate = findDuplicate(candidate, funko.id);
 
   if (duplicate) return conflict(CATALOGUE_HAS_FUNKO_MESSAGE, duplicate.id);

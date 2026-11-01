@@ -4,7 +4,7 @@ import type { PossibleDoubleApiModel, ReviewSubmissionApiModel, SubmissionApiMod
 import { DoubleMatchFieldUtil, SubmissionStatusUtil } from '@app-types/utility';
 import { conflict, mergedIntoOf, notFound, senderOf, toFunkoSummary } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
-import type { MockFunkoRow } from '@mocks/mockStore.type';
+import type { MockFunkoRow, MockSubmissionColumns } from '@mocks/mockStore.type';
 
 // The API's answer, word for word where the page shows it.
 const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved, rejected or merged';
@@ -20,6 +20,34 @@ export function findWaitingSubmission(funkoId: string): SubmissionLookup {
   if (funko.status !== SubmissionStatusUtil.WAITING) return { refusal: conflict(NOT_WAITING_MESSAGE) };
 
   return { funko };
+}
+
+// A category or series row, as approving or merging moves it into the catalogue.
+export type NamedSubmissionRow = MockSubmissionColumns & { id: number; name: string };
+
+// The category or series a funko would have in the catalogue: an approved one stays, a waiting one gives way to the
+// approved one of the same name, if there is one. Changes nothing.
+export function catalogueReferenceIdOf(rows: NamedSubmissionRow[], id: number | null): number | null {
+  const row = rows.find((candidate) => candidate.id === id);
+
+  if (!row || row.status === SubmissionStatusUtil.APPROVED) return id;
+
+  const twin = rows.find(
+    (candidate) => candidate.status === SubmissionStatusUtil.APPROVED && candidate.name === row.name,
+  );
+
+  return twin?.id ?? row.id;
+}
+
+// As catalogueReferenceIdOf(), and a waiting one with no approved twin joins the catalogue itself, as the API's
+// approval and merge bring it in.
+export function approveReference(rows: NamedSubmissionRow[], id: number | null): number | null {
+  const referenceId = catalogueReferenceIdOf(rows, id);
+  const row = rows.find((candidate) => candidate.id === referenceId);
+
+  if (row) row.status = SubmissionStatusUtil.APPROVED;
+
+  return referenceId;
 }
 
 export function toSubmissionModel(row: MockFunkoRow): SubmissionApiModel {

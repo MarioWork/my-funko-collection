@@ -1,3 +1,4 @@
+import { Outlet } from 'react-router';
 import PageHeader from '@components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { PAGE_ICONS } from '@utils/navigationUtils';
@@ -9,6 +10,7 @@ const PAGE_TITLE = 'Submissions';
 const TABS_LABEL = 'Which submissions';
 
 // Admins only: every member's submissions, Waiting (approve, reject or merge each) and Done (what became of them).
+// The merge dialog is a child route, rendered over the list.
 function SubmissionReview() {
   const { submissions, totalResultNumber, state, setState } = useSubmissionReview();
 
@@ -35,6 +37,7 @@ function SubmissionReview() {
           <ReviewPanel submissions={submissions} state={state} />
         </TabsContent>
       </Tabs>
+      <Outlet />
     </div>
   );
 }

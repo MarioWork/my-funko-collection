@@ -1,5 +1,7 @@
-import { object, string, type InferType } from 'yup';
-import type { MergeSubmission } from '@services/submissionService/submissionService.type';
+import { object, type InferType } from 'yup';
+import type { PossibleDoubleApiModel, ReviewSubmissionApiModel } from '@app-types/models';
+import { SubmissionStatusUtil } from '@app-types/utility';
+import { SUBMISSION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { SubmissionApiReviewStates } from '@services/submissionService/submissionService';
 import { rejectionReasonSchema } from '@utils/submissionUtils';
 
@@ -52,16 +54,21 @@ export const REJECT_SUBMISSION_DEFAULT_VALUES: RejectSubmissionFormValues = { re
 // What the reject dialog posts to its action.
 export type RejectSubmissionFormData = { rejection?: RejectSubmissionFormValues };
 
-// The merge dialog's one choice, as the radio group keeps it: the target funko's id as text.
-export const mergeSubmissionFormSchema = object({
-  targetFunkoId: string().required('Pick the funko it is the same as'),
-});
+// A submission's maybe-doubles that are in the catalogue: another waiting submission cannot be merged into.
+export function catalogueDoublesOf(submission: ReviewSubmissionApiModel): PossibleDoubleApiModel[] {
+  return submission.possibleDoubles.filter((double) => double.status === SubmissionStatusUtil.APPROVED);
+}
 
-export type MergeSubmissionFormValues = InferType<typeof mergeSubmissionFormSchema>;
+// Two ways into one merge flow. Merge, offered only when the review found catalogue doubles: with one it opens
+// straight on the side-by-side view with it, with several on the step that picks one (they are listed first).
+// Undefined when there are none.
+export function detectedMergeLinkOf(submission: ReviewSubmissionApiModel): string | undefined {
+  const doubles = catalogueDoublesOf(submission);
+  const funkoId = String(submission.id);
 
-// What the merge dialog posts to its action.
-export type MergeSubmissionFormData = { merge?: MergeSubmission };
+  if (doubles.length === 0) return undefined;
 
-// One funko a submission can be merged into, as the dialog lists it: a maybe-double first (with why), then search
-// results. `label` is funkoLabelOf()'s, so a chase or an exclusive never reads like the regular one.
-export type MergeTarget = { id: number; label: string; hint: string };
+  const onlyDouble = doubles.length === 1 ? doubles[0] : undefined;
+
+  return SUBMISSION_ROUTES_PATHS.mergeInto(funkoId, onlyDouble && String(onlyDouble.id));
+}

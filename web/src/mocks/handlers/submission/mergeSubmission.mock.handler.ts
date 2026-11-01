@@ -9,6 +9,7 @@ import type { MockFunkoRow, MockItemRow } from '@mocks/mockStore.type';
 import { nowIso } from '@mocks/mockStoreUtils';
 import type { MergeSubmission } from '@services/submissionService/submissionService.type';
 import { MAX_QUANTITY, MAX_TAGS_PER_ITEM } from '@utils/itemUtils';
+import { applyMockMerge, planMockMerge } from './mergeChoicesMockUtils';
 import { findWaitingSubmission, toSubmissionModel } from './submissionMockUtils';
 
 // The API's answers, word for word where the page shows them.
@@ -72,12 +73,14 @@ function findCatalogueFunko(targetId: number): MockFunkoRow | undefined {
 }
 
 // Merging a waiting submission into a catalogue funko (admins only: requireAdmin refuses members first), like the
-// API: the items move, the submission reads as merged into the target, and its sender is told.
+// API: the target takes the picked fields and images, the items move, the submission reads as merged into the
+// target, and its sender is told.
 export default (baseUrl: string) => [
   http.post(`${baseUrl}/submissions/:funkoId/merge`, async ({ params, request }) => {
     await delay(MOCK_DELAY);
 
-    const { targetFunkoId } = (await request.json()) as Partial<MergeSubmission>;
+    const body = (await request.json()) as Partial<MergeSubmission>;
+    const { targetFunkoId } = body;
 
     if (typeof targetFunkoId !== 'number') return badRequest(NO_TARGET_MESSAGE);
 
@@ -91,6 +94,17 @@ export default (baseUrl: string) => [
 
     if (!target) return badRequest(notInCatalogueMessage(targetFunkoId));
 
+    const choices: MergeSubmission = {
+      targetFunkoId,
+      fieldsFromSubmission: body.fieldsFromSubmission ?? [],
+      imageIdsFromSubmission: body.imageIdsFromSubmission ?? [],
+      removedImageIds: body.removedImageIds ?? [],
+    };
+    const planning = planMockMerge(target, lookup.funko, choices);
+
+    if ('refusal' in planning) return planning.refusal;
+
+    applyMockMerge(target, lookup.funko, planning.plan);
     moveItems(lookup.funko, target);
     Object.assign(lookup.funko, {
       status: SubmissionStatusUtil.MERGED,
