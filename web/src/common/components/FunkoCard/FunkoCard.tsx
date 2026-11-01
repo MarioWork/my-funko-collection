@@ -4,6 +4,7 @@ import { FUNKO_MATCH_FIELD_LABELS, FunkoGridDensityUtil, FunkoMatchFieldUtil } f
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import FunkoImage from '@components/FunkoImage';
 import { Badge } from '@components/ui/badge';
+import { FUNKO_CARD_SIZES } from '@utils/layoutUtils';
 
 // A funko summary, plus what a search hit or a collection list adds to it.
 type FunkoCardFunko = FunkoSummaryApiModel & Partial<Pick<FunkoApiModel, 'matchedOn' | 'collections'>>;
@@ -16,9 +17,6 @@ type Props = {
 
 // A hit on the name or the id is obvious from the card itself, so the caption leaves those out.
 const SELF_EVIDENT_MATCHES: FunkoMatchFieldUtil[] = [FunkoMatchFieldUtil.NAME, FunkoMatchFieldUtil.ID];
-
-// Tile widths per grid column count; the browser picks the size from this.
-const CARD_SIZES = '(min-width: 1536px) 15vw, (min-width: 1024px) 22vw, (min-width: 640px) 30vw, 45vw';
 
 // Image first, two badges at most, the whole card is the link. Matched-by caption only when a search hit it. Hover
 // and keyboard focus outline the photo in the primary colour, like the collection cards.
@@ -34,7 +32,7 @@ function FunkoCard({ funko, quantity, density = FunkoGridDensityUtil.COMFORTABLE
       className="group flex flex-col gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <div className="relative aspect-3/4 overflow-hidden rounded-xl bg-card shadow-xs transition-shadow group-hover:ring-2 group-hover:ring-primary group-focus-visible:ring-2 group-focus-visible:ring-primary motion-reduce:transition-none">
-        <FunkoImage image={funko.primaryImage} alt={funko.name} sizes={CARD_SIZES} className="size-full" />
+        <FunkoImage image={funko.primaryImage} alt={funko.name} sizes={FUNKO_CARD_SIZES} className="size-full" />
         <div className="absolute top-2 left-2 flex gap-1">
           {funko.isChase ? (
             <Badge className="bg-accent-soft text-accent-soft-foreground" variant="secondary">
