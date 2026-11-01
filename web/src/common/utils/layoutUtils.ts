@@ -9,9 +9,6 @@ export const LAYOUT_DENSITY_MAP: Record<FunkoLayoutUtil, FunkoGridDensityUtil | 
 
 export const DEFAULT_FUNKO_LAYOUT = FunkoLayoutUtil.LARGE_GRID;
 
-// A grid card's photo width per column count (FunkoGrid), for its `sizes`; the browser picks the image size from it.
-export const FUNKO_CARD_SIZES = '(min-width: 1536px) 15vw, (min-width: 1024px) 22vw, (min-width: 640px) 30vw, 45vw';
-
 // --- Each list's layout preference, kept on this device; Settings → Layouts and the page share it ---------------
 
 export const FUNKO_LAYOUT_STORAGE_KEY = 'funkos.layout';

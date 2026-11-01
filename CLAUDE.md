@@ -217,6 +217,9 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
 - The hand cursor and a muted hover background on every clickable control come from one rule in `src/index.css`
   (base layer; unlayered for the vendored menu/select/combobox items, which set `cursor-default`). A control's own
   `cursor-*` / `bg-*` / `hover:bg-*` utility wins; never add `cursor-pointer` per component.
+- The funko page's Back button (`BackTileButton`) is a plain `<button>`, not the shadcn `Button` (kept 2026-11-01,
+  issue #41): it must keep the tile's `bg-card` in every state, and the vendored ghost / outline variants swap their
+  background on hover and in dark mode, which only `dark:` overrides could undo.
 - Every write is a React Router action through `useFetcher`; `fetcher.submit` returns a promise, so `void` it.
 - The signed-in user lives in React Router middleware (decided 2026-10-31 by Mario): the shell route's
   `signedInUserMiddleware` (`src/application/routes/`) asks `/auth/status` once, keeps it until sign-out, a 401, a

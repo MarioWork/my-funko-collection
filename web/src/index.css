@@ -37,6 +37,10 @@
   --color-teal-900: #083b45;
   --color-teal-950: #052329;
 
+  /* Tiny type for a count on a small corner badge (the collapsed sidebar's unread count). */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 1;
+
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
 

@@ -1,4 +1,4 @@
-import { Link, NavLink, useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import {
   ADMIN_GROUP_LABEL,
   ADMIN_ITEMS,
@@ -7,12 +7,12 @@ import {
   NAVIGATION_ITEMS,
   NOTIFICATIONS_ITEM,
   SETTINGS_ITEM,
-  type NavigationItem,
 } from '@utils/navigationUtils';
 import { useIsAdmin } from '@hooks/useIsAdmin';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AppLogo from '@components/AppLogo';
 import SidebarEdgeToggle from './SidebarEdgeToggle';
+import SidebarNavigationEntry from './SidebarNavigationEntry';
 import SidebarNotificationsEntry from './SidebarNotificationsEntry';
 import ThemeToggle from './ThemeToggle';
 import {
@@ -23,34 +23,8 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarSeparator,
 } from '@components/ui/sidebar';
-
-type NavigationEntryProps = {
-  item: NavigationItem;
-  isActive: boolean;
-  size?: 'default' | 'lg';
-};
-
-// The current page is filled with the primary colour; hover on the others stays the quiet grey.
-function NavigationEntry({ item: { label, to, icon: Icon }, isActive, size = 'default' }: NavigationEntryProps) {
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        isActive={isActive}
-        tooltip={label}
-        render={<NavLink viewTransition to={to} />}
-        size={size}
-        className="group-data-[collapsible=icon]:justify-center data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:hover:bg-primary-hover data-active:hover:text-sidebar-primary-foreground"
-      >
-        <Icon aria-hidden="true" />
-        <span className="group-data-[collapsible=icon]:sr-only">{label}</span>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-}
 
 type AdminGroupProps = {
   pathname: string;
@@ -63,7 +37,7 @@ function AdminGroup({ pathname }: AdminGroupProps) {
       <SidebarGroupLabel className="px-4">{ADMIN_GROUP_LABEL}</SidebarGroupLabel>
       <SidebarMenu aria-label={ADMIN_GROUP_LABEL} className="gap-2 p-2 group-data-[collapsible=icon]:items-center">
         {ADMIN_ITEMS.map((item) => (
-          <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} />
+          <SidebarNavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} />
         ))}
       </SidebarMenu>
     </SidebarGroup>
@@ -100,14 +74,14 @@ function AppSidebar() {
       <SidebarContent>
         <SidebarMenu className="gap-2 p-2 group-data-[collapsible=icon]:items-center">
           {NAVIGATION_ITEMS.map((item) => (
-            <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} size="lg" />
+            <SidebarNavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} size="lg" />
           ))}
           <SidebarNotificationsEntry isActive={pathname.startsWith(NOTIFICATIONS_ITEM.to)} />
         </SidebarMenu>
         <SidebarSeparator />
         <SidebarMenu className="gap-2 p-2 group-data-[collapsible=icon]:items-center">
           {manageItemsFor(isAdmin).map((item) => (
-            <NavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} />
+            <SidebarNavigationEntry key={item.to} item={item} isActive={pathname.startsWith(item.to)} />
           ))}
         </SidebarMenu>
         {isAdmin ? (
@@ -119,7 +93,7 @@ function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="flex-row items-center justify-between group-data-[collapsible=icon]:flex-col">
         <SidebarMenu className="w-auto">
-          <NavigationEntry item={SETTINGS_ITEM} isActive={pathname.startsWith(SETTINGS_ITEM.to)} />
+          <SidebarNavigationEntry item={SETTINGS_ITEM} isActive={pathname.startsWith(SETTINGS_ITEM.to)} />
         </SidebarMenu>
         <ThemeToggle />
       </SidebarFooter>
