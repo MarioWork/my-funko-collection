@@ -9,7 +9,9 @@
     "strict": true,
     "noEmit": true,
     "erasableSyntaxOnly": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["vite.config.ts", "scripts/**/*.ts"]
+  // devPasswordUtils.ts: the one app file a script reads (checkProductionBundle.ts), with no imports of its own.
+  "include": ["vite.config.ts", "scripts/**/*.ts", "src/common/utils/devPasswordUtils.ts"]
 }

@@ -1,6 +1,6 @@
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { renderRoutes, screen, userEvent, within } from '@test-utils';
-import { AuthStateUtil } from '@app-types/utility';
+import { AuthStateUtil, UserRoleUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS, FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { createAuthenticationResponseMockModel } from '@mocks/handlers/auth/models/passkeyResponseMockModel.mock';
 import { mockStore, setMockAuthState } from '@mocks/mockStore';
@@ -109,5 +109,25 @@ describe('with a password', () => {
 
     expect(await within(form).findByText('Type your username')).toBeVisible();
     expect(within(form).getByLabelText('Password')).toHaveAccessibleDescription('Type your password');
+  });
+});
+
+describe('in development', () => {
+  it('says plainly that it is in development mode, and with which data', async () => {
+    renderLogin();
+
+    const banner = await screen.findByRole('note', { name: 'Development mode' });
+
+    expect(banner).toHaveTextContent(/mock data|real local API/);
+  });
+
+  it('signs in as the picked seeded user through the password form', async () => {
+    renderLogin();
+    const form = await screen.findByRole('form', { name: 'Sign in with a password' });
+
+    await userEvent.selectOptions(within(form).getByLabelText('Sign in as…'), 'rey - Member');
+
+    expect(await screen.findByRole('heading', { name: 'Funkos page' })).toBeVisible();
+    expect(mockStore.auth).toMatchObject({ username: 'rey', role: UserRoleUtil.MEMBER, isReadOnly: false });
   });
 });

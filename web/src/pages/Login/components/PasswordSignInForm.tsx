@@ -19,6 +19,7 @@ import {
   passwordSignInFormSchema,
   type PasswordSignInFormValues,
 } from '../loginUtils';
+import DevSignInPicker from './DevSignInPicker';
 
 const FORM_ID = 'password-sign-in';
 
@@ -26,7 +27,7 @@ const FORM_ID = 'password-sign-in';
 // The submit goes to the login action with the password intent.
 function PasswordSignInForm() {
   const fetcher = useFetcher<JSONResponseUtil<AuthSessionApiModel>>();
-  const { control, handleSubmit } = useFormCompat<PasswordSignInFormValues>({
+  const { control, handleSubmit, setValue } = useFormCompat<PasswordSignInFormValues>({
     defaultValues: { username: '', password: '' },
     resolver: yupResolver(passwordSignInFormSchema),
   });
@@ -40,6 +41,13 @@ function PasswordSignInForm() {
     });
   });
 
+  // The dev sign-in picker's pick: shown in the fields, then sent like a typed one.
+  const signInAs = (credentials: PasswordSignInFormValues) => {
+    setValue('username', credentials.username);
+    setValue('password', credentials.password);
+    void onSubmit();
+  };
+
   return (
     <form
       id={FORM_ID}
@@ -48,6 +56,7 @@ function PasswordSignInForm() {
       noValidate
       className="flex flex-col gap-4"
     >
+      {import.meta.env.DEV ? <DevSignInPicker isSigningIn={isSigningIn} onPick={signInAs} /> : null}
       <FieldGroup>
         <TextField
           control={control}
