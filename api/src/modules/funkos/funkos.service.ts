@@ -40,6 +40,7 @@ import {
   type DoubleCandidateRow,
   type DoubleProbe,
   type FunkoIdentity,
+  type ForcedDeleter,
   type FunkoRow,
   type ListedFunkoRow,
   type PrimaryImageRow,
@@ -60,6 +61,7 @@ import type { FunkoSummary, PrimaryImageSummary } from './funkos.type.ts';
 const ENTITY = 'Funko';
 const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved or rejected';
 const NOT_REJECTED_MESSAGE = 'Only a rejected submission can be sent again';
+const REASON_NEEDED_MESSAGE = 'Removing a funko other users have needs a reason to tell them';
 const CATALOGUE_HAS_FUNKO_MESSAGE = 'The catalogue already has this funko. Reject this submission, or change it first';
 const CATALOGUE_HAS_BARCODE_MESSAGE =
   'This barcode belongs to another funko in the catalogue. Reject this submission, or change it first';
@@ -393,13 +395,11 @@ function assertCanDeleteFrom(holders: FunkoHolders, force: boolean, reason: stri
     );
   }
 
-  if (isInOtherUsersCollections && !reason) {
-    throw new BadRequestError('Removing a funko other users have needs a reason to tell them');
-  }
+  if (isInOtherUsersCollections && !reason) throw new BadRequestError(REASON_NEEDED_MESSAGE);
 }
 
 // Deletes the funko (with its items when it has any) and answers the users whose items went.
-async function deleteRows(id: number, isInCollections: boolean): Promise<number[]> {
+async function deleteRows(id: number, isInCollections: boolean, deleter: ForcedDeleter): Promise<number[]> {
   if (!isInCollections) {
     const deleted = await funkosRepository.delete(id);
 
@@ -408,9 +408,11 @@ async function deleteRows(id: number, isInCollections: boolean): Promise<number[
     return [];
   }
 
-  const deleted = await funkosRepository.deleteWithItems(id);
+  const deleted = await funkosRepository.deleteWithItems(id, deleter);
 
   if (!deleted) throw new NotFoundError(ENTITY, id);
+
+  if (deleted.isRefused) throw new BadRequestError(REASON_NEEDED_MESSAGE);
 
   return deleted.holderIds;
 }
@@ -430,7 +432,8 @@ export async function deleteFunko(
 
   assertCanDeleteFrom(holders, force, reason);
 
-  const removedFrom = await deleteRows(id, holders.holderIds.length > 0);
+  const isInCollections = holders.holderIds.length > 0;
+  const removedFrom = await deleteRows(id, isInCollections, { userId: user.userId, hasReason: reason !== undefined });
 
   await removeFunkoFolder(id);
   log.info({ funkoId: id, force, holderCount: removedFrom.length }, 'funko deleted');
