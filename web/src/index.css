@@ -378,12 +378,41 @@
   }
 }
 
-/* Tailwind 4 and shadcn leave buttons with the default arrow; a hand on anything clickable reads as clickable. */
+/* Anything clickable gets a hand and a hover colour, so it reads as clickable. Tailwind 4 resets buttons to the
+   default arrow, so controls get the hand in the base layer, where a control's own cursor-* utility (zoom-in on a
+   photo, resize on the sidebar rail) still wins. The vendored menu, select and combobox items set cursor-default,
+   so their hand is unlayered: it beats that utility without editing src/common/components/ui. Disabled controls keep
+   their not-allowed cursor (the aria-disabled rule above). The hover colour is a muted background in the base layer,
+   so a control's own bg-* or hover:bg-* utility (buttons, chips, cards, the menus' highlight) always wins and only a
+   control with no look of its own takes it. Only on devices that can hover, so a tap never leaves it stuck. */
 @layer base {
-  button:not(:disabled),
-  [role='button']:not([aria-disabled='true']) {
+  :is(button, summary, [role='button'], [role='tab'], [role='switch'], [role='checkbox'], [role='radio']):not(
+    :disabled,
+    [aria-disabled='true'],
+    [data-disabled]
+  ) {
     cursor: pointer;
   }
+  @media (hover: hover) {
+    :is(
+        button,
+        summary,
+        [role='button'],
+        [role='menuitem'],
+        [role='menuitemcheckbox'],
+        [role='menuitemradio'],
+        [role='option'],
+        [role='tab']
+      ):not(:disabled, [aria-disabled='true'], [data-disabled]):hover {
+      background-color: var(--muted);
+    }
+  }
+}
+:is([role='menuitem'], [role='menuitemcheckbox'], [role='menuitemradio'], [role='option']):not(
+  [aria-disabled='true'],
+  [data-disabled]
+) {
+  cursor: pointer;
 }
 
 /* Placeholders get their own, lighter token. Unlayered on purpose: it has to win over the vendored inputs'
