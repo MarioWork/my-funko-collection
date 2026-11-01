@@ -181,7 +181,7 @@ describe('GET /export/funkos.csv', () => {
 
   it('returns the series’ funkos when filtered by series', async () => {
     const { homecoming } = await seed();
-    await createFunko({ name: 'No series' });
+    await createFunko({ name: 'In another series' });
 
     const response = await api.inject({
       method: 'GET',

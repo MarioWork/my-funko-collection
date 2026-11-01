@@ -27,12 +27,13 @@ export const funkoTypeSchema = string<FunkoTypeUtil>()
   .required('Type is required');
 
 export const FUNKO_SERIES_REQUIRED_MESSAGE = 'Series is required';
+const PICK_A_SERIES_MESSAGE = 'Pick a series';
 
 // Required, like the category: every funko has a series.
 export const funkoSeriesIdSchema = number()
-  .typeError('Pick a series')
+  .typeError(PICK_A_SERIES_MESSAGE)
   .integer()
-  .positive('Pick a series')
+  .positive(PICK_A_SERIES_MESSAGE)
   .required(FUNKO_SERIES_REQUIRED_MESSAGE);
 
 export const FUNKO_CATEGORY_REQUIRED_MESSAGE = 'Category is required';
