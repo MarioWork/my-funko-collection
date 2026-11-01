@@ -18,8 +18,8 @@ export type ConfirmIdentityStep = {
   // The failure is the step's own to show (the reauth answer as the notice, a wrong password on its field), not the
   // dialog's alert.
   isStepFailure: boolean;
-  // What the next submit sends: nothing before the reauth answer, then the way the user picked.
-  reauthFor: (method: ReauthMethodUtil) => ReauthUtil | undefined;
+  // Records the way the user picked and returns what the next submit sends (nothing before the reauth answer).
+  chooseReauth: (method: ReauthMethodUtil) => ReauthUtil | undefined;
 };
 
 // The shared "confirm it's you" step of a change that needs a recent sign-in (a passkey, the password, a user).
@@ -35,7 +35,7 @@ export function useConfirmIdentityStep(failure: ApiError | undefined): ConfirmId
   // Derived during render (the previous-value pattern), never in an effect: once asked, it stays asked.
   if (isReauthAnswer && !hasAskedForReauth) setHasAskedForReauth(true);
 
-  const reauthFor = (chosen: ReauthMethodUtil): ReauthUtil | undefined => {
+  const chooseReauth = (chosen: ReauthMethodUtil): ReauthUtil | undefined => {
     if (!needsReauth) return undefined;
 
     setMethod(chosen);
@@ -53,6 +53,6 @@ export function useConfirmIdentityStep(failure: ApiError | undefined): ConfirmId
     passwordError: isWrongPassword ? failure.message : undefined,
     method,
     isStepFailure: isReauthAnswer || isWrongPassword,
-    reauthFor,
+    chooseReauth,
   };
 }

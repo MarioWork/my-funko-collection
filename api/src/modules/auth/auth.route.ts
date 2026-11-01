@@ -202,6 +202,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
 
   // "Confirm it's you" with the signed-in user's password, next to a passkey sign-in (/login/verify). Open to a
   // temporary-password session too, so it can still replace that password more than 10 minutes after signing in.
+  // The sign-in's limit, counted on its own (rate-limit keeps one count per route); it needs a session anyway.
   app.post(
     '/recent-sign-in',
     {

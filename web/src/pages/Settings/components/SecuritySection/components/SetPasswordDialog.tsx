@@ -46,13 +46,14 @@ function SetPasswordDialog({ username, onClose }: Props) {
   useActionToast(fetcher, { successMessage: 'Password saved' });
   useCloseOnSuccess(fetcher, onClose);
 
-  const submitWith = (method: ReauthMethodUtil) =>
-    handleSubmit((credentials) => {
-      void fetcher.submit(createFormData({ credentials, reauth: step.reauthFor(method) }), {
+  function submitWith(method: ReauthMethodUtil) {
+    return handleSubmit((credentials) => {
+      void fetcher.submit(createFormData({ credentials, reauth: step.chooseReauth(method) }), {
         method: HttpVerbsUtil.PUT,
         action: AUTH_ROUTES_PATHS.PASSWORD,
       });
     });
+  }
 
   const confirm = (method: ReauthMethodUtil) => void submitWith(method)();
 

@@ -34,7 +34,7 @@ export function useUserChange<Data = unknown>(userId: UserId): UserChangeState<D
     user?: ManageUserFormData['user'],
     reauthMethod: ReauthMethodUtil = ReauthMethodUtil.PASSKEY,
   ) => {
-    void fetcher.submit(createFormData({ user, reauth: step.reauthFor(reauthMethod) }), {
+    void fetcher.submit(createFormData({ user, reauth: step.chooseReauth(reauthMethod) }), {
       method,
       action: USER_ROUTES_PATHS.manage(String(userId)),
     });
