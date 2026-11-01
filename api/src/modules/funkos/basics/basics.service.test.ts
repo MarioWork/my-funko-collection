@@ -1,28 +1,33 @@
-import { ConflictError } from '../../lib/httpErrors.ts';
-import { addFunko } from './funkos.service.ts';
+import { ConflictError } from '../../../lib/httpErrors.ts';
+import { addFunko } from './basics.service.ts';
 
-vi.mock('./funkos.repository.ts', () => ({
-  funkosRepository: {
+vi.mock('./basics.repository.ts', () => ({
+  basicsRepository: {
     findIdByIdentity: vi.fn(),
     findIdByBarcode: vi.fn(),
     create: vi.fn(),
     findManyByIds: vi.fn(),
     primaryImagesByFunkoIds: vi.fn(),
+  },
+}));
+
+vi.mock('../funkos.repository.ts', () => ({
+  funkosRepository: {
     collectionsByFunkoIds: vi.fn(),
   },
 }));
 
-vi.mock('../categories/categories.service.ts', () => ({
+vi.mock('../../categories/categories.service.ts', () => ({
   isUsableCategory: vi.fn(),
 }));
 
-vi.mock('../series/series.service.ts', () => ({
+vi.mock('../../series/series.service.ts', () => ({
   isUsableSeries: vi.fn(),
 }));
 
-const { funkosRepository } = await import('./funkos.repository.ts');
-const { isUsableCategory } = await import('../categories/categories.service.ts');
-const { isUsableSeries } = await import('../series/series.service.ts');
+const { basicsRepository } = await import('./basics.repository.ts');
+const { isUsableCategory } = await import('../../categories/categories.service.ts');
+const { isUsableSeries } = await import('../../series/series.service.ts');
 
 const ADMIN = { userId: 1, isAdmin: true };
 const MEMBER = { userId: 2, isAdmin: false };
@@ -42,26 +47,26 @@ describe('addFunko', () => {
   it('throws ConflictError carrying the existing id when the identity is taken', async () => {
     vi.mocked(isUsableCategory).mockResolvedValue(true);
     vi.mocked(isUsableSeries).mockResolvedValue(true);
-    vi.mocked(funkosRepository.findIdByIdentity).mockResolvedValue({ id: EXISTING_ID });
+    vi.mocked(basicsRepository.findIdByIdentity).mockResolvedValue({ id: EXISTING_ID });
 
     const attempt = addFunko(ADMIN, INPUT);
 
     await expect(attempt).rejects.toBeInstanceOf(ConflictError);
     await expect(attempt).rejects.toMatchObject({ code: 'CONFLICT', existingId: EXISTING_ID });
-    expect(funkosRepository.create).not.toHaveBeenCalled();
+    expect(basicsRepository.create).not.toHaveBeenCalled();
   });
 
   it('checks the catalogue, then the member’s own waiting ones, when a member sends one in', async () => {
     vi.mocked(isUsableCategory).mockResolvedValue(true);
     vi.mocked(isUsableSeries).mockResolvedValue(true);
-    vi.mocked(funkosRepository.findIdByIdentity).mockResolvedValueOnce(undefined).mockResolvedValueOnce({
+    vi.mocked(basicsRepository.findIdByIdentity).mockResolvedValueOnce(undefined).mockResolvedValueOnce({
       id: EXISTING_ID,
     });
 
     const attempt = addFunko(MEMBER, INPUT);
 
     await expect(attempt).rejects.toMatchObject({ code: 'CONFLICT', existingId: EXISTING_ID });
-    expect(vi.mocked(funkosRepository.findIdByIdentity).mock.calls.map(([, scope]) => scope)).toEqual([
+    expect(vi.mocked(basicsRepository.findIdByIdentity).mock.calls.map(([, scope]) => scope)).toEqual([
       { submittedById: null },
       { submittedById: MEMBER.userId },
     ]);
@@ -78,6 +83,6 @@ describe('addFunko', () => {
       message: `Category ${CATEGORY_ID} does not exist`,
     });
     expect(isUsableCategory).toHaveBeenCalledWith(CATEGORY_ID, MEMBER.userId);
-    expect(funkosRepository.findIdByIdentity).not.toHaveBeenCalled();
+    expect(basicsRepository.findIdByIdentity).not.toHaveBeenCalled();
   });
 });

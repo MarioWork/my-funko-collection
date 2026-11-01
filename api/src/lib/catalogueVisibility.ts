@@ -1,6 +1,6 @@
 // Who sees which rows of the shared catalogue (funkos, categories, series; docs/adr/0001-shared-catalogue-own-collections.md),
 // as Prisma `where` objects any of the three models accept: they share the `status` and `submittedById` columns.
-// The raw funko list in funkos.repository.ts writes the catalogue rule in SQL; keep the two in step.
+// The raw funko list in funkos/basics/basics.repository.ts writes the catalogue rule in SQL; keep the two in step.
 const APPROVED = 'APPROVED';
 const WAITING = 'WAITING';
 

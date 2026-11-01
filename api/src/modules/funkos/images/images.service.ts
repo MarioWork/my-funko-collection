@@ -12,9 +12,9 @@ import { logger } from '../../../lib/logger.ts';
 import { fetchRemoteFile } from '../../../lib/remoteFetch.ts';
 import type { SignedInUser } from '../../auth/auth.type.ts';
 import { assertCanEditFunko, canSeeFunko, isAdminChangingSubmission, type FunkoAccess } from '../funkos.access.ts';
-import { funkoImagesRepository, type FunkoImageRow } from './funkoImages.repository.ts';
-import type { ReorderImages, RotateImage } from './funkoImages.schema.ts';
-import type { FunkoImageResponse, ImageFile } from './funkoImages.type.ts';
+import { funkoImagesRepository, type FunkoImageRow } from './images.repository.ts';
+import type { ReorderImages, RotateImage } from './images.schema.ts';
+import type { FunkoImageResponse, ImageFile } from './images.type.ts';
 
 const ENTITY = 'Image';
 const FILE_ENTITY = 'Image file';

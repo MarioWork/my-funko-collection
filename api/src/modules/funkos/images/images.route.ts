@@ -10,9 +10,9 @@ import {
   ImageFromUrlSchema,
   ReorderImagesSchema,
   RotateImageSchema,
-} from './funkoImages.schema.ts';
-import { FunkoImageResponseSchema } from './funkoImages.type.ts';
-import { addImageFromUrl, addImages, deleteImage, reorderImages, rotateImage } from './funkoImages.service.ts';
+} from './images.schema.ts';
+import { FunkoImageResponseSchema } from './images.type.ts';
+import { addImageFromUrl, addImages, deleteImage, reorderImages, rotateImage } from './images.service.ts';
 
 const TAGS = ['funko images'];
 const FILE_FIELD = 'file';

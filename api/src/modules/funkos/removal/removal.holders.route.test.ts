@@ -1,8 +1,8 @@
 // An admin removes a funko other users have from the catalogue (issue #13): they learn how many users have it, never
 // whose collections; a reason is needed; and each user who had it is told, with the reason.
-import { buildApp, type App } from '../../app.ts';
-import { resetTestDb } from '../../testDb.ts';
-import { funkosRepository } from './funkos.repository.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { resetTestDb } from '../../../testDb.ts';
+import { removalRepository } from './removal.repository.ts';
 import {
   createCollection,
   createFunko,
@@ -11,7 +11,7 @@ import {
   defaultCollectionId,
   type SignedInClient,
   signIn,
-} from '../../testFixtures.ts';
+} from '../../../testFixtures.ts';
 
 const REASON = 'Two entries for the same figure';
 
@@ -145,16 +145,16 @@ describe('GET /funkos/:funkoId (userCount)', () => {
 
 // The service checks the reason first; the repository checks again in its transaction, for a user who added the
 // funko in between.
-describe('funkosRepository.deleteWithItems', () => {
+describe('removalRepository.deleteWithItems', () => {
   it('refuses and deletes nothing when other users have it and no reason was given', async () => {
-    const outcome = await funkosRepository.deleteWithItems(funkoId, { userId: admin.userId, hasReason: false });
+    const outcome = await removalRepository.deleteWithItems(funkoId, { userId: admin.userId, hasReason: false });
 
     expect(outcome).toEqual({ isRefused: true });
     expect((await admin.inject({ method: 'GET', url: `/funkos/${funkoId}` })).statusCode).toBe(200);
   });
 
   it('answers every user who had it when the deleter gave a reason', async () => {
-    const outcome = await funkosRepository.deleteWithItems(funkoId, { userId: admin.userId, hasReason: true });
+    const outcome = await removalRepository.deleteWithItems(funkoId, { userId: admin.userId, hasReason: true });
 
     expect(outcome).toEqual({ isRefused: false, holderIds: [luke.userId, han.userId] });
   });

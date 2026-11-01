@@ -4,7 +4,7 @@ import type { FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { env } from '../config/env.ts';
 import { UPLOADS_ROOT, UPLOADS_URL_PREFIX, funkoIdOfUploadPath, initImageStorage } from '../lib/imageStorage.ts';
-import { assertCanSeeImageFiles } from '../modules/funkos/images/funkoImages.service.ts';
+import { assertCanSeeImageFiles } from '../modules/funkos/images/images.service.ts';
 import { signedInUser } from './auth.plugin.ts';
 
 // Image files are named by uuid and never rewritten, so a browser may keep them for a year; `private` keeps them
