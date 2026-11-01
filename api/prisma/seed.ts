@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { env } from '../src/config/env.ts';
 import { clearUploads, generateImage, processImage } from '../src/lib/imageStorage.ts';
 import { logger } from '../src/lib/logger.ts';
+import { hashPassword } from '../src/lib/passwordHash.ts';
 import { prisma } from '../src/lib/prisma.ts';
 import type { Prisma } from '../src/generated/prisma/client.ts';
 import type { ItemCondition } from '../src/modules/collections/items/collectionItems.type.ts';
@@ -43,9 +44,8 @@ const CATEGORY_NAMES = ['Pop! Marvel', 'Pop! Television', 'Pop! Star Wars', 'Pop
 const SERIES_NAMES = ['Daredevil: Born Again', 'The Mandalorian', 'Stranger Things'];
 // Every user has "Owned" and "Wishlist" from the moment they exist (a trigger in the collections_per_user
 // migration): the seed keeps them and only fills the first user's.
-const REFERENCE_COLLECTION_NAMES = ['Owned', 'Wishlist'];
-// Who owns the example items when nobody is set up yet. No password or passkey: the first setup signs in as them.
-const SEED_USER_NAME = 'Collector';
+const OWNED_COLLECTION_NAME = 'Owned';
+const REFERENCE_COLLECTION_NAMES = [OWNED_COLLECTION_NAME, 'Wishlist'];
 const WEBAUTHN_USER_ID_BYTES = 32;
 const TAG_NAMES = ['Box 1', 'Box 2', 'Display shelf'];
 const HOUR_MS = 60 * 60 * 1000;
@@ -71,6 +71,147 @@ const REMOVED_FUNKO = {
   reason: 'A double of Boba Fett #08, which stays in the catalogue',
   holder: 'han',
 };
+
+// --- Personas (issue #38): one seeded user per set of UI states, all signing in with DEV_PASSWORD (the dev sign-in
+// picker on the web's sign-in page fills it in). Mirrors web/src/mocks/mockUsers.ts and
+// web/src/common/utils/devSignInUtils.ts. Found by username, so seeding again resets their role, read-only setting and
+// password. On a fresh database leia is the first user (an admin who owns the example items) and, lando being
+// read-only, the last admin who can make changes. ---
+// Kept in step with web/src/common/utils/devPasswordUtils.ts. 22 characters and not on the common list.
+const DEV_PASSWORD = 'funko-dev-password-123';
+const TEMPORARY_PASSWORD_LIFETIME_MS = 7 * 24 * HOUR_MS;
+
+type SeedPersona = {
+  username: string;
+  role: Prisma.UserCreateInput['role'];
+  isReadOnly: boolean;
+  // Must replace DEV_PASSWORD on first sign-in (lands on /set-password).
+  hasTemporaryPassword: boolean;
+};
+
+const FIRST_PERSONA = 'leia';
+const SEED_PERSONAS: SeedPersona[] = [
+  { username: FIRST_PERSONA, role: 'ADMIN', isReadOnly: false, hasTemporaryPassword: false },
+  { username: 'rey', role: 'MEMBER', isReadOnly: false, hasTemporaryPassword: false },
+  { username: 'poe', role: 'MEMBER', isReadOnly: true, hasTemporaryPassword: false },
+  { username: 'lando', role: 'ADMIN', isReadOnly: true, hasTemporaryPassword: false },
+  { username: 'finn', role: 'MEMBER', isReadOnly: false, hasTemporaryPassword: true },
+];
+const PERSONA_ADMINS = ['leia', 'lando'];
+const TO_PERSONA_ADMINS = 'admins';
+
+// rey's submissions in every state a member meets, and an orphan submission (no sender) for the review list.
+type SeedPersonaSubmission = {
+  name: string;
+  number: string;
+  category: string;
+  sender: string | null;
+  status: NonNullable<Prisma.FunkoCreateManyInput['status']>;
+  rejectionReason?: string;
+  mergedInto?: string;
+  // Waiting again after a rejection: reviewed before.
+  isResent?: boolean;
+  isChangedByAdmin?: boolean;
+};
+
+const STEVE_REJECTION = 'The number on the box is 1300, not 1030. Please check it.';
+const HOPPER_REJECTION = 'This one is a Walmart exclusive. Please add the store.';
+const PERSONA_SUBMISSIONS: SeedPersonaSubmission[] = [
+  { name: 'Rey with Lightsaber', number: '307', category: 'Pop! Star Wars', sender: 'rey', status: 'WAITING' },
+  { name: 'BB-8', number: '61', category: 'Pop! Star Wars', sender: 'rey', status: 'WAITING', isResent: true },
+  {
+    name: 'Steve Harrington',
+    number: '1300',
+    category: 'Pop! Television',
+    sender: 'rey',
+    status: 'REJECTED',
+    rejectionReason: STEVE_REJECTION,
+  },
+  {
+    name: 'Jim Hopper',
+    number: '1241',
+    category: 'Pop! Television',
+    sender: 'rey',
+    status: 'REJECTED',
+    rejectionReason: HOPPER_REJECTION,
+    isChangedByAdmin: true,
+  },
+  {
+    name: 'Darth Vader (Classic)',
+    number: '01',
+    category: 'Pop! Star Wars',
+    sender: 'rey',
+    status: 'MERGED',
+    mergedInto: 'Darth Vader',
+  },
+  { name: 'Wednesday Addams', number: '1309', category: 'Pop! Television', sender: 'rey', status: 'APPROVED' },
+  { name: 'Totoro', number: '1000', category: 'Pop! Animation', sender: null, status: 'WAITING' },
+];
+
+// Every notification kind, read and unread, for leia and lando ("admins") and for rey. An admin's approved, rejected
+// and merged ones are from before they were made an admin. `funko` names a catalogue funko or a submission; none when
+// it is gone.
+type SeedPersonaNotification = {
+  // A persona's username, or TO_PERSONA_ADMINS.
+  to: string;
+  kind: Prisma.NotificationCreateManyInput['kind'];
+  funkoName: string;
+  isGone?: boolean;
+  reason?: string;
+  isRead: boolean;
+};
+
+const PERSONA_NOTIFICATIONS: SeedPersonaNotification[] = [
+  { to: TO_PERSONA_ADMINS, kind: 'SUBMISSION_SENT', funkoName: 'Rey with Lightsaber', isRead: false },
+  { to: TO_PERSONA_ADMINS, kind: 'SUBMISSION_SENT', funkoName: 'Totoro', isRead: true },
+  { to: TO_PERSONA_ADMINS, kind: 'SUBMISSION_RESENT', funkoName: 'BB-8', isRead: false },
+  { to: TO_PERSONA_ADMINS, kind: 'SUBMISSION_RESENT', funkoName: 'Jim Hopper', isRead: true },
+  {
+    to: TO_PERSONA_ADMINS,
+    kind: 'FUNKO_REMOVED',
+    funkoName: 'Groot (Flocked)',
+    isGone: true,
+    reason: 'Sent in twice: Groot #1203 stays in the catalogue',
+    isRead: false,
+  },
+  { to: TO_PERSONA_ADMINS, kind: 'SUBMISSION_APPROVED', funkoName: 'Groot', isRead: true },
+  {
+    to: TO_PERSONA_ADMINS,
+    kind: 'SUBMISSION_REJECTED',
+    funkoName: 'Groot (Glow)',
+    isGone: true,
+    reason: 'Not a real variant',
+    isRead: true,
+  },
+  { to: TO_PERSONA_ADMINS, kind: 'SUBMISSION_MERGED', funkoName: 'Spider-Man', isRead: false },
+  { to: 'rey', kind: 'SUBMISSION_APPROVED', funkoName: 'Wednesday Addams', isRead: false },
+  { to: 'rey', kind: 'SUBMISSION_REJECTED', funkoName: 'Steve Harrington', reason: STEVE_REJECTION, isRead: false },
+  { to: 'rey', kind: 'SUBMISSION_REJECTED', funkoName: 'Jim Hopper', reason: HOPPER_REJECTION, isRead: true },
+  { to: 'rey', kind: 'SUBMISSION_MERGED', funkoName: 'Darth Vader', isRead: false },
+  {
+    to: 'rey',
+    kind: 'FUNKO_REMOVED',
+    funkoName: REMOVED_FUNKO.name,
+    isGone: true,
+    reason: REMOVED_FUNKO.reason,
+    isRead: true,
+  },
+];
+
+// Items in the personas' and members' own "Owned", so an admin deleting Darth Vader or Grogu meets a funko other users
+// have. Mirrors the mock seed's other users' items.
+type SeedPersonaItem = { username: string; funko: string };
+
+const PERSONA_ITEMS: SeedPersonaItem[] = [
+  { username: 'luke', funko: 'Grogu' },
+  { username: 'han', funko: 'Grogu' },
+  { username: 'luke', funko: 'Darth Vader' },
+  { username: 'rey', funko: 'Darth Vader' },
+  { username: 'rey', funko: 'Rey with Lightsaber' },
+  { username: 'lando', funko: 'Darth Vader' },
+  { username: 'poe', funko: 'Captain America' },
+];
+// --- end of the persona constants ---
 
 // Example catalog rows; numbers are illustrative, not a price guide.
 const FUNKOS: SeedFunko[] = [
@@ -311,18 +452,39 @@ const funkoRows = await prisma.funko.createManyAndReturn({
 // Items reference the regular (non-chase) figure by name.
 const funkoIds = new Map(funkoRows.filter((row) => !row.isChase).map((row) => [row.name, row.id]));
 
-// The first user owns the example items. With nobody set up yet, a user with no way to sign in is made for them:
-// an admin, since the first setup signs in as them, like the user the collections_per_user migration makes.
-const seedUser =
-  (await prisma.user.findFirst({ orderBy: { id: 'asc' }, select: { id: true } })) ??
-  (await prisma.user.create({
-    data: {
-      name: SEED_USER_NAME,
-      role: 'ADMIN',
-      webauthnUserId: randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url'),
-    },
-    select: { id: true },
-  }));
+// The first user owns the example items. With nobody set up yet (no user, or only the one the collections_per_user
+// migration makes, with no way to sign in), that is leia, the first persona: an admin who signs in with DEV_PASSWORD,
+// so the app counts as set up. `yarn auth:reset` prints a setup link to give her a passkey instead.
+const devPasswordHash = await hashPassword(DEV_PASSWORD);
+const leiaSignIn = {
+  name: FIRST_PERSONA,
+  username: FIRST_PERSONA,
+  passwordHash: devPasswordHash,
+  role: 'ADMIN' as const,
+};
+const firstUser = await prisma.user.findFirst({
+  orderBy: { id: 'asc' },
+  select: { id: true, username: true, passwordHash: true, _count: { select: { passkeys: true } } },
+});
+const isUnclaimed =
+  firstUser !== null &&
+  firstUser.username === null &&
+  firstUser.passwordHash === null &&
+  firstUser._count.passkeys === 0;
+async function claimFirstUser(): Promise<{ id: number }> {
+  if (firstUser === null) {
+    return prisma.user.create({
+      data: { ...leiaSignIn, webauthnUserId: randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url') },
+      select: { id: true },
+    });
+  }
+
+  if (!isUnclaimed) return firstUser;
+
+  return prisma.user.update({ where: { id: firstUser.id }, data: leiaSignIn, select: { id: true } });
+}
+
+const seedUser = await claimFirstUser();
 
 const memberRows = await Promise.all(
   SEED_MEMBER_USERNAMES.map((username) =>
@@ -335,6 +497,34 @@ const memberRows = await Promise.all(
   ),
 );
 const memberIds = new Map(memberRows.map((row) => [row.username ?? '', row.id]));
+
+// --- Personas (issue #38): before the notifications below, so leia and lando hear of the members' submissions too.
+const personaRows = await Promise.all(
+  SEED_PERSONAS.map((persona) => {
+    const standing = {
+      role: persona.role,
+      isReadOnly: persona.isReadOnly,
+      passwordHash: devPasswordHash,
+      temporaryPasswordExpiresAt: persona.hasTemporaryPassword
+        ? new Date(Date.now() + TEMPORARY_PASSWORD_LIFETIME_MS)
+        : null,
+    };
+
+    return prisma.user.upsert({
+      where: { username: persona.username },
+      update: standing,
+      create: {
+        name: persona.username,
+        username: persona.username,
+        webauthnUserId: randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url'),
+        ...standing,
+      },
+      select: { id: true, username: true },
+    });
+  }),
+);
+const personaIds = new Map(personaRows.map((row) => [row.username ?? '', row.id]));
+// ---
 
 const submissionRows = await prisma.funko.createManyAndReturn({
   data: SUBMISSIONS.map((submission) => {
@@ -406,6 +596,70 @@ const removalRows = await prisma.notification.createManyAndReturn({
   select: { id: true },
 });
 
+// --- Personas (issue #38): rey's submissions in every state, an orphan, every notification kind and the items that
+// make Darth Vader and Grogu funkos other users have.
+const catalogueIds = new Map([...funkoIds, ...submissionIds]);
+const personaSubmissionRows = await prisma.funko.createManyAndReturn({
+  data: PERSONA_SUBMISSIONS.map((submission) => {
+    const isReviewed = submission.status !== 'WAITING' || submission.isResent === true;
+
+    return {
+      name: submission.name,
+      number: submission.number,
+      categoryId: idFor(categoryIds, 'category', submission.category),
+      status: submission.status,
+      submittedById: submission.sender === null ? null : idFor(personaIds, 'persona', submission.sender),
+      rejectionReason: submission.rejectionReason ?? null,
+      mergedIntoId: submission.mergedInto ? idFor(funkoIds, 'funko', submission.mergedInto) : null,
+      reviewedAt: isReviewed ? new Date() : null,
+      changedByAdminAt: submission.isChangedByAdmin ? new Date() : null,
+    };
+  }),
+  select: NAME_SELECT,
+});
+
+for (const row of personaSubmissionRows) catalogueIds.set(row.name, row.id);
+
+const personaAdminIds = PERSONA_ADMINS.map((username) => idFor(personaIds, 'persona', username));
+// Older than the members' notifications above, an hour apart, so those stay on top.
+const PERSONA_NOTIFICATIONS_HOURS_AGO = SUBMISSIONS.length + 1;
+const personaNotificationRows = await prisma.notification.createManyAndReturn({
+  data: PERSONA_NOTIFICATIONS.flatMap((notification, index): Prisma.NotificationCreateManyInput[] => {
+    const createdAt = new Date(Date.now() - (PERSONA_NOTIFICATIONS_HOURS_AGO + index) * HOUR_MS);
+    const userIds =
+      notification.to === TO_PERSONA_ADMINS ? personaAdminIds : [idFor(personaIds, 'persona', notification.to)];
+    const funkoId = notification.isGone ? null : idFor(catalogueIds, 'funko', notification.funkoName);
+
+    return userIds.map((userId) => ({
+      userId,
+      kind: notification.kind,
+      funkoId,
+      funkoName: notification.funkoName,
+      reason: notification.reason ?? null,
+      readAt: notification.isRead ? createdAt : null,
+      createdAt,
+    }));
+  }),
+  select: { id: true },
+});
+
+const ownedByUser = new Map(
+  (
+    await prisma.collection.findMany({
+      where: { name: OWNED_COLLECTION_NAME, user: { username: { in: PERSONA_ITEMS.map((item) => item.username) } } },
+      select: { id: true, user: { select: { username: true } } },
+    })
+  ).map((row) => [row.user.username ?? '', row.id]),
+);
+
+await prisma.collectionItem.createMany({
+  data: PERSONA_ITEMS.map((item) => ({
+    collectionId: idFor(ownedByUser, 'Owned collection of', item.username),
+    funkoId: idFor(catalogueIds, 'funko', item.funko),
+  })),
+});
+// ---
+
 const collectionRows = await prisma.collection.findMany({ where: { userId: seedUser.id }, select: NAME_SELECT });
 const collectionIds = new Map(collectionRows.map((row) => [row.name, row.id]));
 
@@ -464,11 +718,12 @@ logger.info(
     series: seriesRows.length,
     funkos: funkoRows.length,
     members: memberRows.length,
-    submissions: submissionRows.length,
-    notifications: notificationRows.length + removalRows.length,
+    personas: personaRows.length,
+    submissions: submissionRows.length + personaSubmissionRows.length,
+    notifications: notificationRows.length + removalRows.length + personaNotificationRows.length,
     collections: collectionRows.length,
     tags: tagRows.length,
-    items: ITEMS.length,
+    items: ITEMS.length + PERSONA_ITEMS.length,
     images: imageCount,
   },
   'seeded',
