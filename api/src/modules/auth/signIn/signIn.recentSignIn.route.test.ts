@@ -1,11 +1,11 @@
 // "Confirm it's you" with a password: the signed-in user's own password refreshes the session's recent sign-in, the
 // way a passkey sign-in does (docs/adr/0002-passwords-next-to-passkeys.md).
-import { buildApp, type App } from '../../app.ts';
-import { hashPassword } from '../../lib/passwordHash.ts';
-import { prisma } from '../../lib/prisma.ts';
-import { SESSION_COOKIE_NAME } from '../../lib/sessionCookie.ts';
-import { resetTestDb } from '../../testDb.ts';
-import { signIn, type SignedInClient } from '../../testFixtures.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { hashPassword } from '../../../lib/passwordHash.ts';
+import { prisma } from '../../../lib/prisma.ts';
+import { SESSION_COOKIE_NAME } from '../../../lib/sessionCookie.ts';
+import { resetTestDb } from '../../../testDb.ts';
+import { signIn, type SignedInClient } from '../../../testFixtures.ts';
 
 const URL = '/auth/recent-sign-in';
 const MINUTE_MS = 60 * 1000;

@@ -12,7 +12,7 @@ import {
   signIn,
   type SignedInClient,
 } from '../../testFixtures.ts';
-import { isCommonPassword } from '../auth/commonPasswords.ts';
+import { isCommonPassword } from '../auth/password/password.commonPasswords.ts';
 
 type ManagedUser = {
   id: number;

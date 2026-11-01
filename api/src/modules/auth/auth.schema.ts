@@ -1,39 +1,30 @@
+// The schemas the auth jobs share: the passkey shapes a browser sends, a display name, and the signed-in answer.
 import { z } from 'zod';
-import { USER_ROLES, USERNAME_MAX_LENGTH, UsernameSchema } from './auth.type.ts';
-
-export const AUTH_STATES = ['setup', 'signedOut', 'signedIn'] as const;
+import { USER_ROLES } from './auth.type.ts';
 
 const NAME_MAX_LENGTH = 60;
-// NIST SP 800-63B-4: at least 15 characters for a password used on its own, and room for long passphrases.
-export const PASSWORD_MIN_LENGTH = 15;
-const PASSWORD_MAX_LENGTH = 256;
+export const PASSWORD_MAX_LENGTH = 256;
 // Generous ceilings: real values are a few hundred bytes, these only stop absurd bodies early.
-const ID_MAX_LENGTH = 1024;
+export const ID_MAX_LENGTH = 1024;
 const ENCODED_MAX_LENGTH = 65_536;
 const AUTHENTICATOR_TRANSPORTS = ['ble', 'cable', 'hybrid', 'internal', 'nfc', 'smart-card', 'usb'] as const;
 const AUTHENTICATOR_ATTACHMENTS = ['platform', 'cross-platform'] as const;
 
-const base64Url = (maxLength: number) =>
+export const base64Url = (maxLength: number) =>
   z
     .string()
     .min(1)
     .max(maxLength)
     .regex(/^[A-Za-z0-9_-]+$/, 'Must be base64url');
 
-const DisplayNameSchema = z.string().trim().min(1).max(NAME_MAX_LENGTH);
-
-// Never trimmed: every character typed is part of the password. No character-mix rules.
-const NewPasswordSchema = z
-  .string()
-  .min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`)
-  .max(PASSWORD_MAX_LENGTH);
+export const DisplayNameSchema = z.string().trim().min(1).max(NAME_MAX_LENGTH);
 
 // What @simplewebauthn/browser sends back; the library checks the signed contents, this only checks the shape.
 const ClientExtensionResultsSchema = z.object({
   credProps: z.object({ rk: z.boolean().optional() }).optional(),
 });
 
-const RegistrationResponseSchema = z.object({
+export const RegistrationResponseSchema = z.object({
   id: base64Url(ID_MAX_LENGTH),
   rawId: base64Url(ID_MAX_LENGTH),
   type: z.literal('public-key'),
@@ -49,7 +40,7 @@ const RegistrationResponseSchema = z.object({
   }),
 });
 
-const AuthenticationResponseSchema = z.object({
+export const AuthenticationResponseSchema = z.object({
   id: base64Url(ID_MAX_LENGTH),
   rawId: base64Url(ID_MAX_LENGTH),
   type: z.literal('public-key'),
@@ -63,64 +54,16 @@ const AuthenticationResponseSchema = z.object({
   }),
 });
 
-export const SetupOptionsSchema = z.strictObject({
-  code: z.string().min(1).max(ID_MAX_LENGTH),
-  name: DisplayNameSchema,
-});
-
-export const SetupVerifySchema = z.strictObject({
-  code: z.string().min(1).max(ID_MAX_LENGTH),
-  name: DisplayNameSchema,
-  passkeyName: DisplayNameSchema.optional(),
-  response: RegistrationResponseSchema,
-});
-
-export const SignInVerifySchema = z.strictObject({
-  response: AuthenticationResponseSchema,
-});
-
-// Sign-in only checks the shape: a wrong length is just a wrong password, with the same answer as any other.
-export const PasswordSignInSchema = z.strictObject({
-  username: z
-    .string()
-    .trim()
-    .min(1)
-    .max(USERNAME_MAX_LENGTH)
-    .transform((username) => username.toLowerCase()),
-  password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
-});
-
-// Confirming it's you: only the signed-in user's password, never a username (the session says whose it must be).
-export const ConfirmPasswordSchema = z.strictObject({
-  password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
-});
-
-export const SetPasswordSchema = z.strictObject({
-  username: UsernameSchema,
-  password: NewPasswordSchema,
-});
-
-export const AddPasskeyVerifySchema = z.strictObject({
-  name: DisplayNameSchema,
-  response: RegistrationResponseSchema,
-});
-
-export const PasskeyParamsSchema = z.object({ passkeyId: base64Url(ID_MAX_LENGTH) });
-
 // `username` is null until the user sets a password. `mustChangePassword`: signed in with a temporary password, which
 // must be replaced before anything else. `isReadOnly`: an admin limited this user to looking (every write but their
 // own password, passkeys and signing out answers 403 READ_ONLY).
-const AuthUserSchema = z.object({
+export const AuthUserSchema = z.object({
   name: z.string(),
   username: z.string().nullable(),
   role: z.enum(USER_ROLES),
   isReadOnly: z.boolean(),
   mustChangePassword: z.boolean(),
 });
-
-export const AuthStatusResponseSchema = z
-  .object({ state: z.enum(AUTH_STATES), user: AuthUserSchema.optional() })
-  .meta({ id: 'AuthStatus' });
 
 export const SignedInResponseSchema = z.object({ user: AuthUserSchema }).meta({ id: 'SignedIn' });
 
@@ -130,33 +73,7 @@ export const RegistrationOptionsResponseSchema = z
   .looseObject({ challenge: z.string() })
   .meta({ id: 'PasskeyRegistrationOptions' });
 
-export const AuthenticationOptionsResponseSchema = z
-  .looseObject({ challenge: z.string() })
-  .meta({ id: 'PasskeyAuthenticationOptions' });
-
-export const PasskeyResponseSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    isSynced: z.boolean(),
-    createdAt: z.iso.datetime(),
-    lastUsedAt: z.iso.datetime().nullable(),
-  })
-  .meta({ id: 'Passkey' });
-
-export const PasskeyListResponseSchema = z.object({ data: z.array(PasskeyResponseSchema) });
-
-export type AuthState = (typeof AUTH_STATES)[number];
-export type SetupOptions = z.infer<typeof SetupOptionsSchema>;
-export type SetupVerify = z.infer<typeof SetupVerifySchema>;
-export type SignInVerify = z.infer<typeof SignInVerifySchema>;
-export type PasswordSignIn = z.infer<typeof PasswordSignInSchema>;
-export type ConfirmPassword = z.infer<typeof ConfirmPasswordSchema>;
-export type SetPassword = z.infer<typeof SetPasswordSchema>;
-export type AddPasskeyVerify = z.infer<typeof AddPasskeyVerifySchema>;
-export type AuthStatusResponse = z.infer<typeof AuthStatusResponseSchema>;
+export type RegistrationResponse = z.infer<typeof RegistrationResponseSchema>;
+export type AuthenticationResponse = z.infer<typeof AuthenticationResponseSchema>;
 export type SignedInResponse = z.infer<typeof SignedInResponseSchema>;
 export type RegistrationOptionsResponse = z.infer<typeof RegistrationOptionsResponseSchema>;
-export type AuthenticationOptionsResponse = z.infer<typeof AuthenticationOptionsResponseSchema>;
-export type PasskeyResponse = z.infer<typeof PasskeyResponseSchema>;
-export type PasskeyListResponse = z.infer<typeof PasskeyListResponseSchema>;

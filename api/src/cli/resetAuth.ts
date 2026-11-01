@@ -3,7 +3,7 @@
 // Dev: yarn auth:reset. In the container: docker compose exec api node dist/cli/resetAuth.js
 import { logger } from '../lib/logger.ts';
 import { prisma } from '../lib/prisma.ts';
-import { addSetupCode, deleteSignIns, getSetupLink } from '../modules/auth/auth.service.ts';
+import { addSetupCode, deleteSignIns, getSetupLink } from '../modules/auth/setup/setup.service.ts';
 
 await deleteSignIns();
 const code = await addSetupCode();

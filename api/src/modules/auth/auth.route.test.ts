@@ -11,8 +11,9 @@ import {
   signIn,
   toFormData,
 } from '../../testFixtures.ts';
-import type { AuthenticationOptionsResponse, RegistrationOptionsResponse } from './auth.schema.ts';
-import { addSetupCode, deleteSignIns } from './auth.service.ts';
+import type { RegistrationOptionsResponse } from './auth.schema.ts';
+import { addSetupCode, deleteSignIns } from './setup/setup.service.ts';
+import type { AuthenticationOptionsResponse } from './signIn/signIn.schema.ts';
 import { TestPasskey } from './TestPasskey.ts';
 
 const URL = '/auth';

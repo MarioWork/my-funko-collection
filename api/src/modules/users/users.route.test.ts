@@ -4,7 +4,7 @@ import { prisma } from '../../lib/prisma.ts';
 import { SESSION_COOKIE_NAME } from '../../lib/sessionCookie.ts';
 import { resetTestDb } from '../../testDb.ts';
 import { createCollection, createUser, signIn, type SignedInClient } from '../../testFixtures.ts';
-import { isCommonPassword } from '../auth/commonPasswords.ts';
+import { isCommonPassword } from '../auth/password/password.commonPasswords.ts';
 
 type CreatedUser = { user: { id: number; username: string; role: string; state: string }; temporaryPassword: string };
 type UserRow = { id: number; name: string; username: string | null; role: string; state: string };

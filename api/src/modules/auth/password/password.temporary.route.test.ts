@@ -1,10 +1,10 @@
 // Signing in with a temporary password an admin made (docs/adr/0002-passwords-next-to-passkeys.md): it works for
 // 7 days if unused, and must be replaced before anything else.
-import { buildApp, type App } from '../../app.ts';
-import { prisma } from '../../lib/prisma.ts';
-import { SESSION_COOKIE_NAME } from '../../lib/sessionCookie.ts';
-import { resetTestDb } from '../../testDb.ts';
-import { signIn } from '../../testFixtures.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { prisma } from '../../../lib/prisma.ts';
+import { SESSION_COOKIE_NAME } from '../../../lib/sessionCookie.ts';
+import { resetTestDb } from '../../../testDb.ts';
+import { signIn } from '../../../testFixtures.ts';
 
 type CreatedUser = { user: { id: number; username: string }; temporaryPassword: string };
 type Injected = { method: string; url: string; payload?: object };
