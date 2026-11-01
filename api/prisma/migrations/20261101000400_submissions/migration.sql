@@ -24,11 +24,6 @@ ALTER TABLE "series" ADD CONSTRAINT "series_submitted_by_id_fkey" FOREIGN KEY ("
 
 ALTER TABLE "funkos" ADD CONSTRAINT "funkos_submitted_by_id_fkey" FOREIGN KEY ("submitted_by_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- A submission always has its sender: only an approved funko may have none (an admin's, or one whose sender was
--- deleted after approval). Kept by hand (Prisma ignores checks).
-ALTER TABLE "funkos" ADD CONSTRAINT "funkos_submitter_chk"
-  CHECK ("status" = 'APPROVED' OR "submitted_by_id" IS NOT NULL);
-
 -- The unique rules hold in the approved catalogue, and within one member's waiting submissions, never across them:
 -- two members may each send in the same box, and an admin may add one a member is waiting on (a merge sorts it out
 -- later). Same names as the full indexes they replace. Kept by hand (Prisma ignores partial indexes).
@@ -57,19 +52,22 @@ CREATE UNIQUE INDEX "funkos_submitter_identity_uidx"
 -- Lookups by barcode (scanner, duplicate guard) also look at waiting submissions now, which the partial index skips.
 CREATE INDEX "funkos_barcode_idx" ON "funkos"("barcode");
 
--- Deleting a user deletes what they sent in that never joined the catalogue (waiting, rejected or merged: nobody
--- else sees it), whichever code deletes the user. Their items of those funkos go first (the item → funko key
--- refuses), the images with the funko rows (their files stay until `yarn images:prune`). The categories and series
--- they typed in go too, unless a funko still uses one. Approved ones stay; the foreign keys clear their sender.
--- Kept by hand (Prisma does not know triggers).
-CREATE FUNCTION "remove_unapproved_submissions"() RETURNS trigger LANGUAGE plpgsql AS $$
+-- Deleting a user, whichever code does it: their rejected submissions go (with any item of them; the item → funko key
+-- refuses otherwise), and so do the categories and series they typed in that no funko uses any more. Everything
+-- else they sent in stays and the foreign keys clear its sender: an approved one stays in the catalogue, a merged one
+-- stays as the record of the merge, and a waiting one stays for an admin to approve, reject or merge (the app calls
+-- the missing sender a "removed user"). Image files of the deleted rows stay on disk until `yarn images:prune`.
+-- A waiting row without a sender is in no member's scope: the partial unique indexes treat each NULL as distinct,
+-- so orphaned waiting submissions never clash with each other or block anyone. Kept by hand (Prisma does not know
+-- triggers).
+CREATE FUNCTION "remove_rejected_submissions"() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   DELETE FROM "collection_items"
   WHERE "funko_id" IN (
-    SELECT "id" FROM "funkos" WHERE "submitted_by_id" = OLD."id" AND "status" <> 'APPROVED'
+    SELECT "id" FROM "funkos" WHERE "submitted_by_id" = OLD."id" AND "status" = 'REJECTED'
   );
 
-  DELETE FROM "funkos" WHERE "submitted_by_id" = OLD."id" AND "status" <> 'APPROVED';
+  DELETE FROM "funkos" WHERE "submitted_by_id" = OLD."id" AND "status" = 'REJECTED';
 
   DELETE FROM "categories" c
   WHERE c."submitted_by_id" = OLD."id"
@@ -85,6 +83,6 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER "users_remove_unapproved_submissions_trg"
+CREATE TRIGGER "users_remove_rejected_submissions_trg"
 BEFORE DELETE ON "users"
-FOR EACH ROW EXECUTE FUNCTION "remove_unapproved_submissions"();
+FOR EACH ROW EXECUTE FUNCTION "remove_rejected_submissions"();

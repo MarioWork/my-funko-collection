@@ -1,7 +1,7 @@
 // The only file that touches sharp and the uploads folder. Services hand it bytes and get back file metadata.
 import { createHash, randomUUID } from 'node:crypto';
 import { access, copyFile, mkdir, open, readdir, readFile, rename, rm, stat, unlink } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join, posix, resolve } from 'node:path';
 import sharp from 'sharp';
 import { env } from '../config/env.ts';
 import { BadRequestError } from './httpErrors.ts';
@@ -384,6 +384,31 @@ export async function readImageDimensions(
 export async function clearUploads(): Promise<void> {
   await rm(env.UPLOADS_DIR, { recursive: true, force: true });
   forgetStoredFiles();
+}
+
+const FUNKO_FILE_PATH_PREFIX = `${UPLOADS_URL_PREFIX}/${FUNKOS_UPLOAD_FOLDER}/`;
+const FUNKO_FOLDER_PATTERN = /^\d+$/;
+
+// The funko whose folder an `/uploads/...` request path points into, read the way the file server will resolve it
+// (decoded, `..` folded), so `/uploads/funkos/1/../2/x.webp` names funko 2. Undefined for anything else: a path
+// outside the funkos folder, a folder that is not an id, or one that cannot be decoded.
+export function funkoIdOfUploadPath(urlPath: string): number | undefined {
+  const [pathname = ''] = urlPath.split('?');
+  let decoded: string;
+
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return undefined;
+  }
+
+  const normalised = posix.normalize(decoded);
+
+  if (!normalised.startsWith(FUNKO_FILE_PATH_PREFIX)) return undefined;
+
+  const [folder = ''] = normalised.slice(FUNKO_FILE_PATH_PREFIX.length).split('/');
+
+  return FUNKO_FOLDER_PATTERN.test(folder) ? Number(folder) : undefined;
 }
 
 // The `<funkoId>/<fileKey>` key of one stored image, the form `pruneOrphanFiles` takes.

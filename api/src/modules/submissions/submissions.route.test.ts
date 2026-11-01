@@ -1,6 +1,8 @@
 // Members send funkos in as submissions (docs/adr/0001-shared-catalogue-own-collections.md): what each user sees and
 // may change, through the funko, category, series, item, suggest and submissions routes.
 import { buildApp, type App } from '../../app.ts';
+import { storedFileExists } from '../../lib/imageStorage.ts';
+import { prisma } from '../../lib/prisma.ts';
 import { resetTestDb } from '../../testDb.ts';
 import {
   createCategory,
@@ -8,7 +10,6 @@ import {
   createSeries,
   createUser,
   defaultCollectionId,
-  deleteUser,
   makeImage,
   type SignedInClient,
   signIn,
@@ -265,13 +266,17 @@ describe('GET /funkos/:funkoId', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  it('lets an admin open a member’s waiting submission when they know its id', async () => {
+  it('lets an admin open a member’s waiting submission, with who sent it, when they know its id', async () => {
     const waiting = await createFunko({ status: 'WAITING', submittedById: member.userId });
 
     const response = await admin.inject({ method: 'GET', url: `/funkos/${waiting.id}` });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({ status: 'WAITING', isSubmittedByMe: false });
+    expect(response.json()).toMatchObject({
+      status: 'WAITING',
+      isSubmittedByMe: false,
+      submittedBy: { id: member.userId, name: 'Member' },
+    });
   });
 });
 
@@ -395,26 +400,105 @@ describe('GET /submissions', () => {
   });
 });
 
-// No route deletes a user yet (issue #7): the database trigger decides, whatever code deletes the row.
-describe('DELETE FROM users (trigger)', () => {
-  it('removes their never-approved submissions and keeps the approved ones when a user is deleted', async () => {
+// An admin deletes a member through the Users routes (issue #7); a database trigger decides what happens to what they
+// sent in, whatever code deletes the row.
+describe('DELETE /users/:userId', () => {
+  async function removeUser(userId: number) {
+    const response = await admin.inject({ method: 'DELETE', url: `/users/${userId}` });
+
+    expect(response.statusCode).toBe(204);
+  }
+
+  it('keeps their waiting, approved and merged submissions with no sender, and deletes the rejected ones', async () => {
     const sender = await createUser('Leaving member');
-    const waitingCategory = await createCategory('Pop! Theirs', { status: 'WAITING', submittedById: sender.id });
-    const waiting = await createFunko({ categoryId: waitingCategory.id, status: 'WAITING', submittedById: sender.id });
+    const waiting = await createFunko({ status: 'WAITING', submittedById: sender.id });
     const approved = await createFunko({ status: 'APPROVED', submittedById: sender.id });
-    const collectionId = await defaultCollectionId(sender.id);
+    const merged = await createFunko({ status: 'MERGED', submittedById: sender.id });
+    const rejected = await createFunko({ status: 'REJECTED', submittedById: sender.id });
     const senderClient = await signIn(app, { userId: sender.id });
+    const collectionId = await defaultCollectionId(sender.id);
     await senderClient.inject({
       method: 'POST',
       url: `/collections/${collectionId}/items`,
       payload: { funkoId: waiting.id },
     });
 
-    await deleteUser(sender.id);
+    await removeUser(sender.id);
 
+    const statuses = await Promise.all(
+      [waiting, approved, merged, rejected].map(
+        async ({ id }) => (await admin.inject({ method: 'GET', url: `/funkos/${id}` })).statusCode,
+      ),
+    );
+    expect(statuses).toEqual([200, 200, 200, 404]);
     const waitingAfter = await admin.inject({ method: 'GET', url: `/funkos/${waiting.id}` });
-    const approvedAfter = await admin.inject({ method: 'GET', url: `/funkos/${approved.id}` });
-    const categoryAfter = await admin.inject({ method: 'GET', url: `/categories/${waitingCategory.id}` });
-    expect([waitingAfter.statusCode, approvedAfter.statusCode, categoryAfter.statusCode]).toEqual([404, 200, 404]);
+    expect(waitingAfter.json()).toMatchObject({ status: 'WAITING', submittedBy: null });
+  });
+
+  it('keeps a waiting category a kept submission uses and deletes the ones nothing uses when the sender goes', async () => {
+    const sender = await createUser('Leaving member');
+    const usedCategory = await createCategory('Pop! Used', { status: 'WAITING', submittedById: sender.id });
+    const unusedCategory = await createCategory('Pop! Unused', { status: 'WAITING', submittedById: sender.id });
+    const usedSeries = await createSeries('Used Show', { status: 'WAITING', submittedById: sender.id });
+    const unusedSeries = await createSeries('Unused Show', { status: 'WAITING', submittedById: sender.id });
+    const rejectedOnlyCategory = await createCategory('Pop! Rejected', { status: 'WAITING', submittedById: sender.id });
+    await createFunko({
+      categoryId: usedCategory.id,
+      seriesId: usedSeries.id,
+      status: 'WAITING',
+      submittedById: sender.id,
+    });
+    await createFunko({ categoryId: rejectedOnlyCategory.id, status: 'REJECTED', submittedById: sender.id });
+
+    await removeUser(sender.id);
+
+    const categoryStatuses = await Promise.all(
+      [usedCategory, unusedCategory, rejectedOnlyCategory].map(
+        async ({ id }) => (await admin.inject({ method: 'GET', url: `/categories/${id}` })).statusCode,
+      ),
+    );
+    const seriesStatuses = await Promise.all(
+      [usedSeries, unusedSeries].map(
+        async ({ id }) => (await admin.inject({ method: 'GET', url: `/series/${id}` })).statusCode,
+      ),
+    );
+    expect(categoryStatuses).toEqual([200, 404, 404]);
+    expect(seriesStatuses).toEqual([200, 404]);
+  });
+
+  it('keeps the image files of a deleted rejected submission on disk for images:prune when its sender goes', async () => {
+    const sender = await createUser('Leaving member');
+    const senderClient = await signIn(app, { userId: sender.id });
+    const submission = await createFunko({ status: 'WAITING', submittedById: sender.id });
+    const upload = await senderClient.inject({
+      method: 'POST',
+      url: `/funkos/${submission.id}/images`,
+      payload: toFormData([{ buffer: await makeImage() }]),
+    });
+    const [image] = upload.json<{ url: string }[]>();
+    await prisma.funko.update({ where: { id: submission.id }, data: { status: 'REJECTED' } });
+
+    await removeUser(sender.id);
+
+    expect(await storedFileExists(image?.url ?? '')).toBe(true);
+  });
+
+  it('lets orphaned waiting submissions of the same box stand side by side and blocks no new one when their senders go', async () => {
+    const first = await createUser('First leaving member');
+    const second = await createUser('Second leaving member');
+    const category = await createCategory();
+    const payload = { name: 'Thanos', number: '78', categoryId: category.id, barcode: BARCODE };
+    await sendIn(await signIn(app, { userId: first.id }), payload);
+    await sendIn(await signIn(app, { userId: second.id }), payload);
+
+    await removeUser(first.id);
+    await removeUser(second.id);
+
+    const orphans = await prisma.funko.count({ where: { barcode: BARCODE, status: 'WAITING', submittedById: null } });
+    const newSubmission = await sendIn(member, payload);
+    const otherMemberList = await namesListed(otherMember, '/funkos');
+    expect(orphans).toBe(2);
+    expect(newSubmission.statusCode).toBe(201);
+    expect(otherMemberList).toEqual([]);
   });
 });

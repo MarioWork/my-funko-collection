@@ -82,8 +82,8 @@ model Category {
   // Unique in the approved catalogue, and among one member's waiting ones (partial indexes in the migration).
   name          String
   status        SubmissionStatus @default(APPROVED)
-  // The member who typed it in with a submission; null for one an admin added. Deleting that user deletes the ones
-  // never approved (a trigger in the migration) and clears this on the rest.
+  // The member who typed it in with a submission; null for one an admin added, or once that user is deleted (a
+  // trigger in the migration deletes the never-approved ones no funko uses any more; the rest keep a null sender).
   submittedById Int?             @map("submitted_by_id")
   createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -102,8 +102,8 @@ model Series {
   // Unique in the approved catalogue, and among one member's waiting ones (partial indexes in the migration).
   name          String
   status        SubmissionStatus @default(APPROVED)
-  // The member who typed it in with a submission; null for one an admin added. Deleting that user deletes the ones
-  // never approved (a trigger in the migration) and clears this on the rest.
+  // The member who typed it in with a submission; null for one an admin added, or once that user is deleted (a
+  // trigger in the migration deletes the never-approved ones no funko uses any more; the rest keep a null sender).
   submittedById Int?             @map("submitted_by_id")
   createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -136,8 +136,8 @@ model Funko {
   barcode       String?
   // APPROVED: in the catalogue for everyone. Anything else: a submission only its sender (and admins) can see.
   status        SubmissionStatus @default(APPROVED)
-  // The member who sent it in; null for a funko an admin added. Deleting that user deletes their submissions that
-  // never joined the catalogue (a trigger in the migration) and clears this on the approved ones.
+  // The member who sent it in; null for a funko an admin added, or once that user is deleted (a removed user): a
+  // trigger in the migration deletes their rejected ones, the rest (waiting, approved, merged) stay with this null.
   submittedById Int?             @map("submitted_by_id")
   createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
