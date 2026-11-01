@@ -27,6 +27,8 @@ type MenuActionItemProps = {
   onClick: () => void;
 };
 
+type DeleteItemProps = Omit<MenuActionItemProps, 'isDefault'>;
+
 type EditItemProps = {
   collectionId: string;
   readOnlyReason: string | undefined;
@@ -67,7 +69,7 @@ function MakeDefaultItem({ isDefault, reason, onClick }: MenuActionItemProps) {
   );
 }
 
-function DeleteItem({ reason, onClick }: Omit<MenuActionItemProps, 'isDefault'>) {
+function DeleteItem({ reason, onClick }: DeleteItemProps) {
   return (
     <DisabledReason reason={reason} mode="wrapper" wrapperClassName="block">
       <DropdownMenuItem variant="destructive" disabled={reason !== undefined} onClick={onClick}>

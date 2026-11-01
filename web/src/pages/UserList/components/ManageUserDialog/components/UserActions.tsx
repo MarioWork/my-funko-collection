@@ -41,6 +41,9 @@ type UserButtonProps = {
   onPick: (change: UserChange) => void;
 };
 
+// A change that does not name the user on its button.
+type PlainUserButtonProps = Omit<UserButtonProps, 'user'>;
+
 // Disabled with a reason on hover, keyboard focus and tap, and read out by screen readers.
 function ChangeRoleButton({ user, reason, onPick }: UserButtonProps) {
   return (
@@ -66,7 +69,7 @@ function ReadOnlyButton({ user, reason, onPick }: UserButtonProps) {
   );
 }
 
-function TemporaryPasswordButton({ reason, onPick }: Omit<UserButtonProps, 'user'>) {
+function TemporaryPasswordButton({ reason, onPick }: PlainUserButtonProps) {
   return (
     <DisabledReason reason={reason}>
       <Button variant="outline" disabled={reason !== undefined} onClick={() => onPick(UserChange.TEMPORARY_PASSWORD)}>
@@ -77,7 +80,7 @@ function TemporaryPasswordButton({ reason, onPick }: Omit<UserButtonProps, 'user
   );
 }
 
-function DeleteUserButton({ reason, onPick }: Omit<UserButtonProps, 'user'>) {
+function DeleteUserButton({ reason, onPick }: PlainUserButtonProps) {
   return (
     <DisabledReason reason={reason}>
       <Button variant="destructive" disabled={reason !== undefined} onClick={() => onPick(UserChange.DELETE)}>
