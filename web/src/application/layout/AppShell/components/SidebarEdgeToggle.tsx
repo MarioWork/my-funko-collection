@@ -12,7 +12,8 @@ const TOOLTIP_GAP_PX = 10;
 // The sidebar's edge is its collapse / expand control: click the thin line between the sidebar and the page. A
 // round arrow shows on hover and on keyboard focus so it can be found. shadcn's rail is mouse-only (tabIndex -1), so
 // it is made focusable here and named for what it will do; Ctrl/⌘ B does the same from anywhere. The arrow sits
-// above the rail's own hover line (z-10), which would otherwise cut through it.
+// above the rail's own hover line (z-10), which would otherwise cut through it. The rail keeps no background on
+// hover (index.css gives plain buttons a muted one): the line and the arrow are its hover look.
 function SidebarEdgeToggle() {
   const { state, toggleSidebar } = useSidebar();
   const isExpanded = state === 'expanded';
@@ -29,7 +30,7 @@ function SidebarEdgeToggle() {
             aria-expanded={isExpanded}
             title={undefined}
             onClick={toggleSidebar}
-            className="group/rail w-6 outline-none focus-visible:after:bg-ring"
+            className="group/rail w-6 outline-none hover:bg-transparent focus-visible:after:bg-ring"
           />
         }
       >

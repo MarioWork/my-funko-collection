@@ -17,13 +17,13 @@ export class NotificationsPage {
     await this.page.goto(BASE_ROUTES_PATHS.HOME);
   }
 
-  // The bell or sidebar link, named "Notifications" or "Notifications, 2 unread".
-  bell(name: string | RegExp): Locator {
+  // The sidebar item or the bell, named "Notifications" or "Notifications, 2 unread".
+  notificationsLink(name: string | RegExp): Locator {
     return this.page.getByRole('link', { name, exact: typeof name === 'string' });
   }
 
-  async openFromBell() {
-    await this.bell(/^Notifications/).click();
+  async openFromNotificationsLink() {
+    await this.notificationsLink(/^Notifications/).click();
   }
 
   async open(title: string) {

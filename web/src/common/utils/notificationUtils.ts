@@ -11,12 +11,15 @@ export function describeUnreadCount(count: number): string {
 
 const NOTIFICATIONS_LABEL = 'Notifications';
 
+// Whether a count (undefined while it loads or when it could not be read) has anything unread to show.
+export function hasUnreadNotifications(count: number | undefined): count is number {
+  return count !== undefined && count > 0;
+}
+
 // The accessible name of a link to the notifications page (the phone bell, the sidebar item): "Notifications", or
 // "Notifications, 2 unread" while some are unread. Undefined: the count is still loading or could not be read.
 export function describeNotificationsLink(count: number | undefined): string {
-  const hasUnread = count !== undefined && count > 0;
-
-  return hasUnread ? `${NOTIFICATIONS_LABEL}, ${describeUnreadCount(count)}` : NOTIFICATIONS_LABEL;
+  return hasUnreadNotifications(count) ? `${NOTIFICATIONS_LABEL}, ${describeUnreadCount(count)}` : NOTIFICATIONS_LABEL;
 }
 
 // The unread count in a sentence, for the live region (when it goes up) and the page header:

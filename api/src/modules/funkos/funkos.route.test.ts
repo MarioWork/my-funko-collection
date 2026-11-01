@@ -26,6 +26,8 @@ type FunkoBody = { id: number; name: string; number: string; matchedOn?: string[
 type ListBody = { data: FunkoBody[]; totalResultNumber: number; currentPage: number };
 type SeriesSummary = { id: number; name: string } | null;
 type FunkoWithSeriesBody = FunkoBody & { series: SeriesSummary };
+type Uploader = { id: number; name: string } | null;
+type FunkoImagesBody = { images: { uploadedBy: Uploader }[] };
 
 let app: App;
 let api: SignedInClient;
@@ -344,7 +346,7 @@ describe('GET /funkos/:funkoId', () => {
     expect(body.category.name).toBe('Pop! Marvel');
   });
 
-  it('says who uploaded each image, and no one once that user is deleted', async () => {
+  it('names the uploader of each image, and null for one whose uploader was deleted, when the funko is read', async () => {
     const uploader = await createUser('Mario', 'ADMIN');
     const uploaderApi = await signIn(app, { userId: uploader.id });
     const funko = await createFunko();
@@ -361,7 +363,7 @@ describe('GET /funkos/:funkoId', () => {
 
     const response = await api.inject({ method: 'GET', url: `${URL}/${funko.id}` });
 
-    const body = response.json<{ images: { uploadedBy: { id: number; name: string } | null }[] }>();
+    const body = response.json<FunkoImagesBody>();
     expect(body.images.map((image) => image.uploadedBy)).toEqual([{ id: uploader.id, name: 'Mario' }, null]);
   });
 

@@ -32,6 +32,7 @@ const NO_PHOTO_REASON = 'No image yet. Use Edit to add one.';
 // Without Edit (a catalogue funko, for a member): only an admin adds images to it.
 const MEMBER_NO_PHOTO_REASON = 'No image yet. An admin can add one.';
 const MAIN_PHOTO_INDEX = 0;
+
 // Who uploaded the image on show, under the frame; it follows the thumbnails. "Removed user" once they were deleted.
 function UploaderLine({ image }: UploaderLineProps) {
   return <p className="text-center text-xs text-muted-foreground">Uploaded by {userNameOrRemoved(image.uploadedBy)}</p>;
