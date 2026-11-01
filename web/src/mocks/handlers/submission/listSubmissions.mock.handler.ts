@@ -5,14 +5,9 @@ import type { ResponseWithPaginationUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { isSubmittedByMockUser } from '@mocks/mockCatalogueUtils';
 import { paginateMockList } from '@mocks/mockListUtils';
-import { toFunkoSummary } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
-import type { MockFunkoRow } from '@mocks/mockStore.type';
 import { SubmissionApiSearchFields, SubmissionApiSortingFields } from '@services/submissionService/submissionService';
-
-function toSubmissionModel(row: MockFunkoRow): SubmissionApiModel {
-  return { ...toFunkoSummary(row), status: row.status, createdAt: row.createdAt, updatedAt: row.updatedAt };
-}
+import { toSubmissionModel } from './submissionMockUtils';
 
 // What the signed-in user sent in, whatever became of it, like the API's GET /submissions.
 export default (baseUrl: string) => [

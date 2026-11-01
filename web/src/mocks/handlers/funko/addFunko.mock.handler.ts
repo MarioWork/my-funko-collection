@@ -5,7 +5,7 @@ import { newMockSubmissionColumns } from '@mocks/mockCatalogueUtils';
 import { conflict, created, toFunkoModel } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow } from '@mocks/mockStore.type';
-import { nextId, nowIso } from '@mocks/mockStoreUtils';
+import { nextId, NOT_REVIEWED, nowIso } from '@mocks/mockStoreUtils';
 import type { CreateFunko } from '@services/funkoService/funkoService.type';
 import {
   DUPLICATE_BARCODE_MESSAGE,
@@ -32,6 +32,7 @@ export default (baseUrl: string) => [
       exclusive: body.exclusive,
       barcode: body.barcode ?? null,
       ...newMockSubmissionColumns(),
+      ...NOT_REVIEWED,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };

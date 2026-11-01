@@ -1,6 +1,6 @@
 // Who sees and changes which catalogue rows, the way the API decides it (docs/adr/0001-shared-catalogue-own-collections.md):
 // everyone sees the approved ones, a sender also what they sent in, an admin opens anything by id. A member's new
-// funko, category or series is a waiting submission; they change only their own while it waits.
+// funko, category or series is a waiting submission; they change only their own while it waits or once rejected.
 import { SubmissionStatusUtil, UserRoleUtil } from '@app-types/utility';
 import { MOCK_USER_ID } from './mockAuth';
 import { mockStore } from './mockStore';
@@ -12,6 +12,19 @@ export function isMockAdmin(): boolean {
 
 export function isSubmittedByMockUser(row: MockSubmissionColumns): boolean {
   return row.submittedById === MOCK_USER_ID;
+}
+
+// A submission its sender still looks after: waiting for an admin, or rejected and theirs to fix or delete.
+export function isOpenSubmission(row: MockSubmissionColumns): boolean {
+  return row.status === SubmissionStatusUtil.WAITING || row.status === SubmissionStatusUtil.REJECTED;
+}
+
+// An admin changing someone else's submission before it is approved: its sender is told (`changedByAdminAt`). An
+// orphan (its sender deleted) has nobody to tell.
+export function isAdminChangingMockSubmission(row: MockSubmissionColumns): boolean {
+  const hasOtherSender = row.submittedById !== null && !isSubmittedByMockUser(row);
+
+  return isMockAdmin() && isOpenSubmission(row) && hasOtherSender;
 }
 
 // The catalogue the user browses (lists, search, suggestions, counts, the barcode lookup, adding to a collection):
@@ -33,10 +46,9 @@ export function canSeeMockRow(row: MockSubmissionColumns): boolean {
   return isMockAdmin() || isSentInOrApproved(row);
 }
 
+// An admin changes any funko; a member their own waiting or rejected submission.
 export function canEditMockFunko(row: MockSubmissionColumns): boolean {
-  const isOwnWaiting = row.status === SubmissionStatusUtil.WAITING && isSubmittedByMockUser(row);
-
-  return isMockAdmin() || isOwnWaiting;
+  return isMockAdmin() || (isOpenSubmission(row) && isSubmittedByMockUser(row));
 }
 
 // A new row's standing: an admin's joins the catalogue, a member's waits with their name on it.
@@ -68,11 +80,10 @@ export function readableCategories(): MockCategoryRow[] {
 }
 
 // Whether a funko with this standing may use this category or series: an approved one always, a waiting one only
-// in its own sender's waiting submission.
+// in its own sender's waiting or rejected submission.
 export function isUsableByMockFunko(reference: MockSubmissionColumns, funko: MockSubmissionColumns): boolean {
   const isApproved = reference.status === SubmissionStatusUtil.APPROVED;
-  const isWaitingSubmission = funko.status === SubmissionStatusUtil.WAITING;
   const isSameSender = reference.submittedById !== null && reference.submittedById === funko.submittedById;
 
-  return isApproved || (isWaitingSubmission && isSameSender);
+  return isApproved || (isOpenSubmission(funko) && isSameSender);
 }

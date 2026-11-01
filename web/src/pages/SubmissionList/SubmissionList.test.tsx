@@ -1,7 +1,8 @@
-import { renderRoutes, screen, within } from '@test-utils';
+import { render, renderRoutes, screen, userEvent, within } from '@test-utils';
 import { SubmissionStatusUtil, UserRoleUtil } from '@app-types/utility';
 import { submissionRoutes } from '@application/routes/featureRoutes/submissionRoutes';
 import { FUNKO_ROUTES_PATHS, SUBMISSION_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { Toaster } from '@components/ui/toast';
 import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
 import { addMockSubmission, setMockUserRole } from '@mocks/mockStore';
 
@@ -44,4 +45,39 @@ it('shows an empty state with a way to add one when the member has sent nothing 
 
   expect(await screen.findByRole('heading', { name: 'Nothing sent in yet' })).toBeVisible();
   expect(screen.getByRole('link', { name: 'Add a funko' })).toBeVisible();
+});
+
+it('shows why a submission was rejected, and sends it again so it waits once more', async () => {
+  addMockSubmission({ name: 'Rejected One', status: SubmissionStatusUtil.REJECTED });
+  render(<Toaster />);
+
+  renderSubmissions();
+
+  const row = await screen.findByRole('row', { name: /Rejected One/ });
+  expect(within(row).getByText('Not a real funko')).toBeVisible();
+  await userEvent.click(within(row).getByRole('button', { name: 'Send again' }));
+
+  expect(await within(rowOf('Rejected One')).findByText('Waiting')).toBeVisible();
+  expect(within(rowOf('Rejected One')).queryByText('Not a real funko')).not.toBeInTheDocument();
+  expect(await screen.findByText('Rejected One sent again')).toBeVisible();
+});
+
+it('says so when an admin changed what the member sent in', async () => {
+  addMockSubmission({ name: 'Fixed By Admin', changedByAdminAt: '2026-10-02T10:00:00.000Z' });
+
+  renderSubmissions();
+
+  expect(await screen.findByText(/An admin changed this submission/)).toBeVisible();
+});
+
+it('says why a rejected submission cannot be sent again while the member waits on the same barcode', async () => {
+  addMockSubmission({ name: 'Waiting Twin', barcode: '0889698123456' });
+  addMockSubmission({ name: 'Rejected Twin', barcode: '0889698123456', status: SubmissionStatusUtil.REJECTED });
+
+  renderSubmissions();
+
+  const row = await screen.findByRole('row', { name: /Rejected Twin/ });
+  await userEvent.click(within(row).getByRole('button', { name: 'Send again' }));
+
+  expect(await within(row).findByRole('alert')).toHaveTextContent('This funko already exists');
 });

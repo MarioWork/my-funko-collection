@@ -78,7 +78,9 @@ export function manageItemsFor(isAdmin: boolean): NavigationItem[] {
 // The Admin group: pages only an admin sees (the sidebar on desktop, the phone menu), under ADMIN_GROUP_LABEL.
 export const ADMIN_GROUP_LABEL = 'Admin';
 
+// Submissions here is every member's, to review (Waiting and Done).
 export const ADMIN_ITEMS: NavigationItem[] = [
+  { label: 'Submissions', to: SUBMISSION_ROUTES_PATHS.REVIEW, icon: PAGE_ICONS.SUBMISSIONS },
   { label: 'Users', to: USER_ROUTES_PATHS.BASE, icon: PAGE_ICONS.USERS },
   { label: 'Images', to: IMAGE_ROUTES_PATHS.BASE, icon: PAGE_ICONS.IMAGES },
 ];

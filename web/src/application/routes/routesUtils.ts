@@ -80,9 +80,17 @@ export const IMAGE_ROUTES_PATHS = {
   BASE: '/images',
 };
 
-// What the signed-in member sent in: their submissions, each with its state.
+// What the signed-in member sent in: their submissions, each with its state, and sending a rejected one again.
+// REVIEW is the admins' Submissions page (every member's, Waiting and Done), with its approve and reject actions.
 export const SUBMISSION_ROUTES_PATHS = {
   BASE: '/submissions',
+  REVIEW: '/submissions/review',
+  approve: (funkoId?: string) =>
+    funkoId ? `/submissions/review/${funkoId}/approval` : '/submissions/review/:funkoId/approval',
+  reject: (funkoId?: string) =>
+    funkoId ? `/submissions/review/${funkoId}/rejection` : '/submissions/review/:funkoId/rejection',
+  resend: (funkoId?: string) =>
+    funkoId ? `/submissions/${funkoId}/resubmission` : '/submissions/:funkoId/resubmission',
 };
 
 // Admins only: every user, the dialog that creates one, and the one that manages one (role, a new temporary

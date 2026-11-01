@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw/http';
 import { deferred, renderRoutes, screen, userEvent, waitFor, within } from '@test-utils';
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { UserRoleUtil } from '@app-types/utility';
+import { SubmissionStatusUtil, UserRoleUtil } from '@app-types/utility';
 import RouteError from '@pages/Error/RouteError';
 import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
 import { addMockSubmission, mockStore, setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
@@ -133,6 +133,20 @@ it('offers a member Edit and Delete, and says it is waiting, on their own waitin
 
   expect(await screen.findByText('Waiting')).toBeVisible();
   expect(screen.getByText('Only you see it until an admin approves it.')).toBeVisible();
+
+  await userEvent.click(screen.getByRole('button', { name: `Actions for ${submission.name}` }));
+
+  expect(await screen.findByRole('menuitem', { name: 'Edit' })).toBeVisible();
+  expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeVisible();
+});
+
+it('offers a member Edit and Delete, and says why, on their own rejected submission', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  const submission = addMockSubmission({ name: 'My Rejected Funko', status: SubmissionStatusUtil.REJECTED });
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(submission.id))] });
+
+  expect(await screen.findByText('Rejected')).toBeVisible();
+  expect(screen.getByText('Not a real funko')).toBeVisible();
 
   await userEvent.click(screen.getByRole('button', { name: `Actions for ${submission.name}` }));
 

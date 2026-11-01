@@ -123,7 +123,7 @@ export function toFunkoImageModel({
 }
 
 // Who sent a submission in, for an admin: the signed-in user, another user, or null once deleted (a removed user).
-function senderOf(row: MockFunkoRow): NamedApiModel | null {
+export function senderOf(row: MockFunkoRow): NamedApiModel | null {
   if (row.submittedById === MOCK_USER_ID) return { id: MOCK_USER_ID, name: mockStore.auth.userName };
 
   const sender = mockStore.users.find((user) => user.id === row.submittedById);
@@ -131,11 +131,21 @@ function senderOf(row: MockFunkoRow): NamedApiModel | null {
   return sender ? { id: sender.id, name: sender.name } : null;
 }
 
+// How a submission's review went, for an admin and its sender only, as the API answers it.
+function reviewDetailsOf(row: MockFunkoRow): Pick<FunkoDetailApiModel, 'rejectionReason' | 'changedByAdminAt'> {
+  const canKnow = isMockAdmin() || isSubmittedByMockUser(row);
+
+  if (!canKnow) return {};
+
+  return { rejectionReason: row.rejectionReason, changedByAdminAt: row.changedByAdminAt };
+}
+
 export function toFunkoDetail(row: MockFunkoRow): FunkoDetailApiModel {
   const isSubmissionForAdmin = isMockAdmin() && row.status !== SubmissionStatusUtil.APPROVED;
 
   return {
     ...toFunkoModel(row),
+    ...reviewDetailsOf(row),
     submittedBy: isSubmissionForAdmin ? senderOf(row) : undefined,
     images: mockStore.images
       .filter((image) => image.funkoId === row.id)

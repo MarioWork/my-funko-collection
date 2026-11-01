@@ -10,10 +10,11 @@ import {
   findBarcodeTwin,
   findDuplicate,
   findEditableFunko,
+  recordMockAdminChange,
   referenceRefusal,
 } from './funkoMockUtils';
 
-// An admin changes any funko; a member only their own waiting submission.
+// An admin changes any funko; a member only their own waiting or rejected submission.
 export default (baseUrl: string) => [
   http.patch(`${baseUrl}/funkos/:funkoId`, async ({ params, request }) => {
     await delay(MOCK_DELAY);
@@ -38,6 +39,7 @@ export default (baseUrl: string) => [
     if (sameBarcode) return conflict(DUPLICATE_BARCODE_MESSAGE, sameBarcode.id);
 
     Object.assign(row, next, { updatedAt: nowIso() });
+    recordMockAdminChange(row);
 
     return HttpResponse.json(toFunkoModel(row));
   }),
