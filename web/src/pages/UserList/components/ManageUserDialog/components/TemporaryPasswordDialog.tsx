@@ -43,8 +43,9 @@ function TemporaryPasswordDialog({ user, onClose }: Props) {
   const isUsernameTaken = change.failure?.statusCode === CONFLICT_STATUS;
   const description = `${needsUsername ? NEEDS_USERNAME_DESCRIPTION : NEW_PASSWORD_DESCRIPTION} ${SIGNS_OUT_EVERYWHERE}`;
 
-  const submitWithUsername = (reauthMethod: ReauthMethodUtil) =>
-    handleSubmit((values) => change.submit(HttpVerbsUtil.POST, values, reauthMethod));
+  function submitWithUsername(reauthMethod: ReauthMethodUtil) {
+    return handleSubmit((values) => change.submit(HttpVerbsUtil.POST, values, reauthMethod));
+  }
 
   const makePassword = (reauthMethod: ReauthMethodUtil) => {
     if (needsUsername) {

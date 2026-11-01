@@ -51,13 +51,14 @@ function AddPasskeyDialog({ onClose }: Props) {
   useActionToast(fetcher, { successMessage: 'Passkey added' });
   useCloseOnSuccess(fetcher, onClose);
 
-  const submitWith = (method: ReauthMethodUtil) =>
-    handleSubmit((values) => {
-      void fetcher.submit(createFormData({ passkey: values, reauth: step.reauthFor(method) }), {
+  function submitWith(method: ReauthMethodUtil) {
+    return handleSubmit((values) => {
+      void fetcher.submit(createFormData({ passkey: values, reauth: step.chooseReauth(method) }), {
         method: HttpVerbsUtil.POST,
         action: AUTH_ROUTES_PATHS.PASSKEYS,
       });
     });
+  }
 
   const confirm = (method: ReauthMethodUtil) => void submitWith(method)();
 

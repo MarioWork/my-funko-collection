@@ -60,7 +60,7 @@ function RemovePasskeyDialog({ passkey, onClose }: Props) {
   useCloseOnSuccess(fetcher, onClose);
 
   const remove = (method: ReauthMethodUtil) =>
-    void fetcher.submit(createFormData({ reauth: step.reauthFor(method) }), {
+    void fetcher.submit(createFormData({ reauth: step.chooseReauth(method) }), {
       method: HttpVerbsUtil.DELETE,
       action: AUTH_ROUTES_PATHS.passkey(passkey.id),
     });
