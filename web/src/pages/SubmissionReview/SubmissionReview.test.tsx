@@ -138,13 +138,13 @@ it('merges into a picked maybe-double, keeping the fields and images the admin p
   await userEvent.click(within(dialog).getByRole('button', { name: 'Next' }));
 
   const name = await within(dialog).findByRole('radiogroup', { name: 'Name' });
-  expect(within(name).getByRole('radio', { name: 'Original Thanos' })).toBeChecked();
+  expect(within(name).getByRole('radio', { name: 'Original entry Thanos' })).toBeChecked();
   expect(within(dialog).queryByRole('radiogroup', { name: 'Number' })).not.toBeInTheDocument();
   expect(within(dialog).getByText('Same on both')).toBeVisible();
-  expect(within(dialog).getByRole('checkbox', { name: 'Original image 1' })).toBeChecked();
+  expect(within(dialog).getByRole('checkbox', { name: 'Original entry image 1' })).toBeChecked();
   expect(within(dialog).getByRole('checkbox', { name: 'Submission image 1' })).not.toBeChecked();
   await userEvent.click(within(name).getByRole('radio', { name: `Submission ${LUKES_THANOS}` }));
-  await userEvent.click(within(dialog).getByRole('checkbox', { name: 'Original image 2' }));
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: 'Original entry image 2' }));
   await userEvent.click(within(dialog).getByRole('checkbox', { name: 'Submission image 1' }));
   await userEvent.click(within(dialog).getByRole('button', { name: 'Merge' }));
 
@@ -187,7 +187,7 @@ it('offers a barcode another catalogue funko holds disabled, saying why', async 
   const takenOption = within(barcode).getByRole('radio', { name: /^Submission/ });
   expect(takenOption).toHaveAttribute('aria-disabled', 'true');
   expect(takenOption).toHaveAccessibleDescription('This barcode belongs to #03 Spider-Man in the catalogue');
-  expect(within(barcode).getByRole('radio', { name: 'Original None' })).toBeChecked();
+  expect(within(barcode).getByRole('radio', { name: 'Original entry None' })).toBeChecked();
 });
 
 it('marks a submission with no maybe-double as a double of a funko found by searching the catalogue', async () => {

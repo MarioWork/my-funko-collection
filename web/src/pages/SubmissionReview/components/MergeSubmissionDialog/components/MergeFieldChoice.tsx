@@ -49,7 +49,7 @@ function MergeSideRadio({ id, side, disabledReason }: RadioProps) {
   );
 }
 
-// "Original" or "Submission" over its value, and the reason in words when it cannot be picked (a disabled radio
+// "Original entry" or "Submission" over its value, and the reason in words when it cannot be picked (a disabled radio
 // cannot take keyboard focus for the tooltip).
 function MergeSideValue({ side, value, disabledReason }: ValueProps) {
   return (
@@ -75,8 +75,8 @@ function MergeSideOption({ id, side, value, disabledReason }: OptionProps) {
   );
 }
 
-// One field that differs between the two funkos: a radio group named after the field, Original (picked to start
-// with) or Submission.
+// One field that differs between the two funkos: a radio group named after the field, Original entry (picked to
+// start with) or Submission.
 function MergeFieldChoice({ control, idPrefix, row, submissionDisabledReason }: Props) {
   const legendId = `${idPrefix}-${row.field}-legend`;
 

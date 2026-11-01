@@ -139,7 +139,7 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   Web: `MergeSubmissionDialog` is a routed dialog (`/submissions/review/:funkoId/merge`, child of the review route,
   which has the id `SUBMISSION_REVIEW_ROUTE_ID`; its own loader and action). Without `?into=` it is the pick step
   (catalogue maybe-doubles first, then a catalogue search through the existing `useSuggestions` type-ahead, not a new
-  read); with it, the side-by-side step: a radio group per differing field ("Original" / "Submission"), the same
+  read); with it, the side-by-side step: a radio group per differing field ("Original entry" / "Submission"), the same
   fields once, images as checkboxes. "This is a double of…" (every waiting row) opens the pick step; Merge, only
   with catalogue maybe-doubles, opens straight on `?into=` when there is one (`detectedMergeLinkOf`). The loader
   calls `assertCanWrite()`. `mergeSubmission.mock.handler.ts` mirrors the item rule and

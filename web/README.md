@@ -209,11 +209,11 @@ HttpOnly cookie the app never sees.
   Thanos (Chase)" never reads like the regular one) and searches the catalogue (`useMergeTargets`, reusing the
   `useSuggestions` type-ahead, so no new read outside a loader); a picked search result stays listed while the admin
   searches again, Enter in the search never submits, and Next puts the pick in the URL (Back returns). The
-  side-by-side step (issue #39) shows each field that differs as a radio group named after the field, "Original"
+  side-by-side step (issue #39) shows each field that differs as a radio group named after the field, "Original entry"
   (picked to start with) or "Submission"; fields that are the same show once under "Same on both". Category and
   series compare by name, as the API brings a waiting one onto the approved one of that name. A submission barcode
   another catalogue funko holds is offered disabled, saying whose it is (the loader looks it up with
-  `GET /funkos?barcode=`). Images are checkboxes ("Original image 1", "Submission image 1"): the original's ticked,
+  `GET /funkos?barcode=`). Images are checkboxes ("Original entry image 1", "Submission image 1"): the original entry's ticked,
   the submission's not; "Pick another funko" goes back. A refusal shows in the dialog in the API's words; success
   toasts and closes. A read-only admin sees Approve, "This is a double of…", Merge and Reject disabled with the
   reason (and opening the dialog's URL shows the read-only page), and a read-only member Send again. One `useReviewActions()` fetcher owns approve and reject, so the toast and a refusal (the catalogue

@@ -14,9 +14,9 @@ import { approveReference, catalogueReferenceIdOf } from './submissionMockUtils'
 
 // The API's answers, word for word where the page shows them.
 const PICK_HAS_FUNKO_MESSAGE =
-  'With the picked details, this would be the same as another funko in the catalogue. Keep more of the original';
+  'With the picked details, this would be the same as another funko in the catalogue. Keep more of the original entry';
 const PICK_HAS_BARCODE_MESSAGE =
-  'The submission’s barcode belongs to another funko in the catalogue. Keep the original’s barcode';
+  'The submission’s barcode belongs to another funko in the catalogue. Keep the original entry’s barcode';
 const VALIDATION_MESSAGE = 'Request validation failed';
 // The API's default MAX_IMAGES_PER_FUNKO.
 const MAX_IMAGES_PER_FUNKO = 10;

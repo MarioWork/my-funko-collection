@@ -1,6 +1,6 @@
 // An admin merging a submission picks, field by field and image by image, what the catalogue funko keeps (issue #39):
-// the original's values unless a field is taken from the submission; the original's images unless one is removed or
-// one of the submission's is moved over.
+// the original entry's values unless a field is taken from the submission; the original entry's images unless one is
+// removed or one of the submission's is moved over.
 import { buildApp, type App } from '../../app.ts';
 import { storedFileExists } from '../../lib/imageStorage.ts';
 import { resetTestDb } from '../../testDb.ts';
@@ -73,7 +73,7 @@ async function waitingSubmission(overrides: Parameters<typeof createFunko>[0] = 
 }
 
 describe('POST /submissions/:funkoId/merge with picked fields', () => {
-  it('keeps every value of the original when nothing is picked', async () => {
+  it('keeps every value of the original entry when nothing is picked', async () => {
     const target = await createFunko({ name: 'Thanos', number: '289', exclusive: '' });
     const submission = await waitingSubmission({ name: 'Thanos (Endgame)', number: '453', exclusive: 'SDCC' });
 
@@ -83,7 +83,7 @@ describe('POST /submissions/:funkoId/merge with picked fields', () => {
     expect(await funkoOf(target.id)).toMatchObject({ name: 'Thanos', number: '289', exclusive: '' });
   });
 
-  it('copies the text, type and chase fields onto the original when they are picked from the submission', async () => {
+  it('copies the text, type and chase fields onto the original entry when they are picked from the submission', async () => {
     const target = await createFunko({ name: 'Thanos', number: '289', type: 'POP', isChase: false, exclusive: '' });
     const submission = await waitingSubmission({
       name: 'Thanos (Endgame)',
@@ -108,7 +108,7 @@ describe('POST /submissions/:funkoId/merge with picked fields', () => {
     });
   });
 
-  it('leaves the submission as its sender sent it when the original takes its name', async () => {
+  it('leaves the submission as its sender sent it when the original entry takes its name', async () => {
     const target = await createFunko({ name: 'Thanos' });
     const submission = await waitingSubmission({ name: 'Thanos (Endgame)' });
 
@@ -118,7 +118,7 @@ describe('POST /submissions/:funkoId/merge with picked fields', () => {
     expect(response.json()).toMatchObject({ name: 'Thanos (Endgame)', status: 'MERGED' });
   });
 
-  it('takes the submission’s barcode, and clears the original’s when the submission has none', async () => {
+  it('takes the submission’s barcode, and clears the original entry’s when the submission has none', async () => {
     const withBarcode = await createFunko({ barcode: null });
     const barcodeSubmission = await waitingSubmission({ barcode: '0889698123456' });
     const clearing = await createFunko({ barcode: '0889698654321' });
@@ -149,7 +149,7 @@ describe('POST /submissions/:funkoId/merge with picked fields', () => {
     expect(submissionResponse.json()).toMatchObject({ status: 'WAITING' });
   });
 
-  it('returns 409 in words when the picked fields would make the original the same as another catalogue funko', async () => {
+  it('returns 409 in words when the picked fields would make the original entry the same as another catalogue funko', async () => {
     const category = await createCategory('Pop! Marvel');
     const other = await createFunko({ name: 'Thanos', number: '453', categoryId: category.id });
     const target = await createFunko({ name: 'Thanos', number: '289', categoryId: category.id });
@@ -185,7 +185,7 @@ describe('POST /submissions/:funkoId/merge with picked fields', () => {
 });
 
 describe('POST /submissions/:funkoId/merge with a picked category or series', () => {
-  it('moves the original into the submission’s category and series when both are picked and approved', async () => {
+  it('moves the original entry into the submission’s category and series when both are picked and approved', async () => {
     const category = await createCategory('Pop! Star Wars');
     const series = await createSeries('The Mandalorian');
     const target = await createFunko({ name: 'Grogu' });
@@ -225,7 +225,7 @@ describe('POST /submissions/:funkoId/merge with a picked category or series', ()
     expect((await funkoOf(target.id)).category.id).toBe(approved.id);
   });
 
-  it('returns 400 when the picked category is the approved one of the same name the original already has', async () => {
+  it('returns 400 when the picked category is the approved one of the same name the original entry already has', async () => {
     const approved = await createCategory('Pop! Anime');
     const waiting = await createCategory('Pop! Anime', { status: 'WAITING', submittedById: member.userId });
     const target = await createFunko({ name: 'Frieren', categoryId: approved.id });
@@ -236,7 +236,7 @@ describe('POST /submissions/:funkoId/merge with a picked category or series', ()
     expect(response.statusCode).toBe(400);
   });
 
-  it('clears the original’s series when the submission has none and its series is picked', async () => {
+  it('clears the original entry’s series when the submission has none and its series is picked', async () => {
     const series = await createSeries('Endgame');
     const target = await createFunko({ seriesId: series.id });
     const submission = await waitingSubmission({ seriesId: null });
@@ -248,7 +248,7 @@ describe('POST /submissions/:funkoId/merge with a picked category or series', ()
 });
 
 describe('POST /submissions/:funkoId/merge with picked images', () => {
-  it('keeps the original’s images and leaves the submission’s with it when none are picked', async () => {
+  it('keeps the original entry’s images and leaves the submission’s with it when none are picked', async () => {
     const target = await createFunko();
     const submission = await waitingSubmission();
     const original = await uploadImage(admin, target.id, '#aa0000');
@@ -260,7 +260,7 @@ describe('POST /submissions/:funkoId/merge with picked images', () => {
     expect((await funkoOf(submission.id)).images.map(({ id }) => id)).toEqual([sent.id]);
   });
 
-  it('moves a submission image and its files onto the original, after its own, when it is picked', async () => {
+  it('moves a submission image and its files onto the original entry, after its own, when it is picked', async () => {
     const target = await createFunko();
     const submission = await waitingSubmission();
     const original = await uploadImage(admin, target.id, '#aa0000');
@@ -309,7 +309,7 @@ describe('POST /submissions/:funkoId/merge with picked images', () => {
     expect(response.statusCode).toBe(200);
   });
 
-  it('removes an original image and its files when the admin unticked it', async () => {
+  it('removes an original entry image and its files when the admin unticked it', async () => {
     const target = await createFunko();
     const submission = await waitingSubmission();
     const kept = await uploadImage(admin, target.id, '#aa0000');
@@ -344,7 +344,7 @@ describe('POST /submissions/:funkoId/merge with picked images', () => {
     expect((await funkoOf(target.id)).images).toHaveLength(1);
   });
 
-  it('returns 400 when the original would end up with more images than a funko holds', async () => {
+  it('returns 400 when the original entry would end up with more images than a funko holds', async () => {
     const target = await createFunko();
     const submission = await waitingSubmission();
     await uploadImage(admin, target.id, '#aa0000');
@@ -361,7 +361,7 @@ describe('POST /submissions/:funkoId/merge with picked images', () => {
     expect((await funkoOf(submission.id)).images).toHaveLength(2);
   });
 
-  it('leaves a picked image with the submission when the original already has the very same picture', async () => {
+  it('leaves a picked image with the submission when the original entry already has the very same picture', async () => {
     const target = await createFunko();
     const submission = await waitingSubmission();
     const original = await uploadImage(admin, target.id, '#aa0000');
@@ -374,7 +374,7 @@ describe('POST /submissions/:funkoId/merge with picked images', () => {
     expect((await funkoOf(submission.id)).images.map(({ id }) => id)).toEqual([same.id]);
   });
 
-  it('keeps the copies off the original when the merge is refused', async () => {
+  it('keeps the copies off the original entry when the merge is refused', async () => {
     const target = await createFunko({ barcode: null });
     await createFunko({ barcode: '0889698123456' });
     const submission = await waitingSubmission({ barcode: '0889698123456' });

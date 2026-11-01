@@ -48,12 +48,13 @@ export const FunkoSummarySchema = z
 // The catalogue funko a merged submission went into (submissions lists and the funko page).
 export const MergedIntoSchema = z.object({ id: z.number().int(), name: z.string() }).nullable();
 
-// The catalogue fields an admin merging a submission can take from it instead of keeping the original's (issue #39).
+// The catalogue fields an admin merging a submission can take from it instead of keeping the original entry's
+// (issue #39).
 export const MERGE_FIELDS = ['NAME', 'NUMBER', 'TYPE', 'CATEGORY', 'SERIES', 'CHASE', 'EXCLUSIVE', 'BARCODE'] as const;
 export type MergeField = (typeof MERGE_FIELDS)[number];
 
 // What the admin picked for the catalogue funko a submission merges into: the fields it takes from the submission,
-// the submission's images that move onto it, and its own images that go. Everything else stays the original's.
+// the submission's images that move onto it, and its own images that go. Everything else stays the original entry's.
 export type MergeChoices = {
   targetFunkoId: number;
   fieldsFromSubmission: MergeField[];
