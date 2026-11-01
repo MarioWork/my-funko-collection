@@ -201,12 +201,13 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   );
 
   // "Confirm it's you" with the signed-in user's password, next to a passkey sign-in (/login/verify). Open to a
-  // temporary-password session too, so it can still replace that password more than 10 minutes after signing in.
+  // temporary-password session and a read-only user too: replacing their password or changing their passkeys
+  // more than 10 minutes after signing in needs it.
   // The sign-in's limit, counted on its own (rate-limit keeps one count per route); it needs a session anyway.
   app.post(
     '/recent-sign-in',
     {
-      config: { rateLimit: PASSWORD_RATE_LIMIT, isAllowedWithTemporaryPassword: true },
+      config: { rateLimit: PASSWORD_RATE_LIMIT, ...OWN_ACCOUNT_CONFIG },
       schema: {
         tags: TAGS,
         summary: "Confirm it's you with your password: a fresh session replaces this one (renews the recent sign-in)",

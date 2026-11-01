@@ -44,10 +44,11 @@ const ALLOWED_WITH_TEMPORARY_PASSWORD = new Set([
   'POST /auth/logout',
   'POST /auth/logout-everywhere',
 ]);
-// The writes a read-only user may still make besides the public ones: their own password and passkeys, and
-// signing out. Every other write answers 403 READ_ONLY to them; reads stay open.
+// The writes a read-only user may still make besides the public ones: their own password and passkeys (and
+// confirming it's them first), and signing out. Every other write answers 403 READ_ONLY to them; reads stay open.
 const ALLOWED_WHEN_READ_ONLY = new Set([
   'PUT /auth/password',
+  'POST /auth/recent-sign-in',
   'POST /auth/logout',
   'POST /auth/logout-everywhere',
   'POST /auth/passkeys/options',
