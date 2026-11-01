@@ -79,8 +79,9 @@ export async function addSeries(user: SignedInUser, data: CreateSeries): Promise
   return toResponse(row);
 }
 
-export async function updateSeries(user: SignedInUser, id: number, data: UpdateSeries): Promise<SeriesResponse> {
-  const row = await seriesRepository.update(user.userId, id, data);
+// An admin-only route: `userId` only says whose funkos the answer's count is read for.
+export async function updateSeries(userId: number, id: number, data: UpdateSeries): Promise<SeriesResponse> {
+  const row = await seriesRepository.update(userId, id, data);
 
   if (!row) throw new NotFoundError(ENTITY, id);
 

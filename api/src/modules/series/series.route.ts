@@ -77,7 +77,7 @@ export const seriesRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    async (request) => updateSeries(signedInUser(request), request.params.seriesId, request.body),
+    async (request) => updateSeries(signedInUserId(request), request.params.seriesId, request.body),
   );
 
   app.delete(
