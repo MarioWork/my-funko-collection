@@ -204,6 +204,9 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
 ## Gotchas
 
 - Yarn 4.18 has a package age gate: the newest point releases are refused ("quarantined"). Pick an older range.
+- Yarn 4 never runs `pre*` / `post*` script hooks: write the step into the script itself. The web's `dev` and
+  `build` start with `yarn wasm:copy` (the scanner's wasm into `public/wasm/`), and `build` ends with
+  `scripts/checkProductionBundle.ts` (fails if `dist/` lacks the wasm or holds dev-only code).
 - No `.then()` chains, no `process.env` outside `config/env.ts` (the test exceptions are commented in
   `src/setupTests.ts` and `src/testGlobalSetup.ts`), no cross-module `.repository.ts` imports: go through the
   other module's service.

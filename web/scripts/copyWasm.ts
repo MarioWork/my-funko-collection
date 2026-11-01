@@ -1,10 +1,11 @@
 // Copies the barcode reader's WASM into public/ so the app serves it from its own origin (no CDN on a LAN).
-// Runs before dev, build and e2e; public/wasm is git-ignored.
+// The first step of `dev`, `build` and `test-e2e` (Yarn 4 runs no pre-script hooks); public/wasm is git-ignored.
 import { copyFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { SCANNER_WASM_FILE } from './scannerWasm.ts';
 
 const SOURCE = join(import.meta.dirname, '..', 'node_modules', 'zxing-wasm', 'dist', 'reader', 'zxing_reader.wasm');
-const TARGET_DIR = join(import.meta.dirname, '..', 'public', 'wasm');
+const TARGET = join(import.meta.dirname, '..', 'public', SCANNER_WASM_FILE);
 
-await mkdir(TARGET_DIR, { recursive: true });
-await copyFile(SOURCE, join(TARGET_DIR, 'zxing_reader.wasm'));
+await mkdir(dirname(TARGET), { recursive: true });
+await copyFile(SOURCE, TARGET);

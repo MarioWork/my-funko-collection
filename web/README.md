@@ -72,7 +72,7 @@ Node version: see `.node-version` (fnm reads it).
 | Script               | Does                                                                 |
 | -------------------- | -------------------------------------------------------------------- |
 | `yarn dev`           | Starts the dev server (copies the scanner's `.wasm` first)           |
-| `yarn build`         | Type-checks, builds to `dist/`, then fails on any dev-only leftover  |
+| `yarn build`         | Copies the `.wasm`, type-checks, builds, checks `dist/` (see below)  |
 | `yarn build:demo`    | The public demo: mock data in the browser, a demo banner, `404.html` |
 | `yarn dev:big`       | Mock mode with 300 extra generated funkos, to try long lists         |
 | `yarn dev:<persona>` | Mock mode signed in as a persona ("Seeing every UI state" above)     |
@@ -320,6 +320,11 @@ HttpOnly cookie the app never sees.
 - The scanner uses the `barcode-detector` ponyfill everywhere (Safari's native API is unreliable), reading a centred
   crop of the camera frame a few times a second; two agreeing frames count. UPC-A (12 digits) is normalised to
   EAN-13 (a leading zero) on both the app and the API, so a scan matches a typed code.
+- The reader is zxing-wasm's `zxing_reader.wasm`, served from the app's own origin at `wasm/` (no CDN on a LAN).
+  `scripts/copyWasm.ts` copies it from `node_modules` into `public/wasm/` (git-ignored) as the first step of
+  `yarn dev` and `yarn build`, written into those scripts because Yarn 4 never runs `pre*` hooks; `yarn test-e2e`
+  gets it through `yarn dev`. `scripts/checkProductionBundle.ts` fails the build when `dist/wasm/` lacks it, so the
+  Docker image and the demo build always ship it.
 - The camera needs a secure context: `localhost` in dev, HTTPS through Caddy in production (see the root README
   for trusting the certificate). Without it the scanner shows a manual-entry form only.
 - Photos are resized on the device to a 2000 px long edge before upload; the API makes the three WebP sizes.

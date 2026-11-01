@@ -1,4 +1,5 @@
-# Build stage: install, type-check, bundle. The scanner's .wasm is copied into public/ by the prebuild script.
+# Build stage: install, type-check, bundle. `yarn build` copies the scanner's .wasm into public/ first and fails if
+# dist/ ends up without it (scripts/checkProductionBundle.ts).
 FROM node:24-slim AS build
 WORKDIR /app
 COPY package.json yarn.lock .yarnrc.yml ./
