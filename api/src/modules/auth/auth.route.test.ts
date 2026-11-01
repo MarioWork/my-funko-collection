@@ -36,10 +36,11 @@ const PUBLIC_ROUTES = new Set([
   'POST /auth/login/password',
   'POST /auth/logout',
 ]);
-// The routes a session signed in with a temporary password may call besides the public ones: replacing it, and
-// signing out. Every other route answers 403 PASSWORD_CHANGE_REQUIRED to it.
+// The routes a session signed in with a temporary password may call besides the public ones: replacing it (and
+// confirming it's them first), and signing out. Every other route answers 403 PASSWORD_CHANGE_REQUIRED to it.
 const ALLOWED_WITH_TEMPORARY_PASSWORD = new Set([
   'PUT /auth/password',
+  'POST /auth/recent-sign-in',
   'POST /auth/logout',
   'POST /auth/logout-everywhere',
 ]);

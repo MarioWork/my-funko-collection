@@ -8,6 +8,7 @@ import {
   AddPasskeyVerifySchema,
   AuthStatusResponseSchema,
   AuthenticationOptionsResponseSchema,
+  ConfirmPasswordSchema,
   PasskeyListResponseSchema,
   PasskeyParamsSchema,
   PasskeyResponseSchema,
@@ -32,6 +33,7 @@ import {
   getSignInOptions,
   addSession,
   addPasswordSession,
+  addRecentSignIn,
   setPassword,
   type AuthSession,
 } from './auth.service.ts';
@@ -192,6 +194,33 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const { token, result } = await addPasswordSession(request.body, request.session);
+      setSessionCookie(reply, token);
+
+      return result;
+    },
+  );
+
+  // "Confirm it's you" with the signed-in user's password, next to a passkey sign-in (/login/verify). Open to a
+  // temporary-password session too, so it can still replace that password more than 10 minutes after signing in.
+  app.post(
+    '/recent-sign-in',
+    {
+      config: { rateLimit: PASSWORD_RATE_LIMIT, isAllowedWithTemporaryPassword: true },
+      schema: {
+        tags: TAGS,
+        summary: "Confirm it's you with your password: a fresh session replaces this one (renews the recent sign-in)",
+        body: ConfirmPasswordSchema,
+        response: {
+          200: SignedInResponseSchema,
+          400: ErrorResponseSchema,
+          401: ErrorResponseSchema,
+          403: ErrorResponseSchema,
+          429: ErrorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { token, result } = await addRecentSignIn(requireSession(request.session), request.body);
       setSessionCookie(reply, token);
 
       return result;

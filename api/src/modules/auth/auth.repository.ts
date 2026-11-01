@@ -288,3 +288,4 @@ export type { AuthChallengePurpose };
 
 export type PasskeyRow = NonNullable<Awaited<ReturnType<typeof findPasskey>>>;
 export type SessionRow = NonNullable<Awaited<ReturnType<typeof findSession>>>;
+export type PasswordUserRow = Prisma.UserGetPayload<{ select: typeof PASSWORD_USER_SELECT }>;

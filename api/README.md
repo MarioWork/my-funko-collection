@@ -111,6 +111,14 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   Stored only as an argon2id hash (`src/lib/passwordHash.ts`, Node's own `crypto.argon2`, 19 MiB, 2 passes).
   Usernames are 3–32 letters, digits, `.`, `-` or `_`, compared lower-case. A wrong username, a wrong password and
   a user with no password all get the same 401 `SIGN_IN_FAILED`, after the same hashing time.
+- **Recent sign-in.** Changing a passkey or the password, and creating or managing users, need a sign-in from the
+  last 10 minutes (`assertRecentSignIn`, else 403 `REAUTH_REQUIRED`). Either way of signing in renews it: a passkey
+  through `POST /auth/login/verify`, or the signed-in user's own password through `POST /auth/recent-sign-in`
+  (`{ password }`, no username, so it can never switch users). Both replace the session with a fresh one; the
+  password one becomes a `PASSWORD` session. A wrong password and a user with no password get the same 401
+  `SIGN_IN_FAILED`, it has the sign-in's limit (5 tries a minute per address, its own count) and never locks
+  anyone out. A temporary-password session may use it with that temporary password (an expired one answers 401
+  `TEMPORARY_PASSWORD_EXPIRED`); the password still has to be replaced after.
 - **Roles.** A user is an `ADMIN` or a `MEMBER`. Whoever sets the app up is an admin (the migration made the user
   already there one). Routes with `config: { isAdminOnly: true }` answer 403 `ADMIN_ONLY` to a member: changing or
   deleting a category or series, the images lists (`GET /images`, `/images/groups`, `/export/images.*`) and the
@@ -135,7 +143,7 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   (`temporary_password_expires_at`) unless the user replaces it first; signing in with an expired one answers 401
   `TEMPORARY_PASSWORD_EXPIRED`, but only once the password matched. A session of a user whose password is temporary
   (`mustChangePassword` in `GET /auth/status` and the sign-in answer) gets 403 `PASSWORD_CHANGE_REQUIRED` on every
-  locked route but `PUT /auth/password`, `POST /auth/logout` and `POST /auth/logout-everywhere`
+  locked route but `PUT /auth/password`, `POST /auth/recent-sign-in`, `POST /auth/logout` and `POST /auth/logout-everywhere`
   (`config: { isAllowedWithTemporaryPassword: true }`), the image files included. Saving a new password (not the
   temporary one: 400 `PASSWORD_REUSED`) makes it the user's own and opens the app. The database trigger gives the
   new user their own "Owned" and "Wishlist".
@@ -164,7 +172,7 @@ API answers carry `Cache-Control: no-store`; image files `private, max-age=31536
 ## Endpoints
 
 Interactive docs with every schema: `GET /docs` (dev only). Auth: `GET /auth/status`, `POST /auth/setup/{options,verify}`,
-`POST /auth/login/{options,verify,password}`, `PUT /auth/password`, `POST /auth/logout`, `POST /auth/logout-everywhere`, `GET|POST /auth/passkeys`
+`POST /auth/login/{options,verify,password}`, `POST /auth/recent-sign-in`, `PUT /auth/password`, `POST /auth/logout`, `POST /auth/logout-everywhere`, `GET|POST /auth/passkeys`
 (`/options`, `/verify`), `DELETE /auth/passkeys/:passkeyId`. Users (admins only): `GET|POST /users`, `PATCH|DELETE /users/:userId`, `POST /users/:userId/temporary-password`. Every list endpoint takes `page` (1-based), `size`
 (max 100), `sorting_fields` and `direction` (`ASC` | `DESC`) and answers `{ data, totalResultNumber, currentPage }`.
 Text filters are case-insensitive "contains"; id filters take a comma-separated list.

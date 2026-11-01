@@ -12,11 +12,18 @@ import { ConflictError, ForbiddenError, HttpError, NotFoundError, UnauthorizedEr
 import { logger } from '../../lib/logger.ts';
 import { hashPassword, verifyPassword } from '../../lib/passwordHash.ts';
 import { createSecureToken, hashSecureToken } from '../../lib/secureToken.ts';
-import { authRepository, type AuthChallengePurpose, type PasskeyRow, type SessionRow } from './auth.repository.ts';
+import {
+  authRepository,
+  type AuthChallengePurpose,
+  type PasskeyRow,
+  type PasswordUserRow,
+  type SessionRow,
+} from './auth.repository.ts';
 import type {
   AddPasskeyVerify,
   AuthStatusResponse,
   AuthenticationOptionsResponse,
+  ConfirmPassword,
   PasskeyListResponse,
   PasskeyResponse,
   PasswordSignIn,
@@ -68,6 +75,8 @@ const RP_ID = new URL(env.APP_ORIGIN).hostname;
 const SIGN_IN_FAILED_MESSAGE = "That passkey didn't work. Try again.";
 // The same answer for a wrong username, a wrong password and a user with no password: it says nothing about which.
 const PASSWORD_SIGN_IN_FAILED_MESSAGE = "That username and password don't match. Try again.";
+// Confirming it's you: the same answer for a wrong password and a user with no password.
+const PASSWORD_CONFIRM_FAILED_MESSAGE = "That password doesn't match. Try again.";
 const COMMON_PASSWORD_MESSAGE = 'That password is too common. Pick one nobody would guess.';
 const USERNAME_TAKEN_MESSAGE = 'That username is taken. Pick another one.';
 const PASSKEY_FAILED_MESSAGE = "The passkey couldn't be saved. Try again.";
@@ -461,22 +470,47 @@ export async function addSession({ response }: SignInVerify, previous: AuthSessi
 // answer time says nothing about which usernames exist. Made once, at start-up, so even the first try is not slower.
 const timingDecoyHash = hashPassword(createSecureToken());
 
-async function findPasswordUser({ username, password }: PasswordSignIn) {
-  const user = await authRepository.findUserByUsername(username);
+// The user when the password is theirs; undefined for a wrong password and for a user with none. A missing user or
+// password is checked against the decoy, so every failure takes as long as a wrong password.
+async function matchPassword(user: PasswordUserRow | undefined, password: string) {
   const storedHash = user?.passwordHash ?? (await timingDecoyHash);
   const isMatch = await verifyPassword(password, storedHash);
 
   return isMatch && user?.passwordHash ? user : undefined;
 }
 
+async function findPasswordUser({ username, password }: PasswordSignIn) {
+  const user = await authRepository.findUserByUsername(username);
+
+  return matchPassword(user, password);
+}
+
 function isPastExpiry(expiresAt: Date | null): boolean {
   return expiresAt !== null && expiresAt.getTime() <= Date.now();
 }
 
-// Password sign-in: one answer for every failure, and no lockout (anyone could lock the owner out); the route's
-// rate limit caps the tries. Like a passkey sign-in, the new session replaces this browser's old one.
 // A temporary password past its 7 days gets its own answer, but only once the password matched: it tells the
 // person to ask an admin, and says nothing to someone who doesn't know the password.
+function assertTemporaryPasswordUnexpired(user: PasswordUserRow): void {
+  if (isPastExpiry(user.temporaryPasswordExpiresAt)) {
+    throw new UnauthorizedError(TEMPORARY_PASSWORD_EXPIRED_MESSAGE, 'TEMPORARY_PASSWORD_EXPIRED');
+  }
+}
+
+// A new password session for the user, in place of this browser's old one (if any).
+async function openPasswordSession(user: PasswordUserRow, previous: AuthSession | null): Promise<NewSessionToken> {
+  const session = newSessionRow(new Date());
+
+  await authRepository.completePasswordSignIn({
+    previousTokenHash: previous?.tokenHash,
+    session: { ...session.row, userId: user.id, signInMethod: 'PASSWORD', passkeyId: null },
+  });
+
+  return { token: session.token, result: toSignedInResponse(user) };
+}
+
+// Password sign-in: one answer for every failure, and no lockout (anyone could lock the owner out); the route's
+// rate limit caps the tries. Like a passkey sign-in, the new session replaces this browser's old one.
 export async function addPasswordSession(
   signIn: PasswordSignIn,
   previous: AuthSession | null,
@@ -485,21 +519,32 @@ export async function addPasswordSession(
 
   if (!user) throw new UnauthorizedError(PASSWORD_SIGN_IN_FAILED_MESSAGE, 'SIGN_IN_FAILED');
 
-  if (isPastExpiry(user.temporaryPasswordExpiresAt)) {
-    throw new UnauthorizedError(TEMPORARY_PASSWORD_EXPIRED_MESSAGE, 'TEMPORARY_PASSWORD_EXPIRED');
-  }
+  assertTemporaryPasswordUnexpired(user);
 
-  const now = new Date();
-  const session = newSessionRow(now);
-
-  await authRepository.completePasswordSignIn({
-    previousTokenHash: previous?.tokenHash,
-    session: { ...session.row, userId: user.id, signInMethod: 'PASSWORD', passkeyId: null },
-  });
+  const newSession = await openPasswordSession(user, previous);
 
   log.info({ userId: user.id }, 'signed in with a password');
 
-  return { token: session.token, result: toSignedInResponse(user) };
+  return newSession;
+}
+
+// "Confirm it's you" with a password. Only the signed-in user's own password counts (the session says whose, so it
+// can never switch users), and it opens a fresh password session in place of this one: the recent sign-in is
+// renewed just as a passkey sign-in renews it. Signing in's rules hold: one answer for every failure, the route's
+// rate limit, no lockout, an expired temporary password refused. A temporary password still has to be replaced.
+export async function addRecentSignIn(session: AuthSession, { password }: ConfirmPassword): Promise<NewSessionToken> {
+  const signedInUser = await authRepository.findPasswordUserById(session.userId);
+  const user = await matchPassword(signedInUser, password);
+
+  if (!user) throw new UnauthorizedError(PASSWORD_CONFIRM_FAILED_MESSAGE, 'SIGN_IN_FAILED');
+
+  assertTemporaryPasswordUnexpired(user);
+
+  const newSession = await openPasswordSession(user, session);
+
+  log.info({ userId: user.id }, 'confirmed with a password');
+
+  return newSession;
 }
 
 // --- Password ----------------------------------------------------------------------------------------------------
