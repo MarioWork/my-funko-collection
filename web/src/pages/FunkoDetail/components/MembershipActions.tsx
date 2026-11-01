@@ -13,7 +13,7 @@ import {
 } from '@components/ui/dropdown-menu';
 import { Spinner } from '@components/ui/spinner';
 import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
-import { DISABLED_REASONS } from '@utils/disabledReasonUtils';
+import { DISABLED_REASONS, firstReason } from '@utils/disabledReasonUtils';
 
 type Props = {
   item: CollectionItemApiModel;
@@ -63,7 +63,7 @@ function MembershipActions({ item, isBusy, onRemove }: Props) {
             size="sm"
             className="rounded-full"
             disabled={isBusy || readOnlyReason !== undefined}
-            disabledReason={readOnlyReason ?? DISABLED_REASONS.WORKING}
+            disabledReason={firstReason(readOnlyReason, DISABLED_REASONS.WORKING)}
           />
         }
       >

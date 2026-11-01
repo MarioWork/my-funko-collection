@@ -4,7 +4,7 @@ import type { UserApiModel } from '@app-types/models';
 import DisabledReason from '@components/DisabledReason';
 import { Button } from '@components/ui/button';
 import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
-import { reasonWhen } from '@utils/disabledReasonUtils';
+import { firstReason, reasonWhen } from '@utils/disabledReasonUtils';
 import {
   LAST_ADMIN_REASON,
   READ_ONLY_HINTS,
@@ -97,7 +97,7 @@ type Props = {
 // read-only or deleted: those buttons stay, disabled, saying why. A read-only admin sees every button disabled.
 function UserActions({ user, onPick }: Props) {
   const readOnlyReason = useReadOnlyReason();
-  const lastAdminReason = readOnlyReason ?? reasonWhen(user.isLastAdmin, LAST_ADMIN_REASON);
+  const lastAdminReason = firstReason(readOnlyReason, reasonWhen(user.isLastAdmin, LAST_ADMIN_REASON));
   // Allowing a read-only user to make changes never leaves the app without an admin.
   const readOnlyChangeReason = user.isReadOnly ? readOnlyReason : lastAdminReason;
 

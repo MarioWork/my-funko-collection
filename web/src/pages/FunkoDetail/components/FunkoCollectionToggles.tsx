@@ -1,6 +1,7 @@
 import { Bookmark, Heart, type LucideIcon } from 'lucide-react';
 import type { CollectionApiModel, CollectionItemApiModel, FunkoDetailApiModel } from '@app-types/models';
 import DisabledReason from '@components/DisabledReason';
+import { Button } from '@components/ui/button';
 import { Toggle } from '@components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip';
 import { cn } from '@utils/classNameUtils';
@@ -32,15 +33,33 @@ type QuickCollection = { collection: CollectionApiModel; icon: LucideIcon };
 const TOGGLE_CLASS =
   'size-9 rounded-full bg-card p-0 aria-pressed:border-primary aria-pressed:bg-selected aria-pressed:text-selected-foreground motion-safe:aria-pressed:animate-pop';
 
+type ReadOnlyToggleProps = Pick<ToggleProps, 'collection' | 'icon' | 'isMember'> & { reason: string };
+
+// For a read-only user: the same look and pressed state, as a disabled button that keeps keyboard focus (a Base UI
+// Toggle can't), so the reason opens on focus too.
+function ReadOnlyCollectionToggle({ collection, icon: Icon, isMember, reason }: ReadOnlyToggleProps) {
+  return (
+    <DisabledReason reason={reason}>
+      <Button variant="outline" aria-label={collection.name} aria-pressed={isMember} disabled className={TOGGLE_CLASS}>
+        <Icon aria-hidden="true" className={cn(isMember && 'fill-current')} />
+      </Button>
+    </DisabledReason>
+  );
+}
+
 function CollectionToggle({ collection, icon: Icon, isMember, isBusy, readOnlyReason, onToggle }: ToggleProps) {
   const hint = isMember ? `In ${collection.name} · tap to remove` : `Add to ${collection.name}`;
-  const disabledReason = readOnlyReason ?? (isBusy ? DISABLED_REASONS.WORKING : undefined);
+
+  if (readOnlyReason) {
+    return <ReadOnlyCollectionToggle collection={collection} icon={Icon} isMember={isMember} reason={readOnlyReason} />;
+  }
+
   const toggle = (
     <Toggle
       variant="outline"
       aria-label={collection.name}
       pressed={isMember}
-      disabled={disabledReason !== undefined}
+      disabled={isBusy}
       onPressedChange={() => onToggle(collection)}
       className={TOGGLE_CLASS}
     >
@@ -48,9 +67,9 @@ function CollectionToggle({ collection, icon: Icon, isMember, isBusy, readOnlyRe
     </Toggle>
   );
 
-  if (disabledReason) {
+  if (isBusy) {
     return (
-      <DisabledReason reason={disabledReason} mode="wrapper">
+      <DisabledReason reason={DISABLED_REASONS.WORKING} mode="wrapper">
         {toggle}
       </DisabledReason>
     );

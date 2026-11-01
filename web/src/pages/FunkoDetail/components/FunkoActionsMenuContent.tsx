@@ -13,7 +13,7 @@ import {
 } from '@components/ui/dropdown-menu';
 import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
 import exportService from '@services/exportService/exportService';
-import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
+import { DISABLED_REASONS, firstReason, reasonWhen } from '@utils/disabledReasonUtils';
 import { useCanEditFunko } from '../hooks/useCanEditFunko';
 import { useFunkoMemberships } from '../hooks/useFunkoMemberships';
 import FunkoDeleteMenuGroup from './FunkoDeleteMenuGroup';
@@ -36,7 +36,7 @@ type ListsSubmenuProps = Pick<Props, 'funko' | 'collections' | 'items'> & ReadOn
 // Every collection as a checkbox: ticked while the funko is in it, a tap adds or removes it.
 function ListsSubmenu({ funko, collections, items, readOnlyReason }: ListsSubmenuProps) {
   const { memberIds, isBusy, toggle } = useFunkoMemberships({ funko, items });
-  const reason = readOnlyReason ?? reasonWhen(isBusy, DISABLED_REASONS.WORKING);
+  const reason = firstReason(readOnlyReason, reasonWhen(isBusy, DISABLED_REASONS.WORKING));
 
   return (
     <DropdownMenuSub>

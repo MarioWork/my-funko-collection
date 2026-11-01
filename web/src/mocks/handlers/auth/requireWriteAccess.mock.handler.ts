@@ -10,7 +10,10 @@ import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
 // What a read-only user may still write, like ALLOWED_WHEN_READ_ONLY in api/src/modules/auth/auth.route.test.ts:
 // the public routes (sign-in, first run, sign-out), their own password and passkeys, and signing out everywhere.
 const OWN_ACCOUNT_PATH_PATTERN = /\/auth\/(logout$|logout-everywhere$|login\/|setup\/|password$|passkeys(\/|$))/;
-const READ_METHODS = new Set<string>([HttpVerbsUtil.GET, 'HEAD', 'OPTIONS']);
+const HEAD_METHOD = 'HEAD';
+const OPTIONS_METHOD = 'OPTIONS';
+const READ_METHODS = new Set<string>([HttpVerbsUtil.GET, HEAD_METHOD, OPTIONS_METHOD]);
+const READ_ONLY_MESSAGE = 'This account is read-only';
 
 function isAllowedWhenReadOnly(request: Request): boolean {
   const isRead = READ_METHODS.has(request.method);
@@ -28,6 +31,6 @@ export default (baseUrl: string) => [
 
     await delay(MOCK_DELAY);
 
-    return errorResponse(FORBIDDEN_STATUS, AuthApiErrorCodes.READ_ONLY, 'This account is read-only');
+    return errorResponse(FORBIDDEN_STATUS, AuthApiErrorCodes.READ_ONLY, READ_ONLY_MESSAGE);
   }),
 ];
