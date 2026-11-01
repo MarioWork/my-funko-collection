@@ -162,7 +162,7 @@ HttpOnly cookie the app never sees.
   (`/submissions`, `GET /submissions`), with a Waiting / Approved / Rejected / Merged chip. Approving and rejecting
   are issue #10.
 - **New users.** An admin creates one on _Users_ → _New user_ (`/users/add`, a routed dialog): a username and a
-  role. It needs a recent sign-in (the same "confirm with passkey" step as Settings), and the answer's temporary
+  role. It needs a recent sign-in (the same "confirm it's you" step as Settings), and the answer's temporary
   password is shown once with a Copy button; nothing keeps it. Signed in with it, the user's status carries
   `mustChangePassword`: `signedInUserMiddleware` sends every app page to `/set-password`, and `authMiddleware` does
   the same for any 403 `PASSWORD_CHANGE_REQUIRED`. That page (outside the shell) saves the new password under the
@@ -171,7 +171,7 @@ HttpOnly cookie the app never sees.
   phones; the user comes from the list's loader, `USER_LIST_ROUTE_ID`): _Make admin_ / _Make member_, _Make read-only_
   / _Allow changes_ (the row's role then reads "Member, read-only"), _New temporary
   password_ (asks for a username when the user has none; the password is shown once, like New user) and _Delete user_.
-  Each confirms in an alert dialog, needs a recent sign-in (the shared "confirm with passkey" step), and ends that
+  Each confirms in an alert dialog, needs a recent sign-in (the shared "confirm it's you" step), and ends that
   user's sessions. The last admin who can make changes (`isLastAdmin` from the API) keeps _Make member_, _Make read-only_
   and _Delete user_ disabled, saying why; a read-only admin sees all four disabled (`DisabledReason`: hover, keyboard focus, tap, and the button's description). Changing or deleting yourself
   signs you out: the list reload answers 401 and `authMiddleware` goes to the login page.
@@ -186,12 +186,16 @@ HttpOnly cookie the app never sees.
   Settings) so password managers fill them, and paste works. _Settings → Security → Password_ sets or changes it;
   15+ characters is checked here, the common-password list only by the API (shown on the field).
 - **Confirm it's you.** Adding or removing a passkey, saving a password, or creating or changing a user needs a sign-in from the last 10 minutes. On a 403
-  `REAUTH_REQUIRED` the dialog switches to "Confirm with passkey" and submits again with `isReauth`; the action
-  signs in afresh, then retries (`withFreshSignIn`).
+  `REAUTH_REQUIRED` the dialog switches to "Confirm it's you" (`useConfirmIdentityStep`): "Confirm with passkey"
+  always, and for a user with a password (a username) a "Your current password" field and "Confirm with password"
+  next to it (`ConfirmPasswordField`, `ConfirmIdentityButtons`). The dialog submits again with `reauth` (the method,
+  and the password typed), and the action confirms first (a passkey sign-in, or `POST /auth/recent-sign-in`), then
+  retries (`withFreshSignIn` in `@api/freshSignIn`). A wrong password shows on its field.
 - **Mocks.** `mockStore.auth` starts signed in as Mario with two passkeys; `setMockAuthState()` (tests) or
   `VITE_MOCK_AUTH_STATE` (dev) starts signed out or before setup. Without a session every mocked route answers 401,
   like the API. The mocks accept any well-formed ceremony response; the first-run code is `funko-first-run`. Mario
-  has no password until one is set (the mock store keeps it as typed). Mario is an admin; `setMockUserRole()`
+  has no password until one is set (the mock store keeps it as typed); `isSignInRecent = false` makes the next
+  passkey, password or user change ask "confirm it's you", and confirming with the password checks that copy. Mario is an admin; `setMockUserRole()`
   (tests) makes him a member, and `requireAdmin.mock.handler.ts` then answers 403 `ADMIN_ONLY` on the admin-only
   routes, like the API. Funkos, categories and series carry `status` and `submittedById` in the store: a member's
   new one is a waiting submission, and the handlers show other members' waiting ones to nobody and let a member

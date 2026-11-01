@@ -79,6 +79,19 @@ it('asks the admin to confirm with a passkey when their sign-in is older than 10
   expect(startAuthentication).toHaveBeenCalledOnce();
 });
 
+it('lets an admin with a password create a user by confirming with it', async () => {
+  const PASSWORD = 'the admin password here';
+  Object.assign(mockStore.auth, { username: 'mario', password: PASSWORD, isSignInRecent: false });
+  renderUsers(`${USER_ROUTES_PATHS.BASE}/${USER_ROUTES_PATHS.ADD}`);
+
+  await createUser('rey', 'Member');
+  await userEvent.type(await screen.findByLabelText('Your current password'), PASSWORD);
+  await userEvent.keyboard('{Enter}');
+
+  expect(await screen.findByLabelText('Temporary password')).toBeVisible();
+  expect(startAuthentication).not.toHaveBeenCalled();
+});
+
 it('says on the field when the username is taken', async () => {
   renderUsers(`${USER_ROUTES_PATHS.BASE}/${USER_ROUTES_PATHS.ADD}`);
 
@@ -169,6 +182,21 @@ describe('managing a user', () => {
 
     expect(await screen.findByText('3 users')).toBeVisible();
     expect(startAuthentication).toHaveBeenCalledOnce();
+  });
+
+  it('lets an admin with a password confirm with it instead of a passkey', async () => {
+    const PASSWORD = 'the admin password here';
+    Object.assign(mockStore.auth, { username: 'mario', password: PASSWORD, isSignInRecent: false });
+    manageUser(LUKE_ID);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete user' }));
+    await confirmIn('Delete luke?', 'Delete user');
+    const dialog = await screen.findByRole('alertdialog', { name: "Confirm it's you" });
+    await userEvent.type(within(dialog).getByLabelText('Your current password'), PASSWORD);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm with password' }));
+
+    expect(await screen.findByText('3 users')).toBeVisible();
+    expect(startAuthentication).not.toHaveBeenCalled();
   });
 
   it('keeps the last admin: making them a member and deleting them are disabled, with the reason', async () => {

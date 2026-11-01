@@ -2,7 +2,7 @@ import { object, type InferType } from 'yup';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { SetPasswordSchema } from '@services/authService/authService.type';
 import { passkeyNameSchema } from '@utils/authUtils';
-import { PasskeyCeremonyFailureUtil, type AuthFailureMessagesUtil } from '@app-types/utility';
+import { PasskeyCeremonyFailureUtil, type AuthFailureMessagesUtil, type ReauthUtil } from '@app-types/utility';
 
 export const addPasskeyFormSchema = object({
   name: passkeyNameSchema,
@@ -10,17 +10,17 @@ export const addPasskeyFormSchema = object({
 
 export type AddPasskeyFormValues = InferType<typeof addPasskeyFormSchema>;
 
-// `isReauth`: the user has just been asked to confirm it's them (403 REAUTH_REQUIRED), see withFreshSignIn.
-export type AddPasskeyFormData = { passkey: AddPasskeyFormValues; isReauth?: boolean };
+// `reauth`: how the user confirms it's them once asked (403 REAUTH_REQUIRED), see withFreshSignIn.
+export type AddPasskeyFormData = { passkey: AddPasskeyFormValues; reauth?: ReauthUtil };
 
-export type DeletePasskeyFormData = { isReauth?: boolean };
+export type DeletePasskeyFormData = { reauth?: ReauthUtil };
 
 // The form sends exactly what the API takes.
 export const setPasswordFormSchema = SetPasswordSchema;
 
 export type SetPasswordFormValues = InferType<typeof setPasswordFormSchema>;
 
-export type SetPasswordFormData = { credentials: SetPasswordFormValues; isReauth?: boolean };
+export type SetPasswordFormData = { credentials: SetPasswordFormValues; reauth?: ReauthUtil };
 
 export const LAST_PASSKEY_REASON = 'You need at least one passkey.';
 

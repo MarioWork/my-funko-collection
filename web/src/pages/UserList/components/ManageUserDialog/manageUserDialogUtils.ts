@@ -1,12 +1,12 @@
 import { object, type InferType } from 'yup';
-import { USER_ROLE_LABELS, UserRoleUtil, type AuthFailureMessagesUtil } from '@app-types/utility';
+import { USER_ROLE_LABELS, UserRoleUtil, type AuthFailureMessagesUtil, type ReauthUtil } from '@app-types/utility';
 import { usernameSchema } from '@utils/authUtils';
 import type { CreateTemporaryPassword, UpdateUser } from '@services/userService/userService.type';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 
-// What the manage dialog sends: the change itself (none for a delete), and `isReauth` once the admin has been asked
+// What the manage dialog sends: the change itself (none for a delete), and `reauth` once the admin has been asked
 // to confirm it's them (403 REAUTH_REQUIRED, see withFreshSignIn).
-export type ManageUserFormData = { user?: UpdateUser | CreateTemporaryPassword; isReauth?: boolean };
+export type ManageUserFormData = { user?: UpdateUser | CreateTemporaryPassword; reauth?: ReauthUtil };
 
 // A user with no username yet gets one with their new temporary password.
 export const usernameFormSchema = object({ username: usernameSchema });

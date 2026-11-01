@@ -18,6 +18,7 @@ import type {
 } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import type {
+  ConfirmPassword,
   CreatePasskey,
   FinishLogin,
   FinishSetup,
@@ -68,6 +69,15 @@ export default {
   signInWithPassword: async (fields: PasswordSignIn): Promise<JSONResponseUtil<AuthSessionApiModel>> =>
     axiosActions<AuthSessionApiModel>({
       url: `${BASE_AUTH_URL}/login/password`,
+      method: HttpVerbsUtil.POST,
+      data: fields,
+    }),
+
+  // "Confirm it's you" with the signed-in user's own password: a fresh session replaces this one, which renews the
+  // recent sign-in like a passkey sign-in does. A wrong password answers 401 SIGN_IN_FAILED.
+  addRecentSignIn: async (fields: ConfirmPassword): Promise<JSONResponseUtil<AuthSessionApiModel>> =>
+    axiosActions<AuthSessionApiModel>({
+      url: `${BASE_AUTH_URL}/recent-sign-in`,
       method: HttpVerbsUtil.POST,
       data: fields,
     }),

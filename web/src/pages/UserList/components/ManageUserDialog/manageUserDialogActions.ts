@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { withFreshSignIn } from '@api/passkeyFlows';
+import { withFreshSignIn } from '@api/freshSignIn';
 import type { UserId } from '@app-types/models';
 import { HttpVerbsUtil, type JSONResponseUtil } from '@app-types/utility';
 import userService from '@services/userService/userService';
@@ -12,7 +12,7 @@ import type { ManageUserFormData } from './manageUserDialogUtils';
 type ManageUserRequest = ManageUserFormData & { userId: UserId };
 
 // Every change to a user needs the admin's sign-in from the last 10 minutes: the first try may answer
-// REAUTH_REQUIRED, and the dialog then submits again with `isReauth` (see withFreshSignIn).
+// REAUTH_REQUIRED, and the dialog then submits again with `reauth` (see withFreshSignIn).
 async function readRequest({ request, params, context }: ActionFunctionArgs): Promise<ManageUserRequest> {
   assertAdmin(context);
 
@@ -23,30 +23,30 @@ async function readRequest({ request, params, context }: ActionFunctionArgs): Pr
 
 // A new role or read-only setting.
 export const updateUserAction = async (args: ActionFunctionArgs): Promise<JSONResponseUtil> => {
-  const { user, isReauth, userId } = await readRequest(args);
+  const { user, reauth, userId } = await readRequest(args);
 
   return failWhenInvalid(async () => {
     const fields = await UpdateUserSchema.validate(user);
 
-    return withFreshSignIn(isReauth === true, () => userService.updateUser(userId, fields));
+    return withFreshSignIn(reauth, () => userService.updateUser(userId, fields));
   });
 };
 
 // The answer carries the new temporary password, the only time it is sent.
 export const addTemporaryPasswordAction = async (args: ActionFunctionArgs): Promise<JSONResponseUtil> => {
-  const { user, isReauth, userId } = await readRequest(args);
+  const { user, reauth, userId } = await readRequest(args);
 
   return failWhenInvalid(async () => {
     const fields = await CreateTemporaryPasswordSchema.validate(user ?? {});
 
-    return withFreshSignIn(isReauth === true, () => userService.addTemporaryPassword(userId, fields));
+    return withFreshSignIn(reauth, () => userService.addTemporaryPassword(userId, fields));
   });
 };
 
 export const deleteUserAction = async (args: ActionFunctionArgs): Promise<JSONResponseUtil> => {
-  const { isReauth, userId } = await readRequest(args);
+  const { reauth, userId } = await readRequest(args);
 
-  return withFreshSignIn(isReauth === true, () => userService.deleteUser(userId));
+  return withFreshSignIn(reauth, () => userService.deleteUser(userId));
 };
 
 const MANAGE_USER_ACTION_MAP: VerbActionMap = {

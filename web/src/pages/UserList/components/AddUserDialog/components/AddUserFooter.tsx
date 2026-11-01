@@ -1,36 +1,32 @@
-import { Fingerprint, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
+import type { ReauthMethodUtil } from '@app-types/utility';
 import CancelButton from '@components/CancelButton';
-import PasskeyButton from '@components/PasskeyButton';
+import ConfirmIdentityButtons from '@components/ConfirmIdentityButtons';
 import SubmitButton from '@components/SubmitButton';
 import { Button } from '@components/ui/button';
-import { CONFIRM_IDENTITY_COPY } from '@utils/reauthUtils';
+import type { ConfirmIdentityStep } from '@hooks/useConfirmIdentityStep';
 
 type Props = {
   formId: string;
+  // The confirm step's password form, submitted by "Confirm with password".
+  passwordFormId: string;
   isSaving: boolean;
-  // After a REAUTH_REQUIRED answer the submit confirms with a passkey first.
-  needsReauth: boolean;
+  // After a REAUTH_REQUIRED answer the submit confirms it's the admin first.
+  step: ConfirmIdentityStep;
   // The user exists: only "Done" is left.
   isCreated: boolean;
+  onConfirm: (method: ReauthMethodUtil) => void;
   onClose: () => void;
 };
 
 type FormButtonsProps = Omit<Props, 'isCreated'>;
 
-function FormButtons({ formId, isSaving, needsReauth, onClose }: FormButtonsProps) {
+function FormButtons({ formId, passwordFormId, isSaving, step, onConfirm, onClose }: FormButtonsProps) {
   return (
     <>
       <CancelButton isSubmitting={isSaving} onCancel={onClose} />
-      {needsReauth ? (
-        <PasskeyButton
-          type="submit"
-          form={formId}
-          isWaiting={isSaving}
-          isSupported
-          icon={<Fingerprint data-icon="inline-start" aria-hidden="true" />}
-        >
-          {CONFIRM_IDENTITY_COPY.BUTTON}
-        </PasskeyButton>
+      {step.needsReauth ? (
+        <ConfirmIdentityButtons step={step} isSaving={isSaving} passwordFormId={passwordFormId} onConfirm={onConfirm} />
       ) : (
         <SubmitButton
           isSubmitting={isSaving}
