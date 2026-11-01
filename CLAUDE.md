@@ -109,7 +109,7 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   `assertCanSeeImageFiles()`); others get 404. Reviewing (issue #10): `GET /submissions/review` (Waiting / Done,
   with `possibleDoubles`), `POST /submissions/:id/approval` and `/rejection` are admin-only routes;
   `/resubmission` is the sender's (a `SUBMISSION_ROUTE`). A member also edits or deletes their own rejected one
-  (`isOpenSubmission()` in `funkos.access.ts`). Approving moves a waiting category or series into the catalogue, or
+  (`isOpenSubmission()` in `funkos/funkos.access.ts`). Approving moves a waiting category or series into the catalogue, or
   onto the approved one of the same name; a clash with the catalogue is a 409 in words (pre-checked, and
   `isUniqueViolation()` by SQLSTATE in a race). `rejection_reason` is set exactly while REJECTED (a check in the
   `submission_reviews` migration); an admin's change to someone's open submission (fields, or a photo added or removed) sets
@@ -119,17 +119,17 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   `isUsableCategory()` / `isUsableSeries()` (may a funko use it) and `assertCanSeeImageFiles()` (the `/uploads` hook)
   are named for what they check, not with the get/add/update/delete verbs.
 - Merging (issue #12, `POST /submissions/:id/merge`, admin-only): `{ targetFunkoId }` must be an approved funko. In
-  one transaction (`funkosRepository.merge`) every item of the submission moves onto the target; a clash in one
+  one transaction (`mergeRepository.merge`) every item of the submission moves onto the target; a clash in one
   collection keeps the older item, adds the quantities, joins notes and tags, capped at the item limits
-  (`MAX_QUANTITY`, `MAX_TAGS_PER_ITEM` in `collectionItems.type.ts`; the older item's tags first, the newer one's
-  extras dropped) so the member can still edit it. The rule is `funkos/funkos.merge.ts`, handed to the repository.
+  (`MAX_QUANTITY`, `MAX_TAGS_PER_ITEM` in `collections/collections.type.ts`; the older item's tags first, the newer one's
+  extras dropped) so the member can still edit it. The rule is `submissions/merge/merge.items.ts`, handed to the repository.
   The submission becomes `MERGED` with `merged_into_id` (a check: only while merged) and keeps its own fields,
   category, series and unpicked images as the record of what was sent; its sender gets `SUBMISSION_MERGED` with the
   target's `funkoId`.
   Picking what the target keeps (issue #39): the body adds `fieldsFromSubmission` (`MERGE_FIELDS` in
-  `funkos.type.ts`; each once, only one that differs: 400), `imageIdsFromSubmission` and `removedImageIds` (only
+  `submissions/merge/merge.type.ts`; each once, only one that differs: 400), `imageIdsFromSubmission` and `removedImageIds` (only
   images of those two funkos: 400; the target keeps to `MAX_IMAGES_PER_FUNKO`). The rules are
-  `funkos/funkos.mergeChoices.ts` (pure); "differs" compares the submission's category and series as approval would
+  `submissions/merge/merge.choices.ts` (pure); "differs" compares the submission's category and series as approval would
   set them (`findCatalogueReferences`), and a picked waiting one joins the catalogue in the merge's transaction. A
   picked barcode or identity another catalogue funko has is a 409 in words with `existingId` (pre-checked, and
   `isUniqueViolation()` in a race). A moved image keeps its uploader; its files are copied into the target's folder
@@ -159,8 +159,7 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   be brute-forced and must be looked up by hash); the WebAuthn routes keep the spec's two steps in their URLs
   (`/auth/login/options` + `/auth/login/verify`) instead of noun-only URLs.
 - Also kept as they are (decided 2026-10-23): `POST /auth/logout`, `POST /auth/logout-everywhere` and
-  `GET /suggest` keep their verb URLs; the sub-resource folders `collections/items/` and `funkos/images/` keep
-  their `collectionItems.*` / `funkoImages.*` file prefixes (node-ts-api §3/§4).
+  `GET /suggest` keep their verb URLs.
 - Passkeys are bound to the host name in `APP_ORIGIN` (`x-app-address` in `compose.yaml`): never an IP address, and
   changing it orphans every passkey (`yarn auth:reset` then makes new ones).
 - Every funko has a series (issue #40); the barcode stays optional (and unique). `funkos.series_id` is NOT NULL with
@@ -230,6 +229,20 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   app start. In dev, `yarn dev` runs `prisma migrate deploy` + `prisma generate` first (never makes or resets one).
   Prisma refuses `migrate reset` from an AI agent: ask Mario, or have him run it.
 - `src/lib/imageStorage.ts` is the only file that imports `sharp` or touches the uploads folder.
+- Modules are split by job, always, not by size (issue #51, decided 2026-11-01; this repo only, not the skills): one
+  folder per job under `src/modules/<module>/`, holding that job's route, service, repository, schema, types,
+  helpers and tests, each named `<job>.<kind>.ts` (`submissions/merge/merge.service.ts`, `merge.type.ts`,
+  `merge.route.test.ts`; a second test or helper adds a word: `merge.choices.ts`, `removal.holders.route.test.ts`).
+  The module root keeps `<module>.route.ts`, which only registers its jobs' routes, plus what two or more of its jobs
+  share, named `<module>.<kind>.ts` (`funkos.repository.ts` for the shared row reads, `funkos.access.ts`,
+  `submissions.service.ts`), the types other modules read (`<module>.type.ts`) and tests that cross its jobs
+  (`auth.route.test.ts`, `collections.ownership.test.ts`, `submissions.route.test.ts`). A module's plain
+  create/read/update/delete job is `basics/`. A module with one job stays flat (`categories`, `series`, `tags`,
+  `images`, `notifications`, `export`, `stats`, `suggest`, `health`). Another module is reached through its
+  service (or `.type.ts`), never its `.repository.ts`; a module's own repository may query any table with Prisma
+  (the submissions jobs read the funko rows themselves). Services take a `SignedInUser` when they decide by role or
+  sender, a `userId` when they only scope to the user's own rows, and the `AuthSession` when they need the sign-in
+  itself (a recent sign-in, the token).
 - Run the `node-ts-audit` skill on `api/` and `react-ts-audit` on `web/` before calling a change done.
 
 ## Web specifics
