@@ -93,6 +93,21 @@ it('shows a bad price inside its own collection card when Save is pressed', asyn
   expect(await within(ownedCard).findByText('Use a number like 14.99')).toBeVisible();
 });
 
+it('asks for a series and ties the message to the series field when saving without one', async () => {
+  renderAddForm();
+
+  await userEvent.type(await screen.findByRole('textbox', { name: 'Name' }), 'No Series Pop');
+  await userEvent.type(screen.getByRole('textbox', { name: 'Number' }), '3');
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'Pop! Games');
+  await userEvent.click(screen.getByRole('button', { name: 'Save funko' }));
+
+  const seriesSelect = screen.getByRole('combobox', { name: 'Series' });
+
+  await waitFor(() => expect(seriesSelect).toHaveAccessibleDescription(/Series is required/));
+  expect(seriesSelect).toHaveAttribute('aria-invalid', 'true');
+  expect(screen.queryByRole('region', { name: 'Saved' })).not.toBeInTheDocument();
+});
+
 describe('saving without a photo', () => {
   // jsdom has no object URLs; the picker makes one for each photo's preview.
   beforeEach(() => {
@@ -105,6 +120,7 @@ describe('saving without a photo', () => {
     await userEvent.type(await screen.findByRole('textbox', { name: 'Name' }), 'No Photo Pop');
     await userEvent.type(screen.getByRole('textbox', { name: 'Number' }), '2');
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'Pop! Games');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Series' }), 'Super Mario');
     await userEvent.click(screen.getByRole('button', { name: 'Save funko' }));
 
     const photoInput = screen.getByLabelText('Image files');

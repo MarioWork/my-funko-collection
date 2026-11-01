@@ -13,7 +13,7 @@ test('adds a funko by hand with two photos into two collections, each with its o
   const detail = new FunkoDetailPage(page);
 
   await add.gotoManual();
-  await add.fillDetails({ name: 'Test Pop', number: '999', categoryName: 'Pop! Games' });
+  await add.fillDetails({ name: 'Test Pop', number: '999', categoryName: 'Pop! Games', seriesName: 'Super Mario' });
   await add.choosePhotos(PHOTOS);
 
   await expect(add.photosToUpload()).toHaveCount(PHOTOS.length);
@@ -39,7 +39,7 @@ test('"Add another" opens an empty form that keeps the collections picked last t
   const add = new AddPage(page);
 
   await add.gotoManual();
-  await add.fillDetails({ name: 'First Pop', number: '1', categoryName: 'Pop! Games' });
+  await add.fillDetails({ name: 'First Pop', number: '1', categoryName: 'Pop! Games', seriesName: 'Super Mario' });
   await add.choosePhotos(PHOTOS.slice(0, 1));
   await add.dropLastCollection();
   await add.pickCollection('Wishlist');

@@ -69,12 +69,6 @@ export function toCollectionModel(row: MockCollectionRow): CollectionApiModel {
   };
 }
 
-function toSeriesRef(seriesId: number | null): NamedApiModel | null {
-  const series = mockStore.series.find((candidate) => candidate.id === seriesId);
-
-  return series ? { id: series.id, name: series.name } : null;
-}
-
 function named(row: MockNamedRow | undefined): NamedApiModel {
   return row ? { id: row.id, name: row.name } : { id: 0, name: 'Unknown' };
 }
@@ -93,7 +87,7 @@ export function toFunkoSummary(row: MockFunkoRow): FunkoSummaryApiModel {
     exclusive: row.exclusive,
     barcode: row.barcode,
     category: named(mockStore.categories.find((category) => category.id === row.categoryId)),
-    series: toSeriesRef(row.seriesId),
+    series: named(mockStore.series.find((series) => series.id === row.seriesId)),
     primaryImage: toPrimaryImage(primary),
   };
 }

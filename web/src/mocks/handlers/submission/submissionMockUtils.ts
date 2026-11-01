@@ -27,7 +27,7 @@ export type NamedSubmissionRow = MockSubmissionColumns & { id: number; name: str
 
 // The category or series a funko would have in the catalogue: an approved one stays, a waiting one gives way to the
 // approved one of the same name, if there is one. Changes nothing.
-export function catalogueReferenceIdOf(rows: NamedSubmissionRow[], id: number | null): number | null {
+export function catalogueReferenceIdOf(rows: NamedSubmissionRow[], id: number): number {
   const row = rows.find((candidate) => candidate.id === id);
 
   if (!row || row.status === SubmissionStatusUtil.APPROVED) return id;
@@ -41,7 +41,7 @@ export function catalogueReferenceIdOf(rows: NamedSubmissionRow[], id: number | 
 
 // As catalogueReferenceIdOf(), and a waiting one with no approved twin joins the catalogue itself, as the API's
 // approval and merge bring it in.
-export function approveReference(rows: NamedSubmissionRow[], id: number | null): number | null {
+export function approveReference(rows: NamedSubmissionRow[], id: number): number {
   const referenceId = catalogueReferenceIdOf(rows, id);
   const row = rows.find((candidate) => candidate.id === referenceId);
 

@@ -25,18 +25,17 @@ const CHASE_LINE = 'Chase';
 type AllItemsCardLines = {
   // "#353 Pikachu".
   title: string;
-  // The series, "Chase", "Exclusive: <name>": only those the funko has, in that order.
+  // The series, then "Chase" and "Exclusive: <name>" when the funko is one, in that order.
   details: string[];
 };
 
 // The text under an All items card: the funko's number and name, then its series, chase and exclusive lines.
 export function getAllItemsCardLines({ funko }: CollectionItemApiModel): AllItemsCardLines {
-  const series = funko.series?.name ?? null;
   const chase = funko.isChase ? CHASE_LINE : null;
   const exclusive = funko.exclusive ? `Exclusive: ${funko.exclusive}` : null;
 
   return {
     title: `#${funko.number} ${funko.name}`,
-    details: [series, chase, exclusive].filter((line): line is string => line !== null),
+    details: [funko.series.name, chase, exclusive].filter((line): line is string => line !== null),
   };
 }

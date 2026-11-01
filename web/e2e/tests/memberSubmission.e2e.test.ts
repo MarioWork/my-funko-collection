@@ -13,7 +13,7 @@ test('a member sends a new funko in: it waits for an admin and shows on their Su
   const submissions = new SubmissionsPage(page);
 
   await add.gotoManual();
-  await add.fillDetails({ name: 'Member Pop', number: '777', categoryName: 'Pop! Games' });
+  await add.fillDetails({ name: 'Member Pop', number: '777', categoryName: 'Pop! Games', seriesName: 'Super Mario' });
   await add.choosePhotos([PHOTO]);
   await add.save();
 

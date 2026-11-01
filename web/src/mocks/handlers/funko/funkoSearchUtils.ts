@@ -96,7 +96,6 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
   const collection = params.get(FunkoApiSearchFields.COLLECTION);
   const notInCollectionIds = idList(params.get(FunkoApiSearchFields.NOT_IN_COLLECTION_ID));
   const hasCollections = params.get(FunkoApiSearchFields.HAS_COLLECTIONS);
-  const hasSeries = params.get(FunkoApiSearchFields.HAS_SERIES);
   const hasTags = params.get(FunkoApiSearchFields.HAS_TAGS);
   const hasImages = params.get(FunkoApiSearchFields.HAS_IMAGES);
 
@@ -116,7 +115,7 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
       isChase === null || row.isChase === isTrueParam(isChase),
       !categoryIds || categoryIds.includes(row.categoryId),
       !category || contains(categoryName(row), category),
-      !seriesIds || (row.seriesId !== null && seriesIds.includes(row.seriesId)),
+      !seriesIds || seriesIds.includes(row.seriesId),
       !series || contains(seriesName(row), series),
       !tagIds || tagIds.some((tagId) => rowTagIds.has(tagId)),
       !tag || tagNames(row).some((tagName) => contains(tagName, tag)),
@@ -124,7 +123,6 @@ export function filterFunkos(params: URLSearchParams): MockFunkoRow[] {
       !collection || collectionNames(row).some((collectionName) => contains(collectionName, collection)),
       !notInCollectionIds || !notInCollectionIds.some((collectionId) => rowCollectionIds.has(collectionId)),
       hasCollections === null || rowCollectionIds.size > 0 === isTrueParam(hasCollections),
-      hasSeries === null || (row.seriesId !== null) === isTrueParam(hasSeries),
       hasTags === null || rowTagIds.size > 0 === isTrueParam(hasTags),
       hasImages === null || imageCount > 0 === isTrueParam(hasImages),
     ];

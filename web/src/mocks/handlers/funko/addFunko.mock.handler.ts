@@ -14,6 +14,7 @@ import {
   DUPLICATE_FUNKO_MESSAGE,
   findBarcodeTwin,
   findDuplicate,
+  missingSeriesRefusal,
   referenceRefusal,
 } from './funkoMockUtils';
 
@@ -23,13 +24,17 @@ export default (baseUrl: string) => [
     await delay(MOCK_DELAY);
 
     const body = (await request.json()) as CreateFunko;
+    const missingSeries = missingSeriesRefusal(body.seriesId);
+
+    if (missingSeries) return missingSeries;
+
     const row: MockFunkoRow = {
       id: nextId(mockStore.funkos),
       name: body.name,
       number: body.number,
       type: body.type,
       categoryId: body.categoryId,
-      seriesId: body.seriesId ?? null,
+      seriesId: body.seriesId,
       isChase: body.isChase,
       exclusive: body.exclusive,
       barcode: body.barcode ?? null,
