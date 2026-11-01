@@ -84,11 +84,14 @@ const SEED_FUNKOS: SeedFunko[] = [
 ];
 
 // Other members' submissions, so the admins' Submissions page has something to review: two waiting (Thanos is
-// maybe a double of the catalogue's #78 in Pop! Marvel) and one rejected. Nobody else sees them, as on the API.
+// maybe a double of the catalogue's #78 in Pop! Marvel), one rejected and one merged into the catalogue's Grogu.
+// Nobody else sees them, as on the API.
 type SeedSubmission = Omit<SeedFunko, 'series' | 'type' | 'isChase' | 'exclusive'> & {
   submittedById: number;
   day: number;
   rejectionReason?: string;
+  // The catalogue funko (by name) an admin merged it into.
+  mergedInto?: string;
 };
 
 const HAN_ID = MOCK_SECOND_MEMBER_ID;
@@ -121,6 +124,7 @@ const SEED_SUBMISSIONS: SeedSubmission[] = [
     day: 38,
     rejectionReason: 'The photo is from a shop listing. Please add a photo of your own box.',
   },
+  { name: 'Baby Yoda', number: '368', category: 3, submittedById: HAN_ID, day: 36, mergedInto: 'Grogu' },
 ];
 
 type SeedItem = {
@@ -358,11 +362,30 @@ function createExtraItems(funkos: MockFunkoRow[], startId: number): MockItemRow[
   }));
 }
 
+// Where a seed submission stands: rejected (with a reason), merged (with a target), else still waiting.
+function submissionStatusOf(seed: SeedSubmission): SubmissionStatusUtil {
+  if (seed.rejectionReason !== undefined) return SubmissionStatusUtil.REJECTED;
+  if (seed.mergedInto !== undefined) return SubmissionStatusUtil.MERGED;
+
+  return SubmissionStatusUtil.WAITING;
+}
+
+// The seed catalogue's funko by name (its id is its place in SEED_FUNKOS), for a merged submission's target.
+function seedFunkoIdOf(name: string | undefined): number | null {
+  const index = SEED_FUNKOS.findIndex((seed) => seed.name === name);
+
+  return index === -1 ? null : index + 1;
+}
+
+function seedFunkoNameOf(id: number | null): string | undefined {
+  return id === null ? undefined : SEED_FUNKOS[id - 1]?.name;
+}
+
 // After every other funko, so the seed's ids (and the generated ones) stay as they were.
 function createSubmissions(startId: number): MockFunkoRow[] {
   return SEED_SUBMISSIONS.map((seed, offset) => {
-    const isRejected = seed.rejectionReason !== undefined;
-    const status = isRejected ? SubmissionStatusUtil.REJECTED : SubmissionStatusUtil.WAITING;
+    const status = submissionStatusOf(seed);
+    const isReviewed = status !== SubmissionStatusUtil.WAITING;
 
     return {
       id: startId + offset,
@@ -376,9 +399,10 @@ function createSubmissions(startId: number): MockFunkoRow[] {
       barcode: seed.barcode ?? null,
       status,
       submittedById: seed.submittedById,
-      reviewedAt: isRejected ? mockDate(SUBMISSION_REVIEW_DAY) : null,
+      reviewedAt: isReviewed ? mockDate(SUBMISSION_REVIEW_DAY) : null,
       rejectionReason: seed.rejectionReason ?? null,
       changedByAdminAt: null,
+      mergedIntoId: seedFunkoIdOf(seed.mergedInto),
       createdAt: mockDate(seed.day),
       updatedAt: mockDate(seed.day),
     };
@@ -386,22 +410,38 @@ function createSubmissions(startId: number): MockFunkoRow[] {
 }
 
 // What the seed submissions told people, as api/prisma/seed.ts writes them: every admin (the signed-in user and the
-// other admins) heard of each one sent in, the oldest already read, and the sender of the rejected one heard why;
-// han also heard of REMOVED_FUNKO.
+// other admins) heard of each one sent in, the oldest and the merged one already read, the sender of the rejected
+// one heard why, and the sender of the merged one heard where it went; han also heard of REMOVED_FUNKO.
 function createNotifications(submissions: MockFunkoRow[], users: MockUserRow[]): MockNotificationRow[] {
   const adminIds = [MOCK_USER_ID, ...users.filter((user) => user.role === UserRoleUtil.ADMIN).map((user) => user.id)];
-  const rows = submissions.flatMap((submission, index) => {
+  const rows = submissions.flatMap((submission, index): Omit<MockNotificationRow, 'id'>[] => {
     const createdAt = mockRecentDate(FIRST_NOTIFICATION_HOURS_AGO - index);
     const funko = { funkoId: submission.id, funkoName: submission.name, createdAt };
     const toAdmins = adminIds.map((userId) => ({
       userId,
       kind: NotificationKindUtil.SUBMISSION_SENT,
       reason: null,
-      isRead: index === 0,
+      isRead: index === 0 || submission.status === SubmissionStatusUtil.MERGED,
       ...funko,
     }));
 
-    if (submission.status !== SubmissionStatusUtil.REJECTED || submission.submittedById === null) return toAdmins;
+    if (submission.submittedById === null) return toAdmins;
+
+    if (submission.status === SubmissionStatusUtil.MERGED) {
+      const toSender = {
+        userId: submission.submittedById,
+        kind: NotificationKindUtil.SUBMISSION_MERGED,
+        reason: null,
+        isRead: false,
+        createdAt,
+        funkoId: submission.mergedIntoId,
+        funkoName: seedFunkoNameOf(submission.mergedIntoId) ?? submission.name,
+      };
+
+      return [...toAdmins, toSender];
+    }
+
+    if (submission.status !== SubmissionStatusUtil.REJECTED) return toAdmins;
 
     const toSender = {
       userId: submission.submittedById,

@@ -50,12 +50,20 @@ async function reasonOf(request: Request): Promise<string | undefined> {
   }
 }
 
+// A submission merged into the deleted funko still reads as merged, with no target (the API's ON DELETE SET NULL).
+function forgetMergeTarget(funkoId: number): void {
+  for (const funko of mockStore.funkos) {
+    if (funko.mergedIntoId === funkoId) funko.mergedIntoId = null;
+  }
+}
+
 function deleteRows(row: MockFunkoRow): void {
   mockStore.items = mockStore.items.filter((item) => item.funkoId !== row.id);
   mockStore.otherUsersItems = mockStore.otherUsersItems.filter((item) => item.funkoId !== row.id);
   mockStore.images = mockStore.images.filter((image) => image.funkoId !== row.id);
   mockStore.funkos.splice(mockStore.funkos.indexOf(row), 1);
   forgetNotifiedFunkos(new Set([row.id]));
+  forgetMergeTarget(row.id);
 }
 
 // An admin deletes any funko; a member only their own submission. In anyone's collection it needs force=true, and

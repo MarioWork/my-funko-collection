@@ -43,14 +43,15 @@ export function setMockUserRole(role: UserRole): void {
 }
 
 type MockSubmissionOptions = Partial<
-  Pick<MockFunkoRow, 'name' | 'number' | 'barcode' | 'status' | 'submittedById' | 'changedByAdminAt'>
+  Pick<MockFunkoRow, 'name' | 'number' | 'barcode' | 'status' | 'submittedById' | 'changedByAdminAt' | 'mergedIntoId'>
 >;
 
 const REJECTION_REASON = 'Not a real funko';
 
 // For a test that needs a submission: a funko sent in by the signed-in user (a waiting one unless `status` says
 // otherwise), by another member when `submittedById` names one, or by a removed user when it is null. Filed under
-// the seed's first category. A rejected one carries a reason and a review date, as on the API.
+// the seed's first category. A rejected one carries a reason and a review date, as on the API; a merged one names
+// its target with `mergedIntoId`.
 export function addMockSubmission(options: MockSubmissionOptions = {}): MockFunkoRow {
   const [firstCategory] = mockStore.categories;
 
@@ -58,6 +59,7 @@ export function addMockSubmission(options: MockSubmissionOptions = {}): MockFunk
 
   const status = options.status ?? SubmissionStatusUtil.WAITING;
   const isRejected = status === SubmissionStatusUtil.REJECTED;
+  const isReviewed = isRejected || status === SubmissionStatusUtil.MERGED;
   const row: MockFunkoRow = {
     id: nextId(mockStore.funkos),
     name: options.name ?? SUBMISSION_NAME,
@@ -71,9 +73,10 @@ export function addMockSubmission(options: MockSubmissionOptions = {}): MockFunk
     status,
     // null is a removed user's submission, so only a missing option means the signed-in user's.
     submittedById: options.submittedById === undefined ? MOCK_USER_ID : options.submittedById,
-    reviewedAt: isRejected ? nowIso() : null,
+    reviewedAt: isReviewed ? nowIso() : null,
     rejectionReason: isRejected ? REJECTION_REASON : null,
     changedByAdminAt: options.changedByAdminAt ?? null,
+    mergedIntoId: options.mergedIntoId ?? null,
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };

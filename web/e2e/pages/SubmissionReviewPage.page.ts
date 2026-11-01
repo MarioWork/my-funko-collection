@@ -39,4 +39,19 @@ export class SubmissionReviewPage {
     await dialog.getByLabel('Why?').fill(reason);
     await dialog.getByRole('button', { name: 'Reject' }).click();
   }
+
+  // Opens the merge dialog; with `search`, picks the first catalogue funko of that name the search finds, else keeps
+  // the maybe-double already picked.
+  async merge(name: string, search?: { query: string; pick: string }) {
+    await this.row(name).getByRole('button', { name: 'Merge' }).click();
+
+    const dialog = this.page.getByRole('dialog', { name: `Merge ${name}?` });
+
+    if (search) {
+      await dialog.getByRole('searchbox', { name: 'Search the catalogue' }).fill(search.query);
+      await dialog.getByRole('radio', { name: search.pick }).click();
+    }
+
+    await dialog.getByRole('button', { name: 'Merge' }).click();
+  }
 }

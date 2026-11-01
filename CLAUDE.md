@@ -119,6 +119,9 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   collection keeps the older item, adds the quantities, joins notes and tags (the rule is `funkos/funkos.merge.ts`,
   handed to the repository). The submission becomes `MERGED` with `merged_into_id` (a check: only while merged) and
   keeps its images, category and series; its sender gets `SUBMISSION_MERGED` with the target's `funkoId`.
+  Web: Merge on the review page opens `MergeSubmissionDialog` (approved maybe-doubles first, then a catalogue search
+  through the existing `useSuggestions` type-ahead, not a new read); `mergeSubmission.mock.handler.ts` mirrors the
+  item rule. `SubmissionReviewNotes` shows "Merged into" with a link wherever a submission's review is shown.
 - Notifications (issue #11): approve and reject tell the sender (reject with its reason; an orphan submission has
   nobody to tell), a new or resent submission tells every admin. One `notifications` table: `kind` (an enum),
   `funko_id` (the funko to open, cleared when it goes) and the funko's name as written, `reason?`, `read_at`.

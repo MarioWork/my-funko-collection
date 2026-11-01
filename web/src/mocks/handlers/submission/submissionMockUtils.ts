@@ -1,9 +1,26 @@
-// What the submission handlers share: a store row as the API answers it, and the maybe-double check.
+// What the submission handlers share: a store row as the API answers it, finding a waiting one, and the
+// maybe-double check.
 import type { PossibleDoubleApiModel, ReviewSubmissionApiModel, SubmissionApiModel } from '@app-types/models';
 import { DoubleMatchFieldUtil, SubmissionStatusUtil } from '@app-types/utility';
-import { senderOf, toFunkoSummary } from '@mocks/mockResponses';
+import { conflict, mergedIntoOf, notFound, senderOf, toFunkoSummary } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow } from '@mocks/mockStore.type';
+
+// The API's answer, word for word where the page shows it.
+const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved, rejected or merged';
+
+type SubmissionLookup = { funko: MockFunkoRow } | { refusal: Response };
+
+// The submission an admin reviews: 404 when there is none, 409 when it no longer waits.
+export function findWaitingSubmission(funkoId: string): SubmissionLookup {
+  const funko = mockStore.funkos.find((candidate) => String(candidate.id) === funkoId);
+
+  if (!funko) return { refusal: notFound('Funko', funkoId) };
+
+  if (funko.status !== SubmissionStatusUtil.WAITING) return { refusal: conflict(NOT_WAITING_MESSAGE) };
+
+  return { funko };
+}
 
 export function toSubmissionModel(row: MockFunkoRow): SubmissionApiModel {
   return {
@@ -12,6 +29,7 @@ export function toSubmissionModel(row: MockFunkoRow): SubmissionApiModel {
     reviewedAt: row.reviewedAt,
     rejectionReason: row.rejectionReason,
     changedByAdminAt: row.changedByAdminAt,
+    mergedInto: mergedIntoOf(row),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

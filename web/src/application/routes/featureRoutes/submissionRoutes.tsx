@@ -26,4 +26,10 @@ export const submissionRoutes: RouteObject[] = [
       action: async () => (await import('@pages/SubmissionReview/submissionReviewActions')).rejectSubmissionAction,
     },
   },
+  {
+    path: SUBMISSION_ROUTES_PATHS.merge(),
+    lazy: {
+      action: async () => (await import('@pages/SubmissionReview/submissionReviewActions')).mergeSubmissionAction,
+    },
+  },
 ];

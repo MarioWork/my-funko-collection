@@ -24,7 +24,11 @@ function SubmissionDetails({ funko }: Props) {
       <SubmissionStatusBadge status={funko.status} />
       {isOwnWaiting ? <span className="text-xs text-muted-foreground">{WAITING_NOTE}</span> : null}
       {isOwnRejected ? <span className="text-xs text-muted-foreground">{REJECTED_NOTE}</span> : null}
-      <SubmissionReviewNotes rejectionReason={funko.rejectionReason} changedByAdminAt={funko.changedByAdminAt} />
+      <SubmissionReviewNotes
+        rejectionReason={funko.rejectionReason}
+        changedByAdminAt={funko.changedByAdminAt}
+        mergedInto={funko.mergedInto}
+      />
       {hasSender ? (
         <span className="text-xs text-muted-foreground">Sent in by {userNameOrRemoved(funko.submittedBy ?? null)}</span>
       ) : null}

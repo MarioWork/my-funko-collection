@@ -29,12 +29,14 @@ export type MockCollectionRow = {
   createdAt: string;
   updatedAt: string;
 };
-// How a funko's review went, as the API keeps it: when an admin approved or rejected it, why it was rejected (only
-// while REJECTED), and when an admin last changed it before approving it.
+// How a funko's review went, as the API keeps it: when an admin approved, rejected or merged it, why it was rejected
+// (only while REJECTED), when an admin last changed it before approving it, and the catalogue funko a merged one went
+// into (only while MERGED; null again once that funko is deleted).
 export type MockReviewColumns = {
   reviewedAt: string | null;
   rejectionReason: string | null;
   changedByAdminAt: string | null;
+  mergedIntoId: number | null;
 };
 export type MockFunkoRow = MockSubmissionColumns &
   MockReviewColumns & {

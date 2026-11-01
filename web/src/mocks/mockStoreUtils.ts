@@ -2,7 +2,12 @@
 import type { MockReviewColumns, MockRowWithId } from './mockStore.type';
 
 // A funko no admin has reviewed or changed: every new one, and the seed's catalogue.
-export const NOT_REVIEWED: MockReviewColumns = { reviewedAt: null, rejectionReason: null, changedByAdminAt: null };
+export const NOT_REVIEWED: MockReviewColumns = {
+  reviewedAt: null,
+  rejectionReason: null,
+  changedByAdminAt: null,
+  mergedIntoId: null,
+};
 
 // Vite's env in the browser and in Vitest. Playwright loads this file in plain Node, where import.meta.env does
 // not exist, so it reads as empty there (the defaults: no extra funkos, signed in).

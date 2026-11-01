@@ -14,16 +14,15 @@ import {
   notifyMockAdmins,
   notifyMockSender,
 } from '@mocks/handlers/notification/notificationMockUtils';
-import { badRequest, conflict, noContent, notFound } from '@mocks/mockResponses';
+import { badRequest, conflict, noContent } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow, MockSubmissionColumns } from '@mocks/mockStore.type';
 import { nowIso } from '@mocks/mockStoreUtils';
 import type { RejectSubmission } from '@services/submissionService/submissionService.type';
 import { REJECTION_REASON_MAX_LENGTH } from '@utils/submissionUtils';
-import { toSubmissionModel } from './submissionMockUtils';
+import { findWaitingSubmission, toSubmissionModel } from './submissionMockUtils';
 
 // The API's answers, word for word where the page shows them.
-const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved or rejected';
 const NOT_REJECTED_MESSAGE = 'Only a rejected submission can be sent again';
 const CATALOGUE_HAS_FUNKO_MESSAGE = 'The catalogue already has this funko. Reject this submission, or change it first';
 const CATALOGUE_HAS_BARCODE_MESSAGE =
@@ -31,19 +30,7 @@ const CATALOGUE_HAS_BARCODE_MESSAGE =
 
 type NamedSubmissionRow = MockSubmissionColumns & { id: number; name: string };
 
-type SubmissionLookup = { funko: MockFunkoRow } | { refusal: Response };
-
 const APPROVED: MockSubmissionColumns = { status: SubmissionStatusUtil.APPROVED, submittedById: null };
-
-function findWaiting(funkoId: string): SubmissionLookup {
-  const funko = mockStore.funkos.find((candidate) => String(candidate.id) === funkoId);
-
-  if (!funko) return { refusal: notFound('Funko', funkoId) };
-
-  if (funko.status !== SubmissionStatusUtil.WAITING) return { refusal: conflict(NOT_WAITING_MESSAGE) };
-
-  return { funko };
-}
 
 // A waiting category or series gives way to the approved one of the same name; else it joins the catalogue itself.
 function approveReference(rows: NamedSubmissionRow[], id: number | null): number | null {
@@ -147,7 +134,7 @@ export default (baseUrl: string) => [
   http.post(`${baseUrl}/submissions/:funkoId/approval`, async ({ params }) => {
     await delay(MOCK_DELAY);
 
-    const target = findWaiting(String(params.funkoId));
+    const target = findWaitingSubmission(String(params.funkoId));
 
     if ('refusal' in target) return target.refusal;
 
@@ -167,7 +154,7 @@ export default (baseUrl: string) => [
 
     if (!reason) return badRequest('Say why the submission is rejected');
 
-    const target = findWaiting(String(params.funkoId));
+    const target = findWaitingSubmission(String(params.funkoId));
 
     if ('refusal' in target) return target.refusal;
 
