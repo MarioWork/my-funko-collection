@@ -77,7 +77,7 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - Read-only users (issue #8, `docs/GLOSSARY.md`): `users.is_read_only`, read from the user on every request. Every
   write (not GET/HEAD/OPTIONS) answers 403 `READ_ONLY` to them, checked in `auth.plugin.ts`'s `onRequest` hook after
   the temporary-password check and before the admin gate, except routes with `config: { isAllowedWhenReadOnly: true }`
-  (own password, own passkeys, sign-out); keep that list tiny and in step with `ALLOWED_WHEN_READ_ONLY` in
+  (own password, own passkeys, the recent sign-in they need, sign-out); keep that list tiny and in step with `ALLOWED_WHEN_READ_ONLY` in
   `auth.route.test.ts` (the test calls every write as a read-only member and admin) and
   `requireWriteAccess.mock.handler.ts`. The web shows every write control disabled with `useReadOnlyReason()`
   (`DisabledReason`; `LinkButton`'s `disabledReason` turns a "New ..." link into a disabled button), pages made only
