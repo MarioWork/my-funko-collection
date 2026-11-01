@@ -107,7 +107,7 @@ How the app names a user who no longer exists, where something they left behind 
 _Avoid_: Deleted account, unknown user, ghost
 
 **Admin**:
-A user who manages users, images, submissions and the catalogue. Only an admin can create a user. There is always at least one. An admin never sees other users' collections.
+A user who manages users, images, submissions and the catalogue. Only an admin can create a user. There is always at least one who is not read-only. An admin never sees other users' collections.
 _Avoid_: Owner, superuser
 
 **Member**:

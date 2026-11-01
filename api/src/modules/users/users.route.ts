@@ -60,7 +60,8 @@ export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
       config: ADMIN_ONLY_CONFIG,
       schema: {
         tags: TAGS,
-        summary: "Change a user's role and end their sessions; never the last admin (needs a recent sign-in)",
+        summary:
+          "Change a user's role or make them read-only (or not), and end their sessions; never the last admin (needs a recent sign-in)",
         params: UserParamsSchema,
         body: UpdateUserSchema,
         response: {

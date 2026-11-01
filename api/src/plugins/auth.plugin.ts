@@ -21,6 +21,9 @@ declare module 'fastify' {
     // Still open to a session signed in with a temporary password: replacing it, and signing out. Every other
     // locked route answers 403 PASSWORD_CHANGE_REQUIRED until the user has chosen their own password.
     isAllowedWithTemporaryPassword?: boolean;
+    // A write still open to a read-only user: their own password and passkeys, and signing out. Every other write
+    // (any method but GET, HEAD and OPTIONS) answers 403 READ_ONLY to them; reads stay open.
+    isAllowedWhenReadOnly?: boolean;
   }
 
   interface FastifyRequest {
@@ -37,6 +40,7 @@ const FORBIDDEN_STATUS = 403;
 const APP_ORIGIN = new URL(env.APP_ORIGIN).origin;
 const ADMIN_ONLY_MESSAGE = 'Only an admin can do this';
 const PASSWORD_CHANGE_MESSAGE = 'Choose your own password first';
+const READ_ONLY_MESSAGE = 'This account is read-only';
 
 // The OpenAPI page is only registered outside production and reads no data of its own. Matched on the route's
 // registered pattern (not the raw URL), and only /docs itself or below it: a future /documents stays locked.
@@ -133,6 +137,14 @@ export const authPlugin = fp(async (app) => {
 
     if (request.session?.mustChangePassword && !isAllowedWithTemporaryPassword) {
       throw new ForbiddenError(PASSWORD_CHANGE_MESSAGE, 'PASSWORD_CHANGE_REQUIRED');
+    }
+
+    // Before the admin gate, so a read-only user hears why for every write, admin-only ones included.
+    const isLockedWrite = !SAFE_METHODS.has(request.method) && !isPublic;
+    const isAllowedWhenReadOnly = request.routeOptions.config.isAllowedWhenReadOnly === true;
+
+    if (request.session?.isReadOnly && isLockedWrite && !isAllowedWhenReadOnly) {
+      throw new ForbiddenError(READ_ONLY_MESSAGE, 'READ_ONLY');
     }
 
     const isAdminOnly = request.routeOptions.config.isAdminOnly === true;

@@ -1,4 +1,5 @@
-// An admin manages existing users: their role, a new temporary password, or deleting them (issue #7, ADR 0002).
+// An admin manages existing users: their role, read-only or not, a new temporary password, or deleting them
+// (issues #7 and #8, ADR 0002).
 import { buildApp, type App } from '../../app.ts';
 import { prisma } from '../../lib/prisma.ts';
 import { resetTestDb } from '../../testDb.ts';
@@ -13,7 +14,14 @@ import {
 } from '../../testFixtures.ts';
 import { isCommonPassword } from '../auth/commonPasswords.ts';
 
-type ManagedUser = { id: number; username: string | null; role: string; state: string; isLastAdmin: boolean };
+type ManagedUser = {
+  id: number;
+  username: string | null;
+  role: string;
+  isReadOnly: boolean;
+  state: string;
+  isLastAdmin: boolean;
+};
 type NewTemporaryPassword = { user: ManagedUser; temporaryPassword: string };
 type Page<Row> = { data: Row[] };
 
@@ -41,6 +49,10 @@ function temporaryPasswordUrl(userId: number): string {
 
 async function changeRole(admin: SignedInClient, userId: number, role: string) {
   return admin.inject({ method: 'PATCH', url: userUrl(userId), payload: { role } });
+}
+
+async function setReadOnly(admin: SignedInClient, userId: number, isReadOnly: boolean) {
+  return admin.inject({ method: 'PATCH', url: userUrl(userId), payload: { isReadOnly } });
 }
 
 async function newTemporaryPassword(admin: SignedInClient, userId: number, payload: object = {}) {
@@ -195,6 +207,136 @@ describe('PATCH /users/:userId', () => {
     ];
 
     expect(answers.map((answer) => answer.statusCode)).toEqual([400, 400]);
+    expect(answers.map((answer) => answer.json<{ code: string }>().code)).toEqual([
+      'VALIDATION_ERROR',
+      'VALIDATION_ERROR',
+    ]);
+  });
+});
+
+describe('PATCH /users/:userId with isReadOnly', () => {
+  it('makes a member read-only and ends all of their sessions when an admin asks', async () => {
+    const admin = await signIn(app);
+    const luke = await createUser('Luke');
+    await signIn(app, { userId: luke.id });
+
+    const response = await setReadOnly(admin, luke.id, true);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json<ManagedUser>()).toMatchObject({ id: luke.id, role: 'MEMBER', isReadOnly: true });
+    expect(await sessionCount(luke.id)).toBe(0);
+  });
+
+  it('lets the user write again and ends their sessions when an admin undoes it', async () => {
+    const admin = await signIn(app);
+    const luke = await createUser('Luke');
+    await signIn(app, { userId: luke.id, isReadOnly: true });
+
+    const response = await setReadOnly(admin, luke.id, false);
+    const lukeAgain = await signIn(app, { userId: luke.id });
+    const created = await lukeAgain.inject({ method: 'POST', url: '/collections', payload: { name: 'For sale' } });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json<ManagedUser>().isReadOnly).toBe(false);
+    expect(await sessionCount(luke.id)).toBe(1);
+    expect(created.statusCode).toBe(201);
+  });
+
+  it('keeps the role when only isReadOnly is sent, and keeps isReadOnly when only the role is sent', async () => {
+    const admin = await signIn(app);
+    const leia = await createUser('Leia', 'ADMIN');
+
+    await setReadOnly(admin, leia.id, true);
+    const response = await changeRole(admin, leia.id, 'MEMBER');
+
+    expect(response.json<ManagedUser>()).toMatchObject({ role: 'MEMBER', isReadOnly: true });
+  });
+
+  it('keeps the sessions when isReadOnly does not change', async () => {
+    const admin = await signIn(app);
+    const luke = await createUser('Luke');
+    await signIn(app, { userId: luke.id });
+
+    const response = await setReadOnly(admin, luke.id, false);
+
+    expect(response.statusCode).toBe(200);
+    expect(await sessionCount(luke.id)).toBe(1);
+  });
+
+  it('makes an admin read-only when another admin who can make changes is left', async () => {
+    const admin = await signIn(app);
+    const leia = await createUser('Leia', 'ADMIN');
+
+    const response = await setReadOnly(admin, leia.id, true);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json<ManagedUser>()).toMatchObject({ role: 'ADMIN', isReadOnly: true, isLastAdmin: false });
+  });
+
+  it('returns 409 LAST_ADMIN and changes nothing when the last admin would be made read-only', async () => {
+    const admin = await signIn(app);
+
+    const response = await setReadOnly(admin, admin.userId, true);
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'LAST_ADMIN' });
+    const row = await prisma.user.findUniqueOrThrow({ where: { id: admin.userId }, select: { isReadOnly: true } });
+    expect(row.isReadOnly).toBe(false);
+    expect(await sessionCount(admin.userId)).toBe(1);
+  });
+
+  it('returns 409 LAST_ADMIN when the only other admin is read-only', async () => {
+    const admin = await signIn(app);
+    await signIn(app, { userId: (await createUser('Leia', 'ADMIN')).id, isReadOnly: true });
+
+    const answers = [
+      await setReadOnly(admin, admin.userId, true),
+      await changeRole(admin, admin.userId, 'MEMBER'),
+      await removeUser(admin, admin.userId),
+    ];
+
+    expect(answers.map((answer) => answer.json<{ code: string }>().code)).toEqual([
+      'LAST_ADMIN',
+      'LAST_ADMIN',
+      'LAST_ADMIN',
+    ]);
+  });
+
+  it('marks the one admin who can make changes as the last admin when the other admin is read-only', async () => {
+    const admin = await signIn(app);
+    const leia = await createUser('Leia', 'ADMIN');
+    await setReadOnly(admin, leia.id, true);
+
+    const response = await admin.inject({ method: 'GET', url: '/users' });
+
+    const lastAdmins = response
+      .json<Page<ManagedUser>>()
+      .data.filter(({ isLastAdmin }) => isLastAdmin)
+      .map(({ id }) => id);
+    expect(lastAdmins).toEqual([admin.userId]);
+  });
+
+  it('returns 403 REAUTH_REQUIRED when the admin signed in more than 10 minutes ago', async () => {
+    const admin = await signIn(app, STALE_SIGN_IN);
+    const luke = await createUser('Luke');
+
+    const answers = [await setReadOnly(admin, luke.id, true), await setReadOnly(admin, luke.id, false)];
+
+    expect(answers.map((answer) => answer.json<{ code: string }>().code)).toEqual([
+      'REAUTH_REQUIRED',
+      'REAUTH_REQUIRED',
+    ]);
+  });
+
+  it('returns 400 VALIDATION_ERROR when the body is empty or isReadOnly is not a boolean', async () => {
+    const admin = await signIn(app);
+    const luke = await createUser('Luke');
+
+    const answers = [
+      await admin.inject({ method: 'PATCH', url: userUrl(luke.id), payload: {} }),
+      await admin.inject({ method: 'PATCH', url: userUrl(luke.id), payload: { isReadOnly: 'yes' } }),
+    ];
+
     expect(answers.map((answer) => answer.json<{ code: string }>().code)).toEqual([
       'VALIDATION_ERROR',
       'VALIDATION_ERROR',
