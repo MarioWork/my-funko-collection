@@ -5,6 +5,7 @@ import { MOCK_USER_ID } from './mockAuth';
 import type { UserApiModel } from '@app-types/models';
 import type { MockAuth, MockUserRow } from './mockStore.type';
 import { mockDate, nowIso } from './mockStoreUtils';
+import { DEV_SIGN_IN_PASSWORD } from '@utils/devPasswordUtils';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // A temporary password stops working this long after it was made, as on the API.
@@ -15,20 +16,41 @@ export const MOCK_TEMPORARY_PASSWORD = 'hjkmn-pqrst-vwxyz-23456';
 export const MOCK_MEMBER_ID = MOCK_USER_ID + 2;
 // Han, the other member (his temporary password has run out).
 export const MOCK_SECOND_MEMBER_ID = MOCK_USER_ID + 3;
+// The dev sign-in personas (@utils/devSignInUtils), next to leia: rey (a member with submissions in every state),
+// poe (a read-only member), lando (a read-only admin) and finn (a new user who must still replace his temporary
+// password).
+export const MOCK_OTHER_ADMIN_ID = MOCK_USER_ID + 1;
+export const MOCK_PERSONA_MEMBER_ID = MOCK_USER_ID + 4;
+export const MOCK_READ_ONLY_MEMBER_ID = MOCK_USER_ID + 5;
+export const MOCK_READ_ONLY_ADMIN_ID = MOCK_USER_ID + 6;
+export const MOCK_NEW_USER_ID = MOCK_USER_ID + 7;
+
+// The personas sign in with the dev password only in a dev server, Vitest and Playwright (which loads the mocks in
+// plain Node, with no import.meta.env). Written inline so a build folds it away: the demo build never holds it.
+const PERSONA_PASSWORD = import.meta.env === undefined || import.meta.env.DEV ? DEV_SIGN_IN_PASSWORD : null;
+// Far in the future, so the mock clock never reaches it.
+const NEVER_EXPIRES = '2099-01-01T00:00:00.000Z';
+
+type PersonaRowOptions = Pick<MockUserRow, 'id' | 'username' | 'role' | 'isReadOnly'> & { day: number };
+
+// A persona who has their own password: active, signing in with the dev password.
+function personaRow({ id, username, role, isReadOnly, day }: PersonaRowOptions): MockUserRow {
+  return {
+    id,
+    name: username ?? '',
+    username,
+    role,
+    isReadOnly,
+    state: UserStateUtil.ACTIVE,
+    temporaryPasswordExpiresAt: null,
+    createdAt: mockDate(day),
+    password: PERSONA_PASSWORD,
+  };
+}
 
 export function createMockUsers(): MockUserRow[] {
   return [
-    {
-      id: MOCK_USER_ID + 1,
-      name: 'leia',
-      username: 'leia',
-      role: UserRoleUtil.ADMIN,
-      isReadOnly: false,
-      state: UserStateUtil.ACTIVE,
-      temporaryPasswordExpiresAt: null,
-      createdAt: mockDate(30),
-      password: 'a princess of tiny vinyl heads',
-    },
+    personaRow({ id: MOCK_OTHER_ADMIN_ID, username: 'leia', role: UserRoleUtil.ADMIN, isReadOnly: false, day: 30 }),
     {
       id: MOCK_MEMBER_ID,
       name: 'luke',
@@ -36,8 +58,7 @@ export function createMockUsers(): MockUserRow[] {
       role: UserRoleUtil.MEMBER,
       isReadOnly: false,
       state: UserStateUtil.TEMPORARY_PASSWORD,
-      // Far in the future, so the mock clock never reaches it.
-      temporaryPasswordExpiresAt: '2099-01-01T00:00:00.000Z',
+      temporaryPasswordExpiresAt: NEVER_EXPIRES,
       createdAt: mockDate(60),
       password: MOCK_TEMPORARY_PASSWORD,
     },
@@ -52,6 +73,20 @@ export function createMockUsers(): MockUserRow[] {
       createdAt: mockDate(90),
       password: 'scruffy-looking-nerf-herder',
     },
+    personaRow({ id: MOCK_PERSONA_MEMBER_ID, username: 'rey', role: UserRoleUtil.MEMBER, isReadOnly: false, day: 33 }),
+    personaRow({ id: MOCK_READ_ONLY_MEMBER_ID, username: 'poe', role: UserRoleUtil.MEMBER, isReadOnly: true, day: 34 }),
+    personaRow({ id: MOCK_READ_ONLY_ADMIN_ID, username: 'lando', role: UserRoleUtil.ADMIN, isReadOnly: true, day: 35 }),
+    {
+      id: MOCK_NEW_USER_ID,
+      name: 'finn',
+      username: 'finn',
+      role: UserRoleUtil.MEMBER,
+      isReadOnly: false,
+      state: UserStateUtil.TEMPORARY_PASSWORD,
+      temporaryPasswordExpiresAt: NEVER_EXPIRES,
+      createdAt: mockDate(36),
+      password: PERSONA_PASSWORD,
+    },
   ];
 }
 
@@ -61,7 +96,7 @@ export function mockUserRowOf(auth: MockAuth): MockUserRow {
   const ownState = hasOwnSignIn ? UserStateUtil.ACTIVE : UserStateUtil.NO_SIGN_IN;
 
   return {
-    id: MOCK_USER_ID,
+    id: auth.userId,
     name: auth.userName,
     username: auth.username,
     role: auth.role,

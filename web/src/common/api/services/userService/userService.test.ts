@@ -36,11 +36,11 @@ describe('getUsers', () => {
 
 describe('addUser', () => {
   it('creates the user and returns their temporary password, which the list never carries', async () => {
-    const created = await userService.addUser({ username: 'rey', role: UserRoleUtil.MEMBER });
+    const created = await userService.addUser({ username: 'jyn', role: UserRoleUtil.MEMBER });
     const list = await userService.getUsers({ pagination: { page: '1', size: '100' } });
 
     expect(created.data?.user).toMatchObject({
-      username: 'rey',
+      username: 'jyn',
       role: UserRoleUtil.MEMBER,
       state: UserStateUtil.TEMPORARY_PASSWORD,
     });

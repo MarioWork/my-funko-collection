@@ -23,7 +23,14 @@ import type {
   MockSubmissionColumns,
 } from './mockStore.type';
 import { mockDate, mockEnv, mockRecentDate, NOT_REVIEWED } from './mockStoreUtils';
-import { MOCK_MEMBER_ID, MOCK_SECOND_MEMBER_ID } from './mockUsers';
+import {
+  MOCK_MEMBER_ID,
+  MOCK_OTHER_ADMIN_ID,
+  MOCK_PERSONA_MEMBER_ID,
+  MOCK_READ_ONLY_ADMIN_ID,
+  MOCK_READ_ONLY_MEMBER_ID,
+  MOCK_SECOND_MEMBER_ID,
+} from './mockUsers';
 
 type MockSeedData = Omit<MockStore, 'auth' | 'users'>;
 
@@ -87,11 +94,18 @@ const SEED_FUNKOS: SeedFunko[] = [
 // maybe a double of the catalogue's #78 in Pop! Marvel), one rejected and one merged into the catalogue's Grogu.
 // Nobody else sees them, as on the API.
 type SeedSubmission = Omit<SeedFunko, 'series' | 'type' | 'isChase' | 'exclusive'> & {
-  submittedById: number;
+  // null: an orphan submission, its sender removed.
+  submittedById: number | null;
   day: number;
   rejectionReason?: string;
   // The catalogue funko (by name) an admin merged it into.
   mergedInto?: string;
+  // Approved by an admin: in the catalogue for everyone.
+  isApproved?: boolean;
+  // Waiting again after a rejection: reviewed before, sent in again.
+  isResent?: boolean;
+  // The day an admin last changed it before reviewing it again.
+  changedByAdminDay?: number;
 };
 
 const HAN_ID = MOCK_SECOND_MEMBER_ID;
@@ -104,6 +118,10 @@ const SEED_OTHER_USERS_ITEMS: SeedOtherUserItem[] = [
   { userId: MOCK_MEMBER_ID, funkoName: 'Grogu' },
   { userId: HAN_ID, funkoName: 'Grogu' },
   { userId: MOCK_MEMBER_ID, funkoName: 'Darth Vader' },
+  // The dev sign-in personas' own (mockPersonas.ts), mirroring api/prisma/seed.ts.
+  { userId: MOCK_PERSONA_MEMBER_ID, funkoName: 'Darth Vader' },
+  { userId: MOCK_READ_ONLY_ADMIN_ID, funkoName: 'Darth Vader' },
+  { userId: MOCK_READ_ONLY_MEMBER_ID, funkoName: 'Captain America' },
 ];
 
 // A funko an admin already removed from the catalogue while han had it: only his notification is left of it.
@@ -126,6 +144,111 @@ const SEED_SUBMISSIONS: SeedSubmission[] = [
   },
   { name: 'Baby Yoda', number: '368', category: 3, submittedById: HAN_ID, day: 36, mergedInto: 'Grogu' },
 ];
+
+// --- Every submission state (issue #38), mirroring api/prisma/seed.ts: rey's in each state a member meets, and an
+// orphan submission for the admins' review list. ---
+const REY_ID = MOCK_PERSONA_MEMBER_ID;
+const STEVE_REJECTION = 'The number on the box is 1300, not 1030. Please check it.';
+const HOPPER_REJECTION = 'This one is a Walmart exclusive. Please add the store.';
+const PERSONA_SUBMISSIONS: SeedSubmission[] = [
+  { name: 'Rey with Lightsaber', number: '307', category: 3, submittedById: REY_ID, day: 44 },
+  { name: 'BB-8', number: '61', category: 3, submittedById: REY_ID, day: 43, isResent: true },
+  {
+    name: 'Steve Harrington',
+    number: '1300',
+    category: 2,
+    submittedById: REY_ID,
+    day: 39,
+    rejectionReason: STEVE_REJECTION,
+  },
+  {
+    name: 'Jim Hopper',
+    number: '1241',
+    category: 2,
+    submittedById: REY_ID,
+    day: 37,
+    rejectionReason: HOPPER_REJECTION,
+    changedByAdminDay: 46,
+  },
+  {
+    name: 'Darth Vader (Classic)',
+    number: '01',
+    category: 3,
+    submittedById: REY_ID,
+    day: 35,
+    mergedInto: 'Darth Vader',
+  },
+  { name: 'Wednesday Addams', number: '1309', category: 2, submittedById: REY_ID, day: 34, isApproved: true },
+  { name: 'Totoro', number: '1000', category: 4, submittedById: null, day: 41 },
+];
+
+// Whom a seed notification goes to: the persona admins (leia and lando, not the mock user tests sign in as), or one
+// user.
+const PERSONA_ADMINS = 'personaAdmins';
+const PERSONA_ADMIN_IDS = [MOCK_OTHER_ADMIN_ID, MOCK_READ_ONLY_ADMIN_ID];
+
+type SeedNotification = {
+  to: number | typeof PERSONA_ADMINS;
+  kind: NotificationKindUtil;
+  // The funko it names, by name (a seed funko or a submission); no link when `isGone`.
+  funkoName: string;
+  isGone?: boolean;
+  reason?: string;
+  isRead: boolean;
+};
+
+// Every notification kind, read and unread, for leia and lando and for rey. Older than the ones above, so those stay
+// on top. An admin's approved, rejected and merged ones are from before they were made an admin.
+const PERSONA_NOTIFICATIONS: SeedNotification[] = [
+  { to: PERSONA_ADMINS, kind: NotificationKindUtil.SUBMISSION_SENT, funkoName: 'Rey with Lightsaber', isRead: false },
+  { to: PERSONA_ADMINS, kind: NotificationKindUtil.SUBMISSION_SENT, funkoName: 'Totoro', isRead: true },
+  { to: PERSONA_ADMINS, kind: NotificationKindUtil.SUBMISSION_RESENT, funkoName: 'BB-8', isRead: false },
+  { to: PERSONA_ADMINS, kind: NotificationKindUtil.SUBMISSION_RESENT, funkoName: 'Jim Hopper', isRead: true },
+  {
+    to: PERSONA_ADMINS,
+    kind: NotificationKindUtil.FUNKO_REMOVED,
+    funkoName: 'Groot (Flocked)',
+    isGone: true,
+    reason: 'Sent in twice: Groot #1203 stays in the catalogue',
+    isRead: false,
+  },
+  { to: PERSONA_ADMINS, kind: NotificationKindUtil.SUBMISSION_APPROVED, funkoName: 'Groot', isRead: true },
+  {
+    to: PERSONA_ADMINS,
+    kind: NotificationKindUtil.SUBMISSION_REJECTED,
+    funkoName: 'Groot (Glow)',
+    isGone: true,
+    reason: 'Not a real variant',
+    isRead: true,
+  },
+  { to: PERSONA_ADMINS, kind: NotificationKindUtil.SUBMISSION_MERGED, funkoName: 'Spider-Man', isRead: false },
+  { to: REY_ID, kind: NotificationKindUtil.SUBMISSION_APPROVED, funkoName: 'Wednesday Addams', isRead: false },
+  {
+    to: REY_ID,
+    kind: NotificationKindUtil.SUBMISSION_REJECTED,
+    funkoName: 'Steve Harrington',
+    reason: STEVE_REJECTION,
+    isRead: false,
+  },
+  {
+    to: REY_ID,
+    kind: NotificationKindUtil.SUBMISSION_REJECTED,
+    funkoName: 'Jim Hopper',
+    reason: HOPPER_REJECTION,
+    isRead: true,
+  },
+  { to: REY_ID, kind: NotificationKindUtil.SUBMISSION_MERGED, funkoName: 'Darth Vader', isRead: false },
+  {
+    to: REY_ID,
+    kind: NotificationKindUtil.FUNKO_REMOVED,
+    funkoName: 'Boba Fett (Prototype)',
+    isGone: true,
+    reason: 'A double of Boba Fett #08, which stays in the catalogue',
+    isRead: true,
+  },
+];
+// How many hours before the mock clock the first of PERSONA_NOTIFICATIONS was written; each next one an hour older.
+const PERSONA_NOTIFICATIONS_HOURS_AGO = 5;
 
 type SeedItem = {
   funkoId: number;
@@ -362,10 +485,11 @@ function createExtraItems(funkos: MockFunkoRow[], startId: number): MockItemRow[
   }));
 }
 
-// Where a seed submission stands: rejected (with a reason), merged (with a target), else still waiting.
+// Where a seed submission stands: rejected (with a reason), merged (with a target), approved, else still waiting.
 function submissionStatusOf(seed: SeedSubmission): SubmissionStatusUtil {
   if (seed.rejectionReason !== undefined) return SubmissionStatusUtil.REJECTED;
   if (seed.mergedInto !== undefined) return SubmissionStatusUtil.MERGED;
+  if (seed.isApproved) return SubmissionStatusUtil.APPROVED;
 
   return SubmissionStatusUtil.WAITING;
 }
@@ -382,10 +506,10 @@ function seedFunkoNameOf(id: number | null): string | undefined {
 }
 
 // After every other funko, so the seed's ids (and the generated ones) stay as they were.
-function createSubmissions(startId: number): MockFunkoRow[] {
-  return SEED_SUBMISSIONS.map((seed, offset) => {
+function createSubmissions(seeds: SeedSubmission[], startId: number): MockFunkoRow[] {
+  return seeds.map((seed, offset) => {
     const status = submissionStatusOf(seed);
-    const isReviewed = status !== SubmissionStatusUtil.WAITING;
+    const isReviewed = status !== SubmissionStatusUtil.WAITING || seed.isResent === true;
 
     return {
       id: startId + offset,
@@ -401,7 +525,7 @@ function createSubmissions(startId: number): MockFunkoRow[] {
       submittedById: seed.submittedById,
       reviewedAt: isReviewed ? mockDate(SUBMISSION_REVIEW_DAY) : null,
       rejectionReason: seed.rejectionReason ?? null,
-      changedByAdminAt: null,
+      changedByAdminAt: seed.changedByAdminDay === undefined ? null : mockDate(seed.changedByAdminDay),
       mergedIntoId: seedFunkoIdOf(seed.mergedInto),
       createdAt: mockDate(seed.day),
       updatedAt: mockDate(seed.day),
@@ -464,6 +588,26 @@ function createNotifications(submissions: MockFunkoRow[], users: MockUserRow[]):
   };
 
   return [...rows, removal].map((row, index) => ({ id: index + 1, ...row }));
+}
+
+// PERSONA_NOTIFICATIONS as rows, numbered on from `startId`, each an hour older than the one before.
+function createPersonaNotifications(funkos: MockFunkoRow[], startId: number): MockNotificationRow[] {
+  const rows = PERSONA_NOTIFICATIONS.flatMap((seed, index) => {
+    const funko = funkos.find((candidate) => candidate.name === seed.funkoName && !candidate.isChase);
+    const userIds = seed.to === PERSONA_ADMINS ? PERSONA_ADMIN_IDS : [seed.to];
+
+    return userIds.map((userId) => ({
+      userId,
+      kind: seed.kind,
+      funkoId: seed.isGone ? null : (funko?.id ?? null),
+      funkoName: seed.funkoName,
+      reason: seed.reason ?? null,
+      isRead: seed.isRead,
+      createdAt: mockRecentDate(PERSONA_NOTIFICATIONS_HOURS_AGO + index),
+    }));
+  });
+
+  return rows.map((row, index) => ({ id: startId + index, ...row }));
 }
 
 function createOtherUsersItems(funkos: MockFunkoRow[]): MockOtherUserItemRow[] {
@@ -573,17 +717,24 @@ export function createSeedData(users: MockUserRow[]): MockSeedData {
   const extraFunkos = createExtraFunkos(funkos.length + 1, funkos.length);
   const extraImages = createExtraImages(extraFunkos, seedImages.length + 1);
   const extraItems = createExtraItems(extraFunkos, items.length + 1);
-  const submissions = createSubmissions(funkos.length + extraFunkos.length + 1);
+  const submissions = createSubmissions(SEED_SUBMISSIONS, funkos.length + extraFunkos.length + 1);
+  const personaSubmissions = createSubmissions(
+    PERSONA_SUBMISSIONS,
+    funkos.length + extraFunkos.length + submissions.length + 1,
+  );
+  const allFunkos = [...funkos, ...extraFunkos, ...submissions, ...personaSubmissions];
+  const notifications = createNotifications(submissions, users);
+  const personaNotifications = createPersonaNotifications(allFunkos, notifications.length + 1);
 
   return {
     categories,
     series,
     tags,
     collections,
-    funkos: [...funkos, ...extraFunkos, ...submissions],
+    funkos: allFunkos,
     images: [...seedImages, ...extraImages],
     items: [...items, ...extraItems],
     otherUsersItems: createOtherUsersItems(funkos),
-    notifications: createNotifications(submissions, users),
+    notifications: [...notifications, ...personaNotifications],
   };
 }

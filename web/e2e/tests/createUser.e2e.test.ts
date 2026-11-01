@@ -3,7 +3,7 @@ import { AuthPage } from '../pages/AuthPage.page';
 import { SettingsPage } from '../pages/SettingsPage.page';
 import { UsersPage } from '../pages/UsersPage.page';
 
-const USERNAME = 'rey';
+const USERNAME = 'jyn';
 const OWN_PASSWORD = 'a shelf of tiny vinyl heads';
 
 // Signed in as the admin (the fixture's default): a new user, their temporary password handed over, their first

@@ -2,7 +2,6 @@ import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from '@mocks/mockImageUtils';
-import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { badRequest, created, toFunkoImageModel } from '@mocks/mockResponses';
 import { findEditableFunko, recordMockAdminChange } from '@mocks/handlers/funko/funkoMockUtils';
 import { mockStore } from '@mocks/mockStore';
@@ -21,7 +20,7 @@ function storeImage(funkoId: number, label: string): MockImageRow {
     position: siblings.length,
     sizeBytes: MOCK_IMAGE_SIZE_BYTES,
     createdAt: nowIso(),
-    uploadedById: MOCK_USER_ID,
+    uploadedById: mockStore.auth.userId,
     ...createMockImageUrls(label, id),
   };
 

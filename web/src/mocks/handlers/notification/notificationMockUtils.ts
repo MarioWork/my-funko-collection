@@ -3,7 +3,6 @@
 // admin, a forced delete every user who had the funko.
 import type { NotificationApiModel } from '@app-types/models';
 import { NotificationKindUtil, UserRoleUtil } from '@app-types/utility';
-import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow, MockNotificationRow } from '@mocks/mockStore.type';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
@@ -19,12 +18,14 @@ export function toNotificationModel({ userId: _userId, ...row }: MockNotificatio
 // Only the signed-in user's own, newest first (a copy: the store's order stays as it is).
 export function ownNotifications(): MockNotificationRow[] {
   return mockStore.notifications
-    .filter((row) => row.userId === MOCK_USER_ID)
+    .filter((row) => row.userId === mockStore.auth.userId)
     .toSorted((first, second) => second.createdAt.localeCompare(first.createdAt) || second.id - first.id);
 }
 
 export function findOwnNotification(notificationId: string): MockNotificationRow | undefined {
-  return mockStore.notifications.find((row) => row.userId === MOCK_USER_ID && String(row.id) === notificationId);
+  return mockStore.notifications.find(
+    (row) => row.userId === mockStore.auth.userId && String(row.id) === notificationId,
+  );
 }
 
 // A deleted funko leaves its notifications behind with no link (the API clears `funko_id`, keeping the name).
@@ -44,7 +45,7 @@ function adminIds(): number[] {
   const otherAdminIds = mockStore.users.filter((user) => user.role === UserRoleUtil.ADMIN).map((user) => user.id);
   const isMockUserAdmin = mockStore.auth.role === UserRoleUtil.ADMIN;
 
-  return isMockUserAdmin ? [MOCK_USER_ID, ...otherAdminIds] : otherAdminIds;
+  return isMockUserAdmin ? [mockStore.auth.userId, ...otherAdminIds] : otherAdminIds;
 }
 
 // The funko a notification names: null `funkoId` once it is gone, its name kept.
