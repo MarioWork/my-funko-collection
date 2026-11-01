@@ -111,7 +111,8 @@ Aliases: `@api`, `@services`, `@application`, `@app-types`, `@utils`, `@pages`, 
 | `/items`                                 | Every item across collections (filter by tag to find a box)                                                                                                                                                          |
 | `/search`                                | The phone's search tab; on desktop press ⌘K / Ctrl+K anywhere                                                                                                                                                        |
 | `/categories`, `/tags`, `/settings`      | Manage pages (tags are your own), theme, default collection, "Adding to" defaults, exports                                                                                                                           |
-| `/submissions`                           | Members only (in the normal sidebar): the funkos you sent in, each with its state as a chip in words                                                                                                                 |
+| `/submissions`                           | Members only (in the normal sidebar): the funkos you sent in, each with its state as a chip in words, why one was rejected (Send again) and whether an admin changed it                                              |
+| `/submissions/review`                    | Admin group, admins only: every member's submissions, Waiting (Approve, Reject with a reason, "Maybe a double") and Done tabs (`?state=DONE`)                                                                        |
 | `/users`, `/users/add`, `/users/:userId` | Admin group, admins only: every user with role (and read-only) and state; New user shows the temporary password once; Manage changes a role, makes read-only or undoes it, gives a new temporary password or deletes |
 | `/images`                                | Admin group, admins only: every stored image, loose files included, with who uploaded it and when                                                                                                                    |
 | `/settings` → Security                   | Passkeys (add, remove), sign out, sign out everywhere                                                                                                                                                                |
@@ -143,8 +144,8 @@ HttpOnly cookie the app never sees.
   except after saving a password, which sets the username.
 - **Roles.** Only an admin changes the catalogue. For a member `useIsAdmin()` hides rename / delete on Categories
   and Series (read-only, Export stays). The sidebar's Admin group (and the phone menu's) holds Users and Images,
-  admins only. A member who opens `/images` or `/users` gets the "This page is for admins" error page
-  (`assertAdmin()` in those loaders).
+  admins only, and the admins' Submissions review. A member who opens `/images`, `/users` or `/submissions/review`
+  gets the "This page is for admins" error page (`assertAdmin()` in those loaders).
 - **Read-only.** An admin can make a user read-only (`isReadOnly` on the signed-in user and on each user). Every write
   control then shows disabled with the reason "Your account is read-only…" (`useReadOnlyReason()` +
   `DisabledReason`: hover, keyboard focus, tap, and the control's description); `LinkButton`'s `disabledReason` and
@@ -157,10 +158,16 @@ HttpOnly cookie the app never sees.
   member's is a waiting submission only they see (`status`, `isSubmittedByMe` on a funko). The form and the saved
   card say so; a category or series the member types in with the "+" waits too and reads "(waiting for review)" in
   the dropdown. `useCanEditFunko()` (`pages/FunkoDetail/funkoAccessUtils.ts`, the API's rule) shows Edit, Delete and the image
-  controls to an admin, and to a member on their own waiting submission, whose page also shows a Waiting chip;
-  `assertCanEditFunko()` guards the edit route the same way. Members find what they sent in under _Submissions_
-  (`/submissions`, `GET /submissions`), with a Waiting / Approved / Rejected / Merged chip. Approving and rejecting
-  are issue #10.
+  controls to an admin, and to a member on their own waiting or rejected submission, whose page also shows its chip
+  (and, once rejected, why); `assertCanEditFunko()` guards the edit route the same way. Members find what they sent
+  in under _Submissions_ (`/submissions`, `GET /submissions`), with a Waiting / Approved / Rejected / Merged chip, the
+  rejection reason, "An admin changed this submission." (`SubmissionReviewNotes`) and Send again on a rejected one.
+- **Reviewing submissions.** Admins review on _Submissions_ in the Admin group (`/submissions/review`, Waiting and
+  Done tabs as `?state=`). A waiting row says who sent it ("Removed user" for a deleted member), flags "Maybe a
+  double" with links to the other funkos (same barcode, or same number and category), and has Approve and Reject;
+  the funko's name opens its page, where an admin can fix it first (the sender is then told). Reject asks for a
+  reason in a dialog. One `useReviewActions()` fetcher owns both, so the toast and a refusal (the catalogue already
+  has the funko or barcode, with a link to it) outlive the row that leaves the tab. Merging is issue #12.
 - **New users.** An admin creates one on _Users_ → _New user_ (`/users/add`, a routed dialog): a username and a
   role. It needs a recent sign-in (the same "confirm it's you" step as Settings), and the answer's temporary
   password is shown once with a Copy button; nothing keeps it. Signed in with it, the user's status carries
@@ -202,8 +209,12 @@ HttpOnly cookie the app never sees.
   routes, like the API. Funkos, categories and series carry `status` and `submittedById` in the store: a member's
   new one is a waiting submission, and the handlers show other members' waiting ones to nobody and let a member
   change only their own (`mockCatalogueUtils.ts`, `findEditableFunko`), like the API. `addMockSubmission()` (tests)
-  puts one in, the signed-in user's unless `submittedById` names another member (null: a removed user's); the
-  seed has none. Deleting a user in the mocks settles their submissions as the API's trigger does (rejected ones
+  puts one in, the signed-in user's unless `submittedById` names another member (null: a removed user's); a
+  rejected one carries a reason. The seed (`mockSeed.ts`) adds three of other members' after everything else, so
+  the review page has something: luke's waiting "Thanos (Infinity Gauntlet)" (maybe a double of #78), han's waiting
+  "Mandalorian with Grogu" and luke's rejected "Bluey". The review handlers (`handlers/submission/`) approve (moving
+  a waiting category or series into the catalogue), reject and resend like the API, and an admin's change to
+  someone's submission sets `changedByAdminAt` (`recordMockAdminChange`). Deleting a user in the mocks settles their submissions as the API's trigger does (rejected ones
   go, the rest lose their sender), and an admin opening a submission sees "Sent in by ..." or "Removed user"
   (`@utils/removedUserUtils`, shared with the Images page). `mockStore.users` holds the other users (`mockUsers.ts`: leia, an admin; luke, with the
   temporary password `MOCK_TEMPORARY_PASSWORD`; han, whose one expired): `GET /users` lists them after the

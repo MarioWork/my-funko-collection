@@ -96,7 +96,14 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   approved and merged ones stay with a null sender ("Removed user", shown to admins on a submission), and orphaned
   waiting ones never clash (null senders are distinct in the partial indexes). Until approved, a submission's image
   files under `/uploads` are served only to admins and its sender (the uploads plugin's hook asks
-  `assertCanSeeImageFiles()`); others get 404. The web mirrors the rule in `useCanEditFunko()` /
+  `assertCanSeeImageFiles()`); others get 404. Reviewing (issue #10): `GET /submissions/review` (Waiting / Done,
+  with `possibleDoubles`), `POST /submissions/:id/approval` and `/rejection` are admin-only routes;
+  `/resubmission` is the sender's (a `SUBMISSION_ROUTE`). A member also edits or deletes their own rejected one
+  (`isOpenSubmission()` in `funkos.access.ts`). Approving moves a waiting category or series into the catalogue, or
+  onto the approved one of the same name; a clash with the catalogue is a 409 in words (pre-checked, and
+  `isUniqueViolation()` by SQLSTATE in a race). `rejection_reason` is set exactly while REJECTED (a check in the
+  `submission_reviews` migration); an admin changing someone's open submission sets `changed_by_admin_at`. The web
+  mirrors the rule in `useCanEditFunko()` /
   `assertCanEditFunko()` and the mocks in `mockCatalogueUtils.ts`. Like `assertOwnTags()`, the cross-module checks
   `isUsableCategory()` / `isUsableSeries()` (may a funko use it) and `assertCanSeeImageFiles()` (the `/uploads` hook)
   are named for what they check, not with the get/add/update/delete verbs. Approve / reject / merge is issue #10.
