@@ -2,7 +2,6 @@
 // catalogue (all three carry it), and the shapes of the submissions lists and reviews, which the funkos service
 // fills.
 import { z } from 'zod';
-import { IdParamSchema } from '../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { FunkoSummarySchema } from '../funkos/funkos.type.ts';
 
@@ -26,18 +25,8 @@ export const ListSubmissionsQuerySchema = PaginationQuerySchema.extend({
 export const REVIEW_STATES = ['WAITING', 'DONE'] as const;
 export type ReviewState = (typeof REVIEW_STATES)[number];
 
-export const REJECTION_REASON_MAX_LENGTH = 500;
-
 export const ListReviewQuerySchema = PaginationQuerySchema.pick({ page: true, size: true }).extend({
   state: z.enum(REVIEW_STATES).default('WAITING'),
-});
-
-export const SubmissionParamsSchema = z.object({
-  funkoId: IdParamSchema,
-});
-
-export const RejectSubmissionSchema = z.strictObject({
-  reason: z.string().trim().min(1).max(REJECTION_REASON_MAX_LENGTH),
 });
 
 // One funko the signed-in user sent in, with where it stands; `createdAt` is when they sent it. `reviewedAt`: when
@@ -78,7 +67,6 @@ export const ReviewSubmissionListResponseSchema = paginatedResponseSchema(Review
 
 export type ListSubmissionsQuery = z.infer<typeof ListSubmissionsQuerySchema>;
 export type ListReviewQuery = z.infer<typeof ListReviewQuerySchema>;
-export type RejectSubmission = z.infer<typeof RejectSubmissionSchema>;
 export type SubmissionResponse = z.infer<typeof SubmissionResponseSchema>;
 export type SubmissionListResponse = z.infer<typeof SubmissionListResponseSchema>;
 export type PossibleDouble = z.infer<typeof PossibleDoubleSchema>;

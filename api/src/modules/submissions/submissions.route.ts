@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import { ErrorResponseSchema } from '../../lib/errorHandler.ts';
 import { signedInUser, signedInUserId } from '../../plugins/auth.plugin.ts';
+import { RejectSubmissionSchema, SubmissionParamsSchema } from './submissions.schema.ts';
 import {
   approveSubmission,
   getReviewSubmissions,
@@ -11,10 +12,8 @@ import {
 import {
   ListReviewQuerySchema,
   ListSubmissionsQuerySchema,
-  RejectSubmissionSchema,
   ReviewSubmissionListResponseSchema,
   SubmissionListResponseSchema,
-  SubmissionParamsSchema,
   SubmissionResponseSchema,
 } from './submissions.type.ts';
 
