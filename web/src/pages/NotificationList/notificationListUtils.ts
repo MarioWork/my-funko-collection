@@ -1,7 +1,7 @@
 import { CircleCheck, CircleX, Inbox, Merge, RotateCcw, Trash2, type LucideIcon } from 'lucide-react';
 import type { NotificationApiModel } from '@app-types/models';
 import { NotificationKindUtil } from '@app-types/utility';
-import { FUNKO_ROUTES_PATHS, SUBMISSION_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 
 // The API's largest page: 90 days of notifications for a few people fit in one.
 export const NOTIFICATION_PAGE_SIZE = '100';
@@ -47,15 +47,19 @@ export const NOTIFICATION_WORDING: Record<NotificationKindUtil, NotificationWord
   },
 };
 
-// Where opening each kind goes: an approved funko's page (or the catalogue funko a submission was merged into), the
-// sender's own submissions (to fix and send again), or the admins' review list. A removed funko is gone: nothing to
-// open.
+function funkoPageOf(funkoId: number): string {
+  return FUNKO_ROUTES_PATHS.detail(String(funkoId));
+}
+
+// Where opening each kind goes: the funko's page. For a submission sent in, sent again or rejected, that is the
+// submission itself, with its review (an admin and its sender may open it); for a merge, the catalogue funko it went
+// into. A removed funko is gone: nothing to open.
 const NOTIFICATION_TARGETS: Record<NotificationKindUtil, ((funkoId: number) => string) | null> = {
-  [NotificationKindUtil.SUBMISSION_APPROVED]: (funkoId) => FUNKO_ROUTES_PATHS.detail(String(funkoId)),
-  [NotificationKindUtil.SUBMISSION_REJECTED]: () => SUBMISSION_ROUTES_PATHS.BASE,
-  [NotificationKindUtil.SUBMISSION_MERGED]: (funkoId) => FUNKO_ROUTES_PATHS.detail(String(funkoId)),
-  [NotificationKindUtil.SUBMISSION_SENT]: () => SUBMISSION_ROUTES_PATHS.REVIEW,
-  [NotificationKindUtil.SUBMISSION_RESENT]: () => SUBMISSION_ROUTES_PATHS.REVIEW,
+  [NotificationKindUtil.SUBMISSION_APPROVED]: funkoPageOf,
+  [NotificationKindUtil.SUBMISSION_REJECTED]: funkoPageOf,
+  [NotificationKindUtil.SUBMISSION_MERGED]: funkoPageOf,
+  [NotificationKindUtil.SUBMISSION_SENT]: funkoPageOf,
+  [NotificationKindUtil.SUBMISSION_RESENT]: funkoPageOf,
   [NotificationKindUtil.FUNKO_REMOVED]: null,
 };
 

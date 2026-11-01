@@ -1,13 +1,14 @@
 import { expect, test } from '../fixtures/app.fixture';
+import { FunkoDetailPage } from '../pages/FunkoDetailPage.page';
 import { NotificationsPage } from '../pages/NotificationsPage.page';
-import { SubmissionReviewPage } from '../pages/SubmissionReviewPage.page';
 
 // The mock seed tells the admin of each member's submission; the oldest (Thanos) is read already.
-const NEWEST_SUBMISSION = 'New submission: Bluey';
+const NEWEST_SUBMISSION_NAME = 'Bluey';
+const NEWEST_SUBMISSION = `New submission: ${NEWEST_SUBMISSION_NAME}`;
 
 test('an admin follows the notifications link to a new submission, then marks the rest read', async ({ page }) => {
   const notifications = new NotificationsPage(page);
-  const review = new SubmissionReviewPage(page);
+  const funkoDetail = new FunkoDetailPage(page);
 
   await notifications.gotoHome();
   await expect(notifications.notificationsLink('Notifications, 2 unread')).toBeVisible();
@@ -17,7 +18,7 @@ test('an admin follows the notifications link to a new submission, then marks th
   await expect(page.getByText('2 unread notifications')).toBeVisible();
 
   await notifications.open(NEWEST_SUBMISSION);
-  await expect(review.heading).toBeVisible();
+  await expect(funkoDetail.title).toHaveText(NEWEST_SUBMISSION_NAME);
   await expect(notifications.notificationsLink('Notifications, 1 unread')).toBeVisible();
 
   await notifications.openFromNotificationsLink();

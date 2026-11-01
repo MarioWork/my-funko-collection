@@ -1,27 +1,26 @@
 import { renderRoutes, screen, userEvent, waitFor, within } from '@test-utils';
 import { NotificationKindUtil, UserRoleUtil } from '@app-types/utility';
 import { notificationRoutes } from '@application/routes/featureRoutes/notificationRoutes';
-import {
-  FUNKO_ROUTES_PATHS,
-  NOTIFICATION_ROUTES_PATHS,
-  SUBMISSION_ROUTES_PATHS,
-} from '@application/routes/routesUtils';
+import { FUNKO_ROUTES_PATHS, NOTIFICATION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { addMockNotification, mockStore, setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
 
 const LIST_NAME = 'Your notifications';
 const DESTINATION_TEXT = 'Arrived';
 
-// The notifications page, plus stand-ins for where a notification can lead, so following a link can be seen.
+// The notifications page, plus a stand-in for the funko page every notification leads to, so following one can be
+// seen.
 const renderNotifications = () =>
-  renderRoutes(
-    [
-      ...notificationRoutes,
-      { path: SUBMISSION_ROUTES_PATHS.REVIEW, element: <p>{DESTINATION_TEXT}</p> },
-      { path: SUBMISSION_ROUTES_PATHS.BASE, element: <p>{DESTINATION_TEXT}</p> },
-      { path: FUNKO_ROUTES_PATHS.detail(), element: <p>{DESTINATION_TEXT}</p> },
-    ],
-    { initialEntries: [NOTIFICATION_ROUTES_PATHS.BASE] },
-  );
+  renderRoutes([...notificationRoutes, { path: FUNKO_ROUTES_PATHS.detail(), element: <p>{DESTINATION_TEXT}</p> }], {
+    initialEntries: [NOTIFICATION_ROUTES_PATHS.BASE],
+  });
+
+function funkoPathOf(funkoName: string): string {
+  const funko = mockStore.funkos.find((row) => row.name === funkoName);
+
+  if (!funko) throw new Error(`No funko "${funkoName}"`);
+
+  return FUNKO_ROUTES_PATHS.detail(String(funko.id));
+}
 
 function itemOf(title: string): HTMLElement {
   const item = screen.getAllByRole('listitem').find((candidate) => within(candidate).queryByText(title));
@@ -50,11 +49,19 @@ it('lists an admin’s new submissions newest first, with the unread ones marked
   ]);
   expect(within(itemOf('New submission: Bluey')).getByText('New')).toBeVisible();
   expect(within(itemOf('New submission: Thanos (Infinity Gauntlet)')).queryByText('New')).not.toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'New submission: Bluey' })).toHaveAttribute(
-    'href',
-    SUBMISSION_ROUTES_PATHS.REVIEW,
-  );
+  expect(screen.getByRole('link', { name: 'New submission: Bluey' })).toHaveAttribute('href', funkoPathOf('Bluey'));
   expect(screen.getByText('2 unread notifications')).toBeVisible();
+});
+
+it('links a submission sent in again to that submission’s funko page', async () => {
+  addMockNotification({ kind: NotificationKindUtil.SUBMISSION_RESENT, funkoId: 7 });
+
+  renderNotifications();
+
+  expect(await screen.findByRole('link', { name: 'Sent-in funko was sent in again' })).toHaveAttribute(
+    'href',
+    FUNKO_ROUTES_PATHS.detail('7'),
+  );
 });
 
 it('tells the sender their submission was merged, linking to the catalogue funko it went into', async () => {
@@ -77,7 +84,7 @@ it('marks a notification read and goes to what it is about when it is opened', a
   await waitFor(() => expect(isStoredAsRead(notification.id)).toBe(true));
 });
 
-it('shows a member why their submission was rejected and links them to their submissions', async () => {
+it('shows a member why their submission was rejected and links them to that submission’s funko page', async () => {
   setMockUserRole(UserRoleUtil.MEMBER);
   addMockNotification({
     kind: NotificationKindUtil.SUBMISSION_REJECTED,
@@ -89,7 +96,7 @@ it('shows a member why their submission was rejected and links them to their sub
   renderNotifications();
 
   const link = await screen.findByRole('link', { name: 'Bluey was rejected' });
-  expect(link).toHaveAttribute('href', SUBMISSION_ROUTES_PATHS.BASE);
+  expect(link).toHaveAttribute('href', FUNKO_ROUTES_PATHS.detail('1'));
   expect(within(itemOf('Bluey was rejected')).getByText('Why: Please add a photo of your own box.')).toBeVisible();
 });
 
