@@ -2,8 +2,9 @@ import { array, number, string } from 'yup';
 import { ItemConditionUtil } from '@app-types/utility';
 
 const ITEM_NOTES_MAX_LENGTH = 2000;
-const MAX_QUANTITY = 1000;
-const MAX_TAGS_PER_ITEM = 20;
+// As the API caps them; the merge mock keeps a joined item to them too.
+export const MAX_QUANTITY = 1000;
+export const MAX_TAGS_PER_ITEM = 20;
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
