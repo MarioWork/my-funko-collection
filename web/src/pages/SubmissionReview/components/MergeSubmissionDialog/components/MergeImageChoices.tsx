@@ -54,7 +54,7 @@ function MergeImageOption({ id, image, label, isChecked, onCheckedChange }: Opti
   );
 }
 
-// One funko's images as checkboxes, each named "Original image 1" / "Submission image 2".
+// One funko's images as checkboxes, each named "Original entry image 1" / "Submission image 2".
 function MergeImageGroup({ side, idPrefix, images, keptImageIds, onChange }: GroupProps) {
   const sideLabel = MERGE_SIDE_LABELS[side];
 

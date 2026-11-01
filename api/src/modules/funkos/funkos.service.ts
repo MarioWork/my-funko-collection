@@ -80,9 +80,9 @@ const CATALOGUE_HAS_FUNKO_MESSAGE = 'The catalogue already has this funko. Rejec
 const CATALOGUE_HAS_BARCODE_MESSAGE =
   'This barcode belongs to another funko in the catalogue. Reject this submission, or change it first';
 const PICK_HAS_FUNKO_MESSAGE =
-  'With the picked details, this would be the same as another funko in the catalogue. Keep more of the original';
+  'With the picked details, this would be the same as another funko in the catalogue. Keep more of the original entry';
 const PICK_HAS_BARCODE_MESSAGE =
-  'The submission’s barcode belongs to another funko in the catalogue. Keep the original’s barcode';
+  'The submission’s barcode belongs to another funko in the catalogue. Keep the original entry’s barcode';
 const MERGE_CLASH_MESSAGE =
   'The catalogue now has a funko that clashes with the picked details. Reload and check them again';
 const CATALOGUE_CLASH_MESSAGE =
