@@ -35,11 +35,21 @@ export class AuthPage {
     await form.getByRole('button', { name: 'Sign in with password' }).click();
   }
 
-  // The page a temporary-password sign-in lands on.
+  async gotoSetPassword() {
+    await this.page.goto(AUTH_ROUTES_PATHS.SET_PASSWORD);
+  }
+
+  // The page a temporary-password sign-in lands on. The button sits under the form (it submits it by id).
   async chooseOwnPassword(password: string) {
     const form = this.page.getByRole('form', { name: 'Choose your password' });
     await form.getByLabel('New password').fill(password);
-    await form.getByRole('button', { name: 'Save and open my collection' }).click();
+    await this.page.getByRole('button', { name: 'Save and open my collection' }).click();
+  }
+
+  // On that page, when the recent sign-in is more than 10 minutes old: the temporary password confirms it.
+  async confirmWithTemporaryPassword(password: string) {
+    await this.page.getByLabel('Your current password').fill(password);
+    await this.page.getByRole('button', { name: 'Confirm with password' }).click();
   }
 
   async signInWithPasskey() {

@@ -1,4 +1,5 @@
 import { redirect, type ActionFunctionArgs } from 'react-router';
+import { withRecentSignIn } from '@api/recentSignIn';
 import type { AuthSessionApiModel } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import { AUTH_ROUTES_PATHS, defaultRedirectRoute } from '@application/routes/routesUtils';
@@ -14,10 +15,11 @@ type SetPasswordResult = JSONResponseUtil<AuthSessionApiModel> | JSONResponseUti
 type IntentAction = (formData: SetPasswordFormData) => Promise<SetPasswordResult>;
 
 // The new password replaces the temporary one, under the username the admin gave. The API answers the user with
-// mustChangePassword off, so the app opens.
-async function saveOwnPassword({ credentials }: SetPasswordFormData): Promise<SetPasswordResult> {
+// mustChangePassword off, so the app opens. Past the 10 minutes of a recent sign-in, the temporary password confirms
+// it first (`reauth`).
+async function saveOwnPassword({ credentials, reauth }: SetPasswordFormData): Promise<SetPasswordResult> {
   const fields = await SetPasswordSchema.validate(credentials);
-  const result = await authService.setPassword(fields);
+  const result = await withRecentSignIn(reauth, () => authService.setPassword(fields));
 
   if (!result.success) return result;
 

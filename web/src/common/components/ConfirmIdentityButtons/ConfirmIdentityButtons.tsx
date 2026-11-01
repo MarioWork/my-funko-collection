@@ -42,23 +42,25 @@ function PasswordButton({ isSaving, isWaiting, hasPassword, passwordFormId }: Pa
   );
 }
 
-// The ways to confirm it's you, for a dialog's footer: a passkey always, and the password next to it (the main
-// button then) for a user who has one. Each shows that it waits while its own confirm runs.
+// The ways to confirm it's you, for a dialog's footer: a passkey (unless the page confirms with the password only), and
+// the password next to it (the main button then) for a user who has one. Each shows it waits while its confirm runs.
 function ConfirmIdentityButtons({ step, isSaving, passwordFormId, onConfirm }: Props) {
   const isPasswordSent = step.method === ReauthMethodUtil.PASSWORD;
 
   return (
     <>
-      <PasskeyButton
-        isWaiting={isSaving && !isPasswordSent}
-        isBusy={isSaving}
-        isSupported
-        variant={step.canUsePassword ? 'outline' : 'default'}
-        icon={<Fingerprint data-icon="inline-start" aria-hidden="true" />}
-        onClick={() => onConfirm(ReauthMethodUtil.PASSKEY)}
-      >
-        {CONFIRM_IDENTITY_COPY.BUTTON}
-      </PasskeyButton>
+      {step.canUsePasskey ? (
+        <PasskeyButton
+          isWaiting={isSaving && !isPasswordSent}
+          isBusy={isSaving}
+          isSupported
+          variant={step.canUsePassword ? 'outline' : 'default'}
+          icon={<Fingerprint data-icon="inline-start" aria-hidden="true" />}
+          onClick={() => onConfirm(ReauthMethodUtil.PASSKEY)}
+        >
+          {CONFIRM_IDENTITY_COPY.BUTTON}
+        </PasskeyButton>
+      ) : null}
       {step.canUsePassword ? (
         <PasswordButton
           isSaving={isSaving}

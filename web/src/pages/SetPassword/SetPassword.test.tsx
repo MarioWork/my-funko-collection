@@ -1,6 +1,6 @@
 import type { createMemoryRouter } from 'react-router';
 import { act, renderRoutes, screen, userEvent, waitFor, within } from '@test-utils';
-import { AuthStateUtil } from '@app-types/utility';
+import { AuthStateUtil, UserStateUtil } from '@app-types/utility';
 import routes from '@application/routes';
 import { AUTH_ROUTES_PATHS, BASE_ROUTES_PATHS, COLLECTION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { mockStore, setMockAuthState, setMockMustChangePassword } from '@mocks/mockStore';
@@ -34,7 +34,7 @@ async function saveNewPassword(password: string): Promise<void> {
   const form = await screen.findByRole('form', { name: 'Choose your password' });
 
   await userEvent.type(within(form).getByLabelText('New password'), password);
-  await userEvent.click(within(form).getByRole('button', { name: 'Save and open my collection' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save and open my collection' }));
 }
 
 it('sends a user signed in with a temporary password to choose their own, wherever they were going', async () => {
@@ -66,6 +66,54 @@ it('says on the field when the new password is the temporary one', async () => {
 
   expect(await screen.findByText('Pick a new password, not the temporary one.')).toBeVisible();
   expect(screen.getByLabelText('New password')).toHaveAccessibleDescription(/not the temporary one/);
+});
+
+describe('when the sign-in is more than 10 minutes old', () => {
+  async function confirmWithTemporaryPassword(password: string): Promise<void> {
+    await userEvent.type(await screen.findByLabelText('Your current password'), password);
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm with password' }));
+  }
+
+  beforeEach(() => {
+    signInWithTemporaryPassword();
+    mockStore.auth.isSignInRecent = false;
+  });
+
+  it('confirms with the temporary password right here, then saves and opens the app', async () => {
+    renderApp(AUTH_ROUTES_PATHS.SET_PASSWORD);
+
+    await saveNewPassword(NEW_PASSWORD);
+    expect(await screen.findByText(/Type your temporary password to confirm it’s you/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Confirm with passkey' })).not.toBeInTheDocument();
+    await confirmWithTemporaryPassword(MOCK_TEMPORARY_PASSWORD);
+
+    expect(await screen.findByRole('heading', HOME_HEADING)).toBeVisible();
+    expect(mockStore.auth).toMatchObject({ mustChangePassword: false, password: NEW_PASSWORD });
+  });
+
+  it('says on the field when the temporary password typed to confirm is wrong', async () => {
+    renderApp(AUTH_ROUTES_PATHS.SET_PASSWORD);
+
+    await saveNewPassword(NEW_PASSWORD);
+    await confirmWithTemporaryPassword('not the temporary one');
+
+    const field = screen.getByLabelText('Your current password');
+    await waitFor(() => expect(field).toHaveAttribute('aria-invalid', 'true'));
+    expect(field).toHaveAccessibleDescription("That password doesn't match. Try again.");
+    expect(mockStore.auth.password).toBe(MOCK_TEMPORARY_PASSWORD);
+  });
+
+  it('says to ask an admin for a new one when the temporary password has expired', async () => {
+    const luke = mockStore.users.find((user) => user.username === 'luke');
+    if (luke) luke.state = UserStateUtil.TEMPORARY_PASSWORD_EXPIRED;
+    renderApp(AUTH_ROUTES_PATHS.SET_PASSWORD);
+
+    await saveNewPassword(NEW_PASSWORD);
+    await confirmWithTemporaryPassword(MOCK_TEMPORARY_PASSWORD);
+
+    expect(await screen.findByText(/Your temporary password has expired/)).toBeVisible();
+    expect(mockStore.auth.password).toBe(MOCK_TEMPORARY_PASSWORD);
+  });
 });
 
 it('signs out to the login page when the user leaves without choosing', async () => {
