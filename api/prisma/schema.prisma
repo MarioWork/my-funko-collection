@@ -88,6 +88,8 @@ enum NotificationKind {
   SUBMISSION_SENT
   // To every admin: a member sent a rejected submission in again.
   SUBMISSION_RESENT
+  // To every user who had it in a collection: an admin deleted the funko from the catalogue, with the reason.
+  FUNKO_REMOVED
 
   @@map("notification_kind")
 }
@@ -343,7 +345,7 @@ model Notification {
   funkoId   Int?             @map("funko_id")
   // The funko's name when it was written, so the message still reads right once the funko is renamed or gone.
   funkoName String           @map("funko_name")
-  // Why: the rejection reason (later also a removal's). Null for a kind that has none.
+  // Why: the rejection reason, or why an admin removed the funko from the catalogue. Null for a kind that has none.
   reason    String?
   // When the user opened it or marked everything read; null while unread.
   readAt    DateTime?        @map("read_at") @db.Timestamptz(3)

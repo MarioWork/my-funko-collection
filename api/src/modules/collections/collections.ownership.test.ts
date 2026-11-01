@@ -176,7 +176,7 @@ describe('DELETE /funkos/:funkoId', () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json<{ message: string }>().message).toBe(
-      'The funko is in "For sale", other users\' collections. Send force=true to remove it from them and delete it',
+      'The funko is in "For sale", the collections of 1 other user. Send force=true and a reason to remove it from them and delete it',
     );
   });
 });
