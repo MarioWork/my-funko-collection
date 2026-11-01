@@ -3,7 +3,8 @@
 import { isoCBOR } from '@simplewebauthn/server/helpers';
 import { createHash, generateKeyPairSync, randomBytes, sign, type KeyObject } from 'node:crypto';
 import { z } from 'zod';
-import type { AuthenticationOptionsResponse, RegistrationOptionsResponse } from './auth.schema.ts';
+import type { RegistrationOptionsResponse } from './auth.schema.ts';
+import type { AuthenticationOptionsResponse } from './signIn/signIn.schema.ts';
 
 const TEST_ORIGIN = 'http://localhost:5173';
 const TEST_RP_ID = 'localhost';

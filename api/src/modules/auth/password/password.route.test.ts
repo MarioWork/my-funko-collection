@@ -1,8 +1,8 @@
-import { buildApp, type App } from '../../app.ts';
-import { prisma } from '../../lib/prisma.ts';
-import { SESSION_COOKIE_NAME } from '../../lib/sessionCookie.ts';
-import { resetTestDb } from '../../testDb.ts';
-import { signIn, type SignedInClient } from '../../testFixtures.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { prisma } from '../../../lib/prisma.ts';
+import { SESSION_COOKIE_NAME } from '../../../lib/sessionCookie.ts';
+import { resetTestDb } from '../../../testDb.ts';
+import { signIn, type SignedInClient } from '../../../testFixtures.ts';
 
 const URL = '/auth';
 const MINUTE_MS = 60 * 1000;

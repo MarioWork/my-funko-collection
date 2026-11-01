@@ -1,11 +1,8 @@
 import { BadRequestError, ConflictError, HttpError, NotFoundError } from '../../lib/httpErrors.ts';
 import { logger } from '../../lib/logger.ts';
-import {
-  assertRecentSignIn,
-  createTemporaryPassword,
-  createWebauthnUserId,
-  type AuthSession,
-} from '../auth/auth.service.ts';
+import { assertRecentSignIn, createWebauthnUserId } from '../auth/auth.service.ts';
+import type { AuthSession } from '../auth/auth.type.ts';
+import { createTemporaryPassword } from '../auth/password/password.service.ts';
 import { isWorkingAdmin, usersRepository, type GuardedChange, type UserRow } from './users.repository.ts';
 import type {
   CreateUser,

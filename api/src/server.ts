@@ -2,7 +2,7 @@
 import { buildApp } from './app.ts';
 import { env } from './config/env.ts';
 import { logger } from './lib/logger.ts';
-import { addSetupCode, getSetupLink } from './modules/auth/auth.service.ts';
+import { addSetupCode, getSetupLink } from './modules/auth/setup/setup.service.ts';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 const LISTEN_HOST = '0.0.0.0';

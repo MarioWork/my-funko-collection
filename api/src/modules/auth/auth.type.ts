@@ -1,5 +1,5 @@
 // What other modules may import from auth (node-ts-api §3): the roles and the username rule the users module
-// shares. Everything else stays in auth.schema.ts.
+// shares, and the session the auth plugin hands every route. Everything else stays in the schemas.
 import { z } from 'zod';
 
 // Matches the `UserRole` enum in prisma/schema.prisma; auth.repository.ts fails to compile if either side gains a
@@ -11,6 +11,20 @@ export type UserRole = (typeof USER_ROLES)[number];
 export type SignedInUser = {
   userId: number;
   isAdmin: boolean;
+};
+
+// What the rest of the API knows about a signed-in request.
+export type AuthSession = {
+  tokenHash: string;
+  userId: number;
+  userName: string;
+  username: string | null;
+  userRole: UserRole;
+  // An admin limited this user to looking: every write but their own password, passkeys and signing out is refused.
+  isReadOnly: boolean;
+  // Signed in with a temporary password: every route but changing it and signing out is refused until it is.
+  mustChangePassword: boolean;
+  signedInAt: Date;
 };
 
 const USERNAME_MIN_LENGTH = 3;

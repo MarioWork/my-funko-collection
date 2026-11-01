@@ -6,8 +6,8 @@ import { ErrorResponseSchema } from '../lib/errorHandler.ts';
 import { InternalError } from '../lib/errors.ts';
 import { ForbiddenError, UnauthorizedError } from '../lib/httpErrors.ts';
 import { SESSION_COOKIE_NAME } from '../lib/sessionCookie.ts';
-import { getSession, type AuthSession } from '../modules/auth/auth.service.ts';
-import type { SignedInUser } from '../modules/auth/auth.type.ts';
+import { getSession } from '../modules/auth/session/session.service.ts';
+import type { AuthSession, SignedInUser } from '../modules/auth/auth.type.ts';
 
 declare module 'fastify' {
   interface FastifyContextConfig {
