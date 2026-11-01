@@ -38,6 +38,10 @@ const FUNKO_SELECT = {
   updatedAt: true,
 } as const satisfies Prisma.FunkoSelect;
 
+const SUBMITTER_SELECT = {
+  submittedBy: { select: { id: true, name: true } },
+} as const satisfies Prisma.FunkoSelect;
+
 const PRIMARY_IMAGE_SELECT = {
   funkoId: true,
   fileKey: true,
@@ -338,7 +342,7 @@ export const funkosRepository = {
   findSubmitter: async (funkoId: number): Promise<{ id: number; name: string } | null> => {
     const funko = await prisma.funko.findUnique({
       where: { id: funkoId },
-      select: { submittedBy: { select: { id: true, name: true } } },
+      select: SUBMITTER_SELECT,
     });
 
     return funko?.submittedBy ?? null;

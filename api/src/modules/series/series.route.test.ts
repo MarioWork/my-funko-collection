@@ -103,6 +103,27 @@ describe('POST /series', () => {
     expect(response.json()).toMatchObject({ name: 'Daredevil: Born Again', funkoCount: 0 });
   });
 
+  it('creates a waiting series only that member sees when a member sends it', async () => {
+    const member = await signIn(app, { role: 'MEMBER' });
+
+    const response = await member.inject({ method: 'POST', url: URL, payload: { name: 'Loki' } });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({ name: 'Loki', status: 'WAITING' });
+    const adminList = await api.inject({ method: 'GET', url: URL });
+    expect(adminList.json<{ totalResultNumber: number }>().totalResultNumber).toBe(0);
+  });
+
+  it('returns 409 with the existing id when a member types a name the catalogue has', async () => {
+    const existing = await createSeries('Loki');
+    const member = await signIn(app, { role: 'MEMBER' });
+
+    const response = await member.inject({ method: 'POST', url: URL, payload: { name: 'Loki' } });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'CONFLICT', existingId: existing.id });
+  });
+
   it('returns 400 when the name is empty', async () => {
     const response = await api.inject({ method: 'POST', url: URL, payload: { name: ' ' } });
 
