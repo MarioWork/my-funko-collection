@@ -3,17 +3,20 @@ import type { ApiError } from '@app-types/models';
 import type { JSONResponseUtil } from '@app-types/utility';
 import { FORBIDDEN_STATUS, UNAUTHORIZED_STATUS } from '@utils/httpStatusUtils';
 
-type ApiErrorBody = Partial<Pick<ApiError, 'code' | 'message' | 'existingId' | 'issues'>>;
+type ApiErrorBody = Partial<Pick<ApiError, 'code' | 'message' | 'existingId' | 'userCount' | 'issues'>>;
 
 function isApiErrorBody(data: unknown): data is ApiErrorBody {
   return typeof data === 'object' && data !== null && 'code' in data;
 }
 
-// The only place a failed request becomes an ApiError. The API answers { code, message, issues?, existingId? }.
+// The only place a failed request becomes an ApiError. The API answers
+// { code, message, issues?, existingId?, userCount? }.
 function toApiError(statusCode: number | undefined, data: unknown): ApiError {
   if (!isApiErrorBody(data)) return { statusCode };
 
-  return { statusCode, code: data.code, message: data.message, existingId: data.existingId, issues: data.issues };
+  const { code, message, existingId, userCount, issues } = data;
+
+  return { statusCode, code, message, existingId, userCount, issues };
 }
 
 // Writes go through here: a failed request becomes `{ success: false, error }` and never throws. Anything that is

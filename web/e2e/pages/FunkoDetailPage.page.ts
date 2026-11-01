@@ -6,6 +6,8 @@ export class FunkoDetailPage {
   readonly title: Locator;
   // The delete confirmation, once openDeleteDialog() has opened it.
   readonly deleteDialog: Locator;
+  // The delete dialog for a funko other users have, which asks why, once openDeleteDialog() has opened it.
+  readonly removeDialog: Locator;
 
   private readonly page: Page;
 
@@ -13,6 +15,7 @@ export class FunkoDetailPage {
     this.page = page;
     this.title = page.getByRole('heading', { level: 1 });
     this.deleteDialog = page.getByRole('alertdialog');
+    this.removeDialog = page.getByRole('dialog', { name: /^Delete / });
   }
 
   // The dialog's "Also remove it from <collection>" checkbox, shown while the funko is in a collection.
@@ -34,5 +37,10 @@ export class FunkoDetailPage {
       await this.deleteDialog.getByRole('checkbox', { name: /^Also remove it from / }).check();
 
     await this.deleteDialog.getByRole('button', { name: 'Delete' }).click();
+  }
+
+  async confirmRemove(reason: string) {
+    await this.removeDialog.getByRole('textbox', { name: 'Why?' }).fill(reason);
+    await this.removeDialog.getByRole('button', { name: 'Delete' }).click();
   }
 }

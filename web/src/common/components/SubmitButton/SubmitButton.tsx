@@ -11,14 +11,22 @@ type Props = {
   // Shown before the label; a spinner takes its place while saving.
   icon?: ReactNode;
   className?: string;
+  // A submit that deletes something: the destructive colour.
+  isDestructive?: boolean;
   children: ReactNode;
 };
 
 // A form's submit button: disabled while saving, with the spinner and the reason, so every form says the same.
-function SubmitButton({ isSubmitting, form, icon, className, children }: Props) {
+function SubmitButton({ isSubmitting, form, icon, className, isDestructive = false, children }: Props) {
   return (
     <DisabledReason reason={reasonWhen(isSubmitting, DISABLED_REASONS.SAVING)}>
-      <Button type="submit" form={form} className={className} disabled={isSubmitting}>
+      <Button
+        type="submit"
+        form={form}
+        variant={isDestructive ? 'destructive' : 'default'}
+        className={className}
+        disabled={isSubmitting}
+      >
         {isSubmitting ? <Spinner data-icon="inline-start" /> : icon}
         {children}
       </Button>

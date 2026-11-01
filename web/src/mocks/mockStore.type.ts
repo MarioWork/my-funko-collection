@@ -95,6 +95,10 @@ export type MockUserRow = Omit<UserApiModel, 'isLastAdmin'> & { password: string
 // API does; the others are what another user would read.
 export type MockNotificationRow = NotificationApiModel & { userId: number };
 
+// Another user's item of a funko: only who and which funko, since nothing about it is ever shown. The admin learns
+// how many users have a funko from these (with the signed-in user's own items), never whose they are.
+export type MockOtherUserItemRow = { userId: number; funkoId: number };
+
 export type MockStore = {
   auth: MockAuth;
   users: MockUserRow[];
@@ -105,5 +109,6 @@ export type MockStore = {
   funkos: MockFunkoRow[];
   images: MockImageRow[];
   items: MockItemRow[];
+  otherUsersItems: MockOtherUserItemRow[];
   notifications: MockNotificationRow[];
 };

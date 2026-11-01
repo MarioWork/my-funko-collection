@@ -106,6 +106,23 @@ it('offers Mark read instead of a link when the funko it is about was deleted', 
   expect(isStoredAsRead(notification.id)).toBe(true);
 });
 
+it('tells a user a funko of theirs was removed from the catalogue, and why, with nothing to open', async () => {
+  setMockUserRole(UserRoleUtil.MEMBER);
+  addMockNotification({
+    kind: NotificationKindUtil.FUNKO_REMOVED,
+    funkoId: null,
+    funkoName: 'Boba Fett (Prototype)',
+    reason: 'A double of Boba Fett #08',
+  });
+
+  renderNotifications();
+
+  await screen.findByRole('list', { name: LIST_NAME });
+  const removedItem = itemOf('Boba Fett (Prototype) was removed from the catalogue');
+  expect(within(removedItem).getByText('Why: A double of Boba Fett #08')).toBeVisible();
+  expect(within(removedItem).queryByRole('link')).not.toBeInTheDocument();
+});
+
 it('marks every notification read with Mark all read, then says why it is disabled', async () => {
   renderNotifications();
 

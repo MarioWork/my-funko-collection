@@ -54,11 +54,12 @@ export default {
   updateFunko: async (id: FunkoId, fields: UpdateFunko): Promise<JSONResponseUtil<FunkoApiModel>> =>
     axiosActions<FunkoApiModel>({ url: `${BASE_FUNKOS_URL}/${id}`, method: HttpVerbsUtil.PATCH, data: fields }),
 
-  deleteFunko: async (id: FunkoId, { force = false }: DeleteFunkoOptions = {}): Promise<JSONResponseUtil> =>
+  deleteFunko: async (id: FunkoId, { force = false, reason }: DeleteFunkoOptions = {}): Promise<JSONResponseUtil> =>
     axiosActions({
       url: `${BASE_FUNKOS_URL}/${id}`,
       method: HttpVerbsUtil.DELETE,
       params: force ? { [FORCE_PARAM]: 'true' } : undefined,
+      data: reason ? { reason } : undefined,
     }),
 };
 

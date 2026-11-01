@@ -7,6 +7,8 @@ const FUNKO_EXCLUSIVE_MAX_LENGTH = 100;
 const BARCODE_MIN_LENGTH = 8;
 const BARCODE_MAX_LENGTH = 14;
 const BARCODE_PATTERN = /^\d+$/;
+// As the API caps it.
+const REMOVAL_REASON_MAX_LENGTH = 500;
 
 export const funkoNameSchema = string()
   .trim()
@@ -52,3 +54,9 @@ export const funkoBarcodeSchema = string()
   })
   .nullable()
   .notRequired();
+
+// Why an admin deletes a funko other users have: each of them reads it, so it is required.
+export const funkoRemovalReasonSchema = string()
+  .trim()
+  .required('Say why, so the users who had it know')
+  .max(REMOVAL_REASON_MAX_LENGTH, `Keep it under ${REMOVAL_REASON_MAX_LENGTH} characters`);

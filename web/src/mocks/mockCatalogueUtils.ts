@@ -10,6 +10,18 @@ export function isMockAdmin(): boolean {
   return mockStore.auth.role === UserRoleUtil.ADMIN;
 }
 
+// Every user with the funko in a collection: the signed-in user when one of their items holds it, and the other
+// users the store knows of. Only ids: the API tells how many, never who.
+export function mockHolderIdsOf(funkoId: number): number[] {
+  const isOwnFunko = mockStore.items.some((item) => item.funkoId === funkoId);
+  const otherHolderIds = mockStore.otherUsersItems
+    .filter((item) => item.funkoId === funkoId)
+    .map((item) => item.userId);
+  const holderIds = isOwnFunko ? [MOCK_USER_ID, ...otherHolderIds] : otherHolderIds;
+
+  return [...new Set(holderIds)];
+}
+
 export function isSubmittedByMockUser(row: MockSubmissionColumns): boolean {
   return row.submittedById === MOCK_USER_ID;
 }

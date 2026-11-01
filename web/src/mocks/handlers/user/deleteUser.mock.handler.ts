@@ -81,6 +81,8 @@ export default (baseUrl: string) => [
     mockStore.users = mockStore.users.filter((candidate) => candidate.id !== userId);
     forgetUploader(userId);
     dropNotificationsOf(userId);
+    // Their collections go, and with them their items.
+    mockStore.otherUsersItems = mockStore.otherUsersItems.filter((item) => item.userId !== userId);
     settleSubmissionsOf(userId);
 
     if (isSignedInMockUser(userId)) deleteOwnLists();

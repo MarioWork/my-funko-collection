@@ -180,7 +180,8 @@ HttpOnly cookie the app never sees.
   rejection, with its reason: _Submissions_; a new or resent submission: the review list) and marks it read as it
   opens: a plain click on an unread one submits to the mark-read action, which redirects to the link's target from
   the API's answer, so the count reloads after the write (a middle click or "open in new tab" just follows the link
-  and leaves it unread); one whose funko was deleted gets _Mark read_ instead. Unread ones say
+  and leaves it unread); one whose funko was deleted gets _Mark read_ instead, as does a "removed from the
+  catalogue" one (`FUNKO_REMOVED`, with the admin's reason). Unread ones say
   "New" in words. _Mark all read_ is open to a read-only user (it only touches their own notifications) and is
   disabled, with the reason, once nothing is unread.
 - **New users.** An admin creates one on _Users_ → _New user_ (`/users/add`, a routed dialog): a username and a
@@ -235,7 +236,10 @@ HttpOnly cookie the app never sees.
   sending again and a member's new funko write notifications into `mockStore.notifications`
   (`handlers/notification/notificationMockUtils.ts`); the handlers answer only Mario's own, and
   `addMockNotification()` (tests) adds one for him. The api seed has the same
-  three submissions. Deleting a user in the mocks settles their submissions as the API's trigger does (rejected ones
+  three submissions. Of other users' items the store keeps only who has which funko (`mockStore.otherUsersItems`:
+  luke and han have Grogu, luke Darth Vader), for the count an admin sees: deleting one of those as an admin opens
+  the remove dialog, which asks why, and the delete handler tells every user who had it (`notifyMockFunkoRemoved`),
+  as on the API; han's seed notification says "Boba Fett (Prototype)" was removed. Deleting a user in the mocks settles their submissions as the API's trigger does (rejected ones
   go, the rest lose their sender), and an admin opening a submission sees "Sent in by ..." or "Removed user"
   (`@utils/removedUserUtils`, shared with the Images page). `mockStore.users` holds the other users (`mockUsers.ts`: leia, an admin; luke, with the
   temporary password `MOCK_TEMPORARY_PASSWORD`; han, whose one expired): `GET /users` lists them after the
