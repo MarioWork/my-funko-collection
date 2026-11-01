@@ -152,3 +152,11 @@ it('shows the error page, never the funko, when a member opens another member’
   expect(await screen.findByRole('heading', { level: 1, name: 'Something went wrong' })).toBeVisible();
   expect(screen.queryByText('Their Funko')).not.toBeInTheDocument();
 });
+
+it('tells an admin who sent a submission in, and says Removed user once that member was deleted', async () => {
+  const orphan = addMockSubmission({ name: 'Orphaned Funko', submittedById: null });
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(orphan.id))] });
+
+  expect(await screen.findByText('Sent in by Removed user')).toBeVisible();
+  expect(screen.getByText('Waiting')).toBeVisible();
+});
