@@ -14,7 +14,7 @@ import type { SignedInUser } from '../../auth/auth.type.ts';
 import { assertCanEditFunko, canSeeFunko, isAdminChangingSubmission, type FunkoAccess } from '../funkos.access.ts';
 import { funkoImagesRepository, type FunkoImageRow } from './funkoImages.repository.ts';
 import type { ReorderImages, RotateImage } from './funkoImages.schema.ts';
-import type { FunkoImageResponse } from './funkoImages.type.ts';
+import type { FunkoImageResponse, ImageFile } from './funkoImages.type.ts';
 
 const ENTITY = 'Image';
 const FILE_ENTITY = 'Image file';
@@ -93,6 +93,13 @@ export async function getImages(funkoId: number): Promise<FunkoImageResponse[]> 
   const rows = await funkoImagesRepository.listByFunko(funkoId);
 
   return rows.map(toImageResponse);
+}
+
+// For the parent funkos module (a merge): a funko's images in their order, with what a move of their files needs.
+export async function getImageFiles(funkoId: number): Promise<ImageFile[]> {
+  const rows = await funkoImagesRepository.listByFunko(funkoId);
+
+  return rows.map(({ id, fileKey, contentHash }) => ({ id, fileKey, contentHash }));
 }
 
 // Files are processed one at a time on purpose: it bounds memory and CPU on the home server.

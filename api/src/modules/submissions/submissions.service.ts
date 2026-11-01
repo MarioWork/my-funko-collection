@@ -9,6 +9,7 @@ import {
   rejectSubmission as rejectFunkoSubmission,
   resendSubmission as resendFunkoSubmission,
 } from '../funkos/funkos.service.ts';
+import type { MergeSubmission } from './submissions.schema.ts';
 import type {
   ListReviewQuery,
   ListSubmissionsQuery,
@@ -34,8 +35,8 @@ export async function rejectSubmission(funkoId: number, reason: string): Promise
   return rejectFunkoSubmission(funkoId, reason);
 }
 
-export async function mergeSubmission(funkoId: number, targetFunkoId: number): Promise<SubmissionResponse> {
-  return mergeFunkoSubmission(funkoId, targetFunkoId);
+export async function mergeSubmission(funkoId: number, choices: MergeSubmission): Promise<SubmissionResponse> {
+  return mergeFunkoSubmission(funkoId, choices);
 }
 
 export async function resendSubmission(user: SignedInUser, funkoId: number): Promise<SubmissionResponse> {

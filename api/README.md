@@ -257,9 +257,19 @@ transaction. When the same collection already holds the target, the two items be
 the quantities add up, the notes are joined (older first, each once) and it carries both items' tags; its other
 fields (condition, price, date) stay its own. The joined item keeps to the item limits, so the member can still edit
 it: at most 1000 (`MAX_QUANTITY`) and 20 tags (`MAX_TAGS_PER_ITEM`), the older item's tags first and the newer one's
-extras dropped. The submission becomes `MERGED` with `mergedInto`, still private to
-its sender and admins, and keeps its images, category and series. An orphan submission merges the same way, with
-nobody to tell. When an admin changes someone's
+extras dropped. The admin also picks what the catalogue funko keeps (issue #39), all in the same transaction:
+`fieldsFromSubmission` lists the fields it takes from the submission (`NAME`, `NUMBER`, `TYPE`, `CATEGORY`,
+`SERIES`, `CHASE`, `EXCLUSIVE`, `BARCODE`; each once, and only one that differs, else 400; left out, it keeps all of
+its own). A picked waiting category or series joins the catalogue as approval brings it in (onto the approved one of
+the same name, which is also what "differs" compares with). A picked barcode another catalogue funko has, or picks
+that make it the same as another catalogue funko, answer 409 in words with `existingId` (and a clash that slips in
+meanwhile is a 409 too). `imageIdsFromSubmission` moves those submission images onto it, after its own, keeping their
+uploader (their files move into its folder, so everyone sees them); `removedImageIds` removes its own images, like a
+normal image delete. An image of neither funko is a 400, and so is ending up with more than `MAX_IMAGES_PER_FUNKO`;
+a picked image that is the very same picture as one it keeps stays with the submission. The submission becomes
+`MERGED` with `mergedInto`, still private to its sender and admins, and keeps its own fields, category, series and
+the images not picked, as the record of what was sent. An orphan submission merges the same way, with nobody to
+tell. When an admin changes someone's
 waiting or rejected submission (its fields, or adds or removes a photo; reordering and rotating don't count),
 `changedByAdminAt` records it for the sender; sending it again clears it. A read-only user gets 403 `READ_ONLY` on
 approving, rejecting, merging and sending again, like every other write. A submission
@@ -320,7 +330,7 @@ other users have tells every user who had it (the admin too, if they had it) wit
 | `GET /submissions/review`                                          | Admins: `state=WAITING` (default, oldest first, with `possibleDoubles`) or `DONE` (last reviewed first); each with `submittedBy`                                                                                                                                                                                                                                                                                   |
 | `POST /submissions/:id/approval`                                   | Admins: the waiting funko (and its new category and series) joins the catalogue; 409 with `existingId` when the catalogue has the same funko or barcode                                                                                                                                                                                                                                                            |
 | `POST /submissions/:id/rejection`                                  | Admins: `{ reason }` (1–500 characters) the sender reads; the funko stays in their collections, private; an orphan submission is deleted (204)                                                                                                                                                                                                                                                                     |
-| `POST /submissions/:id/merge`                                      | Admins: `{ targetFunkoId }` (a catalogue funko); the sender's items move there, a clash in one collection becomes one item; 409 when not waiting                                                                                                                                                                                                                                                                   |
+| `POST /submissions/:id/merge`                                      | Admins: `{ targetFunkoId, fieldsFromSubmission?, imageIdsFromSubmission?, removedImageIds? }` (a catalogue funko, and what it keeps); the sender's items move there, a clash in one collection becomes one item; 409 when not waiting or a picked barcode / identity clashes with the catalogue                                                                                                                    |
 | `POST /submissions/:id/resubmission`                               | The sender: a rejected one waits again; 409 when it is not rejected or clashes                                                                                                                                                                                                                                                                                                                                     |
 | `GET /notifications`                                               | The signed-in user's own from the last 90 days, newest first, each with `kind`, `funkoId`, `funkoName`, `reason`, `isRead`; `page`, `size`                                                                                                                                                                                                                                                                         |
 | `GET /notifications/unread-count`                                  | `{ count }`: the bell's number                                                                                                                                                                                                                                                                                                                                                                                     |
