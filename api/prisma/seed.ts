@@ -16,6 +16,15 @@ type SeedFunko = {
   isChase?: boolean;
   exclusive?: string;
 };
+// Other members' submissions, so the admins' Submissions page has something to review: two waiting (the Thanos is
+// maybe a double of the catalogue's #78 in Pop! Marvel) and one rejected with its reason. Mirrors web/src/mocks/mockSeed.ts.
+type SeedSubmission = {
+  name: string;
+  number: string;
+  category: string;
+  sender: string;
+  rejectionReason?: string;
+};
 type SeedItem = {
   funko: string;
   collection: string;
@@ -36,6 +45,20 @@ const REFERENCE_COLLECTION_NAMES = ['Owned', 'Wishlist'];
 const SEED_USER_NAME = 'Collector';
 const WEBAUTHN_USER_ID_BYTES = 32;
 const TAG_NAMES = ['Box 1', 'Box 2', 'Display shelf'];
+// Members who sent funkos in. No password or passkey: an admin gives one a temporary password on the Users page to
+// sign in as them. Found by username, so seeding again keeps them (and their collections).
+const SEED_MEMBER_USERNAMES = ['luke', 'han'];
+const SUBMISSIONS: SeedSubmission[] = [
+  { name: 'Thanos (Infinity Gauntlet)', number: '78', category: 'Pop! Marvel', sender: 'luke' },
+  { name: 'Mandalorian with Grogu', number: '402', category: 'Pop! Star Wars', sender: 'han' },
+  {
+    name: 'Bluey',
+    number: '1235',
+    category: 'Pop! Animation',
+    sender: 'luke',
+    rejectionReason: 'The photo is from a shop listing. Please add a photo of your own box.',
+  },
+];
 
 // Example catalog rows; numbers are illustrative, not a price guide.
 const FUNKOS: SeedFunko[] = [
@@ -280,6 +303,35 @@ const seedUser =
     select: { id: true },
   }));
 
+const memberRows = await Promise.all(
+  SEED_MEMBER_USERNAMES.map((username) =>
+    prisma.user.upsert({
+      where: { username },
+      update: {},
+      create: { name: username, username, webauthnUserId: randomBytes(WEBAUTHN_USER_ID_BYTES).toString('base64url') },
+      select: { id: true, username: true },
+    }),
+  ),
+);
+const memberIds = new Map(memberRows.map((row) => [row.username ?? '', row.id]));
+
+const submissionRows = await prisma.funko.createManyAndReturn({
+  data: SUBMISSIONS.map((submission) => {
+    const isRejected = submission.rejectionReason !== undefined;
+
+    return {
+      name: submission.name,
+      number: submission.number,
+      categoryId: idFor(categoryIds, 'category', submission.category),
+      status: isRejected ? ('REJECTED' as const) : ('WAITING' as const),
+      submittedById: idFor(memberIds, 'member', submission.sender),
+      rejectionReason: submission.rejectionReason ?? null,
+      reviewedAt: isRejected ? new Date() : null,
+    };
+  }),
+  select: { id: true },
+});
+
 const collectionRows = await prisma.collection.findMany({ where: { userId: seedUser.id }, select: NAME_SELECT });
 const collectionIds = new Map(collectionRows.map((row) => [row.name, row.id]));
 
@@ -337,6 +389,8 @@ logger.info(
     categories: categoryRows.length,
     series: seriesRows.length,
     funkos: funkoRows.length,
+    members: memberRows.length,
+    submissions: submissionRows.length,
     collections: collectionRows.length,
     tags: tagRows.length,
     items: ITEMS.length,
