@@ -1,6 +1,7 @@
 import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
+import { forgetNotifiedFunkos } from '@mocks/handlers/notification/notificationMockUtils';
 import { isTrueParam } from '@mocks/mockListUtils';
 import { conflict, noContent } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
@@ -38,6 +39,7 @@ export default (baseUrl: string) => [
     mockStore.items = mockStore.items.filter((item) => item.funkoId !== row.id);
     mockStore.images = mockStore.images.filter((image) => image.funkoId !== row.id);
     mockStore.funkos.splice(mockStore.funkos.indexOf(row), 1);
+    forgetNotifiedFunkos(new Set([row.id]));
 
     return noContent();
   }),

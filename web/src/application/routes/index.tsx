@@ -10,6 +10,7 @@ import { collectionRoutes } from './featureRoutes/collectionRoutes';
 import { funkoRoutes } from './featureRoutes/funkoRoutes';
 import { imageRoutes } from './featureRoutes/imageRoutes';
 import { itemRoutes } from './featureRoutes/itemRoutes';
+import { notificationRoutes } from './featureRoutes/notificationRoutes';
 import { seriesRoutes } from './featureRoutes/seriesRoutes';
 import { submissionRoutes } from './featureRoutes/submissionRoutes';
 import { tagRoutes } from './featureRoutes/tagRoutes';
@@ -57,6 +58,7 @@ const routes: RouteObject[] = [
           ...seriesRoutes,
           ...tagRoutes,
           ...submissionRoutes,
+          ...notificationRoutes,
           ...imageRoutes,
           ...userRoutes,
           ...securityRoutes,

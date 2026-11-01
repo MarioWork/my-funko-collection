@@ -8,6 +8,7 @@ export const DISABLED_REASONS = {
   PASSKEY_UNSUPPORTED: "This browser can't use passkeys.",
   PASSKEY_WAITING: 'Waiting for your passkey, one moment.',
   SIGNING_IN: 'Signing in, one moment.',
+  NOTHING_UNREAD: 'Every notification is read already.',
   // An admin limited this account to looking (docs/GLOSSARY.md "Read-only").
   READ_ONLY: 'Your account is read-only. Ask an admin if you need to change something.',
 } as const;

@@ -2,6 +2,8 @@
 import {
   FunkoTypeUtil,
   ItemConditionUtil,
+  NotificationKindUtil,
+  UserRoleUtil,
   SubmissionStatusUtil,
   type FunkoTypeUtil as FunkoType,
   type ItemConditionUtil as ItemCondition,
@@ -14,13 +16,18 @@ import type {
   MockFunkoRow,
   MockImageRow,
   MockItemRow,
+  MockNotificationRow,
   MockStore,
+  MockUserRow,
   MockSubmissionColumns,
 } from './mockStore.type';
-import { mockDate, mockEnv, NOT_REVIEWED } from './mockStoreUtils';
+import { mockDate, mockEnv, mockRecentDate, NOT_REVIEWED } from './mockStoreUtils';
 import { MOCK_MEMBER_ID } from './mockUsers';
 
 type MockSeedData = Omit<MockStore, 'auth' | 'users'>;
+
+// How many hours before the mock clock the first seed submission was sent in; each next one an hour later.
+const FIRST_NOTIFICATION_HOURS_AGO = 3;
 
 const OWNED_COLLECTION_ID = 1;
 const WISHLIST_COLLECTION_ID = 2;
@@ -361,6 +368,37 @@ function createSubmissions(startId: number): MockFunkoRow[] {
   });
 }
 
+// What the seed submissions told people, as api/prisma/seed.ts writes them: every admin (the signed-in user and the
+// other admins) heard of each one sent in, the oldest already read, and the sender of the rejected one heard why.
+function createNotifications(submissions: MockFunkoRow[], users: MockUserRow[]): MockNotificationRow[] {
+  const adminIds = [MOCK_USER_ID, ...users.filter((user) => user.role === UserRoleUtil.ADMIN).map((user) => user.id)];
+  const rows = submissions.flatMap((submission, index) => {
+    const createdAt = mockRecentDate(FIRST_NOTIFICATION_HOURS_AGO - index);
+    const funko = { funkoId: submission.id, funkoName: submission.name, createdAt };
+    const toAdmins = adminIds.map((userId) => ({
+      userId,
+      kind: NotificationKindUtil.SUBMISSION_SENT,
+      reason: null,
+      isRead: index === 0,
+      ...funko,
+    }));
+
+    if (submission.status !== SubmissionStatusUtil.REJECTED || submission.submittedById === null) return toAdmins;
+
+    const toSender = {
+      userId: submission.submittedById,
+      kind: NotificationKindUtil.SUBMISSION_REJECTED,
+      reason: submission.rejectionReason,
+      isRead: false,
+      ...funko,
+    };
+
+    return [...toAdmins, toSender];
+  });
+
+  return rows.map((row, index) => ({ id: index + 1, ...row }));
+}
+
 function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
   let nextId = 1;
 
@@ -384,7 +422,7 @@ function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
 }
 
 // Every table but auth, fresh: the seed rows, plus the generated ones for `yarn dev:big`.
-export function createSeedData(): MockSeedData {
+export function createSeedData(users: MockUserRow[]): MockSeedData {
   const categories = CATEGORY_NAMES.map((name, index) => ({
     id: index + 1,
     name,
@@ -468,5 +506,6 @@ export function createSeedData(): MockSeedData {
     funkos: [...funkos, ...extraFunkos, ...submissions],
     images: [...seedImages, ...extraImages],
     items: [...items, ...extraItems],
+    notifications: createNotifications(submissions, users),
   };
 }

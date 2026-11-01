@@ -9,9 +9,9 @@ import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
 
 // What a read-only user may still write, like ALLOWED_WHEN_READ_ONLY in api/src/modules/auth/auth.route.test.ts:
 // the public routes (sign-in, first run, sign-out), their own password and passkeys (and the recent sign-in they
-// need), and signing out everywhere.
+// need), signing out everywhere, and marking their own notifications read.
 const OWN_ACCOUNT_PATH_PATTERN =
-  /\/auth\/(logout$|logout-everywhere$|login\/|setup\/|password$|recent-sign-in$|passkeys(\/|$))/;
+  /\/auth\/(logout$|logout-everywhere$|login\/|setup\/|password$|recent-sign-in$|passkeys(\/|$))|\/notifications(\/\d+)?$/;
 const HEAD_METHOD = 'HEAD';
 const OPTIONS_METHOD = 'OPTIONS';
 const READ_METHODS = new Set<string>([HttpVerbsUtil.GET, HEAD_METHOD, OPTIONS_METHOD]);

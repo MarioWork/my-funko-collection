@@ -23,6 +23,14 @@ export function mockDate(index: number): string {
   return new Date(FIRST_DATE + index * DAY_MS).toISOString();
 }
 
+const HOUR_MS = 60 * 60 * 1000;
+
+// A seed date `hoursAgo` hours before the mock clock starts: for rows the API keeps only for a while (notifications,
+// 90 days), so they are still recent when the store is made.
+export function mockRecentDate(hoursAgo: number): string {
+  return new Date(CLOCK_START - hoursAgo * HOUR_MS).toISOString();
+}
+
 export function nextId(rows: MockRowWithId[]): number {
   return rows.reduce((highest, row) => Math.max(highest, row.id), 0) + 1;
 }

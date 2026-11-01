@@ -7,6 +7,7 @@ import { collectionItemMockHandlers } from './collectionItem';
 import { exportMockHandlers } from './export';
 import { funkoMockHandlers } from './funko';
 import { funkoImageMockHandlers } from './funkoImage';
+import { notificationMockHandlers } from './notification';
 import { statsMockHandlers } from './stats';
 import { submissionMockHandlers } from './submission';
 import { suggestMockHandlers } from './suggest';
@@ -32,6 +33,7 @@ export const getHandlers = (baseUrl: string) => [
   ...exportMockHandlers(baseUrl),
   ...userMockHandlers(baseUrl),
   ...submissionMockHandlers(baseUrl),
+  ...notificationMockHandlers(baseUrl),
 ];
 
 export { MOCK_DELAY };

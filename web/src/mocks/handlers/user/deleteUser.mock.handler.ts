@@ -1,6 +1,7 @@
 import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
+import { dropNotificationsOf, forgetNotifiedFunkos } from '@mocks/handlers/notification/notificationMockUtils';
 import { SubmissionStatusUtil } from '@app-types/utility';
 import { noContent } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
@@ -31,6 +32,7 @@ function settleSubmissionsOf(userId: number): void {
   mockStore.items = mockStore.items.filter((item) => !rejectedIds.has(item.funkoId));
   mockStore.images = mockStore.images.filter((image) => !rejectedIds.has(image.funkoId));
   mockStore.funkos = mockStore.funkos.filter((funko) => !rejectedIds.has(funko.id));
+  forgetNotifiedFunkos(rejectedIds);
   mockStore.categories = mockStore.categories.filter(
     (category) => !isUnusedSubmissionOf(category, userId, 'categoryId'),
   );
@@ -78,6 +80,7 @@ export default (baseUrl: string) => [
 
     mockStore.users = mockStore.users.filter((candidate) => candidate.id !== userId);
     forgetUploader(userId);
+    dropNotificationsOf(userId);
     settleSubmissionsOf(userId);
 
     if (isSignedInMockUser(userId)) deleteOwnLists();
