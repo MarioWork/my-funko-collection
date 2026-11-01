@@ -1,6 +1,6 @@
-import { buildApp, type App } from '../../app.ts';
-import { resetTestDb } from '../../testDb.ts';
-import { createCollection, createFunko, createItem, type SignedInClient, signIn } from '../../testFixtures.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { resetTestDb } from '../../../testDb.ts';
+import { createCollection, createFunko, createItem, type SignedInClient, signIn } from '../../../testFixtures.ts';
 
 const URL = '/collections';
 const MISSING_ID = 999;

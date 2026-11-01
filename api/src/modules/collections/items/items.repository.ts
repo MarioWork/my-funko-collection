@@ -3,8 +3,8 @@ import { allOf, inList, numberSortKey, sortDirection } from '../../../lib/sqlFra
 import { Prisma } from '../../../generated/prisma/client.ts';
 import { toSkipTake } from '../../../lib/pagination.ts';
 import { deletedIdOrUndefined, ID_SELECT, prisma, reloadIfUpdated, type DbExecutor } from '../../../lib/prisma.ts';
-import type { ItemSortField, ListAllItemsQuery, UpdateCollectionItem } from './collectionItems.schema.ts';
-import type { ItemCondition } from './collectionItems.type.ts';
+import type { ItemSortField, ListAllItemsQuery, UpdateCollectionItem } from './items.schema.ts';
+import type { ItemCondition } from '../collections.type.ts';
 
 const ITEM_SELECT = {
   id: true,
@@ -98,7 +98,7 @@ async function replaceTags(executor: DbExecutor, itemId: number, tagIds: number[
   await executor.collectionItemTag.createMany({ data: tagIds.map((tagId) => ({ collectionItemId: itemId, tagId })) });
 }
 
-export const collectionItemsRepository = {
+export const itemsRepository = {
   // The user is part of every lookup and write by id: an item in another user's collection is not found.
   findById: (userId: number, collectionId: number, itemId: number): Promise<ItemRow | undefined> =>
     findRow({ collectionId, id: itemId, collection: { userId } }, prisma),

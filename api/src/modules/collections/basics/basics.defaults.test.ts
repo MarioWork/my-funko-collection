@@ -1,5 +1,5 @@
-import { buildApp, type App } from '../../app.ts';
-import { signIn } from '../../testFixtures.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { signIn } from '../../../testFixtures.ts';
 
 let app: App;
 

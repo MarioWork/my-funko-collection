@@ -8,7 +8,7 @@ import type { SignInMethod, UserRole } from './generated/prisma/client.ts';
 import { prisma } from './lib/prisma.ts';
 import { createSecureToken, hashSecureToken } from './lib/secureToken.ts';
 import { SESSION_COOKIE_NAME } from './lib/sessionCookie.ts';
-import type { ItemCondition } from './modules/collections/items/collectionItems.type.ts';
+import type { ItemCondition } from './modules/collections/collections.type.ts';
 import type { FunkoType } from './modules/funkos/funkos.type.ts';
 import type { SubmissionStatus } from './modules/submissions/submissions.type.ts';
 

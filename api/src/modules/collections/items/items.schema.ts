@@ -3,7 +3,7 @@ import { IdParamSchema, IdSchema } from '../../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../../lib/pagination.ts';
 import { ContainsQuerySchema, IdListQuerySchema, IsoDateSchema } from '../../../lib/queryParams.ts';
 import { FunkoSummarySchema } from '../../funkos/funkos.type.ts';
-import { ITEM_CONDITIONS, MAX_QUANTITY, MAX_TAGS_PER_ITEM } from './collectionItems.type.ts';
+import { ITEM_CONDITIONS, MAX_QUANTITY, MAX_TAGS_PER_ITEM } from '../collections.type.ts';
 
 export const ITEM_NOTES_MAX_LENGTH = 2000;
 export const CURRENCY_LENGTH = 3;

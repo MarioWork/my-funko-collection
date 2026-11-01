@@ -1,13 +1,8 @@
-import { containsText } from '../../lib/likePatterns.ts';
-import { Prisma } from '../../generated/prisma/client.ts';
-import { toOrderDirection, toSkipTake } from '../../lib/pagination.ts';
-import { deletedIdOrUndefined, prisma, reloadIfUpdated, type DbExecutor } from '../../lib/prisma.ts';
-import type {
-  CollectionSortField,
-  CreateCollection,
-  ListCollectionsQuery,
-  UpdateCollection,
-} from './collections.schema.ts';
+import { containsText } from '../../../lib/likePatterns.ts';
+import { Prisma } from '../../../generated/prisma/client.ts';
+import { toOrderDirection, toSkipTake } from '../../../lib/pagination.ts';
+import { deletedIdOrUndefined, prisma, reloadIfUpdated, type DbExecutor } from '../../../lib/prisma.ts';
+import type { CollectionSortField, CreateCollection, ListCollectionsQuery, UpdateCollection } from './basics.schema.ts';
 
 const COLLECTION_SELECT = {
   id: true,
@@ -83,7 +78,7 @@ async function clearDefault(userId: number, executor: DbExecutor): Promise<void>
   await executor.collection.updateMany({ where: { userId, isDefault: true }, data: { isDefault: false } });
 }
 
-export const collectionsRepository = {
+export const basicsRepository = {
   findById,
 
   list: async (userId: number, query: ListCollectionsQuery) => {

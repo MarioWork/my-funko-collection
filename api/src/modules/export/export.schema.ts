@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { IdParamSchema } from '../../lib/ids.ts';
-import { ITEM_CONDITIONS } from '../collections/items/collectionItems.type.ts';
+import { ITEM_CONDITIONS } from '../collections/collections.type.ts';
 import { FUNKO_TYPES } from '../funkos/funkos.type.ts';
 import { BooleanQuerySchema } from '../../lib/queryParams.ts';
 

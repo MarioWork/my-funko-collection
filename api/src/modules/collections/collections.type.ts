@@ -1,4 +1,4 @@
-// What other modules may import from collection items (node-ts-api §3): the condition list the export reuses, and the
+// What other modules may import from collections (node-ts-api §3): the condition list the export reuses, and the
 // item limits a merge keeps to (submissions/merge/merge.items.ts) so a merged item can still be edited.
 
 // Matches the `ItemCondition` enum in prisma/schema.prisma; the repositories fail to compile if the two drift apart.

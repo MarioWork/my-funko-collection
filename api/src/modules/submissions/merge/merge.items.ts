@@ -1,7 +1,7 @@
 // Merging a submission into a catalogue funko (docs/GLOSSARY.md "Merge"): what becomes of two items of the same
 // funko in one collection, once the submission's item moves onto the catalogue funko. The merge repository runs it
 // inside the merge's transaction; the rule itself lives here, beside the service.
-import { MAX_QUANTITY, MAX_TAGS_PER_ITEM } from '../../collections/items/collectionItems.type.ts';
+import { MAX_QUANTITY, MAX_TAGS_PER_ITEM } from '../../collections/collections.type.ts';
 
 const NOTES_SEPARATOR = '\n\n';
 

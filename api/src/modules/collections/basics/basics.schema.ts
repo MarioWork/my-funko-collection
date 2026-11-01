@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { IdParamSchema } from '../../lib/ids.ts';
-import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
-import { ContainsQuerySchema } from '../../lib/queryParams.ts';
+import { IdParamSchema } from '../../../lib/ids.ts';
+import { PaginationQuerySchema, paginatedResponseSchema } from '../../../lib/pagination.ts';
+import { ContainsQuerySchema } from '../../../lib/queryParams.ts';
 
 export const COLLECTION_NAME_MAX_LENGTH = 100;
 export const COLLECTION_NOTES_MAX_LENGTH = 2000;

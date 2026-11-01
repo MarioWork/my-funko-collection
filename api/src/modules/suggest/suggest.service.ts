@@ -1,7 +1,7 @@
 // The search bar's dropdown. Composes the other modules' services; it owns no table.
 import { DEFAULT_PAGE } from '../../lib/pagination.ts';
 import { getCategories } from '../categories/categories.service.ts';
-import { getCollections } from '../collections/collections.service.ts';
+import { getCollections } from '../collections/basics/basics.service.ts';
 import type { FunkoResponse, FunkoSummary } from '../funkos/funkos.type.ts';
 import { getFunkos } from '../funkos/basics/basics.service.ts';
 import { getSeriesList } from '../series/series.service.ts';
