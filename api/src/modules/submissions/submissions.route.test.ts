@@ -409,7 +409,7 @@ describe('DELETE /users/:userId', () => {
     expect(response.statusCode).toBe(204);
   }
 
-  it('keeps their waiting, approved and merged submissions with no sender, and deletes the rejected ones', async () => {
+  it('keeps their waiting, approved and merged submissions with no sender, and deletes the rejected ones, when an admin deletes the sender', async () => {
     const sender = await createUser('Leaving member');
     const waiting = await createFunko({ status: 'WAITING', submittedById: sender.id });
     const approved = await createFunko({ status: 'APPROVED', submittedById: sender.id });

@@ -19,6 +19,9 @@ function seriesSelect(userId: number) {
   } as const satisfies Prisma.SeriesSelect;
 }
 
+// Where the row stands and who typed it in: what the visibility and usability checks need.
+const ACCESS_SELECT = { status: true, submittedById: true } as const satisfies Prisma.SeriesSelect;
+
 const SORT_FIELD_MAP: Record<SeriesSortField, keyof Prisma.SeriesOrderByWithRelationInput> = {
   NAME: 'name',
   CREATION_DATE: 'createdAt',
@@ -49,7 +52,7 @@ export const seriesRepository = {
   findById,
 
   findAccess: async (id: number) =>
-    (await prisma.series.findUnique({ where: { id }, select: { status: true, submittedById: true } })) ?? undefined,
+    (await prisma.series.findUnique({ where: { id }, select: ACCESS_SELECT })) ?? undefined,
 
   findIdByName: async (name: string, scope: SubmitterScope) =>
     (await prisma.series.findFirst({ where: { name, ...scopeFilter(scope) }, select: ID_SELECT })) ?? undefined,

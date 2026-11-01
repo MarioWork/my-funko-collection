@@ -82,7 +82,9 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   waiting ones never clash (null senders are distinct in the partial indexes). Until approved, a submission's image
   files under `/uploads` are served only to admins and its sender (the uploads plugin's hook asks
   `assertCanSeeImageFiles()`); others get 404. The web mirrors the rule in `useCanEditFunko()` /
-  `assertCanEditFunko()` and the mocks in `mockCatalogueUtils.ts`. Approve / reject / merge is issue #10.
+  `assertCanEditFunko()` and the mocks in `mockCatalogueUtils.ts`. Like `assertOwnTags()`, the cross-module checks
+  `isUsableCategory()` / `isUsableSeries()` (may a funko use it) and `assertCanSeeImageFiles()` (the `/uploads` hook)
+  are named for what they check, not with the get/add/update/delete verbs. Approve / reject / merge is issue #10.
 - Deliberate exceptions to the Node skills for auth (decided 2026-10-23): the check is a global `onRequest` hook in
   `auth.plugin.ts` with server-side cookie sessions, not `@fastify/jwt` + `preHandler: [app.authenticate]`
   (node-ts-api §9); random 256-bit tokens (session, setup code) are stored as plain SHA-256, not argon2 (they can't

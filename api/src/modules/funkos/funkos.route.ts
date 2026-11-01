@@ -89,6 +89,7 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
         response: {
           200: FunkoResponseSchema,
           400: ErrorResponseSchema,
+          403: ErrorResponseSchema,
           404: ErrorResponseSchema,
           409: ErrorResponseSchema,
         },
@@ -106,7 +107,13 @@ export const funkosRoutes: FastifyPluginAsyncZod = async (app) => {
           'Delete a funko and its images (409 while it sits in a collection, unless force=true; a member: only their own waiting submission)',
         params: FunkoParamsSchema,
         querystring: DeleteFunkoQuerySchema,
-        response: { 204: z.undefined(), 400: ErrorResponseSchema, 404: ErrorResponseSchema, 409: ErrorResponseSchema },
+        response: {
+          204: z.undefined(),
+          400: ErrorResponseSchema,
+          403: ErrorResponseSchema,
+          404: ErrorResponseSchema,
+          409: ErrorResponseSchema,
+        },
       },
     },
     async (request, reply) => {
