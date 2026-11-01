@@ -59,10 +59,14 @@ const ALLOWED_WHEN_READ_ONLY = new Set([
 const MIN_READ_ONLY_REFUSED_WRITES = 25;
 // The paths under which every write changes the catalogue, so every write there must be admin-only or a submission
 // route below.
-const CATALOGUE_PATH_PREFIXES = ['/funkos', '/categories', '/series'];
-// Routes only an admin may call: changing a category or series, the images lists and the users. A member gets 403
-// ADMIN_ONLY on these from the route gate, and never on any other route without a funko of the catalogue.
+const CATALOGUE_PATH_PREFIXES = ['/funkos', '/categories', '/series', '/submissions'];
+// Routes only an admin may call: changing a category or series, reviewing submissions, the images lists and the
+// users. A member gets 403 ADMIN_ONLY on these from the route gate, and never on any other route without a funko of
+// the catalogue.
 const ADMIN_ONLY_ROUTES = new Set([
+  'GET /submissions/review',
+  'POST /submissions/{funkoId}/approval',
+  'POST /submissions/{funkoId}/rejection',
   'PATCH /categories/{categoryId}',
   'DELETE /categories/{categoryId}',
   'PATCH /series/{seriesId}',
@@ -79,8 +83,8 @@ const ADMIN_ONLY_ROUTES = new Set([
   'DELETE /users/{userId}',
 ]);
 // Catalogue writes open to members, for their submissions: a member's new funko, category or series waits for an
-// admin, and a member changes only their own waiting funko and its images. The service refuses a funko of the
-// catalogue with the same 403 ADMIN_ONLY (checked below with a body each route accepts).
+// admin, and a member changes (or sends again) only their own waiting or rejected funko and its images. The service
+// refuses a funko of the catalogue with the same 403 ADMIN_ONLY (checked below with a body each route accepts).
 const SUBMISSION_ROUTES = new Set([
   'POST /categories',
   'POST /series',
@@ -92,6 +96,7 @@ const SUBMISSION_ROUTES = new Set([
   'PATCH /funkos/{funkoId}/images/order',
   'POST /funkos/{funkoId}/images/{imageId}/rotate',
   'DELETE /funkos/{funkoId}/images/{imageId}',
+  'POST /submissions/{funkoId}/resubmission',
 ]);
 // The submission routes that change one funko, each with a body it accepts, so the request reaches the service.
 const FUNKO_WRITE_BODIES: Record<string, () => Promise<Pick<InjectOptions, 'payload'>>> = {
@@ -102,6 +107,7 @@ const FUNKO_WRITE_BODIES: Record<string, () => Promise<Pick<InjectOptions, 'payl
   'PATCH /funkos/{funkoId}/images/order': async () => ({ payload: { imageIds: [1] } }),
   'POST /funkos/{funkoId}/images/{imageId}/rotate': async () => ({ payload: { degrees: 90 } }),
   'DELETE /funkos/{funkoId}/images/{imageId}': async () => ({}),
+  'POST /submissions/{funkoId}/resubmission': async () => ({}),
 };
 // The rate limit counts per address: each test speaks from its own, so no test eats another's allowance.
 let addressCounter = 0;

@@ -42,6 +42,11 @@ export const funkoImagesRepository = {
   findFunkoAccess: async (funkoId: number) =>
     (await prisma.funko.findUnique({ where: { id: funkoId }, select: FUNKO_ACCESS_SELECT })) ?? undefined,
 
+  // An admin changed the parent submission's images: its sender is told (written here for the same reason).
+  markFunkoChangedByAdmin: async (funkoId: number): Promise<void> => {
+    await prisma.funko.updateMany({ where: { id: funkoId }, data: { changedByAdminAt: new Date() } });
+  },
+
   listByFunko: (funkoId: number): Promise<FunkoImage[]> =>
     prisma.funkoImage.findMany({ where: { funkoId }, select: IMAGE_SELECT, orderBy: [...POSITION_ORDER] }),
 

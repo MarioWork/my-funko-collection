@@ -1,7 +1,37 @@
-// A member's submissions page. The rows are funkos, so the funkos service reads them; this module owns no table.
-import { getSubmittedFunkos } from '../funkos/funkos.service.ts';
-import type { ListSubmissionsQuery, SubmissionListResponse } from './submissions.type.ts';
+// Submissions: a member's own list, the admins' review list, and approving, rejecting and sending again. The rows
+// are funkos, so the funkos service does the work; this module owns no table.
+import type { SignedInUser } from '../auth/auth.type.ts';
+import {
+  approveSubmission as approveFunkoSubmission,
+  getReviewSubmissions as getFunkoReviewSubmissions,
+  getSubmittedFunkos,
+  rejectSubmission as rejectFunkoSubmission,
+  resendSubmission as resendFunkoSubmission,
+} from '../funkos/funkos.service.ts';
+import type {
+  ListReviewQuery,
+  ListSubmissionsQuery,
+  ReviewSubmissionListResponse,
+  SubmissionListResponse,
+  SubmissionResponse,
+} from './submissions.type.ts';
 
 export async function getSubmissions(userId: number, query: ListSubmissionsQuery): Promise<SubmissionListResponse> {
   return getSubmittedFunkos(userId, query);
+}
+
+export async function getReviewSubmissions(query: ListReviewQuery): Promise<ReviewSubmissionListResponse> {
+  return getFunkoReviewSubmissions(query);
+}
+
+export async function approveSubmission(funkoId: number): Promise<SubmissionResponse> {
+  return approveFunkoSubmission(funkoId);
+}
+
+export async function rejectSubmission(funkoId: number, reason: string): Promise<SubmissionResponse> {
+  return rejectFunkoSubmission(funkoId, reason);
+}
+
+export async function resendSubmission(user: SignedInUser, funkoId: number): Promise<SubmissionResponse> {
+  return resendFunkoSubmission(user, funkoId);
 }

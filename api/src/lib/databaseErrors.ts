@@ -23,6 +23,11 @@ export function getSqlState(error: unknown): string | undefined {
   return typeof originalCode === 'string' ? originalCode : undefined;
 }
 
+// A write a unique index refused: a service that knows which rule it broke answers in its own words.
+export function isUniqueViolation(error: unknown): boolean {
+  return getSqlState(error) === PG_UNIQUE_VIOLATION;
+}
+
 export function getPrismaErrorCode(error: unknown): string | undefined {
   return error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
 }

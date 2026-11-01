@@ -111,6 +111,10 @@ export const FunkoDetailResponseSchema = FunkoResponseSchema.extend({
   // Admins only, on a submission (not approved): who sent it in, or null once that user was deleted (a removed
   // user). Left out otherwise.
   submittedBy: z.object({ id: z.number().int(), name: z.string() }).nullable().optional(),
+  // Admins and the sender only: why an admin rejected it (null unless rejected), and when an admin last changed it
+  // before approving it (null if never). Left out for everyone else.
+  rejectionReason: z.string().nullable().optional(),
+  changedByAdminAt: z.iso.datetime().nullable().optional(),
 }).meta({ id: 'FunkoDetail' });
 
 export const FunkoListResponseSchema = paginatedResponseSchema(FunkoResponseSchema);

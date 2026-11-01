@@ -7,7 +7,9 @@ import { catalogueOf, scopeFilter, type SubmitterScope } from '../../lib/catalog
 import { z } from 'zod';
 import {
   SUBMISSION_STATUSES,
+  type ListReviewQuery,
   type ListSubmissionsQuery,
+  type ReviewState,
   type SubmissionSortField,
   type SubmissionStatus,
 } from '../submissions/submissions.type.ts';
@@ -42,6 +44,30 @@ const SUBMITTER_SELECT = {
   submittedBy: { select: { id: true, name: true } },
 } as const satisfies Prisma.FunkoSelect;
 
+// How a submission's review went, and who sent it in (null for no sender: an admin's funko, or a deleted user's):
+// what the submissions lists and the funko page add.
+const REVIEW_SELECT = {
+  reviewedAt: true,
+  rejectionReason: true,
+  changedByAdminAt: true,
+  ...SUBMITTER_SELECT,
+} as const satisfies Prisma.FunkoSelect;
+
+const SUBMISSION_SELECT = { ...FUNKO_SELECT, ...REVIEW_SELECT } as const satisfies Prisma.FunkoSelect;
+
+// What the double check compares: the barcode, and the number with the category's name.
+const DOUBLE_CANDIDATE_SELECT = {
+  id: true,
+  name: true,
+  number: true,
+  barcode: true,
+  status: true,
+  category: { select: { name: true } },
+} as const satisfies Prisma.FunkoSelect;
+
+// A category's or series' standing and name, to find the approved one of the same name when a submission is approved.
+const REFERENCE_SELECT = { id: true, name: true, status: true } as const;
+
 const PRIMARY_IMAGE_SELECT = {
   funkoId: true,
   fileKey: true,
@@ -72,6 +98,22 @@ export type FunkoRow = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type ReviewColumns = Prisma.FunkoGetPayload<{ select: typeof REVIEW_SELECT }>;
+
+// A funko as the submissions lists show it: the funko, how its review went and who sent it in.
+export type SubmissionRow = FunkoRow & ReviewColumns;
+
+export type DoubleCandidateRow = Prisma.FunkoGetPayload<{ select: typeof DOUBLE_CANDIDATE_SELECT }>;
+
+// What a submission's double check looks for.
+export type DoubleProbe = { id: number; barcode: string | null; number: string; categoryName: string };
+
+// The category and series an approved funko ends up with: its own, or the approved one of the same name.
+export type CatalogueReferences = { categoryId: number; seriesId: number | null };
+
+// A change to a funko: the body, plus when an admin changed someone else's submission.
+export type FunkoChange = UpdateFunko & { changedByAdminAt?: Date };
 
 // A new row: what the body says, plus where it stands (an admin's is APPROVED, a member's a WAITING submission).
 export type NewFunko = Omit<Prisma.FunkoUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>;
@@ -316,6 +358,101 @@ function toRow({ category, series, ...funko }: Prisma.FunkoGetPayload<{ select: 
   return { ...funko, categoryName: category.name, seriesName: series?.name ?? null };
 }
 
+function toSubmissionRow({
+  category,
+  series,
+  ...funko
+}: Prisma.FunkoGetPayload<{ select: typeof SUBMISSION_SELECT }>): SubmissionRow {
+  return { ...funko, categoryName: category.name, seriesName: series?.name ?? null };
+}
+
+type ReviewTab = { where: Prisma.FunkoWhereInput; orderBy: Prisma.FunkoOrderByWithRelationInput[] };
+
+// The review list's tabs: what each holds and in which order.
+const REVIEW_STATE_MAP: Record<ReviewState, ReviewTab> = {
+  WAITING: { where: { status: 'WAITING' }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
+  DONE: {
+    where: { status: { not: 'WAITING' }, reviewedAt: { not: null } },
+    orderBy: [{ reviewedAt: 'desc' }, { id: 'desc' }],
+  },
+};
+
+// Approved and waiting funkos (never rejected or merged ones) with any of the probes' barcodes, or any of their
+// numbers in a category of the same name (any case).
+function doubleCandidatesFilter(probes: DoubleProbe[]): Prisma.FunkoWhereInput {
+  const barcodes = probes.flatMap((probe) => (probe.barcode ? [probe.barcode] : []));
+  const sameNumberAndCategory = probes.map((probe) => ({
+    number: probe.number,
+    category: { name: { equals: probe.categoryName, mode: 'insensitive' as const } },
+  }));
+
+  return {
+    status: { in: ['APPROVED', 'WAITING'] },
+    OR: [{ barcode: { in: barcodes } }, ...sameNumberAndCategory],
+  };
+}
+
+type ReferenceRow = { id: number; name: string; status: SubmissionStatus };
+
+type ApprovedTwinFinder = (name: string) => Promise<{ id: number } | null>;
+
+// An approved reference stays; a waiting one gives way to the approved one of the same name, if there is one.
+async function catalogueReferenceId(reference: ReferenceRow, findApprovedTwin: ApprovedTwinFinder): Promise<number> {
+  if (reference.status === 'APPROVED') return reference.id;
+
+  const twin = await findApprovedTwin(reference.name);
+
+  return twin?.id ?? reference.id;
+}
+
+const findApprovedCategory: ApprovedTwinFinder = (name) =>
+  prisma.category.findFirst({ where: { name, status: 'APPROVED' }, select: ID_SELECT });
+
+const findApprovedSeries: ApprovedTwinFinder = (name) =>
+  prisma.series.findFirst({ where: { name, status: 'APPROVED' }, select: ID_SELECT });
+
+// The one that was left behind when a funko moved from `currentId` to `nextId`, if it moved.
+function leftBehind(currentId: number | null | undefined, nextId: number | null): number | undefined {
+  const hasMoved = currentId !== undefined && currentId !== null && currentId !== nextId;
+
+  return hasMoved ? currentId : undefined;
+}
+
+// Approving, all or nothing: the funko moves to `references`, the waiting category and series it keeps join the
+// catalogue with it, and a waiting one it left for an approved twin goes once no funko uses it.
+async function approveInTransaction(id: number, references: CatalogueReferences): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.funko.findUnique({ where: { id }, select: { categoryId: true, seriesId: true } });
+    const leftCategoryId = leftBehind(current?.categoryId, references.categoryId);
+    const leftSeriesId = leftBehind(current?.seriesId, references.seriesId);
+    const unusedSubmission = { status: { not: 'APPROVED' as const }, funkos: { none: {} } };
+
+    await tx.category.updateMany({
+      where: { id: references.categoryId, status: 'WAITING' },
+      data: { status: 'APPROVED' },
+    });
+
+    if (references.seriesId !== null) {
+      await tx.series.updateMany({
+        where: { id: references.seriesId, status: 'WAITING' },
+        data: { status: 'APPROVED' },
+      });
+    }
+
+    const write = await tx.funko.updateMany({
+      where: { id, status: 'WAITING' },
+      data: { ...references, status: 'APPROVED', reviewedAt: new Date() },
+    });
+
+    if (leftCategoryId !== undefined)
+      await tx.category.deleteMany({ where: { id: leftCategoryId, ...unusedSubmission } });
+
+    if (leftSeriesId !== undefined) await tx.series.deleteMany({ where: { id: leftSeriesId, ...unusedSubmission } });
+
+    return write.count > 0;
+  });
+}
+
 async function findRow(where: Prisma.FunkoWhereInput): Promise<FunkoRow | undefined> {
   const funko = await prisma.funko.findFirst({ where, select: FUNKO_SELECT, orderBy: { id: 'asc' } });
 
@@ -338,16 +475,6 @@ function groupByFunkoId<Row extends { funkoId: number }>(rows: Row[]): Map<numbe
 export const funkosRepository = {
   findById: (id: number): Promise<FunkoRow | undefined> => findRow({ id }),
 
-  // Who sent the funko in, or null for no sender (an admin's funko, or a deleted user's).
-  findSubmitter: async (funkoId: number): Promise<{ id: number; name: string } | null> => {
-    const funko = await prisma.funko.findUnique({
-      where: { id: funkoId },
-      select: SUBMITTER_SELECT,
-    });
-
-    return funko?.submittedBy ?? null;
-  },
-
   findManyByIds: async (ids: number[]): Promise<FunkoRow[]> => {
     if (ids.length === 0) return [];
 
@@ -366,11 +493,21 @@ export const funkosRepository = {
   findIdByIdentity: async (identity: FunkoIdentity, scope: SubmitterScope) =>
     (await prisma.funko.findFirst({ where: { ...identity, ...scopeFilter(scope) }, select: ID_SELECT })) ?? undefined,
 
+  // How the funko's review went and who sent it in.
+  findReview: async (funkoId: number): Promise<ReviewColumns | undefined> =>
+    (await prisma.funko.findUnique({ where: { id: funkoId }, select: REVIEW_SELECT })) ?? undefined,
+
+  findSubmission: async (funkoId: number): Promise<SubmissionRow | undefined> => {
+    const funko = await prisma.funko.findUnique({ where: { id: funkoId }, select: SUBMISSION_SELECT });
+
+    return funko ? toSubmissionRow(funko) : undefined;
+  },
+
   // What one user sent in, with an optional status.
   listSubmissions: async (
     userId: number,
     query: ListSubmissionsQuery,
-  ): Promise<{ data: FunkoRow[]; totalResultNumber: number }> => {
+  ): Promise<{ data: SubmissionRow[]; totalResultNumber: number }> => {
     const where: Prisma.FunkoWhereInput = { submittedById: userId, status: query.status };
     const sortField = SUBMISSION_SORT_MAP[query.sorting_fields];
     const direction = toOrderDirection(query.direction);
@@ -378,14 +515,54 @@ export const funkosRepository = {
     const [rows, totalResultNumber] = await prisma.$transaction([
       prisma.funko.findMany({
         where,
-        select: FUNKO_SELECT,
+        select: SUBMISSION_SELECT,
         orderBy: [{ [sortField]: direction }, { id: 'asc' }],
         ...toSkipTake(query),
       }),
       prisma.funko.count({ where }),
     ]);
 
-    return { data: rows.map(toRow), totalResultNumber };
+    return { data: rows.map(toSubmissionRow), totalResultNumber };
+  },
+
+  // Every member's submissions, for the admins: the waiting ones, or the reviewed ones.
+  listForReview: async (query: ListReviewQuery): Promise<{ data: SubmissionRow[]; totalResultNumber: number }> => {
+    const { where, orderBy } = REVIEW_STATE_MAP[query.state];
+
+    const [rows, totalResultNumber] = await prisma.$transaction([
+      prisma.funko.findMany({ where, select: SUBMISSION_SELECT, orderBy, ...toSkipTake(query) }),
+      prisma.funko.count({ where }),
+    ]);
+
+    return { data: rows.map(toSubmissionRow), totalResultNumber };
+  },
+
+  // Every approved or waiting funko that shares a barcode, or a number and category name, with one of the probes
+  // (the probes themselves included: the caller leaves each one's own row out).
+  findDoubleCandidates: async (probes: DoubleProbe[]): Promise<DoubleCandidateRow[]> => {
+    if (probes.length === 0) return [];
+
+    return prisma.funko.findMany({
+      where: doubleCandidatesFilter(probes),
+      select: DOUBLE_CANDIDATE_SELECT,
+      orderBy: { id: 'asc' },
+    });
+  },
+
+  // The category and series the funko would have in the catalogue: its own approved ones, or for a waiting one the
+  // approved one of the same name (an admin may have added it meanwhile), else the waiting one itself.
+  findCatalogueReferences: async (funkoId: number): Promise<CatalogueReferences | undefined> => {
+    const funko = await prisma.funko.findUnique({
+      where: { id: funkoId },
+      select: { category: { select: REFERENCE_SELECT }, series: { select: REFERENCE_SELECT } },
+    });
+
+    if (!funko) return undefined;
+
+    return {
+      categoryId: await catalogueReferenceId(funko.category, findApprovedCategory),
+      seriesId: funko.series ? await catalogueReferenceId(funko.series, findApprovedSeries) : null,
+    };
   },
 
   list: async (
@@ -463,12 +640,35 @@ export const funkosRepository = {
 
   create: async (data: NewFunko): Promise<FunkoRow> => toRow(await prisma.funko.create({ data, select: FUNKO_SELECT })),
 
-  update: async (id: number, data: UpdateFunko): Promise<FunkoRow | undefined> => {
+  update: async (id: number, data: FunkoChange): Promise<FunkoRow | undefined> => {
     const write = await prisma.funko.updateMany({ where: { id }, data });
 
     return reloadIfUpdated(write, () => findRow({ id }));
   },
 
+  // Only a waiting funko is approved (false otherwise). A unique index the catalogue now holds the funko, category or
+  // series against throws 23505, and nothing changes.
+  approve: approveInTransaction,
+
+  // Only a waiting funko is rejected; its waiting category and series stay its sender's.
+  reject: async (id: number, rejectionReason: string): Promise<FunkoRow | undefined> => {
+    const write = await prisma.funko.updateMany({
+      where: { id, status: 'WAITING' },
+      data: { status: 'REJECTED', rejectionReason, reviewedAt: new Date() },
+    });
+
+    return reloadIfUpdated(write, () => findRow({ id }));
+  },
+
+  // Only a rejected funko is sent again: it waits once more, without the reason.
+  resend: async (id: number): Promise<FunkoRow | undefined> => {
+    const write = await prisma.funko.updateMany({
+      where: { id, status: 'REJECTED' },
+      data: { status: 'WAITING', rejectionReason: null },
+    });
+
+    return reloadIfUpdated(write, () => findRow({ id }));
+  },
   delete: async (id: number): Promise<{ id: number } | undefined> => {
     const write = await prisma.funko.deleteMany({ where: { id } });
 

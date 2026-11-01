@@ -119,28 +119,36 @@ model Series {
 // One figure in the catalog. Numbers repeat across lines, and the same number exists as a normal, a chase and a
 // sticker exclusive, so the natural key is (category, number, name, isChase, exclusive).
 model Funko {
-  id            Int              @id @default(autoincrement())
-  name          String
+  id               Int              @id @default(autoincrement())
+  name             String
   // Text on purpose: boxes carry "01", "1300" and "SE".
-  number        String
-  type          FunkoType        @default(POP)
-  categoryId    Int              @map("category_id")
+  number           String
+  type             FunkoType        @default(POP)
+  categoryId       Int              @map("category_id")
   // Optional: the series it belongs to. Deleting the series clears it here.
-  seriesId      Int?             @map("series_id")
-  isChase       Boolean          @default(false) @map("is_chase")
+  seriesId         Int?             @map("series_id")
+  isChase          Boolean          @default(false) @map("is_chase")
   // "SDCC 2024", "Hot Topic"; empty string means a regular release (not null, so it can be part of a unique index).
-  exclusive     String           @default("")
+  exclusive        String           @default("")
   // The UPC/EAN printed on the box, when known, in its 13-digit form. Many funkos may have none. Unique in the
   // approved catalogue and among one member's waiting submissions (partial indexes in the migration), so two members
   // may each send in the same box.
-  barcode       String?
+  barcode          String?
   // APPROVED: in the catalogue for everyone. Anything else: a submission only its sender (and admins) can see.
-  status        SubmissionStatus @default(APPROVED)
+  status           SubmissionStatus @default(APPROVED)
   // The member who sent it in; null for a funko an admin added, or once that user is deleted (a removed user): a
   // trigger in the migration deletes their rejected ones, the rest (waiting, approved, merged) stay with this null.
-  submittedById Int?             @map("submitted_by_id")
-  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  submittedById    Int?             @map("submitted_by_id")
+  // When an admin approved or rejected it (null while it was never reviewed, and for an admin's own funko). Kept
+  // when the sender sends a rejected one in again, so the waiting list can say it was reviewed before.
+  reviewedAt       DateTime?        @map("reviewed_at") @db.Timestamptz(3)
+  // Why an admin rejected it, shown to its sender. Set only while REJECTED (a check in the migration).
+  rejectionReason  String?          @map("rejection_reason")
+  // The last time an admin changed this submission (its fields or images) while it was not approved, so its sender
+  // reads that it is not quite what they sent.
+  changedByAdminAt DateTime?        @map("changed_by_admin_at") @db.Timestamptz(3)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   category        Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   series          Series?          @relation(fields: [seriesId], references: [id], onDelete: SetNull)
