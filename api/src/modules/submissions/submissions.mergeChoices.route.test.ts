@@ -83,7 +83,7 @@ describe('POST /submissions/:funkoId/merge with picked fields', () => {
     expect(await funkoOf(target.id)).toMatchObject({ name: 'Thanos', number: '289', exclusive: '' });
   });
 
-  it('copies the text, type and chase fields picked from the submission onto the original', async () => {
+  it('copies the text, type and chase fields onto the original when they are picked from the submission', async () => {
     const target = await createFunko({ name: 'Thanos', number: '289', type: 'POP', isChase: false, exclusive: '' });
     const submission = await waitingSubmission({
       name: 'Thanos (Endgame)',
@@ -108,7 +108,7 @@ describe('POST /submissions/:funkoId/merge with picked fields', () => {
     });
   });
 
-  it('leaves the submission as its sender sent it, as a record', async () => {
+  it('leaves the submission as its sender sent it when the original takes its name', async () => {
     const target = await createFunko({ name: 'Thanos' });
     const submission = await waitingSubmission({ name: 'Thanos (Endgame)' });
 
@@ -185,7 +185,7 @@ describe('POST /submissions/:funkoId/merge with picked fields', () => {
 });
 
 describe('POST /submissions/:funkoId/merge with a picked category or series', () => {
-  it('moves the original into the submission’s approved category and series', async () => {
+  it('moves the original into the submission’s category and series when both are picked and approved', async () => {
     const category = await createCategory('Pop! Star Wars');
     const series = await createSeries('The Mandalorian');
     const target = await createFunko({ name: 'Grogu' });
@@ -199,7 +199,7 @@ describe('POST /submissions/:funkoId/merge with a picked category or series', ()
     });
   });
 
-  it('brings a waiting category and series of the submission into the catalogue, as approval does', async () => {
+  it('brings the submission’s category and series into the catalogue, as approval does, when they are waiting and picked', async () => {
     const category = await createCategory('Pop! Anime', { status: 'WAITING', submittedById: member.userId });
     const series = await createSeries('Frieren', { status: 'WAITING', submittedById: member.userId });
     const target = await createFunko({ name: 'Frieren' });
@@ -260,7 +260,7 @@ describe('POST /submissions/:funkoId/merge with picked images', () => {
     expect((await funkoOf(submission.id)).images.map(({ id }) => id)).toEqual([sent.id]);
   });
 
-  it('moves a picked submission image onto the original, after its own, with its files', async () => {
+  it('moves a submission image and its files onto the original, after its own, when it is picked', async () => {
     const target = await createFunko();
     const submission = await waitingSubmission();
     const original = await uploadImage(admin, target.id, '#aa0000');
@@ -278,7 +278,7 @@ describe('POST /submissions/:funkoId/merge with picked images', () => {
     expect((await funkoOf(submission.id)).images).toEqual([]);
   });
 
-  it('keeps the uploader of a moved image, so the Images page still names the member', async () => {
+  it('still names the member as the uploader on the Images page when their image moved', async () => {
     const target = await createFunko();
     const submission = await waitingSubmission();
     const sent = await uploadImage(member, submission.id, '#00aa00');
@@ -296,7 +296,7 @@ describe('POST /submissions/:funkoId/merge with picked images', () => {
     );
   });
 
-  it('shows a moved image to every user, now that it is a catalogue image', async () => {
+  it('shows the image to every user when it moved onto a catalogue funko', async () => {
     const target = await createFunko();
     const submission = await waitingSubmission();
     const sent = await uploadImage(member, submission.id, '#00aa00');
@@ -309,7 +309,7 @@ describe('POST /submissions/:funkoId/merge with picked images', () => {
     expect(response.statusCode).toBe(200);
   });
 
-  it('removes an original image the admin unticked, with its files', async () => {
+  it('removes an original image and its files when the admin unticked it', async () => {
     const target = await createFunko();
     const submission = await waitingSubmission();
     const kept = await uploadImage(admin, target.id, '#aa0000');
