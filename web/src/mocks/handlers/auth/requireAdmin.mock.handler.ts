@@ -31,6 +31,7 @@ const ADMIN_ONLY_ROUTES: AdminOnlyRoute[] = [
   { method: HttpVerbsUtil.GET, path: '/submissions/review' },
   { method: HttpVerbsUtil.POST, path: '/submissions/:funkoId/approval' },
   { method: HttpVerbsUtil.POST, path: '/submissions/:funkoId/rejection' },
+  { method: HttpVerbsUtil.POST, path: '/submissions/:funkoId/merge' },
   { method: HttpVerbsUtil.PATCH, path: '/categories/:categoryId' },
   { method: HttpVerbsUtil.DELETE, path: '/categories/:categoryId' },
   { method: HttpVerbsUtil.PATCH, path: '/series/:seriesId' },

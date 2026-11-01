@@ -132,13 +132,27 @@ export function senderOf(row: MockFunkoRow): NamedApiModel | null {
   return sender ? { id: sender.id, name: sender.name } : null;
 }
 
+// The catalogue funko a merged submission went into, by id and name; null when it was not merged (or that funko is
+// gone).
+export function mergedIntoOf(row: MockFunkoRow): NamedApiModel | null {
+  const target = mockStore.funkos.find((funko) => funko.id === row.mergedIntoId);
+
+  return target ? { id: target.id, name: target.name } : null;
+}
+
+type ReviewDetails = Pick<FunkoDetailApiModel, 'rejectionReason' | 'changedByAdminAt' | 'mergedInto'>;
+
 // How a submission's review went, for an admin and its sender only, as the API answers it.
-function reviewDetailsOf(row: MockFunkoRow): Pick<FunkoDetailApiModel, 'rejectionReason' | 'changedByAdminAt'> {
+function reviewDetailsOf(row: MockFunkoRow): ReviewDetails {
   const canKnow = isMockAdmin() || isSubmittedByMockUser(row);
 
   if (!canKnow) return {};
 
-  return { rejectionReason: row.rejectionReason, changedByAdminAt: row.changedByAdminAt };
+  return {
+    rejectionReason: row.rejectionReason,
+    changedByAdminAt: row.changedByAdminAt,
+    mergedInto: mergedIntoOf(row),
+  };
 }
 
 export function toFunkoDetail(row: MockFunkoRow): FunkoDetailApiModel {

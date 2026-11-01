@@ -355,9 +355,9 @@ const submissionRows = await prisma.funko.createManyAndReturn({
   select: NAME_SELECT,
 });
 
-// What the submissions above would have told people: every admin heard of each one sent in (the oldest already read),
-// the sender of the rejected one heard why, and the sender of the merged one heard where it went; han also heard of
-// REMOVED_FUNKO. Mirrors web/src/mocks/mockSeed.ts.
+// What the submissions above would have told people: every admin heard of each one sent in (the oldest and the merged
+// one already read), the sender of the rejected one heard why, and the sender of the merged one heard where it went;
+// han also heard of REMOVED_FUNKO. Mirrors web/src/mocks/mockSeed.ts.
 const submissionIds = new Map(submissionRows.map((row) => [row.name, row.id]));
 const adminRows = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
 const notificationRows = await prisma.notification.createManyAndReturn({
@@ -368,7 +368,7 @@ const notificationRows = await prisma.notification.createManyAndReturn({
       userId: admin.id,
       kind: 'SUBMISSION_SENT' as const,
       ...funko,
-      readAt: index === 0 ? sentAt : null,
+      readAt: index === 0 || submission.mergedInto !== undefined ? sentAt : null,
       createdAt: sentAt,
     }));
 

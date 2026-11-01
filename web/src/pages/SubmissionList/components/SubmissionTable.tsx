@@ -25,7 +25,7 @@ type RowProps = {
 const THUMB_SIZES = '40px';
 
 // The funko's name links to its page, where a waiting or rejected one can still be edited or deleted. The state is a
-// chip in words, with why it was rejected and whether an admin changed it; a rejected one can be sent again here.
+// chip in words, with why it was rejected (or what it was merged into) and whether an admin changed it; a rejected one can be sent again here.
 function SubmissionTableRow({ submission, resendActions }: RowProps) {
   const isRejected = submission.status === SubmissionStatusUtil.REJECTED;
   const { busyId, isBusy, resend, failureOf } = resendActions;
@@ -45,6 +45,7 @@ function SubmissionTableRow({ submission, resendActions }: RowProps) {
         <SubmissionReviewNotes
           rejectionReason={submission.rejectionReason}
           changedByAdminAt={submission.changedByAdminAt}
+          mergedInto={submission.mergedInto}
         />
       </TableCell>
       <TableCell className="whitespace-normal">

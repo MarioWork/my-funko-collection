@@ -10,7 +10,7 @@ import {
   type ResponseWithPaginationUtil,
   type SubmissionStatusUtil,
 } from '@app-types/utility';
-import type { RejectSubmission } from './submissionService.type';
+import type { MergeSubmission, RejectSubmission } from './submissionService.type';
 
 const BASE_SUBMISSIONS_URL = '/submissions';
 const REVIEW_SUBMISSIONS_URL = `${BASE_SUBMISSIONS_URL}/review`;
@@ -59,6 +59,14 @@ export default {
   rejectSubmission: async (id: SubmissionId, fields: RejectSubmission): Promise<JSONResponseUtil<SubmissionApiModel>> =>
     axiosActions<SubmissionApiModel>({
       url: `${BASE_SUBMISSIONS_URL}/${id}/rejection`,
+      method: HttpVerbsUtil.POST,
+      data: fields,
+    }),
+
+  // Admins only: the sender's items move onto a catalogue funko and the submission reads as merged into it.
+  mergeSubmission: async (id: SubmissionId, fields: MergeSubmission): Promise<JSONResponseUtil<SubmissionApiModel>> =>
+    axiosActions<SubmissionApiModel>({
+      url: `${BASE_SUBMISSIONS_URL}/${id}/merge`,
       method: HttpVerbsUtil.POST,
       data: fields,
     }),

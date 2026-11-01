@@ -12,4 +12,6 @@ export interface FunkoDetailApiModel extends FunkoApiModel {
   changedByAdminAt?: string | null;
   // Admins only: how many users have it in a collection (never who), for deleting it. Left out for members.
   userCount?: number;
+  // Admins and the sender only, on a merged submission: the catalogue funko it went into (null otherwise).
+  mergedInto?: NamedApiModel | null;
 }

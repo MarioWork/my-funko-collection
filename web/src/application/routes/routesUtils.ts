@@ -89,6 +89,8 @@ export const SUBMISSION_ROUTES_PATHS = {
     funkoId ? `/submissions/review/${funkoId}/approval` : '/submissions/review/:funkoId/approval',
   reject: (funkoId?: string) =>
     funkoId ? `/submissions/review/${funkoId}/rejection` : '/submissions/review/:funkoId/rejection',
+  merge: (funkoId?: string) =>
+    funkoId ? `/submissions/review/${funkoId}/merge` : '/submissions/review/:funkoId/merge',
   resend: (funkoId?: string) =>
     funkoId ? `/submissions/${funkoId}/resubmission` : '/submissions/:funkoId/resubmission',
 };

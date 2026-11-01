@@ -106,6 +106,36 @@ describe('rejectSubmission', () => {
   });
 });
 
+describe('mergeSubmission', () => {
+  it('posts the target to the submission’s merge and returns it merged', async () => {
+    let received: ReceivedRequest | undefined;
+    server.use(
+      http.post(`${TEST_BASE_API_URL}/submissions/:funkoId/merge`, async ({ request, params }) => {
+        received = { path: String(params.funkoId), body: await request.json() };
+
+        return HttpResponse.json({ id: 7, status: SubmissionStatusUtil.MERGED, mergedInto: { id: 3, name: 'Grogu' } });
+      }),
+    );
+
+    const result = await submissionService.mergeSubmission(7, { targetFunkoId: 3 });
+
+    expect(received).toEqual({ path: '7', body: { targetFunkoId: 3 } });
+    expect(result).toMatchObject({ success: true, data: { status: SubmissionStatusUtil.MERGED } });
+  });
+
+  it('returns the failure envelope when the target is not in the catalogue', async () => {
+    server.use(
+      http.post(`${TEST_BASE_API_URL}/submissions/:funkoId/merge`, () =>
+        HttpResponse.json({ code: 'BAD_REQUEST', message: 'Funko 3 is not in the catalogue' }, { status: 400 }),
+      ),
+    );
+
+    const result = await submissionService.mergeSubmission(7, { targetFunkoId: 3 });
+
+    expect(result).toMatchObject({ success: false, error: { statusCode: 400 } });
+  });
+});
+
 describe('resendSubmission', () => {
   it('posts to the submission’s resubmission and returns it waiting', async () => {
     let receivedPath = '';
