@@ -90,6 +90,11 @@ export const PasswordSignInSchema = z.strictObject({
   password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
 });
 
+// Confirming it's you: only the signed-in user's password, never a username (the session says whose it must be).
+export const ConfirmPasswordSchema = z.strictObject({
+  password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
+});
+
 export const SetPasswordSchema = z.strictObject({
   username: UsernameSchema,
   password: NewPasswordSchema,
@@ -146,6 +151,7 @@ export type SetupOptions = z.infer<typeof SetupOptionsSchema>;
 export type SetupVerify = z.infer<typeof SetupVerifySchema>;
 export type SignInVerify = z.infer<typeof SignInVerifySchema>;
 export type PasswordSignIn = z.infer<typeof PasswordSignInSchema>;
+export type ConfirmPassword = z.infer<typeof ConfirmPasswordSchema>;
 export type SetPassword = z.infer<typeof SetPasswordSchema>;
 export type AddPasskeyVerify = z.infer<typeof AddPasskeyVerifySchema>;
 export type AuthStatusResponse = z.infer<typeof AuthStatusResponseSchema>;
