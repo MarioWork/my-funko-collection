@@ -146,6 +146,10 @@ _Avoid_: Login, key
 A user proved it's them within the last 10 minutes, with a passkey or their password. Only risky actions need one: passkeys, passwords and managing users.
 _Avoid_: Reauth, fresh sign-in, re-login
 
+**Persona**:
+A seeded user who shows one set of screens, only in development: an admin, a member, a read-only one of each, a new user with a temporary password, the last admin. They exist in the mock data and in a locally seeded database, all with the same dev password.
+_Avoid_: Test user, demo account, fake user
+
 **Setup link**:
 A one-time link, printed by the server, that lets the first admin sign in for the first time, or after every admin is locked out.
 _Avoid_: Invite, reset link

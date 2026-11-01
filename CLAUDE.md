@@ -165,7 +165,7 @@ yarn dev            # applies pending migrations, then http://localhost:3000, Op
 yarn test           # Vitest: a copy of a migrated template db + temp uploads folder per test file
 yarn typecheck && yarn lint && yarn test   # the definition of green
 yarn db:migrate     # prisma migrate dev: apply, or --name=<change> after a schema edit (commit prisma/)
-yarn db:seed        # example data with placeholder images, members luke and han (no sign-in) and their submissions
+yarn db:seed        # example data with placeholder images, the seeded users (password funko-dev-password-123), luke and han
 yarn images:prune   # delete image files no row references
 yarn auth:reset      # locked out: remove every passkey, password and session (users stay), print a new setup link
 ```
@@ -174,7 +174,9 @@ Inside `web/`:
 
 ```
 yarn dev                         # http://localhost:5173/home, real API on :3000 (VITE_USE_MOCKS=true for MSW mocks)
+yarn dev:mocks                   # mocks as leia; dev:member, dev:read-only, dev:read-only-admin, dev:new-user, dev:last-admin
 yarn tsc -b && yarn lint && yarn test && yarn test-e2e   # the definition of green (e2e starts its own dev server on 5199, desktop + phone)
+yarn build                       # also fails when dist/ holds anything dev-only (scripts/checkProductionBundle.ts)
 yarn dlx shadcn@latest add <component>                   # vendors into src/common/components/ui/ (root tsconfig holds the paths)
 ```
 
@@ -238,3 +240,15 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   Vitest test and before each Playwright test. Handlers read and write that store, so mocks behave like a database;
   there are no per-handler `create*MockModel` factories (decided 2026-10-23, overriding the mocks skill here).
   `yarn dev:big` adds 300 generated funkos (`VITE_MOCK_EXTRA_FUNKOS`), never in tests.
+- Personas (issue #38, `docs/GLOSSARY.md`): seeded users who each show one set of UI states, the same usernames in
+  the mocks (`mockUsers.ts`, `mockPersonas.ts`, `VITE_MOCK_PERSONA` / `yarn dev:<persona>`) and in `yarn db:seed`
+  (`api/prisma/seed.ts`): leia (admin, the last one who can write on a fresh db), rey (member, submissions in every
+  state), poe (read-only member), lando (read-only admin), finn (temporary password); all sign in with
+  `funko-dev-password-123` (`@utils/devPasswordUtils`, `@utils/devSignInUtils`; keep the three lists in step).
+  The mock store signs in by `auth.userId`; tests and e2e still start as Mario (`MOCK_USER_ID`) with his data.
+- The dev sign-in picker and "Development mode" banner on the sign-in page exist only under `import.meta.env.DEV`.
+  The picker fills the normal password form and submits it (the password route, never a bypass, no new api
+  route). Mock code that needs the dev password reads it as `import.meta.env === undefined || import.meta.env.DEV ?
+  ... : null`, written inline so a build folds it away (Playwright loads the mocks with no `import.meta.env`).
+  `yarn build` ends with `scripts/checkProductionBundle.ts` (Yarn 4 runs no `pre`/`post` hooks), which fails any
+  build (Docker image, demo) that still holds them or the dev password.
