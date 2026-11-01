@@ -1,3 +1,4 @@
+import { isRestrictViolation } from '../../lib/databaseErrors.ts';
 import { ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
 import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
@@ -12,6 +13,7 @@ import type {
 } from './series.schema.ts';
 
 const ENTITY = 'Series';
+const IN_USE_MESSAGE = 'Funkos still use this series. Move them to another series first';
 
 type SeriesAccess = { status: SubmissionStatus; submittedById: number | null };
 
@@ -85,11 +87,22 @@ export async function updateSeries(user: SignedInUser, id: number, data: UpdateS
   return toResponse(row);
 }
 
-// Unlike a category, a series is optional on a funko: the FK sets their seriesId to null, so this never answers 409.
+// Every funko has a series, so one that funkos use (any funko: approved, waiting, rejected or merged) is refused
+// by the database (`onDelete: Restrict`), answered here in words.
 export async function deleteSeries(id: number): Promise<void> {
-  const deleted = await seriesRepository.delete(id);
+  const deleted = await deleteOrExplain(id);
 
   if (!deleted) throw new NotFoundError(ENTITY, id);
+}
+
+async function deleteOrExplain(id: number): Promise<{ id: number } | undefined> {
+  try {
+    return await seriesRepository.delete(id);
+  } catch (error: unknown) {
+    if (isRestrictViolation(error)) throw new ConflictError(IN_USE_MESSAGE);
+
+    throw error;
+  }
 }
 
 // For funkos: whether a funko sent in by `submitterId` may have this series. Every funko may use an approved

@@ -6,6 +6,7 @@ import { resetTestDb } from '../../testDb.ts';
 import {
   createCategory,
   createFunko,
+  createSeries,
   createUser,
   deleteUser,
   type SignedInClient,
@@ -58,10 +59,11 @@ async function unreadCountOf(client: SignedInClient): Promise<number> {
 
 async function sendIn(client: SignedInClient, name = 'Thanos'): Promise<number> {
   const category = await createCategory();
+  const series = await createSeries();
   const response = await client.inject({
     method: 'POST',
     url: '/funkos',
-    payload: { name, number: '78', categoryId: category.id },
+    payload: { name, number: '78', categoryId: category.id, seriesId: series.id },
   });
 
   return response.json<{ id: number }>().id;

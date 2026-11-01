@@ -13,7 +13,7 @@ type SeedFunko = {
   name: string;
   number: string;
   category: string;
-  series?: string;
+  series: string;
   type?: FunkoType;
   isChase?: boolean;
   exclusive?: string;
@@ -25,6 +25,7 @@ type SeedSubmission = {
   name: string;
   number: string;
   category: string;
+  series: string;
   sender: string;
   rejectionReason?: string;
   // The catalogue funko (by name, the regular one) an admin merged it into.
@@ -42,7 +43,34 @@ type SeedItem = {
 };
 
 const CATEGORY_NAMES = ['Pop! Marvel', 'Pop! Television', 'Pop! Star Wars', 'Pop! Animation', 'Pop! Games'];
-const SERIES_NAMES = ['Daredevil: Born Again', 'The Mandalorian', 'Stranger Things'];
+// Every funko has one. Mirrors web/src/mocks/mockSeed.ts, in the same order.
+const SERIES_NAMES = [
+  'Daredevil: Born Again',
+  'The Mandalorian',
+  'Stranger Things',
+  'Spider-Man',
+  'Iron Man',
+  'Captain America',
+  'Deadpool',
+  'Avengers: Infinity War',
+  'Guardians of the Galaxy',
+  'Breaking Bad',
+  'Star Wars',
+  'Star Wars: The Clone Wars',
+  'Dragon Ball Z',
+  'Naruto Shippuden',
+  'One Piece',
+  'Demon Slayer',
+  'Rick and Morty',
+  'The Legend of Zelda',
+  'Super Mario',
+  'Pokémon',
+  'Halo',
+  'God of War',
+  'Bluey',
+  'Wednesday',
+  'My Neighbor Totoro',
+];
 // Every user has "Owned" and "Wishlist" from the moment they exist (a trigger in the collections_per_user
 // migration): the seed keeps them and only fills the first user's.
 const OWNED_COLLECTION_NAME = 'Owned';
@@ -54,16 +82,36 @@ const HOUR_MS = 60 * 60 * 1000;
 // sign in as them. Found by username, so seeding again keeps them (and their collections).
 const SEED_MEMBER_USERNAMES = ['luke', 'han'];
 const SUBMISSIONS: SeedSubmission[] = [
-  { name: 'Thanos (Infinity Gauntlet)', number: '78', category: 'Pop! Marvel', sender: 'luke' },
-  { name: 'Mandalorian with Grogu', number: '402', category: 'Pop! Star Wars', sender: 'han' },
+  {
+    name: 'Thanos (Infinity Gauntlet)',
+    number: '78',
+    category: 'Pop! Marvel',
+    series: 'Avengers: Infinity War',
+    sender: 'luke',
+  },
+  {
+    name: 'Mandalorian with Grogu',
+    number: '402',
+    category: 'Pop! Star Wars',
+    series: 'The Mandalorian',
+    sender: 'han',
+  },
   {
     name: 'Bluey',
     number: '1235',
     category: 'Pop! Animation',
+    series: 'Bluey',
     sender: 'luke',
     rejectionReason: 'The photo is from a shop listing. Please add a photo of your own box.',
   },
-  { name: 'Baby Yoda', number: '368', category: 'Pop! Star Wars', sender: 'han', mergedInto: 'Grogu' },
+  {
+    name: 'Baby Yoda',
+    number: '368',
+    category: 'Pop! Star Wars',
+    series: 'The Mandalorian',
+    sender: 'han',
+    mergedInto: 'Grogu',
+  },
 ];
 
 // A funko an admin already removed from the catalogue while han had it: only his notification is left of it.
@@ -106,6 +154,7 @@ type SeedPersonaSubmission = {
   name: string;
   number: string;
   category: string;
+  series: string;
   sender: string | null;
   status: NonNullable<Prisma.FunkoCreateManyInput['status']>;
   rejectionReason?: string;
@@ -118,12 +167,28 @@ type SeedPersonaSubmission = {
 const STEVE_REJECTION = 'The number on the box is 1300, not 1030. Please check it.';
 const HOPPER_REJECTION = 'This one is a Walmart exclusive. Please add the store.';
 const PERSONA_SUBMISSIONS: SeedPersonaSubmission[] = [
-  { name: 'Rey with Lightsaber', number: '307', category: 'Pop! Star Wars', sender: 'rey', status: 'WAITING' },
-  { name: 'BB-8', number: '61', category: 'Pop! Star Wars', sender: 'rey', status: 'WAITING', isResent: true },
+  {
+    name: 'Rey with Lightsaber',
+    number: '307',
+    category: 'Pop! Star Wars',
+    series: 'Star Wars',
+    sender: 'rey',
+    status: 'WAITING',
+  },
+  {
+    name: 'BB-8',
+    number: '61',
+    category: 'Pop! Star Wars',
+    series: 'Star Wars',
+    sender: 'rey',
+    status: 'WAITING',
+    isResent: true,
+  },
   {
     name: 'Steve Harrington',
     number: '1300',
     category: 'Pop! Television',
+    series: 'Stranger Things',
     sender: 'rey',
     status: 'REJECTED',
     rejectionReason: STEVE_REJECTION,
@@ -132,6 +197,7 @@ const PERSONA_SUBMISSIONS: SeedPersonaSubmission[] = [
     name: 'Jim Hopper',
     number: '1241',
     category: 'Pop! Television',
+    series: 'Stranger Things',
     sender: 'rey',
     status: 'REJECTED',
     rejectionReason: HOPPER_REJECTION,
@@ -141,12 +207,27 @@ const PERSONA_SUBMISSIONS: SeedPersonaSubmission[] = [
     name: 'Darth Vader (Classic)',
     number: '01',
     category: 'Pop! Star Wars',
+    series: 'Star Wars',
     sender: 'rey',
     status: 'MERGED',
     mergedInto: 'Darth Vader',
   },
-  { name: 'Wednesday Addams', number: '1309', category: 'Pop! Television', sender: 'rey', status: 'APPROVED' },
-  { name: 'Totoro', number: '1000', category: 'Pop! Animation', sender: null, status: 'WAITING' },
+  {
+    name: 'Wednesday Addams',
+    number: '1309',
+    category: 'Pop! Television',
+    series: 'Wednesday',
+    sender: 'rey',
+    status: 'APPROVED',
+  },
+  {
+    name: 'Totoro',
+    number: '1000',
+    category: 'Pop! Animation',
+    series: 'My Neighbor Totoro',
+    sender: null,
+    status: 'WAITING',
+  },
 ];
 
 // Every notification kind, read and unread, for leia and lando ("admins") and for rey. An admin's approved, rejected
@@ -216,38 +297,50 @@ const PERSONA_ITEMS: SeedPersonaItem[] = [
 
 // Example catalog rows; numbers are illustrative, not a price guide.
 const FUNKOS: SeedFunko[] = [
-  { name: 'Spider-Man', number: '03', category: 'Pop! Marvel' },
-  { name: 'Iron Man', number: '04', category: 'Pop! Marvel' },
-  { name: 'Captain America', number: '06', category: 'Pop! Marvel' },
-  { name: 'Deadpool', number: '20', category: 'Pop! Marvel' },
-  { name: 'Thanos', number: '78', category: 'Pop! Marvel' },
-  { name: 'Thanos', number: '78', category: 'Pop! Marvel', isChase: true },
-  { name: 'Groot', number: '1203', category: 'Pop! Marvel' },
-  { name: 'Spider-Man (Integrated Suit)', number: '913', category: 'Pop! Marvel', exclusive: 'Walmart' },
+  { name: 'Spider-Man', number: '03', category: 'Pop! Marvel', series: 'Spider-Man' },
+  { name: 'Iron Man', number: '04', category: 'Pop! Marvel', series: 'Iron Man' },
+  { name: 'Captain America', number: '06', category: 'Pop! Marvel', series: 'Captain America' },
+  { name: 'Deadpool', number: '20', category: 'Pop! Marvel', series: 'Deadpool' },
+  { name: 'Thanos', number: '78', category: 'Pop! Marvel', series: 'Avengers: Infinity War' },
+  { name: 'Thanos', number: '78', category: 'Pop! Marvel', series: 'Avengers: Infinity War', isChase: true },
+  { name: 'Groot', number: '1203', category: 'Pop! Marvel', series: 'Guardians of the Galaxy' },
+  {
+    name: 'Spider-Man (Integrated Suit)',
+    number: '913',
+    category: 'Pop! Marvel',
+    series: 'Spider-Man',
+    exclusive: 'Walmart',
+  },
   { name: 'Daredevil', number: '1406', category: 'Pop! Marvel', series: 'Daredevil: Born Again' },
   { name: 'Kingpin', number: '1408', category: 'Pop! Marvel', series: 'Daredevil: Born Again' },
   { name: 'Eleven', number: '421', category: 'Pop! Television', series: 'Stranger Things' },
   { name: 'Eddie Munson', number: '1250', category: 'Pop! Television', series: 'Stranger Things' },
   { name: 'Dustin', number: '424', category: 'Pop! Television', series: 'Stranger Things' },
   { name: 'Vecna', number: '1312', category: 'Pop! Television', series: 'Stranger Things' },
-  { name: 'Walter White', number: '162', category: 'Pop! Television' },
-  { name: 'Darth Vader', number: '01', category: 'Pop! Star Wars' },
-  { name: 'Boba Fett', number: '08', category: 'Pop! Star Wars' },
+  { name: 'Walter White', number: '162', category: 'Pop! Television', series: 'Breaking Bad' },
+  { name: 'Darth Vader', number: '01', category: 'Pop! Star Wars', series: 'Star Wars' },
+  { name: 'Boba Fett', number: '08', category: 'Pop! Star Wars', series: 'Star Wars' },
   { name: 'Grogu', number: '368', category: 'Pop! Star Wars', series: 'The Mandalorian' },
   { name: 'The Mandalorian', number: '345', category: 'Pop! Star Wars', series: 'The Mandalorian' },
-  { name: 'Ahsoka Tano', number: '464', category: 'Pop! Star Wars' },
-  { name: 'Darth Maul', number: '09', category: 'Pop! Star Wars', exclusive: 'SDCC 2024' },
-  { name: 'Goku', number: '09', category: 'Pop! Animation' },
-  { name: 'Super Saiyan Goku', number: '14', category: 'Pop! Animation' },
-  { name: 'Naruto', number: '71', category: 'Pop! Animation' },
-  { name: 'Luffy', number: '98', category: 'Pop! Animation' },
-  { name: 'Tanjiro', number: '867', category: 'Pop! Animation' },
-  { name: 'Rick and Morty on Spaceship', number: '32', category: 'Pop! Animation', type: 'POP_RIDES' },
-  { name: 'Link', number: '1026', category: 'Pop! Games' },
-  { name: 'Mario', number: '09', category: 'Pop! Games' },
-  { name: 'Pikachu', number: '353', category: 'Pop! Games' },
-  { name: 'Master Chief', number: '07', category: 'Pop! Games' },
-  { name: 'Kratos', number: '25', category: 'Pop! Games', type: 'POP_DELUXE' },
+  { name: 'Ahsoka Tano', number: '464', category: 'Pop! Star Wars', series: 'Star Wars: The Clone Wars' },
+  { name: 'Darth Maul', number: '09', category: 'Pop! Star Wars', series: 'Star Wars', exclusive: 'SDCC 2024' },
+  { name: 'Goku', number: '09', category: 'Pop! Animation', series: 'Dragon Ball Z' },
+  { name: 'Super Saiyan Goku', number: '14', category: 'Pop! Animation', series: 'Dragon Ball Z' },
+  { name: 'Naruto', number: '71', category: 'Pop! Animation', series: 'Naruto Shippuden' },
+  { name: 'Luffy', number: '98', category: 'Pop! Animation', series: 'One Piece' },
+  { name: 'Tanjiro', number: '867', category: 'Pop! Animation', series: 'Demon Slayer' },
+  {
+    name: 'Rick and Morty on Spaceship',
+    number: '32',
+    category: 'Pop! Animation',
+    series: 'Rick and Morty',
+    type: 'POP_RIDES',
+  },
+  { name: 'Link', number: '1026', category: 'Pop! Games', series: 'The Legend of Zelda' },
+  { name: 'Mario', number: '09', category: 'Pop! Games', series: 'Super Mario' },
+  { name: 'Pikachu', number: '353', category: 'Pop! Games', series: 'Pokémon' },
+  { name: 'Master Chief', number: '07', category: 'Pop! Games', series: 'Halo' },
+  { name: 'Kratos', number: '25', category: 'Pop! Games', series: 'God of War', type: 'POP_DELUXE' },
 ];
 
 const ITEMS: SeedItem[] = [
@@ -444,7 +537,7 @@ const funkoRows = await prisma.funko.createManyAndReturn({
     number: funko.number,
     type: funko.type ?? 'POP',
     categoryId: idFor(categoryIds, 'category', funko.category),
-    seriesId: funko.series ? idFor(seriesIds, 'series', funko.series) : null,
+    seriesId: idFor(seriesIds, 'series', funko.series),
     isChase: funko.isChase ?? false,
     exclusive: funko.exclusive ?? '',
   })),
@@ -536,6 +629,7 @@ const submissionRows = await prisma.funko.createManyAndReturn({
       name: submission.name,
       number: submission.number,
       categoryId: idFor(categoryIds, 'category', submission.category),
+      seriesId: idFor(seriesIds, 'series', submission.series),
       status: submissionStatusOf(submission),
       submittedById: idFor(memberIds, 'member', submission.sender),
       rejectionReason: submission.rejectionReason ?? null,
@@ -608,6 +702,7 @@ const personaSubmissionRows = await prisma.funko.createManyAndReturn({
       name: submission.name,
       number: submission.number,
       categoryId: idFor(categoryIds, 'category', submission.category),
+      seriesId: idFor(seriesIds, 'series', submission.series),
       status: submission.status,
       submittedById: submission.sender === null ? null : idFor(personaIds, 'persona', submission.sender),
       rejectionReason: submission.rejectionReason ?? null,

@@ -109,8 +109,8 @@ export type FunkoRow = {
   barcode: string | null;
   categoryId: number;
   categoryName: string;
-  seriesId: number | null;
-  seriesName: string | null;
+  seriesId: number;
+  seriesName: string;
   status: SubmissionStatus;
   submittedById: number | null;
   createdAt: Date;
@@ -128,7 +128,7 @@ export type DoubleCandidateRow = Prisma.FunkoGetPayload<{ select: typeof DOUBLE_
 export type DoubleProbe = { id: number; barcode: string | null; number: string; categoryName: string };
 
 // The category and series an approved funko ends up with: its own, or the approved one of the same name.
-export type CatalogueReferences = { categoryId: number; seriesId: number | null };
+export type CatalogueReferences = { categoryId: number; seriesId: number };
 
 // What became of a merge: done, or refused because the submission is no longer waiting or the target is not (or no
 // longer) in the catalogue. Nothing changes unless it is MERGED.
@@ -184,8 +184,8 @@ const ListedFunkoRowSchema = z.object({
   barcode: z.string().nullable(),
   categoryId: z.number(),
   categoryName: z.string(),
-  seriesId: z.number().nullable(),
-  seriesName: z.string().nullable(),
+  seriesId: z.number(),
+  seriesName: z.string(),
   status: z.enum(SUBMISSION_STATUSES),
   submittedById: z.number().nullable(),
   createdAt: z.date(),
@@ -203,7 +203,7 @@ const LEADING_HASH = /^#/;
 const WORD_SEPARATOR = /\s+/;
 
 // The list is raw SQL: Prisma cannot sort by relevance or by a number's numeric value. `f` is the funko, `c` its
-// category and `s` its series (left joined: a funko may have none).
+// category and `s` its series.
 const SORT_FIELD_MAP: Record<Exclude<FunkoSortField, 'RELEVANCE'>, Prisma.Sql> = {
   NAME: Prisma.sql`f.name`,
   NUMBER: numberSortKey(Prisma.sql`f.number`),
@@ -303,10 +303,6 @@ function hasCollectionsFilterFor(userId: number, hasCollections: boolean): Prism
   return existsOrNot(hasCollections, Prisma.sql`select 1 from ${ownItems(userId)} where mi.funko_id = f.id`);
 }
 
-function hasSeriesFilterFor(hasSeries: boolean): Prisma.Sql {
-  return hasSeries ? Prisma.sql`f.series_id is not null` : Prisma.sql`f.series_id is null`;
-}
-
 // A tag sits on an item, so "has tags" means any of the funko's items carries one.
 function hasTagsFilterFor(userId: number, hasTags: boolean): Prisma.Sql {
   return existsOrNot(
@@ -360,7 +356,6 @@ function buildListFilter(userId: number, query: ListFunkosQuery): Prisma.Sql {
     query.collection ? collectionMatches(userId, ilikeContains(Prisma.sql`mc.name`, query.collection)) : undefined,
     query.notInCollectionId ? notInCollections(userId, query.notInCollectionId) : undefined,
     query.hasCollections === undefined ? undefined : hasCollectionsFilterFor(userId, query.hasCollections),
-    query.hasSeries === undefined ? undefined : hasSeriesFilterFor(query.hasSeries),
     query.hasTags === undefined ? undefined : hasTagsFilterFor(userId, query.hasTags),
     query.hasImages === undefined ? undefined : hasImagesFilterFor(query.hasImages),
   ]);
@@ -385,11 +380,7 @@ function buildOrderBy(query: ListFunkosQuery): Prisma.Sql {
     return Prisma.join([...relevance, Prisma.sql`f.name asc`, Prisma.sql`f.id asc`]);
   }
 
-  // Funkos without a series sort after the ones with one, in either direction.
-  const missingSeriesLast = sortField === 'SERIES' ? [Prisma.sql`(s.name is null) asc`] : [];
-
   return Prisma.join([
-    ...missingSeriesLast,
     Prisma.sql`${SORT_FIELD_MAP[sortField]} ${direction}`,
     Prisma.sql`f.number asc`,
     Prisma.sql`f.id asc`,
@@ -402,7 +393,7 @@ const SUBMISSION_SORT_MAP: Record<SubmissionSortField, keyof Prisma.FunkoOrderBy
 };
 
 function toRow({ category, series, ...funko }: Prisma.FunkoGetPayload<{ select: typeof FUNKO_SELECT }>): FunkoRow {
-  return { ...funko, categoryName: category.name, seriesName: series?.name ?? null };
+  return { ...funko, categoryName: category.name, seriesName: series.name };
 }
 
 function toSubmissionRow({
@@ -410,7 +401,7 @@ function toSubmissionRow({
   series,
   ...funko
 }: Prisma.FunkoGetPayload<{ select: typeof SUBMISSION_SELECT }>): SubmissionRow {
-  return { ...funko, categoryName: category.name, seriesName: series?.name ?? null };
+  return { ...funko, categoryName: category.name, seriesName: series.name };
 }
 
 type ReviewTab = { where: Prisma.FunkoWhereInput; orderBy: Prisma.FunkoOrderByWithRelationInput[] };
@@ -459,8 +450,8 @@ const findApprovedSeries: ApprovedTwinFinder = (name) =>
   prisma.series.findFirst({ where: { name, status: 'APPROVED' }, select: ID_SELECT });
 
 // The one that was left behind when a funko moved from `currentId` to `nextId`, if it moved.
-function leftBehind(currentId: number | null | undefined, nextId: number | null): number | undefined {
-  const hasMoved = currentId !== undefined && currentId !== null && currentId !== nextId;
+function leftBehind(currentId: number | undefined, nextId: number): number | undefined {
+  const hasMoved = currentId !== undefined && currentId !== nextId;
 
   return hasMoved ? currentId : undefined;
 }
@@ -479,12 +470,10 @@ async function approveInTransaction(id: number, references: CatalogueReferences)
       data: { status: 'APPROVED' },
     });
 
-    if (references.seriesId !== null) {
-      await tx.series.updateMany({
-        where: { id: references.seriesId, status: 'WAITING' },
-        data: { status: 'APPROVED' },
-      });
-    }
+    await tx.series.updateMany({
+      where: { id: references.seriesId, status: 'WAITING' },
+      data: { status: 'APPROVED' },
+    });
 
     const write = await tx.funko.updateMany({
       where: { id, status: 'WAITING' },
@@ -530,7 +519,7 @@ async function deleteOrphanInTransaction(id: number): Promise<boolean> {
 
     if (funko) await tx.category.deleteMany({ where: { id: funko.categoryId, ...unusedOrphanReference } });
 
-    if (funko?.seriesId) await tx.series.deleteMany({ where: { id: funko.seriesId, ...unusedOrphanReference } });
+    if (funko) await tx.series.deleteMany({ where: { id: funko.seriesId, ...unusedOrphanReference } });
 
     return deleted.count > 0;
   });
@@ -598,7 +587,7 @@ async function bringIntoCatalogue(tx: Prisma.TransactionClient, fields: PickedFi
     await tx.category.updateMany({ where: { id: fields.categoryId, status: 'WAITING' }, data: { status: 'APPROVED' } });
   }
 
-  if (fields.seriesId !== undefined && fields.seriesId !== null) {
+  if (fields.seriesId !== undefined) {
     await tx.series.updateMany({ where: { id: fields.seriesId, status: 'WAITING' }, data: { status: 'APPROVED' } });
   }
 }
@@ -767,7 +756,7 @@ export const funkosRepository = {
 
     return {
       categoryId: await catalogueReferenceId(funko.category, findApprovedCategory),
-      seriesId: funko.series ? await catalogueReferenceId(funko.series, findApprovedSeries) : null,
+      seriesId: await catalogueReferenceId(funko.series, findApprovedSeries),
     };
   },
 
@@ -799,7 +788,7 @@ export const funkosRepository = {
           ${matchedOnColumn(userId, splitSearchWords(query.q))} as "matchedOn"
         from funkos f
         join categories c on c.id = f.category_id
-        left join series s on s.id = f.series_id
+        join series s on s.id = f.series_id
         where ${filter}
         order by ${buildOrderBy(query)}
         limit ${take} offset ${skip}`,

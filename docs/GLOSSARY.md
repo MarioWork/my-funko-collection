@@ -23,7 +23,7 @@ Funko's own line printed on the box, such as "Pop! Marvel" or "Pop! Star Wars". 
 _Avoid_: Line, franchise, collection
 
 **Series**:
-The show, film or game a funko comes from, such as "Spider-Man: No Way Home" (category "Pop! Marvel"). Optional.
+The show, film or game a funko comes from, such as "Spider-Man: No Way Home" (category "Pop! Marvel"). Every funko has exactly one, so a series funkos still use cannot be deleted.
 _Avoid_: Show, franchise, category
 
 **Variant**:
