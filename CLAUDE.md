@@ -108,6 +108,13 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   `assertCanEditFunko()` and the mocks in `mockCatalogueUtils.ts`. Like `assertOwnTags()`, the cross-module checks
   `isUsableCategory()` / `isUsableSeries()` (may a funko use it) and `assertCanSeeImageFiles()` (the `/uploads` hook)
   are named for what they check, not with the get/add/update/delete verbs. Approve / reject / merge is issue #10.
+- Notifications (issue #11): approve and reject tell the sender (reject with its reason; an orphan submission has
+  nobody to tell), a new or resent submission tells every admin. One `notifications` table: `kind` (an enum),
+  `funko_id` (the funko to open, cleared when it goes) and the funko's name as written, `reason?`, `read_at`. Merge
+  (#12) and force-delete (#13) add their own `kind`, no new column. A user sees and marks only their own (404
+  otherwise); marking read is open to read-only users. Kept 90 days with no scheduler: reads skip older rows and
+  every new notification deletes everyone's older ones in the same transaction. No email, no push. The web bell's
+  count comes from the app shell loader, refreshed by revalidation (every write, every page change), never a poll.
 - Deliberate exceptions to the Node skills for auth (decided 2026-10-23): the check is a global `onRequest` hook in
   `auth.plugin.ts` with server-side cookie sessions, not `@fastify/jwt` + `preHandler: [app.authenticate]`
   (node-ts-api §9); random 256-bit tokens (session, setup code) are stored as plain SHA-256, not argon2 (they can't

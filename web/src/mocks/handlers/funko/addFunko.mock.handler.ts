@@ -1,6 +1,8 @@
 import { http } from 'msw/http';
 import { delay } from 'msw/utils/delay';
+import { NotificationKindUtil, SubmissionStatusUtil } from '@app-types/utility';
 import { MOCK_DELAY } from '@mocks/handlers';
+import { notifyMockAdmins } from '@mocks/handlers/notification/notificationMockUtils';
 import { newMockSubmissionColumns } from '@mocks/mockCatalogueUtils';
 import { conflict, created, toFunkoModel } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
@@ -15,7 +17,7 @@ import {
   referenceRefusal,
 } from './funkoMockUtils';
 
-// An admin's new funko joins the catalogue; a member's is a waiting submission only they see.
+// An admin's new funko joins the catalogue; a member's is a waiting submission only they see, and every admin is told.
 export default (baseUrl: string) => [
   http.post(`${baseUrl}/funkos`, async ({ request }) => {
     await delay(MOCK_DELAY);
@@ -49,6 +51,8 @@ export default (baseUrl: string) => [
     if (sameBarcode) return conflict(DUPLICATE_BARCODE_MESSAGE, sameBarcode.id);
 
     mockStore.funkos.push(row);
+
+    if (row.status === SubmissionStatusUtil.WAITING) notifyMockAdmins(NotificationKindUtil.SUBMISSION_SENT, row);
 
     return created(toFunkoModel(row));
   }),

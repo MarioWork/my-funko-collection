@@ -11,6 +11,7 @@ import {
 import { useIsAdmin } from '@hooks/useIsAdmin';
 import { BASE_ROUTES_PATHS } from '@application/routes/routesUtils';
 import AppLogo from '@components/AppLogo';
+import NotificationBell from './NotificationBell';
 import SidebarEdgeToggle from './SidebarEdgeToggle';
 import ThemeToggle from './ThemeToggle';
 import {
@@ -68,7 +69,25 @@ function AdminGroup({ pathname }: AdminGroupProps) {
   );
 }
 
-// Desktop navigation: the four destinations, the manage pages (and a member's Submissions), the Admin group (admins only), then Settings and
+// The logo (home) and the notification bell beside it; stacked when the sidebar is collapsed to icons.
+function SidebarBrand() {
+  return (
+    <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col">
+      <Link
+        viewTransition
+        to={BASE_ROUTES_PATHS.HOME}
+        aria-label={`${APP_NAME} home`}
+        className="min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <AppLogo className="group-data-[collapsible=icon]:hidden" />
+        <AppLogo isMarkOnly className="hidden group-data-[collapsible=icon]:flex" />
+      </Link>
+      <NotificationBell />
+    </div>
+  );
+}
+
+// Desktop navigation: the logo and the notification bell at the top, the four destinations, the manage pages (and a member's Submissions), the Admin group (admins only), then Settings and
 // the theme toggle in the footer. Adding lives in the page headers (Funkos, a collection, Home), not here. Collapses to icons from its edge (SidebarEdgeToggle), never hides; the edge is not draggable.
 function AppSidebar() {
   const { pathname } = useLocation();
@@ -77,15 +96,7 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="gap-3 p-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
-        <Link
-          viewTransition
-          to={BASE_ROUTES_PATHS.HOME}
-          aria-label={`${APP_NAME} home`}
-          className="min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <AppLogo className="group-data-[collapsible=icon]:hidden" />
-          <AppLogo isMarkOnly className="hidden group-data-[collapsible=icon]:flex" />
-        </Link>
+        <SidebarBrand />
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu className="gap-2 p-2 group-data-[collapsible=icon]:items-center">

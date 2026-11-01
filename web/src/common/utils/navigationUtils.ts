@@ -1,4 +1,5 @@
 import {
+  Bell,
   Book,
   FolderHeart,
   House,
@@ -36,6 +37,7 @@ export const PAGE_ICONS = {
   IMAGES: Images,
   USERS: Users,
   SUBMISSIONS: Inbox,
+  NOTIFICATIONS: Bell,
   SETTINGS: Settings,
 } satisfies Record<string, LucideIcon>;
 

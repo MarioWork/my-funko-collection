@@ -7,6 +7,7 @@ import AppSidebar from './components/AppSidebar';
 import BottomNav from './components/BottomNav';
 import DemoBanner from './components/DemoBanner';
 import NavigationProgress from './components/NavigationProgress';
+import NotificationAnnouncer from './components/NotificationAnnouncer';
 import PageOutlet from './components/PageOutlet';
 import SearchPalette from './components/SearchPalette';
 import TopBar from './components/TopBar';
@@ -46,6 +47,7 @@ function AppShell() {
           <PageOutlet className="@container mx-auto w-full max-w-7xl flex-1 p-6" />
         </SidebarInset>
         <SearchPalette isOpen={palette.isOpen} onOpenChange={palette.setIsOpen} />
+        <NotificationAnnouncer />
         <Toaster />
       </SidebarProvider>
     );
@@ -60,6 +62,7 @@ function AppShell() {
         <PageOutlet />
       </main>
       <BottomNav />
+      <NotificationAnnouncer />
       <Toaster />
     </div>
   );

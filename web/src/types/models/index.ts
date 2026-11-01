@@ -27,3 +27,5 @@ export type { PasskeyApiModel, PasskeyId } from './passkeyApiModel.type';
 export type { PasskeyListApiModel } from './passkeyListApiModel.type';
 export type { UserApiModel, UserId } from './userApiModel.type';
 export type { UserWithTemporaryPasswordApiModel } from './userWithTemporaryPasswordApiModel.type';
+export type { NotificationApiModel, NotificationId } from './notificationApiModel.type';
+export type { UnreadCountApiModel } from './unreadCountApiModel.type';
