@@ -93,8 +93,8 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   neither list. Barcode, identity and name uniqueness hold in the approved catalogue and within one member's waiting
   ones (partial unique indexes in the `submissions` migration). A `BEFORE DELETE` trigger on `users` deletes the
   user's rejected submissions (with their items) and their unused never-approved categories and series; waiting,
-  approved and merged ones stay with a null sender ("Removed user", shown to admins on a submission), and orphaned
-  waiting ones never clash (null senders are distinct in the partial indexes). Until approved, a submission's image
+  approved and merged ones stay with a null sender ("Removed user", shown to admins on a submission), and orphan
+  submissions never clash (null senders are distinct in the partial indexes). Until approved, a submission's image
   files under `/uploads` are served only to admins and its sender (the uploads plugin's hook asks
   `assertCanSeeImageFiles()`); others get 404. Reviewing (issue #10): `GET /submissions/review` (Waiting / Done,
   with `possibleDoubles`), `POST /submissions/:id/approval` and `/rejection` are admin-only routes;
@@ -102,7 +102,8 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   (`isOpenSubmission()` in `funkos.access.ts`). Approving moves a waiting category or series into the catalogue, or
   onto the approved one of the same name; a clash with the catalogue is a 409 in words (pre-checked, and
   `isUniqueViolation()` by SQLSTATE in a race). `rejection_reason` is set exactly while REJECTED (a check in the
-  `submission_reviews` migration); an admin changing someone's open submission sets `changed_by_admin_at`. The web
+  `submission_reviews` migration); an admin's change to someone's open submission (fields, or a photo added or removed) sets
+  `changed_by_admin_at`, and sending it again clears it. Rejecting an orphan submission deletes it (204). The web
   mirrors the rule in `useCanEditFunko()` /
   `assertCanEditFunko()` and the mocks in `mockCatalogueUtils.ts`. Like `assertOwnTags()`, the cross-module checks
   `isUsableCategory()` / `isUsableSeries()` (may a funko use it) and `assertCanSeeImageFiles()` (the `/uploads` hook)
@@ -140,7 +141,7 @@ yarn dev            # applies pending migrations, then http://localhost:3000, Op
 yarn test           # Vitest: a copy of a migrated template db + temp uploads folder per test file
 yarn typecheck && yarn lint && yarn test   # the definition of green
 yarn db:migrate     # prisma migrate dev: apply, or --name=<change> after a schema edit (commit prisma/)
-yarn db:seed        # example data with placeholder images
+yarn db:seed        # example data with placeholder images, members luke and han (no sign-in) and their submissions
 yarn images:prune   # delete image files no row references
 yarn auth:reset      # locked out: remove every passkey, password and session (users stay), print a new setup link
 ```

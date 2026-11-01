@@ -50,6 +50,10 @@ _Avoid_: Database, library, collection
 A funko a member added, waiting for an admin. The member can use it in their own collections right away; nobody else sees it until it is approved.
 _Avoid_: Request, proposal, draft
 
+**Orphan submission**:
+A submission whose sender was removed. It shows as sent by a Removed user, stays waiting until an admin approves or merges it, and is deleted if rejected.
+_Avoid_: Abandoned, ownerless submission
+
 **Approve**:
 An admin accepts a submission, and the funko joins the catalogue for everyone.
 _Avoid_: Publish, accept
