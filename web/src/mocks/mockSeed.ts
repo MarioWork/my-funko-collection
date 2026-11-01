@@ -17,7 +17,8 @@ import type {
   MockStore,
   MockSubmissionColumns,
 } from './mockStore.type';
-import { mockDate, mockEnv } from './mockStoreUtils';
+import { mockDate, mockEnv, NOT_REVIEWED } from './mockStoreUtils';
+import { MOCK_MEMBER_ID } from './mockUsers';
 
 type MockSeedData = Omit<MockStore, 'auth' | 'users'>;
 
@@ -72,6 +73,30 @@ const SEED_FUNKOS: SeedFunko[] = [
   { name: 'Pikachu', number: '353', category: 5 },
   { name: 'Master Chief', number: '07', category: 5 },
   { name: 'Kratos', number: '25', category: 5, type: FunkoTypeUtil.POP_DELUXE },
+];
+
+// Other members' submissions, so the admins' Submissions page has something to review: two waiting (Thanos is
+// maybe a double of the catalogue's #78 in Pop! Marvel) and one rejected. Nobody else sees them, as on the API.
+type SeedSubmission = Omit<SeedFunko, 'series' | 'type' | 'isChase' | 'exclusive'> & {
+  submittedById: number;
+  day: number;
+  rejectionReason?: string;
+};
+
+const HAN_ID = MOCK_MEMBER_ID + 1;
+const SUBMISSION_REVIEW_DAY = 45;
+
+const SEED_SUBMISSIONS: SeedSubmission[] = [
+  { name: 'Thanos (Infinity Gauntlet)', number: '78', category: 1, submittedById: MOCK_MEMBER_ID, day: 40 },
+  { name: 'Mandalorian with Grogu', number: '402', category: 3, submittedById: HAN_ID, day: 42 },
+  {
+    name: 'Bluey',
+    number: '1235',
+    category: 4,
+    submittedById: MOCK_MEMBER_ID,
+    day: 38,
+    rejectionReason: 'The photo is from a shop listing. Please add a photo of your own box.',
+  },
 ];
 
 type SeedItem = {
@@ -256,6 +281,7 @@ function createExtraFunkos(startId: number, startIndex: number): MockFunkoRow[] 
       exclusive: '',
       barcode: null,
       ...APPROVED_COLUMNS,
+      ...NOT_REVIEWED,
       createdAt: mockDate(index),
       updatedAt: mockDate(index),
     };
@@ -306,6 +332,33 @@ function createExtraItems(funkos: MockFunkoRow[], startId: number): MockItemRow[
     createdAt: funko.createdAt,
     updatedAt: funko.updatedAt,
   }));
+}
+
+// After every other funko, so the seed's ids (and the generated ones) stay as they were.
+function createSubmissions(startId: number): MockFunkoRow[] {
+  return SEED_SUBMISSIONS.map((seed, offset) => {
+    const isRejected = seed.rejectionReason !== undefined;
+    const status = isRejected ? SubmissionStatusUtil.REJECTED : SubmissionStatusUtil.WAITING;
+
+    return {
+      id: startId + offset,
+      name: seed.name,
+      number: seed.number,
+      type: FunkoTypeUtil.POP,
+      categoryId: seed.category,
+      seriesId: null,
+      isChase: false,
+      exclusive: '',
+      barcode: seed.barcode ?? null,
+      status,
+      submittedById: seed.submittedById,
+      reviewedAt: isRejected ? mockDate(SUBMISSION_REVIEW_DAY) : null,
+      rejectionReason: seed.rejectionReason ?? null,
+      changedByAdminAt: null,
+      createdAt: mockDate(seed.day),
+      updatedAt: mockDate(seed.day),
+    };
+  });
 }
 
 function createImages(funkos: MockFunkoRow[]): MockImageRow[] {
@@ -382,6 +435,7 @@ export function createSeedData(): MockSeedData {
     exclusive: seed.exclusive ?? '',
     barcode: seed.barcode ?? null,
     ...APPROVED_COLUMNS,
+    ...NOT_REVIEWED,
     createdAt: mockDate(index),
     updatedAt: mockDate(index),
   }));
@@ -404,13 +458,14 @@ export function createSeedData(): MockSeedData {
   const extraFunkos = createExtraFunkos(funkos.length + 1, funkos.length);
   const extraImages = createExtraImages(extraFunkos, seedImages.length + 1);
   const extraItems = createExtraItems(extraFunkos, items.length + 1);
+  const submissions = createSubmissions(funkos.length + extraFunkos.length + 1);
 
   return {
     categories,
     series,
     tags,
     collections,
-    funkos: [...funkos, ...extraFunkos],
+    funkos: [...funkos, ...extraFunkos, ...submissions],
     images: [...seedImages, ...extraImages],
     items: [...items, ...extraItems],
   };

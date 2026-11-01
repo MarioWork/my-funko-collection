@@ -22,11 +22,15 @@ const HANDLER_BY_VERB: Record<AdminOnlyVerb, HttpRequestHandler> = {
   [HttpVerbsUtil.DELETE]: http.delete,
 };
 
-// The same routes, in the same order, as ADMIN_ONLY_ROUTES in api/src/modules/auth/auth.route.test.ts: changing a
-// category or series, the images lists and the users. Keep the two in step. Creating a funko, category or series
-// and changing a funko or its images are open to members (their SUBMISSION_ROUTES): those handlers make a member's
-// new one a waiting submission and refuse a change to anything but their own waiting one (findEditableFunko).
+// The same routes, in the same order, as ADMIN_ONLY_ROUTES in api/src/modules/auth/auth.route.test.ts: reviewing
+// submissions, changing a category or series, the images lists and the users. Keep the two in step. Creating a
+// funko, category or series, changing a funko or its images and sending a rejected one again are open to members
+// (their SUBMISSION_ROUTES): those handlers make a member's new one a waiting submission and refuse a change to
+// anything but their own waiting or rejected one (findEditableFunko).
 const ADMIN_ONLY_ROUTES: AdminOnlyRoute[] = [
+  { method: HttpVerbsUtil.GET, path: '/submissions/review' },
+  { method: HttpVerbsUtil.POST, path: '/submissions/:funkoId/approval' },
+  { method: HttpVerbsUtil.POST, path: '/submissions/:funkoId/rejection' },
   { method: HttpVerbsUtil.PATCH, path: '/categories/:categoryId' },
   { method: HttpVerbsUtil.DELETE, path: '/categories/:categoryId' },
   { method: HttpVerbsUtil.PATCH, path: '/series/:seriesId' },

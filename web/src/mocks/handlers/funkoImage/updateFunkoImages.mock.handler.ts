@@ -3,7 +3,7 @@ import { delay } from 'msw/utils/delay';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls } from '@mocks/mockImageUtils';
 import { badRequest, noContent, notFound, toFunkoImageModel } from '@mocks/mockResponses';
-import { findEditableFunko } from '@mocks/handlers/funko/funkoMockUtils';
+import { findEditableFunko, recordMockAdminChange } from '@mocks/handlers/funko/funkoMockUtils';
 import { mockStore } from '@mocks/mockStore';
 import { nextId } from '@mocks/mockStoreUtils';
 import type { ReorderImages, RotateImage } from '@services/funkoImageService/funkoImageService.type';
@@ -28,6 +28,8 @@ export default (baseUrl: string) => [
 
     for (const image of images) image.position = imageIds.indexOf(image.id);
 
+    recordMockAdminChange(target.funko);
+
     return HttpResponse.json(images.sort((first, second) => first.position - second.position).map(toFunkoImageModel));
   }),
   http.post(`${baseUrl}/funkos/:funkoId/images/:imageId/rotate`, async ({ params, request }) => {
@@ -49,6 +51,7 @@ export default (baseUrl: string) => [
 
     // New URLs, as the API does: image files are immutable, so a changed picture needs a new key.
     Object.assign(image, createMockImageUrls(`r${degrees}`, nextId(mockStore.images) + image.id), rotatedSize);
+    recordMockAdminChange(target.funko);
 
     return HttpResponse.json(toFunkoImageModel(image));
   }),
@@ -66,6 +69,7 @@ export default (baseUrl: string) => [
     if (index === -1) return notFound('Image', String(params.imageId));
 
     mockStore.images.splice(index, 1);
+    recordMockAdminChange(target.funko);
 
     return noContent();
   }),

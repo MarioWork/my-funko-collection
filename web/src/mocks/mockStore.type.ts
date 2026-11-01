@@ -29,19 +29,27 @@ export type MockCollectionRow = {
   createdAt: string;
   updatedAt: string;
 };
-export type MockFunkoRow = MockSubmissionColumns & {
-  id: number;
-  name: string;
-  number: string;
-  type: FunkoType;
-  categoryId: number;
-  seriesId: number | null;
-  isChase: boolean;
-  exclusive: string;
-  barcode: string | null;
-  createdAt: string;
-  updatedAt: string;
+// How a funko's review went, as the API keeps it: when an admin approved or rejected it, why it was rejected (only
+// while REJECTED), and when an admin last changed it before approving it.
+export type MockReviewColumns = {
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+  changedByAdminAt: string | null;
 };
+export type MockFunkoRow = MockSubmissionColumns &
+  MockReviewColumns & {
+    id: number;
+    name: string;
+    number: string;
+    type: FunkoType;
+    categoryId: number;
+    seriesId: number | null;
+    isChase: boolean;
+    exclusive: string;
+    barcode: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
 // `uploadedById`: the user who uploaded it, null once that user is deleted (the API clears it, keeping the image).
 export type MockImageRow = FunkoImageApiModel & { funkoId: number; uploadedById: number | null };
 export type MockItemRow = {
