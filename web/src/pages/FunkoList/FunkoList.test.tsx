@@ -1,6 +1,7 @@
 import { renderRoutes, screen, userEvent } from '@test-utils';
 import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
+import { catalogueFunkos } from '@mocks/mockCatalogueUtils';
 import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
 import { addMockSubmission, mockStore, setMockReadOnly } from '@mocks/mockStore';
 import { nextId } from '@mocks/mockStoreUtils';
@@ -11,7 +12,7 @@ const EXTRA_FUNKO_NAME = 'Hulk';
 const SEARCHED_NAME = 'Thanos';
 const PAGE_SIZE = Number(FUNKO_PAGE_SIZE);
 
-// Enough Hulks to pass one page, so the list needs a second one.
+// Enough Hulks to pass one page, so the list needs a second one. Returns how many funkos the list holds then.
 function addHulks(count: number): number {
   const [template] = mockStore.funkos;
 
@@ -21,7 +22,7 @@ function addHulks(count: number): number {
     mockStore.funkos.push({ ...template, id: nextId(mockStore.funkos), name: `${EXTRA_FUNKO_NAME} ${i + 1}` });
   }
 
-  return mockStore.funkos.length;
+  return catalogueFunkos().length;
 }
 
 const renderPage = () => renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.BASE] });

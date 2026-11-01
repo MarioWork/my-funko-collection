@@ -9,8 +9,13 @@ export function isOwnWaitingSubmission(funko: FunkoStanding): boolean {
   return funko.isSubmittedByMe && funko.status === SubmissionStatusUtil.WAITING;
 }
 
+// The signed-in user's own submission that an admin rejected: theirs to fix and send again, or delete.
+export function isOwnRejectedSubmission(funko: FunkoStanding): boolean {
+  return funko.isSubmittedByMe && funko.status === SubmissionStatusUtil.REJECTED;
+}
+
 // The API's rule (docs/adr/0001-shared-catalogue-own-collections.md): only an admin changes the catalogue; a member
-// changes only their own waiting submission, and its images.
+// changes only their own waiting or rejected submission, and its images.
 export function canEditFunko(funko: FunkoStanding, isAdmin: boolean): boolean {
-  return isAdmin || isOwnWaitingSubmission(funko);
+  return isAdmin || isOwnWaitingSubmission(funko) || isOwnRejectedSubmission(funko);
 }

@@ -1,0 +1,169 @@
+import { http, HttpResponse } from 'msw/http';
+import { delay } from 'msw/utils/delay';
+import { SubmissionStatusUtil } from '@app-types/utility';
+import { MOCK_DELAY } from '@mocks/handlers';
+import { findBarcodeTwin, findDuplicate, findEditableFunko } from '@mocks/handlers/funko/funkoMockUtils';
+import { badRequest, conflict, notFound } from '@mocks/mockResponses';
+import { mockStore } from '@mocks/mockStore';
+import type { MockFunkoRow, MockSubmissionColumns } from '@mocks/mockStore.type';
+import { nowIso } from '@mocks/mockStoreUtils';
+import type { RejectSubmission } from '@services/submissionService/submissionService.type';
+import { REJECTION_REASON_MAX_LENGTH } from '@utils/submissionUtils';
+import { toSubmissionModel } from './submissionMockUtils';
+
+// The API's answers, word for word where the page shows them.
+const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved or rejected';
+const NOT_REJECTED_MESSAGE = 'Only a rejected submission can be sent again';
+const CATALOGUE_HAS_FUNKO_MESSAGE = 'The catalogue already has this funko. Reject this submission, or change it first';
+const CATALOGUE_HAS_BARCODE_MESSAGE =
+  'This barcode belongs to another funko in the catalogue. Reject this submission, or change it first';
+
+type NamedSubmissionRow = MockSubmissionColumns & { id: number; name: string };
+
+type SubmissionLookup = { funko: MockFunkoRow } | { refusal: Response };
+
+const APPROVED: MockSubmissionColumns = { status: SubmissionStatusUtil.APPROVED, submittedById: null };
+
+function findWaiting(funkoId: string): SubmissionLookup {
+  const funko = mockStore.funkos.find((candidate) => String(candidate.id) === funkoId);
+
+  if (!funko) return { refusal: notFound('Funko', funkoId) };
+
+  if (funko.status !== SubmissionStatusUtil.WAITING) return { refusal: conflict(NOT_WAITING_MESSAGE) };
+
+  return { funko };
+}
+
+// A waiting category or series gives way to the approved one of the same name; else it joins the catalogue itself.
+function approveReference(rows: NamedSubmissionRow[], id: number | null): number | null {
+  const row = rows.find((candidate) => candidate.id === id);
+
+  if (!row || row.status === SubmissionStatusUtil.APPROVED) return id;
+
+  const twin = rows.find(
+    (candidate) => candidate.status === SubmissionStatusUtil.APPROVED && candidate.name === row.name,
+  );
+
+  if (twin) return twin.id;
+
+  row.status = SubmissionStatusUtil.APPROVED;
+
+  return row.id;
+}
+
+// A waiting category or series the funko left for an approved twin goes once no funko uses it.
+function dropUnused<Row extends NamedSubmissionRow>(rows: Row[], id: number | null, isUsed: (id: number) => boolean) {
+  return rows.filter((row) => row.id !== id || row.status === SubmissionStatusUtil.APPROVED || isUsed(row.id));
+}
+
+function approve(funko: MockFunkoRow): void {
+  const leftCategoryId = funko.categoryId;
+  const leftSeriesId = funko.seriesId;
+
+  funko.categoryId = approveReference(mockStore.categories, funko.categoryId) ?? funko.categoryId;
+  funko.seriesId = approveReference(mockStore.series, funko.seriesId);
+  Object.assign(funko, { status: SubmissionStatusUtil.APPROVED, reviewedAt: nowIso(), updatedAt: nowIso() });
+
+  mockStore.categories = dropUnused(mockStore.categories, leftCategoryId, (id) =>
+    mockStore.funkos.some((row) => row.categoryId === id),
+  );
+  mockStore.series = dropUnused(mockStore.series, leftSeriesId, (id) =>
+    mockStore.funkos.some((row) => row.seriesId === id),
+  );
+}
+
+// The category the funko would have once approved: the approved one of the same name, when there is one.
+function catalogueCategoryIdOf(funko: MockFunkoRow): number {
+  const category = mockStore.categories.find((row) => row.id === funko.categoryId);
+  const twin = mockStore.categories.find(
+    (row) => row.status === SubmissionStatusUtil.APPROVED && row.name === category?.name,
+  );
+
+  return twin?.id ?? funko.categoryId;
+}
+
+// The same funko or barcode already in the catalogue refuses the approval, pointing at it.
+function catalogueClashOf(funko: MockFunkoRow): Response | undefined {
+  const candidate = { ...funko, ...APPROVED, categoryId: catalogueCategoryIdOf(funko) };
+  const duplicate = findDuplicate(candidate, funko.id);
+
+  if (duplicate) return conflict(CATALOGUE_HAS_FUNKO_MESSAGE, duplicate.id);
+
+  const sameBarcode = findBarcodeTwin(candidate, funko.id);
+
+  if (sameBarcode) return conflict(CATALOGUE_HAS_BARCODE_MESSAGE, sameBarcode.id);
+
+  return undefined;
+}
+
+// Sending a rejected one again checks it as a waiting one: against the catalogue and the sender's other waiting ones.
+function waitingClashOf(funko: MockFunkoRow): Response | undefined {
+  const candidate = { ...funko, status: SubmissionStatusUtil.WAITING };
+  const duplicate = findDuplicate(candidate, funko.id) ?? findBarcodeTwin(candidate, funko.id);
+
+  return duplicate ? conflict('This funko already exists', duplicate.id) : undefined;
+}
+
+function rejectionReasonOf(body: Partial<RejectSubmission>): string | undefined {
+  const reason = body.reason?.trim() ?? '';
+  const isValid = reason.length > 0 && reason.length <= REJECTION_REASON_MAX_LENGTH;
+
+  return isValid ? reason : undefined;
+}
+
+// Approving, rejecting (admins only: requireAdmin refuses members first) and sending a rejected one again (its
+// sender), like the API.
+export default (baseUrl: string) => [
+  http.post(`${baseUrl}/submissions/:funkoId/approval`, async ({ params }) => {
+    await delay(MOCK_DELAY);
+
+    const target = findWaiting(String(params.funkoId));
+
+    if ('refusal' in target) return target.refusal;
+
+    const clash = catalogueClashOf(target.funko);
+
+    if (clash) return clash;
+
+    approve(target.funko);
+
+    return HttpResponse.json(toSubmissionModel(target.funko));
+  }),
+  http.post(`${baseUrl}/submissions/:funkoId/rejection`, async ({ params, request }) => {
+    await delay(MOCK_DELAY);
+
+    const reason = rejectionReasonOf((await request.json()) as Partial<RejectSubmission>);
+
+    if (!reason) return badRequest('Say why the submission is rejected');
+
+    const target = findWaiting(String(params.funkoId));
+
+    if ('refusal' in target) return target.refusal;
+
+    Object.assign(target.funko, {
+      status: SubmissionStatusUtil.REJECTED,
+      rejectionReason: reason,
+      reviewedAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+
+    return HttpResponse.json(toSubmissionModel(target.funko));
+  }),
+  http.post(`${baseUrl}/submissions/:funkoId/resubmission`, async ({ params }) => {
+    await delay(MOCK_DELAY);
+
+    const target = findEditableFunko(String(params.funkoId));
+
+    if ('refusal' in target) return target.refusal;
+
+    if (target.funko.status !== SubmissionStatusUtil.REJECTED) return conflict(NOT_REJECTED_MESSAGE);
+
+    const clash = waitingClashOf(target.funko);
+
+    if (clash) return clash;
+
+    Object.assign(target.funko, { status: SubmissionStatusUtil.WAITING, rejectionReason: null, updatedAt: nowIso() });
+
+    return HttpResponse.json(toSubmissionModel(target.funko));
+  }),
+];

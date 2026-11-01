@@ -1,8 +1,14 @@
 import { SubmissionStatusUtil } from '@app-types/utility';
-import { canEditMockFunko, canSeeMockRow, isUsableByMockFunko } from '@mocks/mockCatalogueUtils';
+import {
+  canEditMockFunko,
+  canSeeMockRow,
+  isAdminChangingMockSubmission,
+  isUsableByMockFunko,
+} from '@mocks/mockCatalogueUtils';
 import { badRequest, errorResponse, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow, MockSubmissionColumns } from '@mocks/mockStore.type';
+import { nowIso } from '@mocks/mockStoreUtils';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
 
@@ -70,8 +76,14 @@ export function referenceRefusal(candidate: ReferenceCandidate): Response | unde
   return undefined;
 }
 
+// After a change to a funko or its images: an admin who changed someone else's submission leaves a note its sender
+// reads, as the API does.
+export function recordMockAdminChange(funko: MockFunkoRow): void {
+  if (isAdminChangingMockSubmission(funko)) funko.changedByAdminAt = nowIso();
+}
+
 // The funko a write aims at, or the answer the API gives instead: 404 when the user cannot see it, 403 ADMIN_ONLY
-// when they see it but may not change it (only their own waiting submission, unless they are an admin).
+// when they see it but may not change it (only their own waiting or rejected submission, unless they are an admin).
 export function findEditableFunko(funkoId: string): EditableFunkoLookup {
   const funko = mockStore.funkos.find((candidate) => String(candidate.id) === funkoId);
 

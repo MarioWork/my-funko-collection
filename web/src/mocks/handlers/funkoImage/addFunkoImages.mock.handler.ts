@@ -4,7 +4,7 @@ import { MOCK_DELAY } from '@mocks/handlers';
 import { createMockImageUrls, MOCK_IMAGE_SIZE_BYTES } from '@mocks/mockImageUtils';
 import { MOCK_USER_ID } from '@mocks/mockAuth';
 import { badRequest, created, toFunkoImageModel } from '@mocks/mockResponses';
-import { findEditableFunko } from '@mocks/handlers/funko/funkoMockUtils';
+import { findEditableFunko, recordMockAdminChange } from '@mocks/handlers/funko/funkoMockUtils';
 import { mockStore } from '@mocks/mockStore';
 import type { MockImageRow } from '@mocks/mockStore.type';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
@@ -46,6 +46,8 @@ export default (baseUrl: string) => [
     if (files.length === 0) return badRequest('Send at least one file in the "file" field');
 
     const stored = files.map((file) => storeImage(funko.id, file.name.replace(FILE_EXTENSION, '') || funko.name));
+
+    recordMockAdminChange(funko);
 
     return created(stored.map(toFunkoImageModel));
   }),

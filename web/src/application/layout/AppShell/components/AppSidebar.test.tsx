@@ -27,11 +27,15 @@ const renderSidebar = () =>
     { initialEntries: [BASE_ROUTES_PATHS.HOME] },
   );
 
-it('puts the Users and Images pages in an Admin group for an admin', async () => {
+it('puts the Submissions review, Users and Images pages in an Admin group for an admin', async () => {
   renderSidebar();
 
   const adminGroup = await screen.findByRole('list', { name: ADMIN_GROUP });
 
+  expect(within(adminGroup).getByRole('link', { name: 'Submissions' })).toHaveAttribute(
+    'href',
+    SUBMISSION_ROUTES_PATHS.REVIEW,
+  );
   expect(within(adminGroup).getByRole('link', { name: 'Users' })).toHaveAttribute('href', USER_ROUTES_PATHS.BASE);
   expect(within(adminGroup).getByRole('link', { name: 'Images' })).toHaveAttribute('href', IMAGE_ROUTES_PATHS.BASE);
 });
@@ -56,9 +60,11 @@ it('gives a member a Submissions page beside the manage pages', async () => {
   );
 });
 
-it('gives an admin no Submissions page: their new funkos join the catalogue at once', async () => {
+it('gives an admin only the review Submissions page: their own new funkos join the catalogue at once', async () => {
   renderSidebar();
 
   expect(await screen.findByRole('link', { name: 'Categories' })).toBeVisible();
-  expect(screen.queryByRole('link', { name: 'Submissions' })).not.toBeInTheDocument();
+  expect(screen.getAllByRole('link', { name: 'Submissions' }).map((link) => link.getAttribute('href'))).toEqual([
+    SUBMISSION_ROUTES_PATHS.REVIEW,
+  ]);
 });
