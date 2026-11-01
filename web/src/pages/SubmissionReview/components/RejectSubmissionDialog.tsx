@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import type { ApiError, ReviewSubmissionApiModel } from '@app-types/models';
 import CancelButton from '@components/CancelButton';
 import InlineAlert from '@components/InlineAlert';
+import ReasonField from '@components/ReasonField';
 import SubmitButton from '@components/SubmitButton';
 import {
   Dialog,
@@ -19,7 +20,6 @@ import {
   rejectSubmissionFormSchema,
   type RejectSubmissionFormValues,
 } from '../submissionReviewUtils';
-import RejectReasonField from './RejectReasonField';
 
 type Props = {
   submission: ReviewSubmissionApiModel;
@@ -30,6 +30,7 @@ type Props = {
 };
 
 const FORM_ID = 'reject-submission';
+const REASON_HINT = 'The member reads this on their Submissions page.';
 const MEMBER_NOTE =
   'It stays in the member’s own collections, still private. They read your reason, and can fix it and send it again, or delete it.';
 // docs/GLOSSARY.md, "Orphan submission".
@@ -58,7 +59,7 @@ function RejectSubmissionDialog({ submission, isSaving, failure, onReject, onClo
           <DialogDescription>{submission.submittedBy ? MEMBER_NOTE : ORPHAN_NOTE}</DialogDescription>
         </DialogHeader>
         <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-4">
-          <RejectReasonField control={control} idPrefix={FORM_ID} />
+          <ReasonField control={control} idPrefix={FORM_ID} hint={REASON_HINT} />
           {failure ? <InlineAlert tone="error">{failure.message ?? GENERIC_WRITE_ERROR}</InlineAlert> : null}
         </form>
         <DialogFooter>
