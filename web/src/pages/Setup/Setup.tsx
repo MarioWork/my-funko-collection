@@ -6,13 +6,13 @@ import { HttpVerbsUtil, type JSONResponseUtil, type LoaderDataUtil } from '@app-
 import AuthLayout from '@components/AuthLayout';
 import PasskeyButton from '@components/PasskeyButton';
 import PasskeyUnsupportedNotice from '@components/PasskeyUnsupportedNotice';
+import TextField from '@components/TextField';
 import { FieldGroup } from '@components/ui/field';
 import { useFormCompat } from '@hooks/useFormCompat';
 import { AuthApiErrorCodes } from '@services/authService/authService';
 import { createFormData } from '@utils/formDataUtils';
 import { isPasskeySupported } from '@utils/passkeyUtils';
 import SetupFailure from './components/SetupFailure';
-import SetupTextField from './components/SetupTextField';
 import type { loader } from './setupLoader';
 import { LOGS_COMMAND, setupFormSchema, type SetupFormValues } from './setupUtils';
 
@@ -46,7 +46,7 @@ function Setup() {
     >
       <form id={FORM_ID} onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-5">
         <FieldGroup>
-          <SetupTextField
+          <TextField
             control={control}
             idPrefix={FORM_ID}
             name="name"
@@ -54,7 +54,7 @@ function Setup() {
             placeholder="Mario"
             autoComplete="nickname"
           />
-          <SetupTextField
+          <TextField
             control={control}
             idPrefix={FORM_ID}
             name="passkeyName"
@@ -64,12 +64,13 @@ function Setup() {
             autoComplete="off"
           />
           {isCodeFieldShown ? (
-            <SetupTextField
+            <TextField
               control={control}
               idPrefix={FORM_ID}
               name="code"
               label="Setup code"
               autoComplete="off"
+              isPlainText
               description={
                 <>
                   It&apos;s in the setup link printed in the server log: <code>{LOGS_COMMAND}</code>
