@@ -12,6 +12,9 @@ import { FORCE_PARAM } from '@services/funkoService/funkoService';
 import { findEditableFunko } from './funkoMockUtils';
 
 const REASON_NEEDED_MESSAGE = 'Removing a funko other users have needs a reason to tell them';
+// As the API caps it.
+const REMOVAL_REASON_MAX_LENGTH = 500;
+const REASON_TOO_LONG_MESSAGE = 'Request validation failed';
 
 type RemovalBody = { reason?: unknown };
 
@@ -24,24 +27,27 @@ function inCollectionsMessage(funkoId: number, otherHolderCount: number): string
     .filter((collection) => ownCollectionIds.has(collection.id))
     .map((collection) => `"${collection.name}"`);
   const otherUsers = otherHolderCount === 1 ? '1 other user' : `${otherHolderCount} other users`;
+  const isInOtherUsersCollections = otherHolderCount > 0;
 
-  if (otherHolderCount > 0) places.push(`the collections of ${otherUsers}`);
+  if (isInOtherUsersCollections) places.push(`the collections of ${otherUsers}`);
 
-  const howToForce = otherHolderCount > 0 ? 'force=true and a reason' : 'force=true';
+  const howToForce = isInOtherUsersCollections ? 'force=true and a reason' : 'force=true';
 
   return `The funko is in ${places.join(', ')}. Send ${howToForce} to remove it from them and delete it`;
 }
 
-// The trimmed reason in the body, if it carries one that is not blank.
+// The trimmed reason in the body, if it carries one that is not blank; a body that is not JSON carries none.
 async function reasonOf(request: Request): Promise<string | undefined> {
   const text = await request.text();
 
-  if (!text) return undefined;
+  try {
+    const body = JSON.parse(text) as RemovalBody;
+    const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
 
-  const body = JSON.parse(text) as RemovalBody;
-  const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
-
-  return reason || undefined;
+    return reason || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function deleteRows(row: MockFunkoRow): void {
@@ -66,17 +72,21 @@ export default (baseUrl: string) => [
     const isForced = isTrueParam(new URL(request.url).searchParams.get(FORCE_PARAM));
     const holderIds = mockHolderIdsOf(row.id);
     const otherHolderCount = holderIds.filter((holderId) => holderId !== MOCK_USER_ID).length;
+    const isInCollections = holderIds.length > 0;
+    const isInOtherUsersCollections = otherHolderCount > 0;
     const reason = await reasonOf(request);
 
-    if (holderIds.length > 0 && !isForced) {
+    if (isInCollections && !isForced) {
       return inCollections(inCollectionsMessage(row.id, otherHolderCount), holderIds.length);
     }
 
-    if (otherHolderCount > 0 && !reason) return badRequest(REASON_NEEDED_MESSAGE);
+    if (isInOtherUsersCollections && !reason) return badRequest(REASON_NEEDED_MESSAGE);
+
+    if (reason && reason.length > REMOVAL_REASON_MAX_LENGTH) return badRequest(REASON_TOO_LONG_MESSAGE);
 
     deleteRows(row);
 
-    if (otherHolderCount > 0 && reason) notifyMockFunkoRemoved(holderIds, row.name, reason);
+    if (isInOtherUsersCollections && reason) notifyMockFunkoRemoved(holderIds, row.name, reason);
 
     return noContent();
   }),

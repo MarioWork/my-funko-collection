@@ -23,7 +23,7 @@ import type {
   MockSubmissionColumns,
 } from './mockStore.type';
 import { mockDate, mockEnv, mockRecentDate, NOT_REVIEWED } from './mockStoreUtils';
-import { MOCK_MEMBER_ID } from './mockUsers';
+import { MOCK_MEMBER_ID, MOCK_SECOND_MEMBER_ID } from './mockUsers';
 
 type MockSeedData = Omit<MockStore, 'auth' | 'users'>;
 
@@ -91,7 +91,7 @@ type SeedSubmission = Omit<SeedFunko, 'series' | 'type' | 'isChase' | 'exclusive
   rejectionReason?: string;
 };
 
-const HAN_ID = MOCK_MEMBER_ID + 1;
+const HAN_ID = MOCK_SECOND_MEMBER_ID;
 const SUBMISSION_REVIEW_DAY = 45;
 
 // Funkos luke and han have in their own collections, so an admin deleting one is asked for a reason.
