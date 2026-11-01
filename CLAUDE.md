@@ -15,6 +15,9 @@ The global React/Node conventions apply; this file holds only what is specific t
   api container; neither the api nor the `db` (postgres:18) container is published. All runtime data lives in
   `./data` (`postgres/` + `uploads/`); the db password is `POSTGRES_PASSWORD` in a git-ignored root `.env`.
 - UI decisions to keep: image-first grid, scan-first add, filters as a drawer, toast + Undo for undoable writes.
+  Notifications are a sidebar item on desktop and the bell in the top bar on phones; a divider sets off the Admin
+  group. The All items grid has its own card (collection tag, ⋯ and ×N on the photo; number + name, series, chase,
+  exclusive under it; no price, tags or notes); a collection's grid keeps the item card with the copy's facts.
 
 ## Vocabulary
 
@@ -26,8 +29,9 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
 - No external Funko APIs at runtime. Entry is manual; photos are the user's own. Do not propose catalog lookups.
 - Images are stored on disk under `data/uploads/funkos/<id>/`: the user uploads one photo, the server makes three
   WebP sizes (2000 / 1200 / 480 px) plus a blur placeholder. Keep them sharp; never shrink below these sizes.
-  Each image records who uploaded it (`uploaded_by_id`); deleting that user clears it ("Removed user" on the Images
-  page) and never deletes the image.
+  Each image records who uploaded it (`uploaded_by_id`, sent as `uploadedBy` on the Images list and a funko's images);
+  deleting that user clears it ("Removed user" on the Images page and under the funko page's photo) and never deletes
+  the image.
 - One search endpoint: `GET /funkos?q=` searches every field, named params narrow one field. No separate `/search`.
 - `DELETE /funkos/:id` answers 409 `IN_COLLECTIONS` with `userCount` while the funko is in a collection; `?force=true`
   removes it from all of them. Taking it from other users' collections (issue #13) needs `{ reason }` in the body (400
@@ -210,6 +214,9 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
 - Colours are semantic tokens only (`bg-background`, `text-primary`, `ring-ring`), defined in `src/index.css` from
   two ramps: warm grey (stone) for everything, one teal accent from the logo for buttons, links, focus and selection.
   No `dark:` colour overrides, no hex in a component.
+- The hand cursor and a muted hover background on every clickable control come from one rule in `src/index.css`
+  (base layer; unlayered for the vendored menu/select/combobox items, which set `cursor-default`). A control's own
+  `cursor-*` / `bg-*` / `hover:bg-*` utility wins; never add `cursor-pointer` per component.
 - Every write is a React Router action through `useFetcher`; `fetcher.submit` returns a promise, so `void` it.
 - The signed-in user lives in React Router middleware (decided 2026-10-31 by Mario): the shell route's
   `signedInUserMiddleware` (`src/application/routes/`) asks `/auth/status` once, keeps it until sign-out, a 401, a
