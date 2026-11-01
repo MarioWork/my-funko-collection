@@ -9,9 +9,8 @@ the tags, and the uploaded photos (three WebP sizes each). Built from `node-fast
 corepack enable          # once per machine
 yarn install             # also generates the Prisma client (src/generated/, git-ignored)
 cp .env.example .env     # defaults are fine for local work
-yarn db:migrate          # creates the tables in DATABASE_URL's database
 yarn db:seed             # optional: example data with placeholder images
-yarn dev                 # http://localhost:3000, OpenAPI UI at /docs
+yarn dev                 # applies pending migrations, then http://localhost:3000, OpenAPI UI at /docs
 ```
 
 `yarn typecheck && yarn lint && yarn test` is the definition of green.
@@ -28,7 +27,7 @@ then a copy of it per test file, so files run in parallel without seeing each ot
 
 | Script                                       | Does                                                                                                                                                                                                    |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `yarn dev`                                   | Runs `src/server.ts` with `--watch` and `.env`                                                                                                                                                          |
+| `yarn dev`                                   | Applies pending migrations (`prisma migrate deploy`) and regenerates the client, then runs `src/server.ts` with `--watch` and `.env`                                                                    |
 | `yarn build`                                 | Compiles to `dist/` (`tsconfig.build.json`)                                                                                                                                                             |
 | `yarn start`                                 | Runs `dist/server.js`                                                                                                                                                                                   |
 | `yarn typecheck`                             | `tsc --noEmit`                                                                                                                                                                                          |
