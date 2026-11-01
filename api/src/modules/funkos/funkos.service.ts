@@ -7,7 +7,8 @@ import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
 import { isUsableCategory } from '../categories/categories.service.ts';
 import {
-  notifyAdminsOfSubmission,
+  notifyAdminsOfNewSubmission,
+  notifyAdminsOfResentSubmission,
   notifySubmissionApproved,
   notifySubmissionRejected,
 } from '../notifications/notifications.service.ts';
@@ -311,7 +312,7 @@ export async function addFunko(user: SignedInUser, input: CreateFunko): Promise<
 
   log.info({ funkoId: row.id, status: row.status }, 'funko created');
 
-  if (row.status === 'WAITING') await notifyAdminsOfSubmission({ funkoId: row.id, funkoName: row.name }, false);
+  if (row.status === 'WAITING') await notifyAdminsOfNewSubmission({ funkoId: row.id, funkoName: row.name });
 
   return toSingleResponse(user.userId, row);
 }
@@ -596,7 +597,7 @@ export async function resendSubmission(user: SignedInUser, id: number): Promise<
 
   log.info({ funkoId: id }, 'submission sent again');
 
-  await notifyAdminsOfSubmission({ funkoId: id, funkoName: current.name }, true);
+  await notifyAdminsOfResentSubmission({ funkoId: id, funkoName: current.name });
 
   return toSingleSubmission(id);
 }

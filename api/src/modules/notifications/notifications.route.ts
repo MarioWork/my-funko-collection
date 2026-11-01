@@ -14,7 +14,7 @@ import {
 import {
   getNotifications,
   getUnreadCount,
-  markAllNotificationsRead,
+  updateAllNotifications,
   updateNotification,
 } from './notifications.service.ts';
 
@@ -62,7 +62,7 @@ export const notificationsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) => {
-      await markAllNotificationsRead(signedInUserId(request));
+      await updateAllNotifications(signedInUserId(request));
 
       return reply.code(204).send();
     },
@@ -74,12 +74,12 @@ export const notificationsRoutes: FastifyPluginAsyncZod = async (app) => {
       config: { isAllowedWhenReadOnly: true },
       schema: {
         tags: TAGS,
-        summary: 'Mark one notification read (or unread again)',
+        summary: 'Mark one notification read',
         params: NotificationParamsSchema,
         body: UpdateNotificationSchema,
         response: { 200: NotificationResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
-    async (request) => updateNotification(signedInUserId(request), request.params.notificationId, request.body),
+    async (request) => updateNotification(signedInUserId(request), request.params.notificationId),
   );
 };

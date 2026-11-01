@@ -6,13 +6,12 @@
 import { NotFoundError } from '../../lib/httpErrors.ts';
 import { logger } from '../../lib/logger.ts';
 import { getAdminIds } from '../users/users.service.ts';
-import { notificationsRepository, type NewNotifications, type NotificationRow } from './notifications.repository.ts';
+import { notificationsRepository, type NewNotification, type NotificationRow } from './notifications.repository.ts';
 import type {
   ListNotificationsQuery,
   NotificationListResponse,
   NotificationResponse,
   UnreadCountResponse,
-  UpdateNotification,
 } from './notifications.schema.ts';
 import type { NotifiedFunko } from './notifications.type.ts';
 
@@ -39,12 +38,22 @@ function toResponse(row: NotificationRow): NotificationResponse {
   };
 }
 
-async function notify(notifications: NewNotifications): Promise<void> {
-  if (notifications.userIds.length === 0) return;
+// Written after the change it reports, which has already been saved: a notification that fails to write is logged
+// and dropped (recovered from), so the approve, reject or send still answers as the success it is.
+async function notify(notification: NewNotification): Promise<void> {
+  if (notification.userIds.length === 0) return;
 
-  await notificationsRepository.createAndTrim(notifications, retentionCutoff());
+  const context = { kind: notification.kind, funkoId: notification.funkoId };
 
-  log.info({ kind: notifications.kind, funkoId: notifications.funkoId }, 'notification written');
+  try {
+    await notificationsRepository.createAndTrim(notification, retentionCutoff());
+  } catch (error) {
+    log.error({ ...context, err: error }, 'notification not written');
+
+    return;
+  }
+
+  log.info(context, 'notification written');
 }
 
 // To the sender: an admin approved their submission.
@@ -57,12 +66,14 @@ export async function notifySubmissionRejected(senderId: number, funko: Notified
   await notify({ userIds: [senderId], kind: 'SUBMISSION_REJECTED', ...funko, reason });
 }
 
-// To every admin (read-only ones too: they still read): a member sent a submission in, new or again after a
-// rejection.
-export async function notifyAdminsOfSubmission(funko: NotifiedFunko, isResent: boolean): Promise<void> {
-  const kind = isResent ? 'SUBMISSION_RESENT' : 'SUBMISSION_SENT';
+// To every admin (read-only ones too: they still read): a member sent a new submission in.
+export async function notifyAdminsOfNewSubmission(funko: NotifiedFunko): Promise<void> {
+  await notify({ userIds: await getAdminIds(), kind: 'SUBMISSION_SENT', ...funko, reason: null });
+}
 
-  await notify({ userIds: await getAdminIds(), kind, ...funko, reason: null });
+// To every admin: a member sent a rejected submission in again.
+export async function notifyAdminsOfResentSubmission(funko: NotifiedFunko): Promise<void> {
+  await notify({ userIds: await getAdminIds(), kind: 'SUBMISSION_RESENT', ...funko, reason: null });
 }
 
 export async function getNotifications(
@@ -78,19 +89,15 @@ export async function getUnreadCount(userId: number): Promise<UnreadCountRespons
   return { count: await notificationsRepository.countUnread(userId, retentionCutoff()) };
 }
 
-export async function updateNotification(
-  userId: number,
-  id: number,
-  { isRead }: UpdateNotification,
-): Promise<NotificationResponse> {
-  const readAt = isRead ? new Date() : null;
-  const row = await notificationsRepository.setReadAt(userId, id, readAt, retentionCutoff());
+// Marks it read (the only change a notification takes); reading it again moves the time forward.
+export async function updateNotification(userId: number, id: number): Promise<NotificationResponse> {
+  const row = await notificationsRepository.setReadAt(userId, id, new Date(), retentionCutoff());
 
   if (!row) throw new NotFoundError(ENTITY, id);
 
   return toResponse(row);
 }
 
-export async function markAllNotificationsRead(userId: number): Promise<void> {
+export async function updateAllNotifications(userId: number): Promise<void> {
   await notificationsRepository.markAllRead(userId, new Date(), retentionCutoff());
 }
