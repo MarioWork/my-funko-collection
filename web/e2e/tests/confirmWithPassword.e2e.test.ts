@@ -14,12 +14,12 @@ test('an admin with a password confirms it is them with it, then creates a user'
   const users = new UsersPage(page);
 
   await users.goto();
-  await users.createUser('rey', 'Member');
+  await users.createUser('jyn', 'Member');
   await users.confirmWithPassword(PASSWORD);
 
   await expect(users.temporaryPassword).toHaveValue(/\S{15,}/);
   await users.closeCreatedUser();
-  await expect(users.rowOf('rey')).toContainText('Temporary password');
+  await expect(users.rowOf('jyn')).toContainText('Temporary password');
 });
 
 // luke signed in with his temporary password more than 10 minutes ago: choosing his own asks him to confirm with

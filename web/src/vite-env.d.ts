@@ -10,6 +10,9 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_EXTRA_FUNKOS?: string;
   // Mock mode only: open signed out (`signedOut`) or before the first run (`setup`) instead of signed in.
   readonly VITE_MOCK_AUTH_STATE?: string;
+  // Mock mode only: who is signed in (`member`, `read-only`, `read-only-admin`, `new-user`, `last-admin`) instead of
+  // the default admin (`yarn dev:member` and the other start commands, src/mocks/mockPersonas.ts).
+  readonly VITE_MOCK_PERSONA?: string;
   // The public demo build (GitHub Pages): shows the "changes are not saved" banner.
   readonly VITE_DEMO?: string;
 }

@@ -21,7 +21,8 @@ test('an admin approves one submission and rejects another with a reason, and fi
 
   await review.reject(LUKES_THANOS, 'Already in the catalogue as #78');
   await expect(review.row(LUKES_THANOS)).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Nothing waiting' })).toBeVisible();
+  // The seed's orphan submission still waits, from a removed user.
+  await expect(review.row('Totoro')).toContainText('from Removed user');
 
   await review.openTab('Done');
 

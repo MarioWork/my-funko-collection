@@ -36,7 +36,7 @@ it('lists every member’s waiting submission, oldest first, with who sent it an
     .getAllByRole('row')
     .slice(1)
     .map((row) => within(row).getAllByRole('link')[0]?.textContent);
-  expect(names).toEqual([LUKES_THANOS, HANS_MANDO]);
+  expect(names).toEqual([LUKES_THANOS, 'Totoro', HANS_MANDO, 'BB-8', 'Rey with Lightsaber']);
   const thanos = await findRow(LUKES_THANOS);
   expect(within(thanos).getByText(/from luke/)).toBeVisible();
   expect(within(thanos).getByText('Maybe a double')).toBeVisible();
@@ -49,7 +49,8 @@ it('lists every member’s waiting submission, oldest first, with who sent it an
     FUNKO_ROUTES_PATHS.detail('6'),
   );
   expect(within(await findRow(HANS_MANDO)).queryByText('Maybe a double')).not.toBeInTheDocument();
-  expect(screen.getByText('2 waiting')).toBeVisible();
+  expect(within(await findRow('Totoro')).getByText(/from Removed user/)).toBeVisible();
+  expect(screen.getByText('5 waiting')).toBeVisible();
 });
 
 it('names a removed user as the sender when the member who sent it in was deleted', async () => {

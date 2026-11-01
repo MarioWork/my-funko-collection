@@ -42,7 +42,7 @@ it('lists every user with their role and their state in words', async () => {
   expect(within(rowOf('luke')).getByText('Member')).toBeVisible();
   expect(within(rowOf('luke')).getByText('Temporary password')).toBeVisible();
   expect(within(rowOf('han')).getByText('Temporary password expired')).toBeVisible();
-  expect(screen.getByText('4 users')).toBeVisible();
+  expect(screen.getByText('8 users')).toBeVisible();
 });
 
 it('says the page is for admins when a member opens it', async () => {
@@ -56,14 +56,14 @@ it('says the page is for admins when a member opens it', async () => {
 it('creates a user and shows their temporary password once, then lists them', async () => {
   renderUsers(`${USER_ROUTES_PATHS.BASE}/${USER_ROUTES_PATHS.ADD}`);
 
-  await createUser('Rey', 'Admin');
+  await createUser('Jyn', 'Admin');
 
   const password = await screen.findByLabelText('Temporary password');
   expect(password).toHaveValue(mockStore.users.at(-1)?.password);
   expect(password).toHaveAccessibleDescription(/Copy it now: it is not shown again\./);
   await userEvent.click(screen.getByRole('button', { name: 'Done' }));
-  expect(await screen.findByRole('cell', { name: 'rey' })).toBeVisible();
-  expect(within(rowOf('rey')).getByText('Admin')).toBeVisible();
+  expect(await screen.findByRole('cell', { name: 'jyn' })).toBeVisible();
+  expect(within(rowOf('jyn')).getByText('Admin')).toBeVisible();
   expect(screen.queryByLabelText('Temporary password')).not.toBeInTheDocument();
 });
 
@@ -72,7 +72,7 @@ it('asks the admin to confirm with a passkey when their sign-in is older than 10
   vi.mocked(startAuthentication).mockResolvedValue(createAuthenticationResponseMockModel());
   renderUsers(`${USER_ROUTES_PATHS.BASE}/${USER_ROUTES_PATHS.ADD}`);
 
-  await createUser('rey', 'Member');
+  await createUser('jyn', 'Member');
   await userEvent.click(await screen.findByRole('button', { name: 'Confirm with passkey' }));
 
   expect(await screen.findByLabelText('Temporary password')).toBeVisible();
@@ -84,7 +84,7 @@ it('lets an admin with a password create a user by confirming with it', async ()
   Object.assign(mockStore.auth, { username: 'mario', password: PASSWORD, isSignInRecent: false });
   renderUsers(`${USER_ROUTES_PATHS.BASE}/${USER_ROUTES_PATHS.ADD}`);
 
-  await createUser('rey', 'Member');
+  await createUser('jyn', 'Member');
   await userEvent.type(await screen.findByLabelText('Your current password'), PASSWORD);
   await userEvent.keyboard('{Enter}');
 
@@ -167,7 +167,7 @@ describe('managing a user', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Delete user' }));
     await confirmIn('Delete luke?', 'Delete user');
 
-    expect(await screen.findByText('3 users')).toBeVisible();
+    expect(await screen.findByText('7 users')).toBeVisible();
     expect(screen.queryByRole('cell', { name: 'luke' })).not.toBeInTheDocument();
   });
 
@@ -180,7 +180,7 @@ describe('managing a user', () => {
     await confirmIn('Delete luke?', 'Delete user');
     await confirmIn("Confirm it's you", 'Confirm with passkey');
 
-    expect(await screen.findByText('3 users')).toBeVisible();
+    expect(await screen.findByText('7 users')).toBeVisible();
     expect(startAuthentication).toHaveBeenCalledOnce();
   });
 
@@ -195,7 +195,7 @@ describe('managing a user', () => {
     await userEvent.type(within(dialog).getByLabelText('Your current password'), PASSWORD);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm with password' }));
 
-    expect(await screen.findByText('3 users')).toBeVisible();
+    expect(await screen.findByText('7 users')).toBeVisible();
     expect(startAuthentication).not.toHaveBeenCalled();
   });
 

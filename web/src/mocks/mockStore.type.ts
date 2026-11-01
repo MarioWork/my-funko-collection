@@ -11,7 +11,7 @@ import type {
 export type MockRowWithId = { id: number };
 export type MockNamedRow = { id: number; name: string };
 // Where a catalogue row stands, as the API keeps it: APPROVED with no sender (an admin's), or a member's submission.
-// The signed-in mock user is MOCK_USER_ID; any other `submittedById` is another member's, hidden from them.
+// The signed-in mock user is `auth.userId`; any other `submittedById` is another member's, hidden from them.
 export type MockSubmissionColumns = { status: SubmissionStatus; submittedById: number | null };
 export type MockCategoryRow = MockSubmissionColumns & {
   id: number;
@@ -76,7 +76,9 @@ export type MockPasskeyRow = PasskeyApiModel;
 // an admin by default, a member through setMockUserRole() (the admin-only routes then answer 403 ADMIN_ONLY).
 // `mustChangePassword`: signed in with a temporary password (setMockMustChangePassword(), or a password sign-in as a
 // user an admin created): every route but replacing it and signing out answers 403 PASSWORD_CHANGE_REQUIRED.
+// `userId`: who is signed in, MOCK_USER_ID unless a password sign-in (or VITE_MOCK_PERSONA) made it another user.
 export type MockAuth = {
+  userId: number;
   state: AuthState;
   userName: string;
   username: string | null;
@@ -88,12 +90,13 @@ export type MockAuth = {
   passkeys: MockPasskeyRow[];
 };
 
-// The other users, as GET /users lists them, plus their password as typed (the temporary one an admin was shown),
-// so a password sign-in as one of them works in mock mode. The API keeps only a hash.
+// The other users (everyone but the signed-in one, who lives in `auth`), as GET /users lists them, plus their
+// password as typed (the temporary one an admin was shown), so a password sign-in as one of them works in mock mode.
+// The API keeps only a hash.
 // `isLastAdmin` is worked out from every row when the list is read, as the API does.
 export type MockUserRow = Omit<UserApiModel, 'isLastAdmin'> & { password: string | null };
 
-// A notification for one user (`userId`). The handlers answer only the signed-in user's own (MOCK_USER_ID), as the
+// A notification for one user (`userId`). The handlers answer only the signed-in user's own (`auth.userId`), as the
 // API does; the others are what another user would read.
 export type MockNotificationRow = NotificationApiModel & { userId: number };
 
