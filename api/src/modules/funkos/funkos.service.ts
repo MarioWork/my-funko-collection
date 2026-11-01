@@ -1,7 +1,8 @@
+import { env } from '../../config/env.ts';
 import { normaliseBarcode } from '../../lib/barcode.ts';
 import { isForeignKeyViolation, isUniqueViolation } from '../../lib/databaseErrors.ts';
 import { BadRequestError, ConflictError, HeldByUsersError, NotFoundError } from '../../lib/httpErrors.ts';
-import { removeFunkoFolder, sizeUrl } from '../../lib/imageStorage.ts';
+import { copyImageFiles, removeFunkoFolder, removeImageFiles, sizeUrl } from '../../lib/imageStorage.ts';
 import { logger } from '../../lib/logger.ts';
 import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
@@ -33,8 +34,16 @@ import {
   isInCatalogueOf,
   isOpenSubmission,
 } from './funkos.access.ts';
-import { getImages } from './images/funkoImages.service.ts';
+import { getImageFiles, getImages } from './images/funkoImages.service.ts';
+import type { ImageFile } from './images/funkoImages.type.ts';
 import { combineClashingItems } from './funkos.merge.ts';
+import {
+  imagePlanOf,
+  pickedFieldsOf,
+  type MergeImagePlan,
+  type MergeSide,
+  type PickedFields,
+} from './funkos.mergeChoices.ts';
 import {
   funkosRepository,
   type CatalogueReferences,
@@ -45,6 +54,7 @@ import {
   type ForcedDeleter,
   type FunkoRow,
   type ListedFunkoRow,
+  type MergeChange,
   type MergeOutcome,
   type PrimaryImageRow,
   type SubmissionRow,
@@ -59,7 +69,7 @@ import type {
   ListFunkosQuery,
   UpdateFunko,
 } from './funkos.schema.ts';
-import type { FunkoSummary, PrimaryImageSummary } from './funkos.type.ts';
+import type { FunkoSummary, MergeChoices, PrimaryImageSummary } from './funkos.type.ts';
 
 const ENTITY = 'Funko';
 const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved, rejected or merged';
@@ -69,6 +79,12 @@ const REASON_NEEDED_MESSAGE = 'Removing a funko other users have needs a reason 
 const CATALOGUE_HAS_FUNKO_MESSAGE = 'The catalogue already has this funko. Reject this submission, or change it first';
 const CATALOGUE_HAS_BARCODE_MESSAGE =
   'This barcode belongs to another funko in the catalogue. Reject this submission, or change it first';
+const PICK_HAS_FUNKO_MESSAGE =
+  'With the picked details, this would be the same as another funko in the catalogue. Keep more of the original';
+const PICK_HAS_BARCODE_MESSAGE =
+  'The submission’s barcode belongs to another funko in the catalogue. Keep the original’s barcode';
+const MERGE_CLASH_MESSAGE =
+  'The catalogue now has a funko that clashes with the picked details. Reload and check them again';
 const CATALOGUE_CLASH_MESSAGE =
   'The catalogue now has a funko, category or series that clashes with this submission. Reload and check it again';
 
@@ -686,21 +702,118 @@ const MERGE_REFUSAL_MAP: Record<Exclude<MergeOutcome, 'MERGED'>, (targetId: numb
 };
 
 // The target is checked in the transaction but not locked: one deleted in between makes the item move fail on its
-// foreign key, and the merge answers as if the target had never been there.
-async function mergeOrExplain(id: number, targetId: number): Promise<MergeOutcome> {
+// foreign key, and the merge answers as if the target had never been there. A picked value another admin gave a
+// catalogue funko meanwhile is the unique index's 23505, answered in words.
+async function mergeOrExplain(id: number, targetId: number, change: MergeChange): Promise<MergeOutcome> {
   try {
-    return await funkosRepository.merge(id, targetId, combineClashingItems);
+    return await funkosRepository.merge(id, targetId, change, combineClashingItems);
   } catch (error: unknown) {
     if (isForeignKeyViolation(error)) return 'TARGET_NOT_IN_CATALOGUE';
+
+    if (isUniqueViolation(error)) throw new ConflictError(MERGE_CLASH_MESSAGE);
 
     throw error;
   }
 }
 
-// An admin merges a waiting submission into a funko already in the catalogue: every item of it moves onto that funko
-// (two in one collection become one, see funkos.merge.ts) and it reads as merged into it, still private. Its sender
-// is told, pointed at the catalogue funko.
-export async function mergeSubmission(id: number, targetId: number): Promise<SubmissionResponse> {
+function mergeSideOf(row: FunkoRow, references: CatalogueReferences): MergeSide {
+  return {
+    name: row.name,
+    number: row.number,
+    type: row.type,
+    isChase: row.isChase,
+    exclusive: row.exclusive,
+    barcode: row.barcode,
+    ...references,
+  };
+}
+
+// The fields the target takes from the submission, compared with the submission's category and series as the
+// catalogue would have them.
+async function pickFields(submission: FunkoRow, target: FunkoRow, choices: MergeChoices): Promise<PickedFields> {
+  if (choices.fieldsFromSubmission.length === 0) return {};
+
+  const references = await funkosRepository.findCatalogueReferences(submission.id);
+
+  if (!references) throw new NotFoundError(ENTITY, submission.id);
+
+  const original = mergeSideOf(target, { categoryId: target.categoryId, seriesId: target.seriesId });
+
+  return pickedFieldsOf(original, mergeSideOf(submission, references), choices.fieldsFromSubmission);
+}
+
+// The target with the picked fields must still fit the catalogue: no other catalogue funko with the same identity or
+// barcode (409 pointing at it, as approval refuses).
+async function assertPickFitsCatalogue(target: FunkoRow, fields: PickedFields): Promise<void> {
+  const identity: FunkoIdentity = {
+    categoryId: fields.categoryId ?? target.categoryId,
+    number: fields.number ?? target.number,
+    name: fields.name ?? target.name,
+    isChase: fields.isChase ?? target.isChase,
+    exclusive: fields.exclusive ?? target.exclusive,
+  };
+  const sameIdentity = await funkosRepository.findIdByIdentity(identity, CATALOGUE_SCOPE);
+
+  if (sameIdentity && sameIdentity.id !== target.id) throw new ConflictError(PICK_HAS_FUNKO_MESSAGE, sameIdentity.id);
+
+  const sameBarcode = fields.barcode
+    ? await funkosRepository.findIdByBarcode(fields.barcode, CATALOGUE_SCOPE)
+    : undefined;
+
+  if (sameBarcode && sameBarcode.id !== target.id) throw new ConflictError(PICK_HAS_BARCODE_MESSAGE, sameBarcode.id);
+}
+
+async function planImages(id: number, targetId: number, choices: MergeChoices): Promise<MergeImagePlan> {
+  const [originalImages, submissionImages] = await Promise.all([getImageFiles(targetId), getImageFiles(id)]);
+
+  return imagePlanOf(originalImages, submissionImages, choices, env.MAX_IMAGES_PER_FUNKO);
+}
+
+// Best effort, like a normal image delete: the rows are already gone or moved.
+async function removeImageFilesOf(funkoId: number, images: ImageFile[]): Promise<void> {
+  for (const image of images) await removeImageFiles(funkoId, image.fileKey);
+}
+
+// The merge itself, with the moving images' files copied into the target's folder first, so the target never points
+// at a missing file. If it does not go through, the copies go again and nothing else changed.
+async function mergeWithCopiedFiles(id: number, targetId: number, change: MergeChange, moved: ImageFile[]) {
+  for (const image of moved) await copyImageFiles(id, targetId, image.fileKey);
+
+  let outcome: MergeOutcome;
+
+  try {
+    outcome = await mergeOrExplain(id, targetId, change);
+  } catch (error: unknown) {
+    await removeImageFilesOf(targetId, moved);
+    throw error;
+  }
+
+  if (outcome === 'MERGED') return;
+
+  await removeImageFilesOf(targetId, moved);
+  throw MERGE_REFUSAL_MAP[outcome](targetId);
+}
+
+// Merges, then removes the files no row points at any more: the moved images' originals, and the removed images'.
+async function mergeWithImages(id: number, targetId: number, fields: PickedFields, plan: MergeImagePlan) {
+  const change: MergeChange = {
+    fields,
+    movedImageIds: plan.moved.map((image) => image.id),
+    removedImageIds: plan.removed.map((image) => image.id),
+  };
+
+  await mergeWithCopiedFiles(id, targetId, change, plan.moved);
+  await removeImageFilesOf(id, plan.moved);
+  await removeImageFilesOf(targetId, plan.removed);
+}
+
+// An admin merges a waiting submission into a funko already in the catalogue: the funko takes the fields and images
+// the admin picked (see funkos.mergeChoices.ts), every item of the submission moves onto it (two in one collection
+// become one, see funkos.merge.ts), and the submission reads as merged into it, still private, as its sender sent it.
+// Its sender is told, pointed at the catalogue funko.
+export async function mergeSubmission(id: number, choices: MergeChoices): Promise<SubmissionResponse> {
+  const targetId = choices.targetFunkoId;
+
   if (id === targetId) throw new BadRequestError(SELF_MERGE_MESSAGE);
 
   const row = await findWaitingSubmission(id);
@@ -708,9 +821,10 @@ export async function mergeSubmission(id: number, targetId: number): Promise<Sub
 
   if (target?.status !== 'APPROVED') throw targetNotInCatalogue(targetId);
 
-  const outcome = await mergeOrExplain(id, targetId);
+  const fields = await pickFields(row, target, choices);
 
-  if (outcome !== 'MERGED') throw MERGE_REFUSAL_MAP[outcome](targetId);
+  await assertPickFitsCatalogue(target, fields);
+  await mergeWithImages(id, targetId, fields, await planImages(id, targetId, choices));
 
   log.info({ funkoId: id, targetFunkoId: targetId }, 'submission merged');
 

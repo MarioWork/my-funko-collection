@@ -21,6 +21,7 @@ import {
   type UpdateFunko,
 } from './funkos.schema.ts';
 import type { ItemCombiner, MergedItem } from './funkos.merge.ts';
+import type { PickedFields } from './funkos.mergeChoices.ts';
 import { FUNKO_TYPES, type FunkoType } from './funkos.type.ts';
 
 const FUNKO_SELECT = {
@@ -132,6 +133,10 @@ export type CatalogueReferences = { categoryId: number; seriesId: number | null 
 // What became of a merge: done, or refused because the submission is no longer waiting or the target is not (or no
 // longer) in the catalogue. Nothing changes unless it is MERGED.
 export type MergeOutcome = 'MERGED' | 'NOT_WAITING' | 'TARGET_NOT_IN_CATALOGUE';
+
+// What a merge changes on the catalogue funko besides the items (issue #39): the fields it takes from the submission,
+// the submission's images that move onto it (in this order, after its own), and its own images that go.
+export type MergeChange = { fields: PickedFields; movedImageIds: number[]; removedImageIds: number[] };
 
 // A change to a funko: the body, plus when an admin changed someone else's submission.
 export type FunkoChange = UpdateFunko & { changedByAdminAt?: Date };
@@ -586,10 +591,67 @@ async function moveItem(
   await combineItems(tx, { moving, staying }, targetId, combine);
 }
 
-// Merging, all or nothing: the target must still be in the catalogue, the submission still waiting; then every item
-// of it (whoever's collection) moves onto the target, and it is marked merged into it. Its images, category and
-// series stay with it.
-async function mergeInTransaction(id: number, targetId: number, combine: ItemCombiner): Promise<MergeOutcome> {
+// A picked waiting category or series of the submission joins the catalogue, as approval brings it in. An approved
+// one (the submission's own, or the approved one of the same name the service resolved) is left as it is.
+async function bringIntoCatalogue(tx: Prisma.TransactionClient, fields: PickedFields): Promise<void> {
+  if (fields.categoryId !== undefined) {
+    await tx.category.updateMany({ where: { id: fields.categoryId, status: 'WAITING' }, data: { status: 'APPROVED' } });
+  }
+
+  if (fields.seriesId !== undefined && fields.seriesId !== null) {
+    await tx.series.updateMany({ where: { id: fields.seriesId, status: 'WAITING' }, data: { status: 'APPROVED' } });
+  }
+}
+
+// The target's unticked images go, then the picked images of the submission become the target's, after its own. Their
+// files were copied into the target's folder under the same key before the transaction (the service's job).
+async function moveImages(
+  tx: Prisma.TransactionClient,
+  pair: { id: number; targetId: number },
+  change: MergeChange,
+): Promise<void> {
+  if (change.removedImageIds.length > 0) {
+    await tx.funkoImage.deleteMany({ where: { id: { in: change.removedImageIds }, funkoId: pair.targetId } });
+  }
+
+  if (change.movedImageIds.length === 0) return;
+
+  const totals = await tx.funkoImage.aggregate({ where: { funkoId: pair.targetId }, _max: { position: true } });
+  const firstPosition = (totals._max.position ?? -1) + 1;
+
+  for (const [index, imageId] of change.movedImageIds.entries()) {
+    await tx.funkoImage.updateMany({
+      where: { id: imageId, funkoId: pair.id },
+      data: { funkoId: pair.targetId, position: firstPosition + index },
+    });
+  }
+}
+
+// The catalogue funko takes the picked fields (a waiting category or series picked joins the catalogue first) and
+// images. A unique index the new values clash with throws 23505, and the whole merge rolls back.
+async function changeTarget(
+  tx: Prisma.TransactionClient,
+  pair: { id: number; targetId: number },
+  change: MergeChange,
+): Promise<void> {
+  const hasFields = Object.keys(change.fields).length > 0;
+
+  await bringIntoCatalogue(tx, change.fields);
+
+  if (hasFields) await tx.funko.update({ where: { id: pair.targetId }, data: change.fields, select: ID_SELECT });
+
+  await moveImages(tx, pair, change);
+}
+
+// Merging, all or nothing: the target must still be in the catalogue, the submission still waiting; then the target
+// takes the picked fields and images, every item of the submission (whoever's collection) moves onto the target, and
+// it is marked merged into it. It keeps its own fields, category, series and the images not picked, as a record.
+async function mergeInTransaction(
+  id: number,
+  targetId: number,
+  change: MergeChange,
+  combine: ItemCombiner,
+): Promise<MergeOutcome> {
   return prisma.$transaction(async (tx) => {
     const target = await tx.funko.findFirst({ where: { id: targetId, status: 'APPROVED' }, select: ID_SELECT });
 
@@ -601,6 +663,8 @@ async function mergeInTransaction(id: number, targetId: number, combine: ItemCom
     });
 
     if (write.count === 0) return 'NOT_WAITING';
+
+    await changeTarget(tx, { id, targetId }, change);
 
     const items = await tx.collectionItem.findMany({
       where: { funkoId: id },
@@ -802,8 +866,8 @@ export const funkosRepository = {
     return reloadIfUpdated(write, () => findRow({ id }));
   },
 
-  // Only a waiting funko is merged, only into an approved one; `combine` decides what a clash in one collection
-  // becomes.
+  // Only a waiting funko is merged, only into an approved one, which takes `change`; `combine` decides what a clash
+  // in one collection becomes.
   merge: mergeInTransaction,
 
   // Rejecting an orphan submission deletes it, as the user-delete trigger deletes a removed user's rejected ones:
