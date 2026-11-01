@@ -126,6 +126,9 @@ export const FunkoDetailResponseSchema = FunkoResponseSchema.extend({
   changedByAdminAt: z.iso.datetime().nullable().optional(),
   // Admins only: how many users have it in a collection (never who), for deleting it. Left out for members.
   userCount: z.number().int().optional(),
+  // Admins and the sender only, on a merged submission: the catalogue funko it was merged into (null otherwise, or
+  // once that funko was deleted). Left out for everyone else.
+  mergedInto: z.object({ id: z.number().int(), name: z.string() }).nullable().optional(),
 }).meta({ id: 'FunkoDetail' });
 
 export const FunkoListResponseSchema = paginatedResponseSchema(FunkoResponseSchema);

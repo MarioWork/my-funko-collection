@@ -2,10 +2,10 @@
 // module hands over to tell someone something.
 
 // Matches the `NotificationKind` enum in prisma/schema.prisma; the repository fails to compile if the two drift.
-// Merging (#12) will add its own here.
 export const NOTIFICATION_KINDS = [
   'SUBMISSION_APPROVED',
   'SUBMISSION_REJECTED',
+  'SUBMISSION_MERGED',
   'SUBMISSION_SENT',
   'SUBMISSION_RESENT',
   'FUNKO_REMOVED',

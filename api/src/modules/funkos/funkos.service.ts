@@ -11,6 +11,7 @@ import {
   notifyAdminsOfResentSubmission,
   notifyFunkoRemoved,
   notifySubmissionApproved,
+  notifySubmissionMerged,
   notifySubmissionRejected,
 } from '../notifications/notifications.service.ts';
 import { isUsableSeries } from '../series/series.service.ts';
@@ -33,6 +34,7 @@ import {
   isOpenSubmission,
 } from './funkos.access.ts';
 import { getImages } from './images/funkoImages.service.ts';
+import { combineClashingItems } from './funkos.merge.ts';
 import {
   funkosRepository,
   type CatalogueReferences,
@@ -43,6 +45,7 @@ import {
   type ForcedDeleter,
   type FunkoRow,
   type ListedFunkoRow,
+  type MergeOutcome,
   type PrimaryImageRow,
   type SubmissionRow,
 } from './funkos.repository.ts';
@@ -59,7 +62,8 @@ import type {
 import type { FunkoSummary, PrimaryImageSummary } from './funkos.type.ts';
 
 const ENTITY = 'Funko';
-const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved or rejected';
+const NOT_WAITING_MESSAGE = 'Only a waiting submission can be approved, rejected or merged';
+const SELF_MERGE_MESSAGE = 'A submission cannot be merged into itself';
 const NOT_REJECTED_MESSAGE = 'Only a rejected submission can be sent again';
 const REASON_NEEDED_MESSAGE = 'Removing a funko other users have needs a reason to tell them';
 const CATALOGUE_HAS_FUNKO_MESSAGE = 'The catalogue already has this funko. Reject this submission, or change it first';
@@ -268,6 +272,7 @@ async function reviewDetailsFor(user: SignedInUser, row: FunkoRow): Promise<Part
   return {
     rejectionReason: review.rejectionReason,
     changedByAdminAt: review.changedByAdminAt?.toISOString() ?? null,
+    mergedInto: review.mergedInto,
     submittedBy: isSubmissionForAdmin ? review.submittedBy : undefined,
   };
 }
@@ -473,6 +478,7 @@ function toSubmission(row: SubmissionRow, primaryImage: PrimaryImageRow | undefi
     reviewedAt: row.reviewedAt?.toISOString() ?? null,
     rejectionReason: row.rejectionReason,
     changedByAdminAt: row.changedByAdminAt?.toISOString() ?? null,
+    mergedInto: row.mergedInto,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -655,6 +661,40 @@ export async function resendSubmission(user: SignedInUser, id: number): Promise<
   log.info({ funkoId: id }, 'submission sent again');
 
   await notifyAdminsOfResentSubmission({ funkoId: id, funkoName: current.name });
+
+  return toSingleSubmission(id);
+}
+
+// A merge target is a funko in the catalogue other than the submission: anything else is the caller's input error.
+function targetNotInCatalogue(targetId: number): BadRequestError {
+  return new BadRequestError(`Funko ${targetId} is not in the catalogue`);
+}
+
+const MERGE_REFUSAL_MAP: Record<Exclude<MergeOutcome, 'MERGED'>, (targetId: number) => Error> = {
+  NOT_WAITING: () => new ConflictError(NOT_WAITING_MESSAGE),
+  TARGET_NOT_IN_CATALOGUE: targetNotInCatalogue,
+};
+
+// An admin merges a waiting submission into a funko already in the catalogue: every item of it moves onto that funko
+// (two in one collection become one, see funkos.merge.ts) and it reads as merged into it, still private. Its sender
+// is told, pointed at the catalogue funko.
+export async function mergeSubmission(id: number, targetId: number): Promise<SubmissionResponse> {
+  if (id === targetId) throw new BadRequestError(SELF_MERGE_MESSAGE);
+
+  const row = await findWaitingSubmission(id);
+  const target = await funkosRepository.findById(targetId);
+
+  if (target?.status !== 'APPROVED') throw targetNotInCatalogue(targetId);
+
+  const outcome = await funkosRepository.merge(id, targetId, combineClashingItems);
+
+  if (outcome !== 'MERGED') throw MERGE_REFUSAL_MAP[outcome](targetId);
+
+  log.info({ funkoId: id, targetFunkoId: targetId }, 'submission merged');
+
+  // An orphan submission has no sender left to tell.
+  if (row.submittedById !== null)
+    await notifySubmissionMerged(row.submittedById, { funkoId: targetId, funkoName: target.name });
 
   return toSingleSubmission(id);
 }

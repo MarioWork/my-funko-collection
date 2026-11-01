@@ -76,14 +76,16 @@ enum SubmissionStatus {
   @@map("submission_status")
 }
 
-// What a notification tells its user. Merging (#12) and removing a funko from the catalogue (#13) will add their own
-// kinds here; each points at a funko (`funkoId`, the one to open) and may carry a reason, so a new kind needs no
-// new column.
+// What a notification tells its user. Each may point at a funko (`funkoId`, the one to open) and carry a reason, so a
+// new kind needs no new column.
 enum NotificationKind {
   // To the sender: an admin approved their submission (the funko is now in the catalogue).
   SUBMISSION_APPROVED
   // To the sender: an admin rejected their submission, with the reason.
   SUBMISSION_REJECTED
+  // To the sender: an admin merged their submission into a funko already in the catalogue (`funkoId` is that funko,
+  // where their items went).
+  SUBMISSION_MERGED
   // To every admin: a member sent a new submission in.
   SUBMISSION_SENT
   // To every admin: a member sent a rejected submission in again.
@@ -166,12 +168,17 @@ model Funko {
   // rotating) while it was not approved, so its sender reads that it is not quite what they sent. Cleared when the
   // sender sends it again. An orphan submission (its sender removed) never gets one: nobody to tell.
   changedByAdminAt DateTime?        @map("changed_by_admin_at") @db.Timestamptz(3)
+  // The catalogue funko an admin merged this submission into, where its items went. Set only while MERGED (a check
+  // in the migration); cleared if that funko is deleted later, and the submission still reads as merged.
+  mergedIntoId     Int?             @map("merged_into_id")
   createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   category        Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   series          Series?          @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   submittedBy     User?            @relation("FunkoSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
+  mergedInto      Funko?           @relation("FunkoMerges", fields: [mergedIntoId], references: [id], onDelete: SetNull)
+  mergedFunkos    Funko[]          @relation("FunkoMerges")
   images          FunkoImage[]
   collectionItems CollectionItem[]
   notifications   Notification[]
@@ -179,6 +186,7 @@ model Funko {
   // The identity (category, number, name, chase, exclusive) is unique like the barcode: a partial index in the
   // migration, approved catalogue and each member's waiting submissions apart.
   @@index([submittedById], map: "funkos_submitted_by_id_idx")
+  @@index([mergedIntoId], map: "funkos_merged_into_id_idx")
   // Plain, beside the partial unique one: lookups by barcode also look at waiting submissions.
   @@index([barcode], map: "funkos_barcode_idx")
   @@index([categoryId], map: "funkos_category_id_idx")
