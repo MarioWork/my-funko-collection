@@ -1,6 +1,6 @@
 import { normaliseBarcode } from '../../lib/barcode.ts';
 import { isUniqueViolation } from '../../lib/databaseErrors.ts';
-import { BadRequestError, ConflictError, NotFoundError } from '../../lib/httpErrors.ts';
+import { BadRequestError, ConflictError, HeldByUsersError, NotFoundError } from '../../lib/httpErrors.ts';
 import { removeFunkoFolder, sizeUrl } from '../../lib/imageStorage.ts';
 import { logger } from '../../lib/logger.ts';
 import type { SubmitterScope } from '../../lib/catalogueVisibility.ts';
@@ -9,6 +9,7 @@ import { isUsableCategory } from '../categories/categories.service.ts';
 import {
   notifyAdminsOfNewSubmission,
   notifyAdminsOfResentSubmission,
+  notifyFunkoRemoved,
   notifySubmissionApproved,
   notifySubmissionRejected,
 } from '../notifications/notifications.service.ts';
@@ -46,6 +47,7 @@ import {
 } from './funkos.repository.ts';
 import type {
   CreateFunko,
+  DeleteFunko,
   DeleteFunkoQuery,
   FunkoDetailResponse,
   FunkoListResponse,
@@ -268,18 +270,26 @@ async function reviewDetailsFor(user: SignedInUser, row: FunkoRow): Promise<Part
   };
 }
 
+// An admin reads how many users have the funko (never who), to know what deleting it takes.
+async function holderDetailsFor(user: SignedInUser, id: number): Promise<Partial<FunkoDetailResponse>> {
+  if (!user.isAdmin) return {};
+
+  return { userCount: await funkosRepository.countHolders(id) };
+}
+
 export async function getFunko(user: SignedInUser, id: number): Promise<FunkoDetailResponse> {
   const row = await funkosRepository.findById(id);
 
   if (!row || !canSeeFunko(user, row)) throw new NotFoundError(ENTITY, id);
 
-  const [response, images, reviewDetails] = await Promise.all([
+  const [response, images, reviewDetails, holderDetails] = await Promise.all([
     toSingleResponse(user.userId, row),
     getImages(id),
     reviewDetailsFor(user, row),
+    holderDetailsFor(user, id),
   ]);
 
-  return { ...response, images, ...reviewDetails };
+  return { ...response, images, ...reviewDetails, ...holderDetails };
 }
 
 export async function getFunkoByBarcode(userId: number, barcode: string): Promise<FunkoResponse> {
@@ -343,47 +353,91 @@ export async function updateFunko(user: SignedInUser, id: number, input: UpdateF
   return toSingleResponse(user.userId, row);
 }
 
-// The user's own collections by name; anyone else's only as "other users' collections", never whose.
-function describeCollections(ownCollectionNames: string[], isInOtherUsersCollections: boolean): string {
+// The user's own collections by name; anyone else's only as how many other users have it, never whose.
+function describeCollections(ownCollectionNames: string[], otherHolderCount: number): string {
   const places = ownCollectionNames.map((name) => `"${name}"`);
+  const otherUsers = otherHolderCount === 1 ? '1 other user' : `${otherHolderCount} other users`;
 
-  if (isInOtherUsersCollections) places.push("other users' collections");
+  if (otherHolderCount > 0) places.push(`the collections of ${otherUsers}`);
 
   return places.join(', ');
 }
 
-// A funko inside anyone's collection is kept unless `force` is set; then every item of it goes with it. Files go
-// after the rows. An admin deletes any funko; a member only their own waiting submission (which only sits in their
-// own collections).
-export async function deleteFunko(user: SignedInUser, id: number, { force }: DeleteFunkoQuery): Promise<void> {
-  assertCanEditFunko(user, id, await funkosRepository.findById(id));
+// Where the funko sits, seen from the user deleting it: their own collections by name, and every other user only
+// as a number.
+type FunkoHolders = { ownCollectionNames: string[]; holderIds: number[]; otherHolderCount: number };
 
-  const userId = user.userId;
-
-  const [collectionsByFunko, itemCount, otherUsersItemCount] = await Promise.all([
-    funkosRepository.collectionsByFunkoIds(userId, [id]),
-    funkosRepository.countItems(id),
-    funkosRepository.countOtherUsersItems(userId, id),
+async function findHolders(userId: number, funkoId: number): Promise<FunkoHolders> {
+  const [collectionsByFunko, holderIds] = await Promise.all([
+    funkosRepository.collectionsByFunkoIds(userId, [funkoId]),
+    funkosRepository.findHolderIds(funkoId),
   ]);
-  const ownCollections = collectionsByFunko.get(id) ?? [];
-  const isInCollections = itemCount > 0;
+  const ownCollectionNames = (collectionsByFunko.get(funkoId) ?? []).map((collection) => collection.name);
+  const otherHolderCount = holderIds.filter((holderId) => holderId !== userId).length;
+
+  return { ownCollectionNames, holderIds, otherHolderCount };
+}
+
+// A funko in a collection stays unless `force` is set, and taking it from other users needs a reason to tell them.
+function assertCanDeleteFrom(holders: FunkoHolders, force: boolean, reason: string | undefined): void {
+  const isInCollections = holders.holderIds.length > 0;
+  const isInOtherUsersCollections = holders.otherHolderCount > 0;
 
   if (isInCollections && !force) {
-    const isInOtherUsersCollections = otherUsersItemCount > 0;
-    const names = describeCollections(
-      ownCollections.map((collection) => collection.name),
-      isInOtherUsersCollections,
-    );
+    const places = describeCollections(holders.ownCollectionNames, holders.otherHolderCount);
+    const howToForce = isInOtherUsersCollections ? 'force=true and a reason' : 'force=true';
 
-    throw new ConflictError(`The funko is in ${names}. Send force=true to remove it from them and delete it`);
+    throw new HeldByUsersError(
+      `The funko is in ${places}. Send ${howToForce} to remove it from them and delete it`,
+      holders.holderIds.length,
+    );
   }
 
-  const deleted = isInCollections ? await funkosRepository.deleteWithItems(id) : await funkosRepository.delete(id);
+  if (isInOtherUsersCollections && !reason) {
+    throw new BadRequestError('Removing a funko other users have needs a reason to tell them');
+  }
+}
+
+// Deletes the funko (with its items when it has any) and answers the users whose items went.
+async function deleteRows(id: number, isInCollections: boolean): Promise<number[]> {
+  if (!isInCollections) {
+    const deleted = await funkosRepository.delete(id);
+
+    if (!deleted) throw new NotFoundError(ENTITY, id);
+
+    return [];
+  }
+
+  const deleted = await funkosRepository.deleteWithItems(id);
 
   if (!deleted) throw new NotFoundError(ENTITY, id);
 
+  return deleted.holderIds;
+}
+
+// A funko inside anyone's collection is kept unless `force` is set; then every item of it goes with it, and when
+// other users had it, each user who had it (the one deleting too, if they had it) is told why. Files go after the
+// rows. An admin deletes any funko; a member only their own submission (which only sits in their own collections).
+export async function deleteFunko(
+  user: SignedInUser,
+  id: number,
+  { force }: DeleteFunkoQuery,
+  body: DeleteFunko | null,
+): Promise<void> {
+  const funko = assertCanEditFunko(user, id, await funkosRepository.findById(id));
+  const holders = await findHolders(user.userId, id);
+  const reason = body?.reason;
+
+  assertCanDeleteFrom(holders, force, reason);
+
+  const removedFrom = await deleteRows(id, holders.holderIds.length > 0);
+
   await removeFunkoFolder(id);
-  log.info({ funkoId: id, force, removedItems: itemCount }, 'funko deleted');
+  log.info({ funkoId: id, force, holderCount: removedFrom.length }, 'funko deleted');
+
+  const isRemovedFromOthers = removedFrom.some((holderId) => holderId !== user.userId);
+
+  if (isRemovedFromOthers && reason) await notifyFunkoRemoved(removedFrom, funko.name, reason);
 }
 
 // For other modules (collection items): summaries keyed by id, with the primary image resolved.

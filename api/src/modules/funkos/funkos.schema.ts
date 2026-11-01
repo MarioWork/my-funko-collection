@@ -35,9 +35,18 @@ export const FunkoParamsSchema = z.object({
   funkoId: IdParamSchema,
 });
 
+export const REMOVAL_REASON_MAX_LENGTH = 500;
+
 // `force=true` removes the funko from every collection first; without it a funko in a collection answers 409.
 export const DeleteFunkoQuerySchema = z.object({
   force: BooleanQuerySchema.default(false),
+});
+
+// Why the funko goes: needed on a forced delete that takes it out of other users' collections, and sent to each of
+// them in a notification. In the body, not the query, so the text stays out of request logs. The same length as the
+// notifications' check.
+export const DeleteFunkoSchema = z.strictObject({
+  reason: z.string().trim().min(1).max(REMOVAL_REASON_MAX_LENGTH),
 });
 
 export const BarcodeParamsSchema = z.object({
@@ -115,6 +124,8 @@ export const FunkoDetailResponseSchema = FunkoResponseSchema.extend({
   // before approving it (null if never). Left out for everyone else.
   rejectionReason: z.string().nullable().optional(),
   changedByAdminAt: z.iso.datetime().nullable().optional(),
+  // Admins only: how many users have it in a collection (never who), for deleting it. Left out for members.
+  userCount: z.number().int().optional(),
 }).meta({ id: 'FunkoDetail' });
 
 export const FunkoListResponseSchema = paginatedResponseSchema(FunkoResponseSchema);
@@ -123,6 +134,7 @@ export type CreateFunko = z.infer<typeof CreateFunkoSchema>;
 export type UpdateFunko = z.infer<typeof UpdateFunkoSchema>;
 export type ListFunkosQuery = z.infer<typeof ListFunkosQuerySchema>;
 export type DeleteFunkoQuery = z.infer<typeof DeleteFunkoQuerySchema>;
+export type DeleteFunko = z.infer<typeof DeleteFunkoSchema>;
 export type FunkoResponse = z.infer<typeof FunkoResponseSchema>;
 export type FunkoDetailResponse = z.infer<typeof FunkoDetailResponseSchema>;
 export type FunkoListResponse = z.infer<typeof FunkoListResponseSchema>;

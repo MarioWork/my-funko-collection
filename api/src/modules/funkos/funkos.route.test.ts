@@ -524,14 +524,14 @@ describe('PATCH /funkos/:funkoId', () => {
 });
 
 describe('DELETE /funkos/:funkoId', () => {
-  it('returns 409 naming the collections when the funko sits in one and force is not set', async () => {
+  it('returns 409 IN_COLLECTIONS naming the collections when the funko sits in one and force is not set', async () => {
     const { spiderMan } = await seedCatalog();
 
     const response = await api.inject({ method: 'DELETE', url: `${URL}/${spiderMan.id}` });
 
     expect(response.statusCode).toBe(409);
     const body = response.json<{ code: string; message: string }>();
-    expect(body.code).toBe('CONFLICT');
+    expect(body.code).toBe('IN_COLLECTIONS');
     expect(body.message).toContain('"Owned"');
     expect((await api.inject({ method: 'GET', url: `${URL}/${spiderMan.id}` })).statusCode).toBe(200);
   });

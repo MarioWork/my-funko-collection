@@ -20,8 +20,9 @@ export const UpdateAllNotificationsSchema = z.strictObject({
   isRead: z.literal(true),
 });
 
-// `funkoId` is the funko to open (null once it was deleted; `funkoName` stays as it was written). `reason` is the
-// rejection reason for SUBMISSION_REJECTED, null otherwise.
+// `funkoId` is the funko to open (null once it was deleted, and always for FUNKO_REMOVED; `funkoName` stays as it
+// was written). `reason` is the rejection reason for SUBMISSION_REJECTED, why an admin removed the funko for
+// FUNKO_REMOVED, null otherwise.
 export const NotificationResponseSchema = z
   .object({
     id: z.number().int(),
