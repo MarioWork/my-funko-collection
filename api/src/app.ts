@@ -18,6 +18,7 @@ import { logger } from './lib/logger.ts';
 import { openApiTransformObject } from './lib/openApi.ts';
 import { authRoutes } from './modules/auth/auth.route.ts';
 import { healthRoutes } from './modules/health/health.route.ts';
+import { notificationsRoutes } from './modules/notifications/notifications.route.ts';
 import { statsRoutes } from './modules/stats/stats.route.ts';
 import { suggestRoutes } from './modules/suggest/suggest.route.ts';
 import { submissionsRoutes } from './modules/submissions/submissions.route.ts';
@@ -106,6 +107,7 @@ export async function buildApp() {
   await app.register(statsRoutes, { prefix: '/stats' });
   await app.register(exportRoutes, { prefix: '/export' });
   await app.register(usersRoutes, { prefix: '/users' });
+  await app.register(notificationsRoutes, { prefix: '/notifications' });
 
   return app;
 }

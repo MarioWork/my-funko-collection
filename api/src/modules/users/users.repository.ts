@@ -1,6 +1,6 @@
 import type { Prisma } from '../../generated/prisma/client.ts';
 import { toOrderDirection, toSkipTake } from '../../lib/pagination.ts';
-import { prisma } from '../../lib/prisma.ts';
+import { ID_SELECT, prisma } from '../../lib/prisma.ts';
 import type { UserRole } from '../auth/auth.type.ts';
 import type { ListUsersQuery, UpdateUser, UserSortField } from './users.schema.ts';
 
@@ -146,6 +146,13 @@ export const usersRepository = {
   },
 
   countAdmins: (): Promise<number> => countAdmins(),
+
+  // Every admin, read-only ones included: they still read what they are told.
+  findAdminIds: async (): Promise<number[]> => {
+    const rows = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: ID_SELECT });
+
+    return rows.map((row) => row.id);
+  },
 
   // A new role or read-only setting, and every session of the user ends with it, in one go. A change that leaves
   // both as they were keeps the sessions.
