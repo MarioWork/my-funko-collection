@@ -19,6 +19,9 @@ function categorySelect(userId: number) {
   } as const satisfies Prisma.CategorySelect;
 }
 
+// Where the row stands and who typed it in: what the visibility and usability checks need.
+const ACCESS_SELECT = { status: true, submittedById: true } as const satisfies Prisma.CategorySelect;
+
 const SORT_FIELD_MAP: Record<CategorySortField, keyof Prisma.CategoryOrderByWithRelationInput> = {
   NAME: 'name',
   CREATION_DATE: 'createdAt',
@@ -49,7 +52,7 @@ export const categoriesRepository = {
   findById,
 
   findAccess: async (id: number) =>
-    (await prisma.category.findUnique({ where: { id }, select: { status: true, submittedById: true } })) ?? undefined,
+    (await prisma.category.findUnique({ where: { id }, select: ACCESS_SELECT })) ?? undefined,
 
   findIdByName: async (name: string, scope: SubmitterScope) =>
     (await prisma.category.findFirst({ where: { name, ...scopeFilter(scope) }, select: ID_SELECT })) ?? undefined,

@@ -7,12 +7,12 @@ import type { SubmissionStatus } from '../submissions/submissions.type.ts';
 const ENTITY = 'Funko';
 const ADMIN_ONLY_MESSAGE = 'Only an admin can change a funko in the catalogue';
 
-export type FunkoAccess = {
+type FunkoAccess = {
   status: SubmissionStatus;
   submittedById: number | null;
 };
 
-export function isSubmittedBy(user: SignedInUser, funko: FunkoAccess): boolean {
+function isSubmittedBy(user: SignedInUser, funko: FunkoAccess): boolean {
   return funko.submittedById === user.userId;
 }
 

@@ -18,6 +18,9 @@ const IMAGE_SELECT = {
 
 const FILE_KEY_SELECT = { fileKey: true } as const;
 
+// Where the parent funko stands and who sent it in: what the 404 / 403 checks need.
+const FUNKO_ACCESS_SELECT = { status: true, submittedById: true } as const satisfies Prisma.FunkoSelect;
+
 // IMAGE_SELECT is every column, so a selected row is the model's own type.
 export type FunkoImageRow = FunkoImage;
 
@@ -37,8 +40,7 @@ export const funkoImagesRepository = {
   // Where the parent funko stands and who sent it in, for the 404 / 403 checks, read here so this sub-resource
   // never imports the parent's service back. Undefined when there is no such funko.
   findFunkoAccess: async (funkoId: number) =>
-    (await prisma.funko.findUnique({ where: { id: funkoId }, select: { status: true, submittedById: true } })) ??
-    undefined,
+    (await prisma.funko.findUnique({ where: { id: funkoId }, select: FUNKO_ACCESS_SELECT })) ?? undefined,
 
   listByFunko: (funkoId: number): Promise<FunkoImage[]> =>
     prisma.funkoImage.findMany({ where: { funkoId }, select: IMAGE_SELECT, orderBy: [...POSITION_ORDER] }),

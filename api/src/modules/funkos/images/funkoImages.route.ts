@@ -44,6 +44,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
         response: {
           201: FunkoImageListResponseSchema,
           400: ErrorResponseSchema,
+          403: ErrorResponseSchema,
           404: ErrorResponseSchema,
           409: ErrorResponseSchema,
           413: ErrorResponseSchema,
@@ -69,6 +70,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
         response: {
           201: FunkoImageResponseSchema,
           400: ErrorResponseSchema,
+          403: ErrorResponseSchema,
           404: ErrorResponseSchema,
           409: ErrorResponseSchema,
           413: ErrorResponseSchema,
@@ -90,7 +92,12 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Reorder the images (first is the primary)',
         params: FunkoImagesParamsSchema,
         body: ReorderImagesSchema,
-        response: { 200: FunkoImageListResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
+        response: {
+          200: FunkoImageListResponseSchema,
+          400: ErrorResponseSchema,
+          403: ErrorResponseSchema,
+          404: ErrorResponseSchema,
+        },
       },
     },
     async (request) => reorderImages(signedInUser(request), request.params.funkoId, request.body),
@@ -104,7 +111,12 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Rotate an image clockwise; it gets new URLs',
         params: FunkoImageParamsSchema,
         body: RotateImageSchema,
-        response: { 200: FunkoImageResponseSchema, 400: ErrorResponseSchema, 404: ErrorResponseSchema },
+        response: {
+          200: FunkoImageResponseSchema,
+          400: ErrorResponseSchema,
+          403: ErrorResponseSchema,
+          404: ErrorResponseSchema,
+        },
       },
     },
     async (request) => rotateImage(signedInUser(request), request.params.funkoId, request.params.imageId, request.body),
@@ -117,7 +129,7 @@ export const funkoImagesRoutes: FastifyPluginAsyncZod = async (app) => {
         tags: TAGS,
         summary: 'Delete an image',
         params: FunkoImageParamsSchema,
-        response: { 204: z.undefined(), 400: ErrorResponseSchema, 404: ErrorResponseSchema },
+        response: { 204: z.undefined(), 400: ErrorResponseSchema, 403: ErrorResponseSchema, 404: ErrorResponseSchema },
       },
     },
     async (request, reply) => {
