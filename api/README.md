@@ -151,7 +151,7 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   and the users (`/users` and everything under it). Members read the catalogue, keep their own collections, items
   and tags, and send new funkos in as submissions (below): `POST /funkos`, `/categories` and `/series` are open to
   them, and so are the funko and funko-image writes and `POST /submissions/:id/resubmission`, whose services
-  (`funkos.access.ts`) let a member change only their own waiting or rejected submission: another member's answers
+  (`funkos/funkos.access.ts`) let a member change only their own waiting or rejected submission: another member's answers
   404, a catalogue funko (or their own once approved or merged) 403 `ADMIN_ONLY`. `auth.route.test.ts` keeps both lists (`ADMIN_ONLY_ROUTES`, `SUBMISSION_ROUTES`) and fails when a
   catalogue write is on neither.
 - **Read-only.** An admin can limit a user to looking (`users.is_read_only`, `isReadOnly` in `GET /auth/status`
@@ -409,7 +409,8 @@ src/
   lib/                    Prisma client, database errors, LIKE patterns and SQL fragments, error handler,
                           pagination, ids, query params, image storage, remote fetch, barcode, password hashing,
                           who sees which catalogue rows (catalogueVisibility)
-  modules/<resource>/     <resource>.route.ts, .schema.ts, .service.ts, .repository.ts, .route.test.ts
+  modules/<module>/       <module>.route.ts registers the jobs; shared pieces and cross-job tests beside it
+    <job>/                <job>.route.ts, .schema.ts, .service.ts, .repository.ts, .route.test.ts (CLAUDE.md)
   plugins/                prisma, auth (the sign-in check) and uploads (multipart in, static files out)
 assets/
   common-passwords.txt    common passwords of 15+ characters, refused as a new password (from SecLists)
