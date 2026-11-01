@@ -131,7 +131,8 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
 - **Read-only.** An admin can limit a user to looking (`users.is_read_only`, `isReadOnly` in `GET /auth/status`
   and the sign-in answer). They still sign in and read everything they could before, but every write answers 403
   `READ_ONLY` except their own password (`PUT /auth/password`), their own passkeys (`POST /auth/passkeys/options`,
-  `/verify`, `DELETE /auth/passkeys/:passkeyId`) and signing out (`POST /auth/logout`, `/logout-everywhere`), which
+  `/verify`, `DELETE /auth/passkeys/:passkeyId`), the recent sign-in those need (`POST /auth/recent-sign-in`) and
+  signing out (`POST /auth/logout`, `/logout-everywhere`), which
   say so with `config: { isAllowedWhenReadOnly: true }`. The check runs in the same `onRequest` hook, after the
   temporary-password one and before the admin gate, on the user's row as it is now (the session reads it on every
   request). `auth.route.test.ts` calls every write in the OpenAPI document as a read-only member and admin
@@ -285,7 +286,7 @@ One envelope: `{ code, message, issues?, existingId? }`.
 | 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                                                 |
 | 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                                                 |
 | 401    | `TEMPORARY_PASSWORD_EXPIRED`                             | The right temporary password, after its 7 days                                                   |
-| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey, password or user change needs a recent sign-in              |
+| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey, password or user change needs a recent sign-in             |
 | 403    | `ADMIN_ONLY`                                             | A member called an admin-only route, or changed a funko that is not their own waiting submission |
 | 403    | `PASSWORD_CHANGE_REQUIRED`                               | Signed in with a temporary password: replace it first                                            |
 | 404    | `NOT_FOUND`                                              |                                                                                                  |
