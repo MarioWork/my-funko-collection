@@ -45,8 +45,11 @@ const ALLOWED_WITH_TEMPORARY_PASSWORD = new Set([
   'POST /auth/logout-everywhere',
 ]);
 // The writes a read-only user may still make besides the public ones: their own password and passkeys (and
-// confirming it's them first), and signing out. Every other write answers 403 READ_ONLY to them; reads stay open.
+// confirming it's them first), signing out, and marking their own notifications read. Every other write answers 403
+// READ_ONLY to them; reads stay open.
 const ALLOWED_WHEN_READ_ONLY = new Set([
+  'PATCH /notifications',
+  'PATCH /notifications/{notificationId}',
   'PUT /auth/password',
   'POST /auth/recent-sign-in',
   'POST /auth/logout',

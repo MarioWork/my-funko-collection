@@ -76,6 +76,22 @@ enum SubmissionStatus {
   @@map("submission_status")
 }
 
+// What a notification tells its user. Merging (#12) and removing a funko from the catalogue (#13) will add their own
+// kinds here; each points at a funko (`funkoId`, the one to open) and may carry a reason, so a new kind needs no
+// new column.
+enum NotificationKind {
+  // To the sender: an admin approved their submission (the funko is now in the catalogue).
+  SUBMISSION_APPROVED
+  // To the sender: an admin rejected their submission, with the reason.
+  SUBMISSION_REJECTED
+  // To every admin: a member sent a new submission in.
+  SUBMISSION_SENT
+  // To every admin: a member sent a rejected submission in again.
+  SUBMISSION_RESENT
+
+  @@map("notification_kind")
+}
+
 // A Funko line as printed on the box: "Pop! Marvel", "Pop! Television", "Pop! Star Wars".
 model Category {
   id            Int              @id @default(autoincrement())
@@ -156,6 +172,7 @@ model Funko {
   submittedBy     User?            @relation("FunkoSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
   images          FunkoImage[]
   collectionItems CollectionItem[]
+  notifications   Notification[]
 
   // The identity (category, number, name, chase, exclusive) is unique like the barcode: a partial index in the
   // migration, approved catalogue and each member's waiting submissions apart.
@@ -308,11 +325,38 @@ model User {
   collections         Collection[]
   tags                Tag[]
   uploadedImages      FunkoImage[]
-  funkoSubmissions    Funko[]      @relation("FunkoSubmissions")
-  categorySubmissions Category[]   @relation("CategorySubmissions")
-  seriesSubmissions   Series[]     @relation("SeriesSubmissions")
+  notifications       Notification[]
+  funkoSubmissions    Funko[]        @relation("FunkoSubmissions")
+  categorySubmissions Category[]     @relation("CategorySubmissions")
+  seriesSubmissions   Series[]       @relation("SeriesSubmissions")
 
   @@map("users")
+}
+
+// A message inside the app for one user, about one funko. Only that user reads it; rows older than 90 days are
+// never shown and are deleted whenever a new notification is written (notifications.service.ts).
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int              @map("user_id")
+  kind      NotificationKind
+  // The funko it is about, to open from the notification. Cleared when that funko is deleted (its name stays).
+  funkoId   Int?             @map("funko_id")
+  // The funko's name when it was written, so the message still reads right once the funko is renamed or gone.
+  funkoName String           @map("funko_name")
+  // Why: the rejection reason (later also a removal's). Null for a kind that has none.
+  reason    String?
+  // When the user opened it or marked everything read; null while unread.
+  readAt    DateTime?        @map("read_at") @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  funko Funko? @relation(fields: [funkoId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt], map: "notifications_user_id_created_at_idx")
+  @@index([funkoId], map: "notifications_funko_id_idx")
+  @@index([createdAt], map: "notifications_created_at_idx")
+  @@map("notifications")
 }
 
 // One passkey. Only its public key lives here; the private key never leaves the person's device or passkey manager.

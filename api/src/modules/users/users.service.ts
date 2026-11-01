@@ -73,6 +73,11 @@ function toResponse(row: UserRow, adminCount: number, now = Date.now()): UserRes
   };
 }
 
+// For another module that tells every admin something (a new submission): who they are.
+export async function getAdminIds(): Promise<number[]> {
+  return usersRepository.findAdminIds();
+}
+
 export async function getUsers(query: ListUsersQuery): Promise<UserListResponse> {
   const { data, totalResultNumber } = await usersRepository.list(query);
   const adminCount = await usersRepository.countAdmins();
