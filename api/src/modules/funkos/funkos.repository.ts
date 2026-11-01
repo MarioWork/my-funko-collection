@@ -472,6 +472,23 @@ function groupByFunkoId<Row extends { funkoId: number }>(rows: Row[]): Map<numbe
   return grouped;
 }
 
+async function deleteOrphanInTransaction(id: number): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const funko = await tx.funko.findUnique({ where: { id }, select: { categoryId: true, seriesId: true } });
+    const unusedOrphanReference = { status: { not: 'APPROVED' as const }, submittedById: null, funkos: { none: {} } };
+
+    await tx.collectionItem.deleteMany({ where: { funkoId: id, funko: { status: 'WAITING', submittedById: null } } });
+
+    const deleted = await tx.funko.deleteMany({ where: { id, status: 'WAITING', submittedById: null } });
+
+    if (funko) await tx.category.deleteMany({ where: { id: funko.categoryId, ...unusedOrphanReference } });
+
+    if (funko?.seriesId) await tx.series.deleteMany({ where: { id: funko.seriesId, ...unusedOrphanReference } });
+
+    return deleted.count > 0;
+  });
+}
+
 export const funkosRepository = {
   findById: (id: number): Promise<FunkoRow | undefined> => findRow({ id }),
 
@@ -660,11 +677,16 @@ export const funkosRepository = {
     return reloadIfUpdated(write, () => findRow({ id }));
   },
 
-  // Only a rejected funko is sent again: it waits once more, without the reason.
+  // Rejecting an orphan submission deletes it, as the user-delete trigger deletes a removed user's rejected ones:
+  // its items (there should be none), the funko, and the never-approved category and series of the removed user that
+  // no funko uses any more. Only a waiting orphan goes (false otherwise). Its image files stay for images:prune.
+  deleteOrphan: deleteOrphanInTransaction,
+
+  // Only a rejected funko is sent again: it waits once more, without the reason, and as the sender sent it now.
   resend: async (id: number): Promise<FunkoRow | undefined> => {
     const write = await prisma.funko.updateMany({
       where: { id, status: 'REJECTED' },
-      data: { status: 'WAITING', rejectionReason: null },
+      data: { status: 'WAITING', rejectionReason: null, changedByAdminAt: null },
     });
 
     return reloadIfUpdated(write, () => findRow({ id }));

@@ -4,7 +4,7 @@ import { submissionRoutes } from '@application/routes/featureRoutes/submissionRo
 import { FUNKO_ROUTES_PATHS, SUBMISSION_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { Toaster } from '@components/ui/toast';
 import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
-import { addMockSubmission, setMockUserRole } from '@mocks/mockStore';
+import { addMockSubmission, setMockReadOnly, setMockUserRole } from '@mocks/mockStore';
 
 const renderSubmissions = () => renderRoutes(submissionRoutes, { initialEntries: [SUBMISSION_ROUTES_PATHS.BASE] });
 
@@ -80,4 +80,33 @@ it('says why a rejected submission cannot be sent again while the member waits o
   await userEvent.click(within(row).getByRole('button', { name: 'Send again' }));
 
   expect(await within(row).findByRole('alert')).toHaveTextContent('This barcode belongs to another funko');
+});
+
+it('keeps Send again disabled for a read-only member', async () => {
+  setMockReadOnly();
+  addMockSubmission({ name: 'Rejected One', status: SubmissionStatusUtil.REJECTED });
+
+  renderSubmissions();
+
+  const row = await screen.findByRole('row', { name: /Rejected One/ });
+  expect(within(row).getByRole('button', { name: 'Send again' })).toHaveAccessibleDescription(
+    /Your account is read-only/,
+  );
+});
+
+it('drops the admin-changed note once the member sends a rejected submission again', async () => {
+  addMockSubmission({
+    name: 'Changed One',
+    status: SubmissionStatusUtil.REJECTED,
+    changedByAdminAt: '2026-10-02T10:00:00.000Z',
+  });
+
+  renderSubmissions();
+
+  const row = await screen.findByRole('row', { name: /Changed One/ });
+  expect(within(row).getByText(/An admin changed this submission/)).toBeVisible();
+  await userEvent.click(within(row).getByRole('button', { name: 'Send again' }));
+
+  expect(await within(rowOf('Changed One')).findByText('Waiting')).toBeVisible();
+  expect(within(rowOf('Changed One')).queryByText(/An admin changed this submission/)).not.toBeInTheDocument();
 });

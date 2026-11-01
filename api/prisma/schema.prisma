@@ -144,8 +144,9 @@ model Funko {
   reviewedAt       DateTime?        @map("reviewed_at") @db.Timestamptz(3)
   // Why an admin rejected it, shown to its sender. Set only while REJECTED (a check in the migration).
   rejectionReason  String?          @map("rejection_reason")
-  // The last time an admin changed this submission (its fields or images) while it was not approved, so its sender
-  // reads that it is not quite what they sent.
+  // The last time an admin changed this submission (its fields, or added or removed a photo; not reordering or
+  // rotating) while it was not approved, so its sender reads that it is not quite what they sent. Cleared when the
+  // sender sends it again. An orphan submission (its sender removed) never gets one: nobody to tell.
   changedByAdminAt DateTime?        @map("changed_by_admin_at") @db.Timestamptz(3)
   createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)

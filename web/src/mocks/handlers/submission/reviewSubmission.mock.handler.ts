@@ -9,7 +9,7 @@ import {
   findDuplicate,
   findEditableFunko,
 } from '@mocks/handlers/funko/funkoMockUtils';
-import { badRequest, conflict, notFound } from '@mocks/mockResponses';
+import { badRequest, conflict, noContent, notFound } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow, MockSubmissionColumns } from '@mocks/mockStore.type';
 import { nowIso } from '@mocks/mockStoreUtils';
@@ -62,6 +62,16 @@ function dropUnused<Row extends NamedSubmissionRow>(rows: Row[], id: number | nu
   return rows.filter((row) => row.id !== id || row.status === SubmissionStatusUtil.APPROVED || isUsed(row.id));
 }
 
+// The never-approved category and series a funko left (approved onto a twin, or deleted) go once no funko uses them.
+function dropUnusedReferencesOf(categoryId: number, seriesId: number | null): void {
+  mockStore.categories = dropUnused(mockStore.categories, categoryId, (id) =>
+    mockStore.funkos.some((row) => row.categoryId === id),
+  );
+  mockStore.series = dropUnused(mockStore.series, seriesId, (id) =>
+    mockStore.funkos.some((row) => row.seriesId === id),
+  );
+}
+
 function approve(funko: MockFunkoRow): void {
   const leftCategoryId = funko.categoryId;
   const leftSeriesId = funko.seriesId;
@@ -70,12 +80,7 @@ function approve(funko: MockFunkoRow): void {
   funko.seriesId = approveReference(mockStore.series, funko.seriesId);
   Object.assign(funko, { status: SubmissionStatusUtil.APPROVED, reviewedAt: nowIso(), updatedAt: nowIso() });
 
-  mockStore.categories = dropUnused(mockStore.categories, leftCategoryId, (id) =>
-    mockStore.funkos.some((row) => row.categoryId === id),
-  );
-  mockStore.series = dropUnused(mockStore.series, leftSeriesId, (id) =>
-    mockStore.funkos.some((row) => row.seriesId === id),
-  );
+  dropUnusedReferencesOf(leftCategoryId, leftSeriesId);
 }
 
 // The category the funko would have once approved: the approved one of the same name, when there is one.
@@ -114,6 +119,15 @@ function waitingClashOf(funko: MockFunkoRow): Response | undefined {
   return sameBarcode ? conflict(DUPLICATE_BARCODE_MESSAGE, sameBarcode.id) : undefined;
 }
 
+// An orphan submission (its sender removed) is deleted on reject, as the API does: with any items, and the removed
+// user's never-approved category and series no funko uses any more. Its image rows go; the API keeps the files.
+function deleteOrphan(funko: MockFunkoRow): void {
+  mockStore.funkos = mockStore.funkos.filter((row) => row.id !== funko.id);
+  mockStore.items = mockStore.items.filter((item) => item.funkoId !== funko.id);
+  mockStore.images = mockStore.images.filter((image) => image.funkoId !== funko.id);
+  dropUnusedReferencesOf(funko.categoryId, funko.seriesId);
+}
+
 function rejectionReasonOf(body: Partial<RejectSubmission>): string | undefined {
   const reason = body.reason?.trim() ?? '';
   const isValid = reason.length > 0 && reason.length <= REJECTION_REASON_MAX_LENGTH;
@@ -150,6 +164,14 @@ export default (baseUrl: string) => [
 
     if ('refusal' in target) return target.refusal;
 
+    const isOrphan = target.funko.submittedById === null;
+
+    if (isOrphan) {
+      deleteOrphan(target.funko);
+
+      return noContent();
+    }
+
     Object.assign(target.funko, {
       status: SubmissionStatusUtil.REJECTED,
       rejectionReason: reason,
@@ -172,7 +194,12 @@ export default (baseUrl: string) => [
 
     if (clash) return clash;
 
-    Object.assign(target.funko, { status: SubmissionStatusUtil.WAITING, rejectionReason: null, updatedAt: nowIso() });
+    Object.assign(target.funko, {
+      status: SubmissionStatusUtil.WAITING,
+      rejectionReason: null,
+      changedByAdminAt: null,
+      updatedAt: nowIso(),
+    });
 
     return HttpResponse.json(toSubmissionModel(target.funko));
   }),

@@ -55,7 +55,8 @@ async function assertCanEditImagesOf(user: SignedInUser, funkoId: number): Promi
   return assertCanEditFunko(user, funkoId, await funkoImagesRepository.findFunkoAccess(funkoId));
 }
 
-// After a change: an admin who changed someone else's submission leaves a note its sender reads.
+// After a new or removed photo: an admin who changed someone else's submission leaves a note its sender reads.
+// Reordering or rotating is not a change worth telling.
 async function recordImageChange(user: SignedInUser, funkoId: number, funko: FunkoAccess): Promise<void> {
   if (isAdminChangingSubmission(user, funko)) await funkoImagesRepository.markFunkoChangedByAdmin(funkoId);
 }
@@ -135,7 +136,7 @@ export async function reorderImages(
   funkoId: number,
   { imageIds }: ReorderImages,
 ): Promise<FunkoImageResponse[]> {
-  const funko = await assertCanEditImagesOf(user, funkoId);
+  await assertCanEditImagesOf(user, funkoId);
 
   const current = await funkoImagesRepository.listByFunko(funkoId);
   const currentIds = new Set(current.map((image) => image.id));
@@ -148,7 +149,6 @@ export async function reorderImages(
   }
 
   await funkoImagesRepository.setPositions(funkoId, imageIds);
-  await recordImageChange(user, funkoId, funko);
 
   return getImages(funkoId);
 }
@@ -160,7 +160,7 @@ export async function rotateImage(
   imageId: number,
   { degrees }: RotateImage,
 ): Promise<FunkoImageResponse> {
-  const funko = await assertCanEditImagesOf(user, funkoId);
+  await assertCanEditImagesOf(user, funkoId);
 
   const image = await funkoImagesRepository.findById(funkoId, imageId);
 
@@ -173,7 +173,6 @@ export async function rotateImage(
   if (!updated) throw new NotFoundError(ENTITY, imageId);
 
   await removeImageFiles(funkoId, image.fileKey);
-  await recordImageChange(user, funkoId, funko);
 
   return toImageResponse(updated);
 }
