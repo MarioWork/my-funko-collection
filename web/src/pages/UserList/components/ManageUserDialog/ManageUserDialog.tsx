@@ -50,8 +50,7 @@ function UserFacts({ user }: UserFactsProps) {
 }
 
 // Routed under /users/:userId: change one user's role, make them read-only or undo it, give them a new temporary
-// password, or delete them. Each asks
-// first in its own dialog and needs a recent sign-in. The user comes from the list behind it, which every change
+// password, or delete them. Each asks first in its own dialog and needs a recent sign-in. The user comes from the list behind it, which every change
 // reloads; a link to a user the list does not hold sends the admin back to the list.
 function ManageUserDialog() {
   const user = useManagedUser();

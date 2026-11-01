@@ -4,7 +4,7 @@ import type { UserApiModel } from '@app-types/models';
 import { MOCK_DELAY } from '@mocks/handlers';
 import { mockStore } from '@mocks/mockStore';
 import type { MockUserRow } from '@mocks/mockStore.type';
-import { isWorkingMockAdmin, toMockUserModel } from '@mocks/mockUsers';
+import { isWorkingMockAdmin, toMockUserModel, type MockAdminStanding } from '@mocks/mockUsers';
 import type { UpdateUser } from '@services/userService/userService.type';
 import {
   endMockSessionsOf,
@@ -16,16 +16,14 @@ import {
   storedMockUser,
 } from './userMockUtils';
 
-type UserStanding = Pick<MockUserRow, 'role' | 'isReadOnly'>;
-
 // The user as the change leaves them: what it sends replaces what is there, what it leaves out stays.
-function standingAfter(user: MockUserRow, change: UpdateUser): UserStanding {
+function standingAfter(user: MockUserRow, change: UpdateUser): MockAdminStanding {
   return { role: change.role ?? user.role, isReadOnly: change.isReadOnly ?? user.isReadOnly };
 }
 
 // The new role and read-only setting on the right row (the signed-in user's live in the sign-in), and the user's
 // sessions end.
-function applyStanding(userId: number, standing: UserStanding): void {
+function applyStanding(userId: number, standing: MockAdminStanding): void {
   if (isSignedInMockUser(userId)) Object.assign(mockStore.auth, standing);
 
   const row = storedMockUser(userId);

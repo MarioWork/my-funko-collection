@@ -9,7 +9,7 @@ const READ_ONLY_ROUTE_ERROR_REASON = 'READ_ONLY';
 type ReadOnlyRouteError = { reason: typeof READ_ONLY_ROUTE_ERROR_REASON };
 
 // Whether the signed-in user, from the router context, is read-only: for loaders, where no hook runs.
-export function isReadOnlyIn(context: Readonly<RouterContextProvider>): boolean {
+function isReadOnlyIn(context: Readonly<RouterContextProvider>): boolean {
   return context.get(signedInUserContext).isReadOnly;
 }
 

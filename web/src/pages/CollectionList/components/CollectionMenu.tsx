@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
 } from '@components/ui/dropdown-menu';
 import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
-import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
+import { DISABLED_REASONS, firstReason, reasonWhen } from '@utils/disabledReasonUtils';
 import ExportSubmenu from './ExportSubmenu';
 
 type Props = {
@@ -78,15 +78,11 @@ function DeleteItem({ reason, onClick }: Omit<MenuActionItemProps, 'isDefault'>)
   );
 }
 
-// Why an item is disabled, in order: the account is read-only, the collection is the default, a change is running.
-function firstReason(...reasons: (string | undefined)[]): string | undefined {
-  return reasons.find((reason) => reason !== undefined);
-}
-
 // The ⋯ menu of one collection: edit, make default, export, delete. Export stays open to a read-only user.
 function CollectionMenu({ collection, isBusy, onMakeDefault, onDelete }: Props) {
   const id = String(collection.id);
   const readOnlyReason = useReadOnlyReason();
+  // In order: the account is read-only, the collection is the default, a change is running.
   const busyReason = reasonWhen(isBusy, DISABLED_REASONS.WORKING);
   const makeDefaultReason = firstReason(
     readOnlyReason,
