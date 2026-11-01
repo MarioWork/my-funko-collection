@@ -113,7 +113,12 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   mirrors the rule in `useCanEditFunko()` /
   `assertCanEditFunko()` and the mocks in `mockCatalogueUtils.ts`. Like `assertOwnTags()`, the cross-module checks
   `isUsableCategory()` / `isUsableSeries()` (may a funko use it) and `assertCanSeeImageFiles()` (the `/uploads` hook)
-  are named for what they check, not with the get/add/update/delete verbs. Approve / reject / merge is issue #10.
+  are named for what they check, not with the get/add/update/delete verbs.
+- Merging (issue #12, `POST /submissions/:id/merge`, admin-only): `{ targetFunkoId }` must be an approved funko. In
+  one transaction (`funkosRepository.merge`) every item of the submission moves onto the target; a clash in one
+  collection keeps the older item, adds the quantities, joins notes and tags (the rule is `funkos/funkos.merge.ts`,
+  handed to the repository). The submission becomes `MERGED` with `merged_into_id` (a check: only while merged) and
+  keeps its images, category and series; its sender gets `SUBMISSION_MERGED` with the target's `funkoId`.
 - Notifications (issue #11): approve and reject tell the sender (reject with its reason; an orphan submission has
   nobody to tell), a new or resent submission tells every admin. One `notifications` table: `kind` (an enum),
   `funko_id` (the funko to open, cleared when it goes) and the funko's name as written, `reason?`, `read_at`.

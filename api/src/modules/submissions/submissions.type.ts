@@ -30,13 +30,15 @@ export const ListReviewQuerySchema = PaginationQuerySchema.pick({ page: true, si
 });
 
 // One funko the signed-in user sent in, with where it stands; `createdAt` is when they sent it. `reviewedAt`: when
-// an admin last approved or rejected it (kept when a rejected one is sent again); `rejectionReason` while it is
-// rejected; `changedByAdminAt`: when an admin last changed it before approving it.
+// an admin last approved, rejected or merged it (kept when a rejected one is sent again); `rejectionReason` while it is
+// rejected; `changedByAdminAt`: when an admin last changed it before approving it; `mergedInto`: the catalogue funko a
+// merged one went into (null otherwise, or once that funko was deleted).
 export const SubmissionResponseSchema = FunkoSummarySchema.extend({
   status: z.enum(SUBMISSION_STATUSES),
   reviewedAt: z.iso.datetime().nullable(),
   rejectionReason: z.string().nullable(),
   changedByAdminAt: z.iso.datetime().nullable(),
+  mergedInto: z.object({ id: z.number().int(), name: z.string() }).nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 }).meta({ id: 'Submission' });

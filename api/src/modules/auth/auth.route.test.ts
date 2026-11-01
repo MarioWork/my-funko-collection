@@ -70,6 +70,7 @@ const ADMIN_ONLY_ROUTES = new Set([
   'GET /submissions/review',
   'POST /submissions/{funkoId}/approval',
   'POST /submissions/{funkoId}/rejection',
+  'POST /submissions/{funkoId}/merge',
   'PATCH /categories/{categoryId}',
   'DELETE /categories/{categoryId}',
   'PATCH /series/{seriesId}',
