@@ -31,8 +31,36 @@ yarn dev          # http://localhost:5173/home, talks to the API on port 3000 (c
 Without the API, run against the browser mocks (the same seed the tests use):
 
 ```bash
-VITE_USE_MOCKS=true yarn dev
+VITE_USE_MOCKS=true yarn dev   # signed in as the mock user, Mario (an admin): what the tests see
+yarn dev:mocks                 # signed in as leia, an admin with every notification kind
 ```
+
+### Seeing every UI state
+
+Each start command opens the mock app as one persona: a seeded user who shows one set of UI states. Signed out
+(`yarn dev:signed-out`), the sign-in page offers the same people in its dev sign-in picker.
+
+| Command                    | Signed in as                        | Shows                                                                                                                                    |
+| -------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `yarn dev:mocks`           | `leia`, an admin                    | Every notification kind, read and unread; the review list with every status; the remove dialog of a funko other users have (Darth Vader) |
+| `yarn dev:member`          | `rey`, a member                     | Her submissions waiting, sent again, rejected, rejected then changed by an admin, merged and approved; every member notification         |
+| `yarn dev:read-only`       | `poe`, a read-only member           | Every write control disabled with its reason                                                                                             |
+| `yarn dev:read-only-admin` | `lando`, a read-only admin          | The same, on the admin pages                                                                                                             |
+| `yarn dev:new-user`        | `finn`, with a temporary password   | Opens on `/set-password`                                                                                                                 |
+| `yarn dev:last-admin`      | `leia`, every other admin read-only | The Users page's locked controls, with the reason                                                                                        |
+| `yarn dev:signed-out`      | nobody                              | The sign-in page, with the dev sign-in picker                                                                                            |
+| `yarn dev:setup`           | nobody, before the first run        | The first-run page (`/setup?code=funko-first-run`)                                                                                       |
+
+A `yarn db:seed` local API has the same users (`api/README.md`, "Seeded users"), all with the dev password
+`funko-dev-password-123`. The mock store lives in the page: a reload starts again as the command's persona.
+
+**Dev sign-in picker.** Only in `yarn dev` (both modes), the sign-in page says "Development mode" and whether it
+uses mock data or the real local API, and offers a "Sign in as…" select (`username - Role (read-only)`). Picking
+one fills the normal username and password form with the dev password and submits it: the real password route on
+the API, the mock one in mock mode. There is no way around signing in, and the password route's rate limit (5 a
+minute) still applies. Both live in `pages/Login/components/` under `import.meta.env.DEV`, so a build drops them;
+`scripts/checkProductionBundle.ts` runs after every `yarn build` and fails it if `dist/` still holds the banner,
+the picker or the dev password.
 
 The dev server proxies `/api` (prefix stripped) and `/uploads` to `http://localhost:3000`, the same shape Caddy
 gives the app in production, so `VITE_BASE_API_URL` is always `/api`.
@@ -44,9 +72,10 @@ Node version: see `.node-version` (fnm reads it).
 | Script               | Does                                                                 |
 | -------------------- | -------------------------------------------------------------------- |
 | `yarn dev`           | Starts the dev server (copies the scanner's `.wasm` first)           |
-| `yarn build`         | Type-checks, then builds to `dist/`                                  |
+| `yarn build`         | Type-checks, builds to `dist/`, then fails on any dev-only leftover  |
 | `yarn build:demo`    | The public demo: mock data in the browser, a demo banner, `404.html` |
 | `yarn dev:big`       | Mock mode with 300 extra generated funkos, to try long lists         |
+| `yarn dev:<persona>` | Mock mode signed in as a persona ("Seeing every UI state" above)     |
 | `yarn preview`       | Serves the built app                                                 |
 | `yarn lint`          | Runs ESLint and the Prettier check                                   |
 | `yarn format`        | Formats every file with Prettier                                     |
@@ -70,6 +99,7 @@ Set in `.env` (all modes) and `.env.development` (dev only). Values are read at 
 | `VITE_DEMO`              | `true` in the demo build: shows the "changes are not saved" banner  |
 | `VITE_MOCK_EXTRA_FUNKOS` | Mock mode only: generated funkos added to the seed (`dev:big`)      |
 | `VITE_MOCK_AUTH_STATE`   | Mock mode only: start `signedOut` or `setup` instead of signed in   |
+| `VITE_MOCK_PERSONA`      | Mock mode only: start as a persona (`member`, `read-only`...)       |
 
 **Demo on GitHub Pages.** `.github/workflows/pages.yml` builds `yarn build:demo` with
 `VITE_PROJECT_PATH=/<repo>/` and publishes `dist/`. It runs by hand only (Actions tab), once the repo's Pages
@@ -223,7 +253,8 @@ HttpOnly cookie the app never sees.
   next to it (`ConfirmPasswordField`, `ConfirmIdentityButtons`). The dialog submits again with `reauth` (the method,
   and the password typed), and the action confirms first (a passkey sign-in, or `POST /auth/recent-sign-in`), then
   retries (`withRecentSignIn` in `@api/recentSignIn`). A wrong password shows on its field.
-- **Mocks.** `mockStore.auth` starts signed in as Mario with two passkeys; `setMockAuthState()` (tests) or
+- **Mocks.** `mockStore.auth` starts signed in as Mario (`auth.userId`, `MOCK_USER_ID`) with two passkeys, or as the
+  persona `VITE_MOCK_PERSONA` names (`mockPersonas.ts`; `setMockPersona()` in tests); `setMockAuthState()` (tests) or
   `VITE_MOCK_AUTH_STATE` (dev) starts signed out or before setup. Without a session every mocked route answers 401,
   like the API. The mocks accept any well-formed ceremony response; the first-run code is `funko-first-run`. Mario
   has no password until one is set (the mock store keeps it as typed); `isSignInRecent = false` makes the next
@@ -254,7 +285,12 @@ HttpOnly cookie the app never sees.
   temporary password `MOCK_TEMPORARY_PASSWORD`; han, whose one expired): `GET /users` lists them after the
   signed-in user (`isLastAdmin` worked out from every row), `POST /users` adds one with a made-up temporary password,
   `PATCH|DELETE /users/:userId` and `POST /users/:userId/temporary-password` change them like the API (a change to
-  Mario signs this browser out), and a password sign-in as one of them makes the browser theirs. `setMockMustChangePassword()` (tests) starts signed in with a temporary password;
+  Mario signs this browser out), and a password sign-in as one of them makes the browser theirs: `auth.userId` becomes theirs, so their own
+  submissions and notifications are the ones answered (the collections, items and tags stay the same), and the user
+  who left goes back into `mockStore.users`. The personas (rey, poe, lando, finn, and leia) sign in with the dev
+  password, which the mocks hold only when `import.meta.env.DEV` is true (or absent, under Playwright): never in a
+  build. The seed also gives rey a submission in every state, adds the orphan "Totoro", and gives leia, lando and
+  rey every notification kind, read and unread (older than the four submissions' ones, which Mario keeps alone). `setMockMustChangePassword()` (tests) starts signed in with a temporary password;
   `requirePasswordChange.mock.handler.ts` then answers 403 `PASSWORD_CHANGE_REQUIRED` like the API. `setMockReadOnly()`
   (tests; `test.use({ isReadOnly: true })` in Playwright) makes Mario read-only, and `requireWriteAccess.mock.handler.ts`
   then answers 403 `READ_ONLY` on every write but his own password, passkeys, signing out and marking his notifications read. `renderRoutes` (`@test-utils`) wraps the pages in a stand-in shell route that holds the
