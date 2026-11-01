@@ -116,9 +116,11 @@ Use them as written there, in code and in chat. "Variant" means a funko version 
   are named for what they check, not with the get/add/update/delete verbs.
 - Merging (issue #12, `POST /submissions/:id/merge`, admin-only): `{ targetFunkoId }` must be an approved funko. In
   one transaction (`funkosRepository.merge`) every item of the submission moves onto the target; a clash in one
-  collection keeps the older item, adds the quantities, joins notes and tags (the rule is `funkos/funkos.merge.ts`,
-  handed to the repository). The submission becomes `MERGED` with `merged_into_id` (a check: only while merged) and
-  keeps its images, category and series; its sender gets `SUBMISSION_MERGED` with the target's `funkoId`.
+  collection keeps the older item, adds the quantities, joins notes and tags, capped at the item limits
+  (`MAX_QUANTITY`, `MAX_TAGS_PER_ITEM` in `collectionItems.type.ts`; the older item's tags first, the newer one's
+  extras dropped) so the member can still edit it. The rule is `funkos/funkos.merge.ts`, handed to the repository.
+  The submission becomes `MERGED` with `merged_into_id` (a check: only while merged) and keeps its images, category
+  and series; its sender gets `SUBMISSION_MERGED` with the target's `funkoId`.
   Web: Merge on the review page opens `MergeSubmissionDialog` (approved maybe-doubles first, then a catalogue search
   through the existing `useSuggestions` type-ahead, not a new read); `mergeSubmission.mock.handler.ts` mirrors the
   item rule. `SubmissionReviewNotes` shows "Merged into" with a link wherever a submission's review is shown.

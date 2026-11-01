@@ -3,12 +3,10 @@ import { IdParamSchema, IdSchema } from '../../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../../lib/pagination.ts';
 import { ContainsQuerySchema, IdListQuerySchema, IsoDateSchema } from '../../../lib/queryParams.ts';
 import { FunkoSummarySchema } from '../../funkos/funkos.type.ts';
-import { ITEM_CONDITIONS } from './collectionItems.type.ts';
+import { ITEM_CONDITIONS, MAX_QUANTITY, MAX_TAGS_PER_ITEM } from './collectionItems.type.ts';
 
 export const ITEM_NOTES_MAX_LENGTH = 2000;
-export const MAX_QUANTITY = 1000;
 export const CURRENCY_LENGTH = 3;
-export const MAX_TAGS_PER_ITEM = 20;
 // The price column is a Postgres integer: 21 million in cents is far past any funko, and the cap keeps a typo a 400.
 export const MAX_PRICE_CENTS = 2_147_483_647;
 

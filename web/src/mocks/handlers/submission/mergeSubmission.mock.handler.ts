@@ -8,6 +8,7 @@ import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow, MockItemRow } from '@mocks/mockStore.type';
 import { nowIso } from '@mocks/mockStoreUtils';
 import type { MergeSubmission } from '@services/submissionService/submissionService.type';
+import { MAX_QUANTITY, MAX_TAGS_PER_ITEM } from '@utils/itemUtils';
 import { findWaitingSubmission, toSubmissionModel } from './submissionMockUtils';
 
 // The API's answers, word for word where the page shows them.
@@ -35,15 +36,15 @@ function joinNotes(olderNotes: string | null, newerNotes: string | null): string
 }
 
 // Two items of the target in one collection become the older one, as the API does: quantities added, notes and tags
-// joined, its other fields its own. The newer one goes.
+// joined (the older item's tags first), within the item limits, its other fields its own. The newer one goes.
 function combineItems(moving: MockItemRow, staying: MockItemRow, targetId: number): void {
   const [older, newer] = isOlder(moving, staying) ? [moving, staying] : [staying, moving];
 
   Object.assign(older, {
     funkoId: targetId,
-    quantity: older.quantity + newer.quantity,
+    quantity: Math.min(older.quantity + newer.quantity, MAX_QUANTITY),
     notes: joinNotes(older.notes, newer.notes),
-    tagIds: [...new Set([...older.tagIds, ...newer.tagIds])],
+    tagIds: [...new Set([...older.tagIds, ...newer.tagIds])].slice(0, MAX_TAGS_PER_ITEM),
     updatedAt: nowIso(),
   });
   mockStore.items = mockStore.items.filter((item) => item.id !== newer.id);

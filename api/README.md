@@ -235,7 +235,9 @@ it is not rejected, or clashes with their other waiting ones or the catalogue). 
 itself; 409 when the submission is not waiting): every item of the submission moves onto that funko, in one
 transaction. When the same collection already holds the target, the two items become one: the older item stays,
 the quantities add up, the notes are joined (older first, each once) and it carries both items' tags; its other
-fields (condition, price, date) stay its own. The submission becomes `MERGED` with `mergedInto`, still private to
+fields (condition, price, date) stay its own. The joined item keeps to the item limits, so the member can still edit
+it: at most 1000 (`MAX_QUANTITY`) and 20 tags (`MAX_TAGS_PER_ITEM`), the older item's tags first and the newer one's
+extras dropped. The submission becomes `MERGED` with `mergedInto`, still private to
 its sender and admins, and keeps its images, category and series. An orphan submission merges the same way, with
 nobody to tell. When an admin changes someone's
 waiting or rejected submission (its fields, or adds or removes a photo; reordering and rotating don't count),
