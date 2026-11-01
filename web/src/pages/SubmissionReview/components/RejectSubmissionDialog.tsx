@@ -36,7 +36,8 @@ const MEMBER_NOTE =
 const ORPHAN_NOTE = 'Its sender was removed, so nobody is left to fix it: rejecting it deletes it.';
 
 // Mounted while open, so every opening starts empty. The reason is required: the member reads it, fixes the funko
-// and sends it again, or deletes it; an orphan submission is deleted instead. The list submits it (useReviewActions) and closes the dialog once it worked.
+// and sends it again, or deletes it; an orphan submission is deleted instead. The list submits it
+// (useReviewActions) and closes the dialog once it worked.
 function RejectSubmissionDialog({ submission, isSaving, failure, onReject, onClose }: Props) {
   const { control, handleSubmit } = useFormCompat<RejectSubmissionFormValues>({
     defaultValues: REJECT_SUBMISSION_DEFAULT_VALUES,
