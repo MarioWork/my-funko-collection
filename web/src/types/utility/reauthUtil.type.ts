@@ -6,6 +6,9 @@ export const ReauthMethodUtil = {
 } as const;
 export type ReauthMethodUtil = (typeof ReauthMethodUtil)[keyof typeof ReauthMethodUtil];
 
+type PasskeyReauth = { method: typeof ReauthMethodUtil.PASSKEY };
+
+type PasswordReauth = { method: typeof ReauthMethodUtil.PASSWORD; password: string };
+
 // What a dialog sends its action once the user was asked to confirm: the method, and the password typed for it.
-export type ReauthUtil =
-  { method: typeof ReauthMethodUtil.PASSKEY } | { method: typeof ReauthMethodUtil.PASSWORD; password: string };
+export type ReauthUtil = PasskeyReauth | PasswordReauth;

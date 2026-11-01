@@ -44,10 +44,11 @@ function AddUserDialog() {
 
   const close = () => void navigate(USER_ROUTES_PATHS.BASE);
 
-  const submitWith = (method: ReauthMethodUtil) =>
-    handleSubmit((user) => {
-      void fetcher.submit(createFormData({ user, reauth: step.reauthFor(method) }), { method: HttpVerbsUtil.POST });
+  function submitWith(method: ReauthMethodUtil) {
+    return handleSubmit((user) => {
+      void fetcher.submit(createFormData({ user, reauth: step.chooseReauth(method) }), { method: HttpVerbsUtil.POST });
     });
+  }
 
   const confirm = (method: ReauthMethodUtil) => void submitWith(method)();
 
