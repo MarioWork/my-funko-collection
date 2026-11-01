@@ -252,3 +252,17 @@ it('says the account is read-only when a read-only admin opens the Edit funko ad
 
   expect(await screen.findByRole('heading', { level: 1, name: 'Your account is read-only' })).toBeVisible();
 });
+
+it('says who uploaded the image on show, and Removed user once they were deleted, as the images are switched', async () => {
+  const [funko] = mockStore.funkos;
+  const secondImage = mockStore.images.find((image) => image.funkoId === funko?.id && image.position === 1);
+  if (secondImage) secondImage.uploadedById = null;
+  renderRoutes(funkoRoutes, { initialEntries: [FUNKO_ROUTES_PATHS.detail(String(funko?.id))] });
+
+  const images = await screen.findByRole('region', { name: 'Images' });
+  expect(within(images).getByText(`Uploaded by ${mockStore.auth.userName}`)).toBeVisible();
+
+  await userEvent.click(within(images).getByRole('button', { name: 'Show image 2 of 2' }));
+
+  expect(within(images).getByText('Uploaded by Removed user')).toBeVisible();
+});

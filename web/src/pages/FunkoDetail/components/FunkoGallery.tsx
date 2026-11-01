@@ -7,6 +7,7 @@ import PhotoThumbnail from '@components/PhotoThumbnail';
 import { reasonWhen } from '@utils/disabledReasonUtils';
 import ImageDownloadButton from '@components/ImageDownloadButton';
 import { useReadOnlyReason } from '@hooks/useReadOnlyReason';
+import { userNameOrRemoved } from '@utils/removedUserUtils';
 import { useCanEditFunko } from '../hooks/useCanEditFunko';
 
 type Props = {
@@ -22,11 +23,20 @@ type FrameProps = {
   onOpen: () => void;
 };
 
+type UploaderLineProps = {
+  image: FunkoImageApiModel;
+};
+
 const HERO_SIZES = '(min-width: 1024px) 480px, 100vw';
 const NO_PHOTO_REASON = 'No image yet. Use Edit to add one.';
 // Without Edit (a catalogue funko, for a member): only an admin adds images to it.
 const MEMBER_NO_PHOTO_REASON = 'No image yet. An admin can add one.';
 const MAIN_PHOTO_INDEX = 0;
+// Who uploaded the image on show, under the frame; it follows the thumbnails. "Removed user" once they were deleted.
+function UploaderLine({ image }: UploaderLineProps) {
+  return <p className="text-center text-xs text-muted-foreground">Uploaded by {userNameOrRemoved(image.uploadedBy)}</p>;
+}
+
 // The big frame: the shown image, a button that opens it full size, and its download button in the corner.
 function GalleryFrame({ funkoName, hero, heroIndex, imageCount, canEdit, onOpen }: FrameProps) {
   const noPhotoReason = canEdit ? NO_PHOTO_REASON : MEMBER_NO_PHOTO_REASON;
@@ -64,7 +74,7 @@ function GalleryFrame({ funkoName, hero, heroIndex, imageCount, canEdit, onOpen 
   );
 }
 
-// The big frame, the thumbnail strip and the viewer, in a tile like the page's other sections (so the grey
+// The big frame, who uploaded the photo on show, the thumbnail strip and the viewer, in a tile like the page's other sections (so the grey
 // no-photo placeholder stands out from the page). A thumbnail only previews its photo in the frame; the main photo
 // stays as it is (it changes in Edit). The frame opens the photo on show full size.
 function FunkoGallery({ funko }: Props) {
@@ -91,6 +101,7 @@ function FunkoGallery({ funko }: Props) {
         canEdit={canEdit}
         onOpen={() => setOpenIndex(heroIndex)}
       />
+      {hero ? <UploaderLine image={hero} /> : null}
       {hasStrip ? (
         <ul className="-m-1 flex gap-2 overflow-x-auto p-1" aria-label="All images">
           {images.map((image, index) => (
