@@ -1,6 +1,6 @@
 // What the notification handlers share, and what other handlers call to tell someone something, as the API's
-// notifications service does: approving or rejecting tells the sender, a new or resent submission every admin, a
-// forced delete every user who had the funko.
+// notifications service does: approving, rejecting or merging tells the sender, a new or resent submission every
+// admin, a forced delete every user who had the funko.
 import type { NotificationApiModel } from '@app-types/models';
 import { NotificationKindUtil, UserRoleUtil } from '@app-types/utility';
 import { MOCK_USER_ID } from '@mocks/mockAuth';
@@ -69,6 +69,14 @@ export function notifyMockSender(kind: NotificationKindUtil, funko: MockFunkoRow
   if (funko.submittedById === null) return;
 
   notify([funko.submittedById], kind, notifiedFunkoOf(funko), reason);
+}
+
+// To the sender of a merged submission, unless it is an orphan submission: about `target`, the catalogue funko their
+// items moved to.
+export function notifyMockSenderOfMerge(submission: MockFunkoRow, target: MockFunkoRow): void {
+  if (submission.submittedById === null) return;
+
+  notify([submission.submittedById], NotificationKindUtil.SUBMISSION_MERGED, notifiedFunkoOf(target), null);
 }
 
 export function notifyMockAdmins(kind: NotificationKindUtil, funko: MockFunkoRow): void {

@@ -1,4 +1,5 @@
-import { object, type InferType } from 'yup';
+import { object, string, type InferType } from 'yup';
+import type { MergeSubmission } from '@services/submissionService/submissionService.type';
 import { SubmissionApiReviewStates } from '@services/submissionService/submissionService';
 import { rejectionReasonSchema } from '@utils/submissionUtils';
 
@@ -22,7 +23,7 @@ export const REVIEW_EMPTY_COPY: Record<SubmissionApiReviewStates, EmptyCopy> = {
   },
   [SubmissionApiReviewStates.DONE]: {
     title: 'Nothing reviewed yet',
-    description: 'Submissions you approve or reject show up here.',
+    description: 'Submissions you approve, reject or merge show up here.',
   },
 };
 
@@ -50,3 +51,17 @@ export const REJECT_SUBMISSION_DEFAULT_VALUES: RejectSubmissionFormValues = { re
 
 // What the reject dialog posts to its action.
 export type RejectSubmissionFormData = { rejection?: RejectSubmissionFormValues };
+
+// The merge dialog's one choice, as the radio group keeps it: the target funko's id as text.
+export const mergeSubmissionFormSchema = object({
+  targetFunkoId: string().required('Pick the funko it is the same as'),
+});
+
+export type MergeSubmissionFormValues = InferType<typeof mergeSubmissionFormSchema>;
+
+// What the merge dialog posts to its action.
+export type MergeSubmissionFormData = { merge?: MergeSubmission };
+
+// One funko a submission can be merged into, as the dialog lists it: a maybe-double first (with why), then search
+// results.
+export type MergeTarget = { id: number; name: string; number: string; hint: string };

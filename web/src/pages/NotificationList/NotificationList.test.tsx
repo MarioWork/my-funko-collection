@@ -43,6 +43,7 @@ it('lists an admin’s new submissions newest first, with the unread ones marked
     .getAllByRole('link')
     .map((link) => link.textContent);
   expect(titles).toEqual([
+    'New submission: Baby Yoda',
     'New submission: Bluey',
     'New submission: Mandalorian with Grogu',
     'New submission: Thanos (Infinity Gauntlet)',
@@ -54,6 +55,16 @@ it('lists an admin’s new submissions newest first, with the unread ones marked
     SUBMISSION_ROUTES_PATHS.REVIEW,
   );
   expect(screen.getByText('2 unread notifications')).toBeVisible();
+});
+
+it('tells the sender their submission was merged, linking to the catalogue funko it went into', async () => {
+  addMockNotification({ kind: NotificationKindUtil.SUBMISSION_MERGED, funkoId: 16, funkoName: 'Grogu' });
+
+  renderNotifications();
+
+  const link = await screen.findByRole('link', { name: 'Your submission was merged into Grogu' });
+  expect(link).toHaveAttribute('href', FUNKO_ROUTES_PATHS.detail('16'));
+  expect(screen.getByText(/Your items are on that funko now/)).toBeVisible();
 });
 
 it('marks a notification read and goes to what it is about when it is opened', async () => {

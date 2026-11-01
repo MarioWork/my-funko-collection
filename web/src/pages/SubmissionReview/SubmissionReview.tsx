@@ -8,7 +8,7 @@ import { describeReviewCount, isReviewState, REVIEW_TABS } from './submissionRev
 const PAGE_TITLE = 'Submissions';
 const TABS_LABEL = 'Which submissions';
 
-// Admins only: every member's submissions, Waiting (approve or reject each) and Done (what became of them).
+// Admins only: every member's submissions, Waiting (approve, reject or merge each) and Done (what became of them).
 function SubmissionReview() {
   const { submissions, totalResultNumber, state, setState } = useSubmissionReview();
 

@@ -40,6 +40,16 @@ it('lists what the member sent in, newest first, each with its state in words an
   expect(screen.getByText('3 submissions')).toBeVisible();
 });
 
+it('shows a merged submission as merged, with a link to the catalogue funko it went into', async () => {
+  addMockSubmission({ name: 'Baby Groot', status: SubmissionStatusUtil.MERGED, mergedIntoId: 1 });
+
+  renderSubmissions();
+
+  const row = await screen.findByRole('row', { name: /Baby Groot/ });
+  expect(within(row).getByText('Merged')).toBeVisible();
+  expect(within(row).getByRole('link', { name: 'Spider-Man' })).toHaveAttribute('href', FUNKO_ROUTES_PATHS.detail('1'));
+});
+
 it('shows an empty state with a way to add one when the member has sent nothing in', async () => {
   renderSubmissions();
 
