@@ -41,7 +41,7 @@ import {
   imagePlanOf,
   pickedFieldsOf,
   type MergeImagePlan,
-  type MergeSide,
+  type MergeComparableFields,
   type PickedFields,
 } from './funkos.mergeChoices.ts';
 import {
@@ -716,7 +716,7 @@ async function mergeOrExplain(id: number, targetId: number, change: MergeChange)
   }
 }
 
-function mergeSideOf(row: FunkoRow, references: CatalogueReferences): MergeSide {
+function mergeSideOf(row: FunkoRow, references: CatalogueReferences): MergeComparableFields {
   return {
     name: row.name,
     number: row.number,
@@ -775,13 +775,19 @@ async function removeImageFilesOf(funkoId: number, images: ImageFile[]): Promise
 }
 
 // The merge itself, with the moving images' files copied into the target's folder first, so the target never points
-// at a missing file. If it does not go through, the copies go again and nothing else changed.
-async function mergeWithCopiedFiles(id: number, targetId: number, change: MergeChange, moved: ImageFile[]) {
-  for (const image of moved) await copyImageFiles(id, targetId, image.fileKey);
-
+// at a missing file. If a copy or the merge fails, the copies go again (removing one never written is a logged no-op)
+// and nothing else changed.
+async function mergeWithCopiedFiles(
+  id: number,
+  targetId: number,
+  change: MergeChange,
+  moved: ImageFile[],
+): Promise<void> {
   let outcome: MergeOutcome;
 
   try {
+    for (const image of moved) await copyImageFiles(id, targetId, image.fileKey);
+
     outcome = await mergeOrExplain(id, targetId, change);
   } catch (error: unknown) {
     await removeImageFilesOf(targetId, moved);
@@ -795,7 +801,12 @@ async function mergeWithCopiedFiles(id: number, targetId: number, change: MergeC
 }
 
 // Merges, then removes the files no row points at any more: the moved images' originals, and the removed images'.
-async function mergeWithImages(id: number, targetId: number, fields: PickedFields, plan: MergeImagePlan) {
+async function mergeWithImages(
+  id: number,
+  targetId: number,
+  fields: PickedFields,
+  plan: MergeImagePlan,
+): Promise<void> {
   const change: MergeChange = {
     fields,
     movedImageIds: plan.moved.map((image) => image.id),
