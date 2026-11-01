@@ -66,7 +66,7 @@ const DOUBLE_CANDIDATE_SELECT = {
 } as const satisfies Prisma.FunkoSelect;
 
 // A category's or series' standing and name, to find the approved one of the same name when a submission is approved.
-const REFERENCE_SELECT = { id: true, name: true, status: true } as const;
+const REFERENCE_SELECT = { id: true, name: true, status: true } as const satisfies Prisma.CategorySelect;
 
 const PRIMARY_IMAGE_SELECT = {
   funkoId: true,

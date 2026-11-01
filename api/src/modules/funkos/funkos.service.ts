@@ -17,10 +17,17 @@ import type {
   SubmissionResponse,
   SubmissionStatus,
 } from '../submissions/submissions.type.ts';
-import { assertCanEditFunko, canSeeFunko, isAdminChangingSubmission, isInCatalogueOf } from './funkos.access.ts';
+import {
+  assertCanEditFunko,
+  canSeeFunko,
+  isAdminChangingSubmission,
+  isInCatalogueOf,
+  isOpenSubmission,
+} from './funkos.access.ts';
 import { getImages } from './images/funkoImages.service.ts';
 import {
   funkosRepository,
+  type CatalogueReferences,
   type CollectionSummaryRow,
   type DoubleCandidateRow,
   type DoubleProbe,
@@ -97,9 +104,7 @@ async function assertSeriesUsableIfGiven(
 // Whose waiting categories and series a funko may use: its sender's while it waits (or is rejected, for them to fix
 // and send again), nobody's once approved.
 function referenceOwnerOf(funko: FunkoStanding): number | null {
-  const isSubmission = funko.status === 'WAITING' || funko.status === 'REJECTED';
-
-  return isSubmission ? funko.submittedById : null;
+  return isOpenSubmission(funko) ? funko.submittedById : null;
 }
 
 function toSeries(row: FunkoRow): FunkoSummary['series'] {
@@ -503,7 +508,7 @@ async function assertFitsCatalogue(row: FunkoRow, categoryId: number): Promise<v
   if (sameBarcode) throw new ConflictError(CATALOGUE_HAS_BARCODE_MESSAGE, sameBarcode.id);
 }
 
-async function approveOrExplain(id: number, references: { categoryId: number; seriesId: number | null }) {
+async function approveOrExplain(id: number, references: CatalogueReferences): Promise<boolean> {
   try {
     return await funkosRepository.approve(id, references);
   } catch (error: unknown) {
