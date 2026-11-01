@@ -46,16 +46,13 @@ function FunkoFilters({ categories, series, collections, tags, filters, onChange
         options={toFilterOptions(categories)}
         onChange={(value) => onChange({ [FunkoApiSearchFields.CATEGORY_ID]: value })}
       />
-      <OptionalFilter
+      <SelectFilter
         id="filter-series"
         label="Series"
         anyLabel="Any series"
-        noneLabel="No series"
-        idField={FunkoApiSearchFields.SERIES_ID}
-        hasField={FunkoApiSearchFields.HAS_SERIES}
-        filters={filters}
+        value={filters[FunkoApiSearchFields.SERIES_ID]}
         options={toFilterOptions(series)}
-        onChange={onChange}
+        onChange={(value) => onChange({ [FunkoApiSearchFields.SERIES_ID]: value })}
       />
       <SelectFilter
         id="filter-type"

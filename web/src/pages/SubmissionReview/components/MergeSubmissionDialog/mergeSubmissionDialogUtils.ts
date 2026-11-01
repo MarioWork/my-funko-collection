@@ -55,7 +55,7 @@ const MERGE_FIELD_READERS: Record<SubmissionApiMergeFields, MergeFieldReader> = 
   [SubmissionApiMergeFields.NUMBER]: { label: 'Number', read: (funko) => `#${funko.number}` },
   [SubmissionApiMergeFields.TYPE]: { label: 'Type', read: (funko) => FUNKO_TYPE_LABELS[funko.type] },
   [SubmissionApiMergeFields.CATEGORY]: { label: 'Category', read: (funko) => funko.category.name },
-  [SubmissionApiMergeFields.SERIES]: { label: 'Series', read: (funko) => funko.series?.name ?? NO_VALUE },
+  [SubmissionApiMergeFields.SERIES]: { label: 'Series', read: (funko) => funko.series.name },
   [SubmissionApiMergeFields.CHASE]: { label: 'Chase', read: (funko) => (funko.isChase ? 'Chase' : 'Not a chase') },
   [SubmissionApiMergeFields.EXCLUSIVE]: {
     label: 'Exclusive',

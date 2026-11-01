@@ -4,7 +4,7 @@ import { useLoaderData } from 'react-router';
 import type { SeriesApiModel } from '@app-types/models';
 import { SERIES_ROUTES_PATHS } from '@application/routes/routesUtils';
 import CreateNamedButton from '@components/CreateNamedButton';
-import { Field, FieldDescription, FieldLabel } from '@components/ui/field';
+import { Field, FieldDescription, FieldError, FieldLabel } from '@components/ui/field';
 import { NativeSelect, NativeSelectOption } from '@components/ui/native-select';
 import { referenceOptionLabel, type FunkoFormValues } from '../funkoFormUtils';
 
@@ -18,22 +18,28 @@ type SeriesOptions = {
   series: SeriesApiModel[];
 };
 
-const NO_SERIES = '';
-
-// Optional: the series the funko belongs to, and a "+" to create a missing one on the spot.
+// Required, like the category: the series the funko belongs to, and a "+" to create a missing one on the spot.
 function FunkoSeriesField({ control, id }: Props) {
   const { series } = useLoaderData<SeriesOptions>();
+  const descriptionId = `${id}-description`;
+  const errorId = `${id}-error`;
 
   return (
     <Controller
       control={control}
       name="seriesId"
-      render={({ field }) => (
-        <Field>
-          <FieldLabel htmlFor={id}>Series (optional)</FieldLabel>
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid || undefined}>
+          <FieldLabel htmlFor={id}>Series</FieldLabel>
           <div className="flex gap-2">
-            <NativeSelect {...field} id={id} className="flex-1" aria-describedby={`${id}-description`}>
-              <NativeSelectOption value={NO_SERIES}>None</NativeSelectOption>
+            <NativeSelect
+              {...field}
+              id={id}
+              className="flex-1"
+              aria-invalid={fieldState.invalid || undefined}
+              aria-describedby={fieldState.error ? `${descriptionId} ${errorId}` : descriptionId}
+            >
+              <NativeSelectOption value="">Pick a series…</NativeSelectOption>
               {series.map((entry) => (
                 <NativeSelectOption key={entry.id} value={String(entry.id)}>
                   {referenceOptionLabel(entry)}
@@ -47,9 +53,10 @@ function FunkoSeriesField({ control, id }: Props) {
               onCreated={(created) => field.onChange(String(created.id))}
             />
           </div>
-          <FieldDescription id={`${id}-description`}>
-            The series it belongs to, like &ldquo;Daredevil: Born Again&rdquo;.
+          <FieldDescription id={descriptionId}>
+            The show, film or game it comes from, like &ldquo;Daredevil: Born Again&rdquo;.
           </FieldDescription>
+          <FieldError id={errorId} errors={fieldState.error ? [fieldState.error] : undefined} />
         </Field>
       )}
     />

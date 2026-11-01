@@ -45,7 +45,7 @@ export type MockFunkoRow = MockSubmissionColumns &
     number: string;
     type: FunkoType;
     categoryId: number;
-    seriesId: number | null;
+    seriesId: number;
     isChase: boolean;
     exclusive: string;
     barcode: string | null;

@@ -8,7 +8,6 @@ import { toFunkoModel } from '@mocks/mockResponses';
 import { FunkoApiSearchFields, FunkoApiSortingFields } from '@services/funkoService/funkoService';
 import { filterFunkos, matchedFields, relevance, splitWords } from './funkoSearchUtils';
 
-const NO_SERIES_SORT_KEY = '\uffff';
 // Zero-padded, so number 78 sorts before 1203 when compared as text.
 const NUMBER_SORT_WIDTH = 6;
 
@@ -48,8 +47,7 @@ export default (baseUrl: string) => [
             [FunkoApiSortingFields.CREATION_DATE]: (funko) => funko.createdAt,
             [FunkoApiSortingFields.CATEGORY]: (funko) =>
               `${funko.category.name} ${funko.number.padStart(NUMBER_SORT_WIDTH, '0')}`,
-            // No series sorts after every name ascending (the API keeps it last both ways; close enough here).
-            [FunkoApiSortingFields.SERIES]: (funko) => funko.series?.name ?? NO_SERIES_SORT_KEY,
+            [FunkoApiSortingFields.SERIES]: (funko) => funko.series.name,
           },
         }),
       );

@@ -21,13 +21,11 @@ function toRow(series: SeriesApiModel): ManageRow {
     name: series.name,
     notes: null,
     meta: isInUse ? `${series.funkoCount} funkos` : NOT_USED_META,
-    // Unlike a category, a series is optional: deleting one just clears it from its funkos.
-    isDeletable: true,
+    // Every funko has a series, so one with funkos cannot be deleted, like a category.
+    isDeletable: !isInUse,
     exportScope: ExportFunkosScopeUtil.SERIES,
     exportDisabledReason: isInUse ? undefined : `No funko is in ${series.name} yet.`,
-    deleteDescription: isInUse
-      ? `${series.funkoCount} funkos lose this series. The funkos stay in your catalog.`
-      : 'No funko uses this series yet.',
+    deleteDescription: 'No funko uses this series. This cannot be undone.',
   };
 }
 
@@ -39,7 +37,7 @@ function SeriesList() {
     <ManageListPage
       icon={PAGE_ICONS.SERIES}
       title="Series"
-      description="The series a funko belongs to, like Daredevil: Born Again. Optional; deleting one only clears it from its funkos."
+      description="The show, film or game a funko comes from, like Daredevil: Born Again. Every funko has one, so a series with funkos in it cannot be deleted."
       noun="series"
       pluralNoun="series"
       exportKind={ExportListKindUtil.SERIES}

@@ -69,18 +69,14 @@ function SummaryHeading({ funko, actions }: HeadingProps) {
           >
             {funko.category.name}
           </Link>
-          {funko.series ? (
-            <>
-              {' · '}
-              <Link
-                viewTransition
-                to={funkosInSeriesPath(funko.series.id)}
-                className="underline-offset-4 hover:text-foreground hover:underline"
-              >
-                {funko.series.name}
-              </Link>
-            </>
-          ) : null}
+          {' · '}
+          <Link
+            viewTransition
+            to={funkosInSeriesPath(funko.series.id)}
+            className="underline-offset-4 hover:text-foreground hover:underline"
+          >
+            {funko.series.name}
+          </Link>
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1">{actions}</div>

@@ -38,11 +38,21 @@ function newItem(collectionId: number, details: Partial<AddItem> = {}): AddItem 
 }
 
 // The Add form's create submission: one new funko, one photo, filed in Owned unless other items are given.
-async function submitNewFunko(items: AddItem[] = [newItem(OWNED_ID)]) {
+async function submitNewFunko(
+  items: AddItem[] = [newItem(OWNED_ID)],
+  seriesId: number | null | undefined = mockStore.series[0]?.id,
+) {
   const [category] = mockStore.categories;
   const formData = createFormData({
     intent: AddIntentUtil.CREATE,
-    funko: { name: NEW_FUNKO_NAME, number: '1', type: FunkoTypeUtil.POP, categoryId: category?.id, isChase: false },
+    funko: {
+      name: NEW_FUNKO_NAME,
+      number: '1',
+      type: FunkoTypeUtil.POP,
+      categoryId: category?.id,
+      seriesId,
+      isChase: false,
+    },
     items,
   });
   formData.append(PHOTO_FIELD, new File([new Uint8Array([1, 2, 3])], 'front.png', { type: 'image/png' }));
@@ -60,6 +70,13 @@ it('saves the funko, its photo and its list when every step goes through', async
 
   expect(result.success).toBe(true);
   expect(result.data?.funko.collections.map((collection) => collection.id)).toEqual([OWNED_ID]);
+});
+
+it('refuses the funko and stores nothing when it has no series', async () => {
+  const result = await submitNewFunko([newItem(OWNED_ID)], null);
+
+  expect(result.success).toBe(false);
+  expect(isNewFunkoStored()).toBe(false);
 });
 
 it('gives each collection its own details when the funko goes into several', async () => {

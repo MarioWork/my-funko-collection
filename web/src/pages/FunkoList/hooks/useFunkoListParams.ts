@@ -11,7 +11,6 @@ import type { loader } from '../funkoListLoader';
 const FILTER_FIELDS = [
   FunkoApiSearchFields.CATEGORY_ID,
   FunkoApiSearchFields.SERIES_ID,
-  FunkoApiSearchFields.HAS_SERIES,
   FunkoApiSearchFields.TYPE,
   FunkoApiSearchFields.IS_CHASE,
   FunkoApiSearchFields.COLLECTION_ID,
@@ -38,7 +37,6 @@ export function useFunkoListParams() {
     [FunkoApiSearchFields.SERIES_ID]: getParam(FunkoApiSearchFields.SERIES_ID),
     [FunkoApiSearchFields.TYPE]: getParam(FunkoApiSearchFields.TYPE),
     [FunkoApiSearchFields.IS_CHASE]: getParam(FunkoApiSearchFields.IS_CHASE),
-    [FunkoApiSearchFields.HAS_SERIES]: getParam(FunkoApiSearchFields.HAS_SERIES),
     [FunkoApiSearchFields.COLLECTION_ID]: getParam(FunkoApiSearchFields.COLLECTION_ID),
     [FunkoApiSearchFields.HAS_COLLECTIONS]: getParam(FunkoApiSearchFields.HAS_COLLECTIONS),
     [FunkoApiSearchFields.TAG_ID]: getParam(FunkoApiSearchFields.TAG_ID),
@@ -51,7 +49,6 @@ export function useFunkoListParams() {
     [FunkoApiSearchFields.SERIES_ID]: (value) => `Series: ${nameOf(data.series, value)}`,
     [FunkoApiSearchFields.TYPE]: (value) => `Type: ${FUNKO_TYPE_LABELS[value as FunkoTypeUtil] ?? value}`,
     [FunkoApiSearchFields.IS_CHASE]: (value) => (value === TRUE_VALUE ? 'Chase only' : 'No chase'),
-    [FunkoApiSearchFields.HAS_SERIES]: (value) => (value === TRUE_VALUE ? 'Has a series' : 'No series'),
     [FunkoApiSearchFields.COLLECTION_ID]: (value) => `In: ${nameOf(data.collections, value)}`,
     [FunkoApiSearchFields.HAS_COLLECTIONS]: (value) => (value === TRUE_VALUE ? 'In a collection' : 'No collections'),
     [FunkoApiSearchFields.TAG_ID]: (value) => `Tag: ${nameOf(data.tags, value)}`,

@@ -42,14 +42,41 @@ const WISHLIST_COLLECTION_ID = 2;
 
 const CATEGORY_NAMES = ['Pop! Marvel', 'Pop! Television', 'Pop! Star Wars', 'Pop! Animation', 'Pop! Games'];
 const TAG_NAMES = ['Box 1', 'Box 2', 'Display shelf'];
-const SERIES_NAMES = ['Daredevil: Born Again', 'The Mandalorian', 'Stranger Things'];
+// Every funko has one. Mirrors api/prisma/seed.ts, in the same order (ids are positions).
+const SERIES_NAMES = [
+  'Daredevil: Born Again',
+  'The Mandalorian',
+  'Stranger Things',
+  'Spider-Man',
+  'Iron Man',
+  'Captain America',
+  'Deadpool',
+  'Avengers: Infinity War',
+  'Guardians of the Galaxy',
+  'Breaking Bad',
+  'Star Wars',
+  'Star Wars: The Clone Wars',
+  'Dragon Ball Z',
+  'Naruto Shippuden',
+  'One Piece',
+  'Demon Slayer',
+  'Rick and Morty',
+  'The Legend of Zelda',
+  'Super Mario',
+  'Pokémon',
+  'Halo',
+  'God of War',
+  'Bluey',
+  'Wednesday',
+  'My Neighbor Totoro',
+];
 
 type SeedFunko = {
   name: string;
   number: string;
   category: number;
-  // 1-based index into SERIES_NAMES; most funkos have none.
-  series?: number;
+  // 1-based index into SERIES_NAMES: every funko has one.
+  series: number;
   type?: FunkoType;
   isChase?: boolean;
   exclusive?: string;
@@ -58,42 +85,42 @@ type SeedFunko = {
 
 // Mirrors api/prisma/seed.ts so mock mode and a seeded API look alike.
 const SEED_FUNKOS: SeedFunko[] = [
-  { name: 'Spider-Man', number: '03', category: 1, barcode: '889698624008' },
-  { name: 'Iron Man', number: '04', category: 1 },
-  { name: 'Captain America', number: '06', category: 1 },
-  { name: 'Deadpool', number: '20', category: 1 },
-  { name: 'Thanos', number: '78', category: 1 },
-  { name: 'Thanos', number: '78', category: 1, isChase: true },
-  { name: 'Groot', number: '1203', category: 1 },
-  { name: 'Spider-Man (Integrated Suit)', number: '913', category: 1, exclusive: 'Walmart' },
+  { name: 'Spider-Man', number: '03', category: 1, series: 4, barcode: '889698624008' },
+  { name: 'Iron Man', number: '04', category: 1, series: 5 },
+  { name: 'Captain America', number: '06', category: 1, series: 6 },
+  { name: 'Deadpool', number: '20', category: 1, series: 7 },
+  { name: 'Thanos', number: '78', category: 1, series: 8 },
+  { name: 'Thanos', number: '78', category: 1, series: 8, isChase: true },
+  { name: 'Groot', number: '1203', category: 1, series: 9 },
+  { name: 'Spider-Man (Integrated Suit)', number: '913', category: 1, series: 4, exclusive: 'Walmart' },
   { name: 'Eleven', number: '421', category: 2, series: 3 },
   { name: 'Eddie Munson', number: '1250', category: 2, series: 3 },
   { name: 'Dustin', number: '424', category: 2, series: 3 },
   { name: 'Vecna', number: '1312', category: 2, series: 3 },
-  { name: 'Walter White', number: '162', category: 2 },
-  { name: 'Darth Vader', number: '01', category: 3 },
-  { name: 'Boba Fett', number: '08', category: 3 },
+  { name: 'Walter White', number: '162', category: 2, series: 10 },
+  { name: 'Darth Vader', number: '01', category: 3, series: 11 },
+  { name: 'Boba Fett', number: '08', category: 3, series: 11 },
   { name: 'Grogu', number: '368', category: 3, series: 2 },
   { name: 'The Mandalorian', number: '345', category: 3, series: 2 },
-  { name: 'Ahsoka Tano', number: '464', category: 3 },
-  { name: 'Darth Maul', number: '09', category: 3, exclusive: 'SDCC 2024' },
-  { name: 'Goku', number: '09', category: 4 },
-  { name: 'Super Saiyan Goku', number: '14', category: 4 },
-  { name: 'Naruto', number: '71', category: 4 },
-  { name: 'Luffy', number: '98', category: 4 },
-  { name: 'Tanjiro', number: '867', category: 4 },
-  { name: 'Rick and Morty on Spaceship', number: '32', category: 4, type: FunkoTypeUtil.POP_RIDES },
-  { name: 'Link', number: '1026', category: 5 },
-  { name: 'Mario', number: '09', category: 5 },
-  { name: 'Pikachu', number: '353', category: 5 },
-  { name: 'Master Chief', number: '07', category: 5 },
-  { name: 'Kratos', number: '25', category: 5, type: FunkoTypeUtil.POP_DELUXE },
+  { name: 'Ahsoka Tano', number: '464', category: 3, series: 12 },
+  { name: 'Darth Maul', number: '09', category: 3, series: 11, exclusive: 'SDCC 2024' },
+  { name: 'Goku', number: '09', category: 4, series: 13 },
+  { name: 'Super Saiyan Goku', number: '14', category: 4, series: 13 },
+  { name: 'Naruto', number: '71', category: 4, series: 14 },
+  { name: 'Luffy', number: '98', category: 4, series: 15 },
+  { name: 'Tanjiro', number: '867', category: 4, series: 16 },
+  { name: 'Rick and Morty on Spaceship', number: '32', category: 4, series: 17, type: FunkoTypeUtil.POP_RIDES },
+  { name: 'Link', number: '1026', category: 5, series: 18 },
+  { name: 'Mario', number: '09', category: 5, series: 19 },
+  { name: 'Pikachu', number: '353', category: 5, series: 20 },
+  { name: 'Master Chief', number: '07', category: 5, series: 21 },
+  { name: 'Kratos', number: '25', category: 5, series: 22, type: FunkoTypeUtil.POP_DELUXE },
 ];
 
 // Other members' submissions, so the admins' Submissions page has something to review: two waiting (Thanos is
 // maybe a double of the catalogue's #78 in Pop! Marvel), one rejected and one merged into the catalogue's Grogu.
 // Nobody else sees them, as on the API.
-type SeedSubmission = Omit<SeedFunko, 'series' | 'type' | 'isChase' | 'exclusive'> & {
+type SeedSubmission = Omit<SeedFunko, 'type' | 'isChase' | 'exclusive'> & {
   // null: an orphan submission, its sender removed.
   submittedById: number | null;
   day: number;
@@ -132,17 +159,18 @@ const REMOVED_FUNKO = {
 };
 
 const SEED_SUBMISSIONS: SeedSubmission[] = [
-  { name: 'Thanos (Infinity Gauntlet)', number: '78', category: 1, submittedById: MOCK_MEMBER_ID, day: 40 },
-  { name: 'Mandalorian with Grogu', number: '402', category: 3, submittedById: HAN_ID, day: 42 },
+  { name: 'Thanos (Infinity Gauntlet)', number: '78', category: 1, series: 8, submittedById: MOCK_MEMBER_ID, day: 40 },
+  { name: 'Mandalorian with Grogu', number: '402', category: 3, series: 2, submittedById: HAN_ID, day: 42 },
   {
     name: 'Bluey',
     number: '1235',
     category: 4,
+    series: 23,
     submittedById: MOCK_MEMBER_ID,
     day: 38,
     rejectionReason: 'The photo is from a shop listing. Please add a photo of your own box.',
   },
-  { name: 'Baby Yoda', number: '368', category: 3, submittedById: HAN_ID, day: 36, mergedInto: 'Grogu' },
+  { name: 'Baby Yoda', number: '368', category: 3, series: 2, submittedById: HAN_ID, day: 36, mergedInto: 'Grogu' },
 ];
 
 // --- Every submission state (issue #38), mirroring api/prisma/seed.ts: rey's in each state a member meets, and an
@@ -151,12 +179,13 @@ const REY_ID = MOCK_PERSONA_MEMBER_ID;
 const STEVE_REJECTION = 'The number on the box is 1300, not 1030. Please check it.';
 const HOPPER_REJECTION = 'This one is a Walmart exclusive. Please add the store.';
 const PERSONA_SUBMISSIONS: SeedSubmission[] = [
-  { name: 'Rey with Lightsaber', number: '307', category: 3, submittedById: REY_ID, day: 44 },
-  { name: 'BB-8', number: '61', category: 3, submittedById: REY_ID, day: 43, isResent: true },
+  { name: 'Rey with Lightsaber', number: '307', category: 3, series: 11, submittedById: REY_ID, day: 44 },
+  { name: 'BB-8', number: '61', category: 3, series: 11, submittedById: REY_ID, day: 43, isResent: true },
   {
     name: 'Steve Harrington',
     number: '1300',
     category: 2,
+    series: 3,
     submittedById: REY_ID,
     day: 39,
     rejectionReason: STEVE_REJECTION,
@@ -165,6 +194,7 @@ const PERSONA_SUBMISSIONS: SeedSubmission[] = [
     name: 'Jim Hopper',
     number: '1241',
     category: 2,
+    series: 3,
     submittedById: REY_ID,
     day: 37,
     rejectionReason: HOPPER_REJECTION,
@@ -174,12 +204,21 @@ const PERSONA_SUBMISSIONS: SeedSubmission[] = [
     name: 'Darth Vader (Classic)',
     number: '01',
     category: 3,
+    series: 11,
     submittedById: REY_ID,
     day: 35,
     mergedInto: 'Darth Vader',
   },
-  { name: 'Wednesday Addams', number: '1309', category: 2, submittedById: REY_ID, day: 34, isApproved: true },
-  { name: 'Totoro', number: '1000', category: 4, submittedById: null, day: 41 },
+  {
+    name: 'Wednesday Addams',
+    number: '1309',
+    category: 2,
+    series: 24,
+    submittedById: REY_ID,
+    day: 34,
+    isApproved: true,
+  },
+  { name: 'Totoro', number: '1000', category: 4, series: 25, submittedById: null, day: 41 },
 ];
 
 // Whom a seed notification goes to: the persona admins (leia and lando, not the mock user tests sign in as), or one
@@ -401,7 +440,6 @@ const EXTRA_MAX_IMAGES = 6;
 const EXTRA_BASE_IMAGE_BYTES = 120_000;
 const EXTRA_IMAGE_BYTES_STEP = 37_000;
 const EXTRA_IMAGE_BYTES_SPREAD = 9;
-const EXTRA_SERIES_EVERY = 4;
 const EXTRA_OWNED_EVERY = 2;
 const EXTRA_WISHLIST_EVERY = 7;
 const EXTRA_CHASE_EVERY = 11;
@@ -413,13 +451,12 @@ const APPROVED_COLUMNS: MockSubmissionColumns = { status: SubmissionStatusUtil.A
 // How many generated funkos to add: none in tests and normal mock mode.
 const extraFunkoCount = Number(mockEnv.VITE_MOCK_EXTRA_FUNKOS ?? 0) || 0;
 
-// "Iron Man 37": a seed name with a running number, in the seed's category, some with a series, a chase now and
+// "Iron Man 37": a seed name with a running number, in the seed's category and series, a chase now and
 // then. Only for trying long lists; never in tests.
 function createExtraFunkos(startId: number, startIndex: number): MockFunkoRow[] {
   return Array.from({ length: extraFunkoCount }, (_, offset) => {
     const seed = SEED_FUNKOS[offset % SEED_FUNKOS.length] ?? SEED_FUNKOS[0];
     const index = startIndex + offset;
-    const hasSeries = offset % EXTRA_SERIES_EVERY === 0;
 
     return {
       id: startId + offset,
@@ -427,7 +464,7 @@ function createExtraFunkos(startId: number, startIndex: number): MockFunkoRow[] 
       number: String(EXTRA_NUMBER_START + offset),
       type: seed?.type ?? FunkoTypeUtil.POP,
       categoryId: seed?.category ?? 1,
-      seriesId: hasSeries ? (offset % SERIES_NAMES.length) + 1 : null,
+      seriesId: seed?.series ?? 1,
       isChase: offset % EXTRA_CHASE_EVERY === 0,
       exclusive: '',
       barcode: null,
@@ -517,7 +554,7 @@ function createSubmissions(seeds: SeedSubmission[], startId: number): MockFunkoR
       number: seed.number,
       type: FunkoTypeUtil.POP,
       categoryId: seed.category,
-      seriesId: null,
+      seriesId: seed.series,
       isChase: false,
       exclusive: '',
       barcode: seed.barcode ?? null,
@@ -704,7 +741,7 @@ export function createSeedData(users: MockUserRow[]): MockSeedData {
     number: seed.number,
     type: seed.type ?? FunkoTypeUtil.POP,
     categoryId: seed.category,
-    seriesId: seed.series ?? null,
+    seriesId: seed.series,
     isChase: seed.isChase ?? false,
     exclusive: seed.exclusive ?? '',
     barcode: seed.barcode ?? null,
