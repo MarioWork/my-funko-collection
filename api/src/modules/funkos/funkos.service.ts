@@ -1,5 +1,5 @@
 import { normaliseBarcode } from '../../lib/barcode.ts';
-import { isUniqueViolation } from '../../lib/databaseErrors.ts';
+import { isForeignKeyViolation, isUniqueViolation } from '../../lib/databaseErrors.ts';
 import { BadRequestError, ConflictError, HeldByUsersError, NotFoundError } from '../../lib/httpErrors.ts';
 import { removeFunkoFolder, sizeUrl } from '../../lib/imageStorage.ts';
 import { logger } from '../../lib/logger.ts';
@@ -675,6 +675,18 @@ const MERGE_REFUSAL_MAP: Record<Exclude<MergeOutcome, 'MERGED'>, (targetId: numb
   TARGET_NOT_IN_CATALOGUE: targetNotInCatalogue,
 };
 
+// The target is checked in the transaction but not locked: one deleted in between makes the item move fail on its
+// foreign key, and the merge answers as if the target had never been there.
+async function mergeOrExplain(id: number, targetId: number): Promise<MergeOutcome> {
+  try {
+    return await funkosRepository.merge(id, targetId, combineClashingItems);
+  } catch (error: unknown) {
+    if (isForeignKeyViolation(error)) return 'TARGET_NOT_IN_CATALOGUE';
+
+    throw error;
+  }
+}
+
 // An admin merges a waiting submission into a funko already in the catalogue: every item of it moves onto that funko
 // (two in one collection become one, see funkos.merge.ts) and it reads as merged into it, still private. Its sender
 // is told, pointed at the catalogue funko.
@@ -686,7 +698,7 @@ export async function mergeSubmission(id: number, targetId: number): Promise<Sub
 
   if (target?.status !== 'APPROVED') throw targetNotInCatalogue(targetId);
 
-  const outcome = await funkosRepository.merge(id, targetId, combineClashingItems);
+  const outcome = await mergeOrExplain(id, targetId);
 
   if (outcome !== 'MERGED') throw MERGE_REFUSAL_MAP[outcome](targetId);
 

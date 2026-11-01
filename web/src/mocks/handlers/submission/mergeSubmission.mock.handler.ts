@@ -12,7 +12,8 @@ import { findWaitingSubmission, toSubmissionModel } from './submissionMockUtils'
 
 // The API's answers, word for word where the page shows them.
 const SELF_MERGE_MESSAGE = 'A submission cannot be merged into itself';
-const NO_TARGET_MESSAGE = 'Say which funko it is the same as';
+// What the API's schema check answers to a body with no target.
+const NO_TARGET_MESSAGE = 'Request validation failed';
 const NOTES_SEPARATOR = '\n\n';
 
 function notInCatalogueMessage(targetId: number): string {

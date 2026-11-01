@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { IdParamSchema, IdSchema } from '../../lib/ids.ts';
 import { PaginationQuerySchema, paginatedResponseSchema } from '../../lib/pagination.ts';
 import { BooleanQuerySchema, ContainsQuerySchema, IdListQuerySchema } from '../../lib/queryParams.ts';
-import { FUNKO_TYPES, FunkoSummarySchema } from './funkos.type.ts';
+import { FUNKO_TYPES, FunkoSummarySchema, MergedIntoSchema } from './funkos.type.ts';
 import { FunkoImageResponseSchema } from './images/funkoImages.type.ts';
 import { SUBMISSION_STATUSES } from '../submissions/submissions.type.ts';
 
@@ -128,7 +128,7 @@ export const FunkoDetailResponseSchema = FunkoResponseSchema.extend({
   userCount: z.number().int().optional(),
   // Admins and the sender only, on a merged submission: the catalogue funko it was merged into (null otherwise, or
   // once that funko was deleted). Left out for everyone else.
-  mergedInto: z.object({ id: z.number().int(), name: z.string() }).nullable().optional(),
+  mergedInto: MergedIntoSchema.optional(),
 }).meta({ id: 'FunkoDetail' });
 
 export const FunkoListResponseSchema = paginatedResponseSchema(FunkoResponseSchema);
