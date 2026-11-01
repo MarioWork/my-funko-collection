@@ -1,4 +1,4 @@
-import { combineClashingItems, type MergedItem } from './funkos.merge.ts';
+import { combineClashingItems, type MergedItem } from './merge.items.ts';
 
 const MAX_QUANTITY = 1000;
 const MAX_TAGS_PER_ITEM = 20;

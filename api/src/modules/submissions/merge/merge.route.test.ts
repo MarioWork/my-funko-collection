@@ -1,7 +1,7 @@
 // An admin merges a submission into a funko already in the catalogue (docs/GLOSSARY.md "Merge"): the sender's items
 // move onto that funko, a clash in one collection becomes one item, and the submission reads as merged.
-import { buildApp, type App } from '../../app.ts';
-import { resetTestDb } from '../../testDb.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { resetTestDb } from '../../../testDb.ts';
 import {
   createCollection,
   createFunko,
@@ -12,7 +12,7 @@ import {
   deleteUser,
   type SignedInClient,
   signIn,
-} from '../../testFixtures.ts';
+} from '../../../testFixtures.ts';
 
 let app: App;
 let admin: SignedInClient;

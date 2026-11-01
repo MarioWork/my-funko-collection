@@ -1,9 +1,9 @@
 // An admin merging a submission picks, field by field and image by image, what the catalogue funko keeps (issue #39):
 // the original entry's values unless a field is taken from the submission; the original entry's images unless one is
 // removed or one of the submission's is moved over.
-import { buildApp, type App } from '../../app.ts';
-import { storedFileExists } from '../../lib/imageStorage.ts';
-import { resetTestDb } from '../../testDb.ts';
+import { buildApp, type App } from '../../../app.ts';
+import { storedFileExists } from '../../../lib/imageStorage.ts';
+import { resetTestDb } from '../../../testDb.ts';
 import {
   createCategory,
   createFunko,
@@ -12,7 +12,7 @@ import {
   type SignedInClient,
   signIn,
   toFormData,
-} from '../../testFixtures.ts';
+} from '../../../testFixtures.ts';
 
 let app: App;
 let admin: SignedInClient;

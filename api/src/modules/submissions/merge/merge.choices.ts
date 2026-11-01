@@ -1,9 +1,10 @@
 // What the admin picked for the catalogue funko a submission merges into (issue #39): the fields it takes from the
 // submission, and which images it keeps. The rules that check the picks live here, beside the service, which reads
-// both funkos and hands them in; the funkos repository applies the result inside the merge's transaction.
-import { BadRequestError } from '../../lib/httpErrors.ts';
-import type { ImageFile } from './images/funkoImages.type.ts';
-import type { FunkoType, MergeChoices, MergeField } from './funkos.type.ts';
+// both funkos and hands them in; the merge repository applies the result inside the merge's transaction.
+import { BadRequestError } from '../../../lib/httpErrors.ts';
+import type { ImageFile } from '../../funkos/images/funkoImages.type.ts';
+import type { FunkoType } from '../../funkos/funkos.type.ts';
+import type { MergeChoices, MergeField } from './merge.type.ts';
 
 // One side of a merge as the picker compares it: the catalogue fields. The submission's category and series are the
 // ones it would have in the catalogue (its own, or the approved one of the same name), as approval would set them.
