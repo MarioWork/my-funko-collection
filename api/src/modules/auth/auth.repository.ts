@@ -13,6 +13,7 @@ const USER_SELECT = {
   name: true,
   username: true,
   role: true,
+  isReadOnly: true,
   webauthnUserId: true,
   temporaryPasswordExpiresAt: true,
 } as const satisfies Prisma.UserSelect;
@@ -35,7 +36,7 @@ const SESSION_SELECT = {
   userId: true,
   signedInAt: true,
   lastSeenAt: true,
-  user: { select: { name: true, username: true, role: true, temporaryPasswordExpiresAt: true } },
+  user: { select: { name: true, username: true, role: true, isReadOnly: true, temporaryPasswordExpiresAt: true } },
 } as const satisfies Prisma.SessionSelect;
 
 const PASSWORD_USER_SELECT = { ...USER_SELECT, passwordHash: true } as const satisfies Prisma.UserSelect;
@@ -106,6 +107,7 @@ async function findSession(tokenHash: string) {
     userName: user.name,
     username: user.username,
     userRole: user.role,
+    isReadOnly: user.isReadOnly,
     mustChangePassword: user.temporaryPasswordExpiresAt !== null,
   };
 }

@@ -86,6 +86,8 @@ export type AuthSession = {
   userName: string;
   username: string | null;
   userRole: UserRole;
+  // An admin limited this user to looking: every write but their own password, passkeys and signing out is refused.
+  isReadOnly: boolean;
   // Signed in with a temporary password: every route but changing it and signing out is refused until it is.
   mustChangePassword: boolean;
   signedInAt: Date;
@@ -104,6 +106,7 @@ function toAuthSession(row: SessionRow): AuthSession {
     userName: row.userName,
     username: row.username,
     userRole: row.userRole,
+    isReadOnly: row.isReadOnly,
     mustChangePassword: row.mustChangePassword,
     signedInAt: row.signedInAt,
   };
@@ -182,7 +185,13 @@ async function assertNotSetUp(): Promise<void> {
   if (isSetUp) throw new HttpError(ALREADY_SET_UP_MESSAGE, { code: 'ALREADY_SET_UP', statusCode: 409 });
 }
 
-type SignedInUser = { name: string; username: string | null; role: UserRole; temporaryPasswordExpiresAt: Date | null };
+type SignedInUser = {
+  name: string;
+  username: string | null;
+  role: UserRole;
+  isReadOnly: boolean;
+  temporaryPasswordExpiresAt: Date | null;
+};
 
 function toSignedInResponse(user: SignedInUser): SignedInResponse {
   return {
@@ -190,6 +199,7 @@ function toSignedInResponse(user: SignedInUser): SignedInResponse {
       name: user.name,
       username: user.username,
       role: user.role,
+      isReadOnly: user.isReadOnly,
       mustChangePassword: user.temporaryPasswordExpiresAt !== null,
     },
   };
@@ -274,6 +284,7 @@ export async function getAuthStatus(session: AuthSession | null): Promise<AuthSt
       name: session.userName,
       username: session.username,
       role: session.userRole,
+      isReadOnly: session.isReadOnly,
       mustChangePassword: session.mustChangePassword,
     };
 

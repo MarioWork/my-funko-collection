@@ -22,11 +22,13 @@ const log = logger.child({ module: 'users' });
 
 const ENTITY = 'User';
 const USERNAME_TAKEN_MESSAGE = 'That username is taken. Pick another one.';
-const LAST_ADMIN_MESSAGE = 'There must always be at least one admin. Make someone else an admin first.';
+const LAST_ADMIN_MESSAGE =
+  'There must always be at least one admin who can make changes. Make someone else an admin first.';
 const USERNAME_REQUIRED_MESSAGE = 'This user has no username yet. Pick one for them.';
 const USERNAME_ALREADY_SET_MESSAGE = 'This user already has a username, and keeps it.';
 
-// There is always at least one admin (docs/GLOSSARY.md): the last one can't be made a member or deleted.
+// There is always at least one admin who is not read-only (docs/GLOSSARY.md): the last one can't be made a member,
+// made read-only or deleted.
 class LastAdminError extends HttpError {
   constructor() {
     super(LAST_ADMIN_MESSAGE, { code: 'LAST_ADMIN', statusCode: 409 });
@@ -63,9 +65,10 @@ function toResponse(row: UserRow, adminCount: number, now = Date.now()): UserRes
     name: row.name,
     username: row.username,
     role: row.role,
+    isReadOnly: row.isReadOnly,
     state: toUserState(row, now),
     temporaryPasswordExpiresAt: row.temporaryPasswordExpiresAt?.toISOString() ?? null,
-    isLastAdmin: row.role === 'ADMIN' && adminCount === 1,
+    isLastAdmin: row.role === 'ADMIN' && !row.isReadOnly && adminCount === 1,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -116,15 +119,16 @@ function unwrapGuardedChange<Result>(userId: number, change: GuardedChange<Resul
   return change.result;
 }
 
-// An admin changes a user's role (issue #7): needs a recent sign-in, never takes away the last admin, and ends
-// every session of that user (their own too, when an admin makes themselves a member), so the new role applies
-// from their next sign-in.
-export async function updateUser(session: AuthSession, userId: number, { role }: UpdateUser): Promise<UserResponse> {
+// An admin changes a user's role (issue #7) or makes them read-only and back (issue #8): needs a recent sign-in,
+// never takes away the last admin who can make changes, and ends every session of that user (their own too, when
+// an admin changes themselves). The API reads both from the user on every request anyway; ending the sessions
+// makes the app ask again, so it shows the new role or the read-only controls at once instead of after a reload.
+export async function updateUser(session: AuthSession, userId: number, change: UpdateUser): Promise<UserResponse> {
   assertRecentSignIn(session);
 
-  const row = unwrapGuardedChange(userId, await usersRepository.updateRole(userId, role));
+  const row = unwrapGuardedChange(userId, await usersRepository.update(userId, change));
 
-  log.info({ userId, changedBy: session.userId, role }, 'user role changed');
+  log.info({ userId, changedBy: session.userId, role: change.role, isReadOnly: change.isReadOnly }, 'user changed');
 
   return toResponseWithAdminCount(row);
 }

@@ -76,7 +76,7 @@ describe('PUT /auth/password', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      user: { name: 'Tester', username: USERNAME, role: 'ADMIN', mustChangePassword: false },
+      user: { name: 'Tester', username: USERNAME, role: 'ADMIN', isReadOnly: false, mustChangePassword: false },
     });
     const user = await prisma.user.findFirstOrThrow({ select: { username: true, passwordHash: true } });
     expect(user.username).toBe(USERNAME);
@@ -85,7 +85,7 @@ describe('PUT /auth/password', () => {
     const status = await api.inject({ method: 'GET', url: `${URL}/status` });
     expect(status.json()).toEqual({
       state: 'signedIn',
-      user: { name: 'Tester', username: USERNAME, role: 'ADMIN', mustChangePassword: false },
+      user: { name: 'Tester', username: USERNAME, role: 'ADMIN', isReadOnly: false, mustChangePassword: false },
     });
   });
 
@@ -168,7 +168,7 @@ describe('POST /auth/login/password', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      user: { name: 'Tester', username: USERNAME, role: 'ADMIN', mustChangePassword: false },
+      user: { name: 'Tester', username: USERNAME, role: 'ADMIN', isReadOnly: false, mustChangePassword: false },
     });
     const newToken = tokenOf(response.headers['set-cookie']);
     expect((await getTags(newToken)).statusCode).toBe(200);

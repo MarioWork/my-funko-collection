@@ -176,6 +176,7 @@ type SignInOptions = {
   role?: UserRole;
   userId?: number;
   hasTemporaryPassword?: boolean;
+  isReadOnly?: boolean;
 };
 
 export type SignedInClient = {
@@ -256,6 +257,7 @@ export async function createPasskeyRow(
 // `role` MEMBER signs in as the test member instead of the test admin (the default).
 // `userId` signs in as another user (from createUser()) instead; it wins over `role`.
 // `hasTemporaryPassword` gives that user a temporary password an admin made, not replaced yet.
+// `isReadOnly` makes that user read-only, as an admin would.
 export async function signIn(app: App, options: SignInOptions = {}): Promise<SignedInClient> {
   const user =
     options.userId === undefined ? await findOrCreateTestUser(options.role ?? 'ADMIN') : { id: options.userId };
@@ -266,6 +268,8 @@ export async function signIn(app: App, options: SignInOptions = {}): Promise<Sig
       data: { passwordHash: TEMPORARY_PASSWORD_HASH, temporaryPasswordExpiresAt: new Date(Date.now() + DAY_MS) },
     });
   }
+
+  if (options.isReadOnly) await prisma.user.update({ where: { id: user.id }, data: { isReadOnly: true } });
 
   const signInMethod = options.signInMethod ?? 'PASSKEY';
   const passkey = signInMethod === 'PASSKEY' ? await createPasskeyRow(user.id) : undefined;

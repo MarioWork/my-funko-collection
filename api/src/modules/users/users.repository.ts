@@ -2,7 +2,7 @@ import type { Prisma } from '../../generated/prisma/client.ts';
 import { toOrderDirection, toSkipTake } from '../../lib/pagination.ts';
 import { prisma } from '../../lib/prisma.ts';
 import type { UserRole } from '../auth/auth.type.ts';
-import type { ListUsersQuery, UserSortField } from './users.schema.ts';
+import type { ListUsersQuery, UpdateUser, UserSortField } from './users.schema.ts';
 
 // Never the password hash itself: only whether there is one, through `hasPassword` below.
 const USER_SELECT = {
@@ -10,6 +10,7 @@ const USER_SELECT = {
   name: true,
   username: true,
   role: true,
+  isReadOnly: true,
   temporaryPasswordExpiresAt: true,
   createdAt: true,
   passwordHash: true,
@@ -37,6 +38,12 @@ type NewPassword = {
 export type GuardedChange<Result> = { result: Result } | { isMissing: true } | { isLastAdmin: true };
 
 type Transaction = Prisma.TransactionClient;
+
+// What the last-admin rule looks at on a user, before or after a change.
+type AdminStanding = { role: UserRole; isReadOnly: boolean };
+
+// An admin who can still change things: the rule keeps at least one.
+const WORKING_ADMIN_WHERE = { role: 'ADMIN', isReadOnly: false } as const satisfies Prisma.UserWhereInput;
 
 type NewUser = {
   name: string;
@@ -68,30 +75,45 @@ async function lockUsers(tx: Transaction): Promise<void> {
   await tx.$executeRaw`lock table users in share row exclusive mode`;
 }
 
+// Admins who are not read-only: a read-only admin can't change anything, so they don't count towards the rule.
 async function countAdmins(client: Transaction | typeof prisma = prisma): Promise<number> {
-  return client.user.count({ where: { role: 'ADMIN' } });
+  return client.user.count({ where: WORKING_ADMIN_WHERE });
 }
 
-// Runs `change` on an existing user inside one locked transaction, unless it would take away the last admin:
-// that is when the user is an admin, `isLeavingAdmins` says the change ends that, and they are the only one.
+function isWorkingAdmin({ role, isReadOnly }: AdminStanding): boolean {
+  return role === 'ADMIN' && !isReadOnly;
+}
+
+// Runs `change` on an existing user inside one locked transaction, unless it would take away the last admin who
+// can change things: that is when the user is one, `isLeavingAdmins` says the change ends that, and they are the
+// only one.
 async function guardLastAdmin<Result>(
   userId: number,
-  isLeavingAdmins: (role: UserRole) => boolean,
-  change: (tx: Transaction, role: UserRole) => Promise<Result>,
+  isLeavingAdmins: (current: AdminStanding) => boolean,
+  change: (tx: Transaction, current: AdminStanding) => Promise<Result>,
 ): Promise<GuardedChange<Result>> {
   return prisma.$transaction(async (tx) => {
     await lockUsers(tx);
 
-    const user = await tx.user.findUnique({ where: { id: userId }, select: { role: true } });
+    const user = await tx.user.findUnique({ where: { id: userId }, select: { role: true, isReadOnly: true } });
 
     if (!user) return { isMissing: true };
 
-    const isOnlyAdmin = user.role === 'ADMIN' && (await countAdmins(tx)) === 1;
+    const isOnlyAdmin = isWorkingAdmin(user) && (await countAdmins(tx)) === 1;
 
-    if (isOnlyAdmin && isLeavingAdmins(user.role)) return { isLastAdmin: true };
+    if (isOnlyAdmin && isLeavingAdmins(user)) return { isLastAdmin: true };
 
-    return { result: await change(tx, user.role) };
+    return { result: await change(tx, user) };
   });
+}
+
+// The user as a change leaves them: what it sends replaces what is there, what it leaves out stays.
+function standingAfter(current: AdminStanding, change: UpdateUser): AdminStanding {
+  return { role: change.role ?? current.role, isReadOnly: change.isReadOnly ?? current.isReadOnly };
+}
+
+function isSameStanding(current: AdminStanding, next: AdminStanding): boolean {
+  return current.role === next.role && current.isReadOnly === next.isReadOnly;
 }
 
 export const usersRepository = {
@@ -124,14 +146,17 @@ export const usersRepository = {
 
   countAdmins: (): Promise<number> => countAdmins(),
 
-  // A new role, and every session of the user ends with it, in one go. Unchanged roles keep their sessions.
-  updateRole: (userId: number, role: UserRole): Promise<GuardedChange<UserRow>> =>
+  // A new role or read-only setting, and every session of the user ends with it, in one go. A change that leaves
+  // both as they were keeps the sessions.
+  update: (userId: number, change: UpdateUser): Promise<GuardedChange<UserRow>> =>
     guardLastAdmin(
       userId,
-      (currentRole) => currentRole === 'ADMIN' && role !== 'ADMIN',
-      async (tx, currentRole) => {
-        if (currentRole !== role) {
-          await tx.user.update({ where: { id: userId }, data: { role }, select: { id: true } });
+      (current) => !isWorkingAdmin(standingAfter(current, change)),
+      async (tx, current) => {
+        const next = standingAfter(current, change);
+
+        if (!isSameStanding(current, next)) {
+          await tx.user.update({ where: { id: userId }, data: next, select: { id: true } });
           await tx.session.deleteMany({ where: { userId } });
         }
 
