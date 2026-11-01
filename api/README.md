@@ -121,12 +121,13 @@ check, locked by default, and `auth.route.test.ts` calls every route in the Open
   `TEMPORARY_PASSWORD_EXPIRED`); the password still has to be replaced after.
 - **Roles.** A user is an `ADMIN` or a `MEMBER`. Whoever sets the app up is an admin (the migration made the user
   already there one). Routes with `config: { isAdminOnly: true }` answer 403 `ADMIN_ONLY` to a member: changing or
-  deleting a category or series, the images lists (`GET /images`, `/images/groups`, `/export/images.*`) and the
-  users (`/users` and everything under it). Members read the catalogue, keep their own collections, items and tags, and send new
-  funkos in as submissions (below): `POST /funkos`, `/categories` and `/series` are open to them, and so are the
-  funko and funko-image writes, whose services (`funkos.access.ts`) let a member change only their own waiting
-  submission: another member's answers 404, a catalogue funko (or their own once it is no longer waiting) 403
-  `ADMIN_ONLY`. `auth.route.test.ts` keeps both lists (`ADMIN_ONLY_ROUTES`, `SUBMISSION_ROUTES`) and fails when a
+  deleting a category or series, reviewing submissions (`GET /submissions/review`, `POST
+/submissions/:id/approval`, `/rejection`), the images lists (`GET /images`, `/images/groups`, `/export/images.*`)
+  and the users (`/users` and everything under it). Members read the catalogue, keep their own collections, items
+  and tags, and send new funkos in as submissions (below): `POST /funkos`, `/categories` and `/series` are open to
+  them, and so are the funko and funko-image writes and `POST /submissions/:id/resubmission`, whose services
+  (`funkos.access.ts`) let a member change only their own waiting or rejected submission: another member's answers
+  404, a catalogue funko (or their own once approved or merged) 403 `ADMIN_ONLY`. `auth.route.test.ts` keeps both lists (`ADMIN_ONLY_ROUTES`, `SUBMISSION_ROUTES`) and fails when a
   catalogue write is on neither.
 - **Read-only.** An admin can limit a user to looking (`users.is_read_only`, `isReadOnly` in `GET /auth/status`
   and the sign-in answer). They still sign in and read everything they could before, but every write answers 403
@@ -190,9 +191,10 @@ tags already there to the first user; another user whose items carried one got t
 `submitted_by_id` set, and only that member sees it (`lib/catalogueVisibility.ts`): the catalogue a user browses
 (lists, search, suggestions, counts, the barcode lookup, adding to a collection) is the approved rows plus their own
 waiting ones; by id they also open their own rejected or merged ones, and the export carries those too, so their
-items still name their funko. An admin opens any submission by id but never sees another's listed. While it waits,
-the member can put it in their own collections, edit it, add or change its images and delete it. A funko may use
-the approved categories and series, and a waiting one also its sender's own waiting ones (400 otherwise). The
+items still name their funko. An admin opens any submission by id, and lists them on the review list, never in the
+catalogue lists. While it waits, the member can put it in their own collections, edit it, add or change its images
+and delete it. A funko may use the approved categories and series, and a waiting or rejected one also its sender's
+own waiting ones (400 otherwise). The
 unique rules (barcode, identity, category and series names) hold in the approved catalogue and within one member's
 waiting ones, never across them (partial unique indexes in the `submissions` migration): two members may wait on
 the same box, and an admin may add one a member waits on. A member's funko, category or series that the catalogue
@@ -205,7 +207,24 @@ everything else they sent in stays with `submitted_by_id` cleared, so a waiting 
 never clash with each other or block a new submission. Image files of deleted rows stay until `yarn images:prune`.
 A submission's image files under `/uploads` follow the same rule as the funko: until it is approved only admins and
 its sender load them (whoever uploaded each photo); others, and everyone but admins for an orphan, get 404 (the
-uploads plugin's hook, `assertCanSeeImageFiles()`). Approving, rejecting and merging are not built yet (issue #10).
+uploads plugin's hook, `assertCanSeeImageFiles()`). Merging is not built yet (issue #12).
+
+**Reviewing.** `GET /submissions/review?state=WAITING` (admins) lists every waiting submission, oldest first, with
+`submittedBy` (null for a removed user) and `possibleDoubles`: every other approved or waiting funko with the same
+barcode, or the same number in a category of the same name (any case), each with `matchedOn` (`BARCODE`,
+`NUMBER_AND_CATEGORY`). `state=DONE` lists the reviewed ones (approved, rejected, merged), last reviewed first; an
+admin's own funkos are never on it. `POST /submissions/:id/approval` puts a waiting funko in everyone's catalogue
+with its sender's waiting category and series; when the catalogue meanwhile got a category or series of the same
+name, the funko moves to that one and the member's waiting one goes once nothing uses it. It answers 409 with
+`existingId` when the catalogue already has the same funko or barcode (and 409 in words if a unique index refuses
+it in a race, by SQLSTATE 23505), and 409 when the funko is not waiting. `POST /submissions/:id/rejection` takes
+`{ reason }` (1–500 characters, required; a check in the `submission_reviews` migration) that the sender reads on
+`GET /submissions` and the funko page; the funko stays in their collections, private. The sender can then edit it
+(images too), delete it, or `POST /submissions/:id/resubmission` to make it wait again without the reason (409 when
+it is not rejected, or clashes with their other waiting ones or the catalogue). When an admin changes someone's
+waiting or rejected submission (its fields or images), `changedByAdminAt` records it for the sender. A submission
+carries `reviewedAt`, `rejectionReason` and `changedByAdminAt` on both lists; `GET /funkos/:id` adds the last two
+for admins and the sender only.
 
 | Method and path                                                    | What                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -224,7 +243,7 @@ uploads plugin's hook, `assertCanSeeImageFiles()`). Approving, rejecting and mer
 | `GET /funkos/by-barcode/:barcode`                                  | For a phone scanner                                                                                                                                                                                                                                                                                                                                                                                               |
 | `GET /funkos/:id`                                                  | With all its images                                                                                                                                                                                                                                                                                                                                                                                               |
 | `POST /funkos`                                                     | An admin's joins the catalogue, a member's is a waiting submission; 409 with `existingId` when the same funko or barcode already exists                                                                                                                                                                                                                                                                           |
-| `PATCH /funkos/:id`                                                | A member: only their own waiting submission (images too)                                                                                                                                                                                                                                                                                                                                                          |
+| `PATCH /funkos/:id`                                                | A member: only their own waiting or rejected submission (images too); an admin changing one notes `changedByAdminAt`                                                                                                                                                                                                                                                                                              |
 | `DELETE /funkos/:id`                                               | 409 while it sits in anyone's collection (naming only your own, others as "other users' collections"); `?force=true` removes it from all                                                                                                                                                                                                                                                                          |
 | `POST /funkos/:id/images`                                          | Multipart, field `file` (several allowed); makes the three sizes                                                                                                                                                                                                                                                                                                                                                  |
 | `POST /funkos/:id/images/from-url`                                 | `{ url }`: downloads a public image and stores it                                                                                                                                                                                                                                                                                                                                                                 |
@@ -246,7 +265,11 @@ uploads plugin's hook, `assertCanSeeImageFiles()`). Approving, rejecting and mer
 | `GET /tags`                                                        | The user's own tags with item counts; `name`; sort `NAME` \| `CREATION_DATE`                                                                                                                                                                                                                                                                                                                                      |
 | `GET /tags/:id`, `POST`, `PATCH`, `DELETE`                         | Delete only removes the label from items                                                                                                                                                                                                                                                                                                                                                                          |
 | `GET /suggest?q=`                                                  | Search-bar suggestions: funkos, categories, series, collections, tags at once                                                                                                                                                                                                                                                                                                                                     |
-| `GET /submissions`                                                 | What the signed-in user sent in, each with `status`; `status` narrows it; sort `CREATION_DATE` (default, newest first) / `NAME`                                                                                                                                                                                                                                                                                   |
+| `GET /submissions`                                                 | What the signed-in user sent in, each with `status`, `rejectionReason`, `changedByAdminAt`; `status` narrows it; sort `CREATION_DATE` (default, newest first) / `NAME`                                                                                                                                                                                                                                            |
+| `GET /submissions/review`                                          | Admins: `state=WAITING` (default, oldest first, with `possibleDoubles`) or `DONE` (last reviewed first); each with `submittedBy`                                                                                                                                                                                                                                                                                  |
+| `POST /submissions/:id/approval`                                   | Admins: the waiting funko (and its new category and series) joins the catalogue; 409 with `existingId` when the catalogue has the same funko or barcode                                                                                                                                                                                                                                                           |
+| `POST /submissions/:id/rejection`                                  | Admins: `{ reason }` (1–500 characters) the sender reads; the funko stays in their collections, private                                                                                                                                                                                                                                                                                                           |
+| `POST /submissions/:id/resubmission`                               | The sender: a rejected one waits again; 409 when it is not rejected or clashes                                                                                                                                                                                                                                                                                                                                    |
 | `GET /stats`                                                       | Totals for the home page, for the signed-in user only: the funkos in their collections (count, categories, images and bytes, per category), and each of their collections                                                                                                                                                                                                                                         |
 | `GET /images`                                                      | Every stored image (rows with their funko, uploader and upload time, plus loose files no row uses); `q`, `hasFunko`, sort `SIZE` (default, biggest first) / `CREATION_DATE` / `NAME`                                                                                                                                                                                                                              |
 | `GET /images/groups`                                               | The same, one group per funko with its count and total size (loose files last); same params                                                                                                                                                                                                                                                                                                                       |
@@ -277,24 +300,24 @@ Item list filters: `name`, `funkoId`, `tagId`, `categoryId`, `seriesId`, `condit
 
 One envelope: `{ code, message, issues?, existingId? }`.
 
-| Status | `code`                                                   | When                                                                                             |
-| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 400    | `VALIDATION_ERROR`                                       | Bad body or query; `issues` lists `{ path, message }`                                            |
-| 400    | `COMMON_PASSWORD`                                        | The new password is on the common-password list                                                  |
-| 400    | `PASSWORD_REUSED`                                        | The new password is the temporary one it should replace                                          |
-| 400    | `USERNAME_REQUIRED`                                      | A new temporary password for a user with no username, and none given                             |
-| 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                                                 |
-| 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                                                 |
-| 401    | `TEMPORARY_PASSWORD_EXPIRED`                             | The right temporary password, after its 7 days                                                   |
-| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey, password or user change needs a recent sign-in             |
-| 403    | `ADMIN_ONLY`                                             | A member called an admin-only route, or changed a funko that is not their own waiting submission |
-| 403    | `PASSWORD_CHANGE_REQUIRED`                               | Signed in with a temporary password: replace it first                                            |
-| 404    | `NOT_FOUND`                                              |                                                                                                  |
-| 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin                                   |
-| 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                                                   |
-| 409    | `LAST_ADMIN`                                             | The last admin can't be made a member or deleted                                                 |
-| 413    | `PAYLOAD_TOO_LARGE`                                      | Image over `MAX_IMAGE_BYTES`                                                                     |
-| 429    |                                                          | Rate limit (600 requests a minute per client)                                                    |
+| Status | `code`                                                   | When                                                                                                         |
+| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 400    | `VALIDATION_ERROR`                                       | Bad body or query; `issues` lists `{ path, message }`                                                        |
+| 400    | `COMMON_PASSWORD`                                        | The new password is on the common-password list                                                              |
+| 400    | `PASSWORD_REUSED`                                        | The new password is the temporary one it should replace                                                      |
+| 400    | `USERNAME_REQUIRED`                                      | A new temporary password for a user with no username, and none given                                         |
+| 401    | `UNAUTHORIZED`                                           | No valid session (any route but the public ones)                                                             |
+| 401    | `SIGN_IN_FAILED`, `PASSKEY_FAILED`, `INVALID_SETUP_CODE` | A sign-in, passkey ceremony or setup code failed                                                             |
+| 401    | `TEMPORARY_PASSWORD_EXPIRED`                             | The right temporary password, after its 7 days                                                               |
+| 403    | `CROSS_SITE_REQUEST`, `REAUTH_REQUIRED`                  | A write from another site; a passkey, password or user change needs a recent sign-in                         |
+| 403    | `ADMIN_ONLY`                                             | A member called an admin-only route, or changed a funko that is not their own waiting or rejected submission |
+| 403    | `PASSWORD_CHANGE_REQUIRED`                               | Signed in with a temporary password: replace it first                                                        |
+| 404    | `NOT_FOUND`                                              |                                                                                                              |
+| 409    | `CONFLICT`                                               | Duplicate or still referenced; `existingId` points at the twin                                               |
+| 409    | `ALREADY_SET_UP`, `NOT_SET_UP`, `LAST_PASSKEY`           | Setup done already / not yet; the only passkey                                                               |
+| 409    | `LAST_ADMIN`                                             | The last admin can't be made a member or deleted                                                             |
+| 413    | `PAYLOAD_TOO_LARGE`                                      | Image over `MAX_IMAGE_BYTES`                                                                                 |
+| 429    |                                                          | Rate limit (600 requests a minute per client)                                                                |
 
 ## Images
 

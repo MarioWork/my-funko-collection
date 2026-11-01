@@ -40,7 +40,10 @@ async function photoOn(status: SubmissionStatus, uploader: SignedInClient = send
 
   if (!image) throw new Error('The upload stored no image');
 
-  await prisma.funko.update({ where: { id: funko.id }, data: { status } });
+  await prisma.funko.update({
+    where: { id: funko.id },
+    data: { status, rejectionReason: status === 'REJECTED' ? 'Blurry' : null },
+  });
 
   return image;
 }

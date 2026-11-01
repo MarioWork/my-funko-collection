@@ -1,5 +1,6 @@
 // Who may see and change one funko (docs/adr/0001-shared-catalogue-own-collections.md), for the funkos service and
-// its images sub-resource. Only admins change the catalogue; a member changes only their own waiting submission.
+// its images sub-resource. Only admins change the catalogue; a member changes only their own waiting or rejected
+// submission (a rejected one to fix it and send it again, or to delete it).
 import { ForbiddenError, NotFoundError } from '../../lib/httpErrors.ts';
 import type { SignedInUser } from '../auth/auth.type.ts';
 import type { SubmissionStatus } from '../submissions/submissions.type.ts';
@@ -7,7 +8,7 @@ import type { SubmissionStatus } from '../submissions/submissions.type.ts';
 const ENTITY = 'Funko';
 const ADMIN_ONLY_MESSAGE = 'Only an admin can change a funko in the catalogue';
 
-type FunkoAccess = {
+export type FunkoAccess = {
   status: SubmissionStatus;
   submittedById: number | null;
 };
@@ -33,10 +34,21 @@ export function canSeeFunko(user: SignedInUser, funko: FunkoAccess): boolean {
   return user.isAdmin || isApproved || isSubmittedBy(user, funko);
 }
 
-export function canEditFunko(user: SignedInUser, funko: FunkoAccess): boolean {
-  const isWaiting = funko.status === 'WAITING';
+// A submission its sender still looks after: waiting for an admin, or rejected and theirs to fix or delete.
+function isOpenSubmission(funko: FunkoAccess): boolean {
+  return funko.status === 'WAITING' || funko.status === 'REJECTED';
+}
 
-  return user.isAdmin || (isWaiting && isSubmittedBy(user, funko));
+export function canEditFunko(user: SignedInUser, funko: FunkoAccess): boolean {
+  return user.isAdmin || (isOpenSubmission(funko) && isSubmittedBy(user, funko));
+}
+
+// An admin changing someone else's submission before it is approved: its sender is told (`changedByAdminAt`). An
+// orphan (its sender deleted) has nobody to tell.
+export function isAdminChangingSubmission(user: SignedInUser, funko: FunkoAccess): boolean {
+  const hasOtherSender = funko.submittedById !== null && funko.submittedById !== user.userId;
+
+  return user.isAdmin && isOpenSubmission(funko) && hasOtherSender;
 }
 
 // One the user cannot see does not exist for them (404, never a hint that another member sent it in); one they see

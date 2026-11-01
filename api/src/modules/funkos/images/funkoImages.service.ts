@@ -11,7 +11,7 @@ import {
 import { logger } from '../../../lib/logger.ts';
 import { fetchRemoteFile } from '../../../lib/remoteFetch.ts';
 import type { SignedInUser } from '../../auth/auth.type.ts';
-import { assertCanEditFunko, canSeeFunko } from '../funkos.access.ts';
+import { assertCanEditFunko, canSeeFunko, isAdminChangingSubmission, type FunkoAccess } from '../funkos.access.ts';
 import { funkoImagesRepository, type FunkoImageRow } from './funkoImages.repository.ts';
 import type { ReorderImages, RotateImage } from './funkoImages.schema.ts';
 import type { FunkoImageResponse } from './funkoImages.type.ts';
@@ -51,8 +51,13 @@ async function assertNotDuplicate(funkoId: number, contentHash: string): Promise
 
 // The funko must be one `user` may change: any for an admin, their own waiting submission for a member. 404 when
 // they cannot see it, 403 ADMIN_ONLY when they see it but may not change it.
-async function assertCanEditImagesOf(user: SignedInUser, funkoId: number): Promise<void> {
-  assertCanEditFunko(user, funkoId, await funkoImagesRepository.findFunkoAccess(funkoId));
+async function assertCanEditImagesOf(user: SignedInUser, funkoId: number): Promise<FunkoAccess> {
+  return assertCanEditFunko(user, funkoId, await funkoImagesRepository.findFunkoAccess(funkoId));
+}
+
+// After a change: an admin who changed someone else's submission leaves a note its sender reads.
+async function recordImageChange(user: SignedInUser, funkoId: number, funko: FunkoAccess): Promise<void> {
+  if (isAdminChangingSubmission(user, funko)) await funkoImagesRepository.markFunkoChangedByAdmin(funkoId);
 }
 
 // For the image files under /uploads: a funko's photos are seen by whoever may open the funko. Once approved that is
@@ -92,7 +97,7 @@ export async function getImages(funkoId: number): Promise<FunkoImageResponse[]> 
 export async function addImages(user: SignedInUser, funkoId: number, buffers: Buffer[]): Promise<FunkoImageResponse[]> {
   if (buffers.length === 0) throw new BadRequestError('Send at least one file in the "file" field');
 
-  await assertCanEditImagesOf(user, funkoId);
+  const funko = await assertCanEditImagesOf(user, funkoId);
   await assertRoomFor(funkoId, buffers.length);
 
   const seenHashes = new Set<string>();
@@ -107,15 +112,19 @@ export async function addImages(user: SignedInUser, funkoId: number, buffers: Bu
     stored.push(await storeOne(user.userId, funkoId, buffer));
   }
 
+  await recordImageChange(user, funkoId, funko);
+
   return stored.map(toImageResponse);
 }
 
 export async function addImageFromUrl(user: SignedInUser, funkoId: number, url: string): Promise<FunkoImageResponse> {
-  await assertCanEditImagesOf(user, funkoId);
+  const funko = await assertCanEditImagesOf(user, funkoId);
   await assertRoomFor(funkoId, 1);
 
   const buffer = await fetchRemoteFile(url, env.MAX_IMAGE_BYTES);
   const row = await storeOne(user.userId, funkoId, buffer);
+
+  await recordImageChange(user, funkoId, funko);
 
   return toImageResponse(row);
 }
@@ -126,7 +135,7 @@ export async function reorderImages(
   funkoId: number,
   { imageIds }: ReorderImages,
 ): Promise<FunkoImageResponse[]> {
-  await assertCanEditImagesOf(user, funkoId);
+  const funko = await assertCanEditImagesOf(user, funkoId);
 
   const current = await funkoImagesRepository.listByFunko(funkoId);
   const currentIds = new Set(current.map((image) => image.id));
@@ -139,6 +148,7 @@ export async function reorderImages(
   }
 
   await funkoImagesRepository.setPositions(funkoId, imageIds);
+  await recordImageChange(user, funkoId, funko);
 
   return getImages(funkoId);
 }
@@ -150,7 +160,7 @@ export async function rotateImage(
   imageId: number,
   { degrees }: RotateImage,
 ): Promise<FunkoImageResponse> {
-  await assertCanEditImagesOf(user, funkoId);
+  const funko = await assertCanEditImagesOf(user, funkoId);
 
   const image = await funkoImagesRepository.findById(funkoId, imageId);
 
@@ -163,17 +173,19 @@ export async function rotateImage(
   if (!updated) throw new NotFoundError(ENTITY, imageId);
 
   await removeImageFiles(funkoId, image.fileKey);
+  await recordImageChange(user, funkoId, funko);
 
   return toImageResponse(updated);
 }
 
 // Row first (the API stops serving it), files second (best effort).
 export async function deleteImage(user: SignedInUser, funkoId: number, imageId: number): Promise<void> {
-  await assertCanEditImagesOf(user, funkoId);
+  const funko = await assertCanEditImagesOf(user, funkoId);
 
   const deleted = await funkoImagesRepository.delete(funkoId, imageId);
 
   if (!deleted) throw new NotFoundError(ENTITY, imageId);
 
   await removeImageFiles(funkoId, deleted.fileKey);
+  await recordImageChange(user, funkoId, funko);
 }
