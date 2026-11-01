@@ -5,7 +5,7 @@ type Props = {
   status: SubmissionStatusUtil;
 };
 
-type BadgeVariant = 'secondary' | 'outline' | 'destructive';
+type BadgeVariant = React.ComponentProps<typeof Badge>['variant'];
 
 // Text first, colour second: the label always says the state.
 const STATUS_VARIANT_MAP: Record<SubmissionStatusUtil, BadgeVariant> = {

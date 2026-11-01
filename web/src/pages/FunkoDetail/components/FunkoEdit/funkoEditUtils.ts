@@ -1,6 +1,6 @@
 import { data, type RouterContextProvider } from 'react-router';
 import { isAdminIn } from '@utils/adminRouteUtils';
-import { canEditFunko, type FunkoStanding } from '@utils/funkoAccessUtils';
+import { canEditFunko, type FunkoStanding } from '../../funkoAccessUtils';
 import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
 
 // For Edit funko's loader and action: an admin edits any funko, a member only their own waiting submission. Anyone

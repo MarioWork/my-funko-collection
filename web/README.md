@@ -148,7 +148,7 @@ HttpOnly cookie the app never sees.
 - **Submissions.** Everyone gets the Add form and the New funko buttons: an admin's funko joins the catalogue, a
   member's is a waiting submission only they see (`status`, `isSubmittedByMe` on a funko). The form and the saved
   card say so; a category or series the member types in with the "+" waits too and reads "(waiting for review)" in
-  the dropdown. `useCanEditFunko()` (`@utils/funkoAccessUtils`, the API's rule) shows Edit, Delete and the image
+  the dropdown. `useCanEditFunko()` (`pages/FunkoDetail/funkoAccessUtils.ts`, the API's rule) shows Edit, Delete and the image
   controls to an admin, and to a member on their own waiting submission, whose page also shows a Waiting chip;
   `assertCanEditFunko()` guards the edit route the same way. Members find what they sent in under _Submissions_
   (`/submissions`, `GET /submissions`), with a Waiting / Approved / Rejected / Merged chip. Approving and rejecting

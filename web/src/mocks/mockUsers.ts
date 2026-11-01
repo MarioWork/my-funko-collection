@@ -11,6 +11,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const TEMPORARY_PASSWORD_LIFETIME_MS = 7 * DAY_MS;
 // The temporary password Luke was given; a password sign-in with it works in mock mode until it expires.
 export const MOCK_TEMPORARY_PASSWORD = 'hjkmn-pqrst-vwxyz-23456';
+// Luke, a member: the other user tests name when they need someone who is not the signed-in user.
+export const MOCK_MEMBER_ID = MOCK_USER_ID + 2;
 
 export function createMockUsers(): MockUserRow[] {
   return [
@@ -25,7 +27,7 @@ export function createMockUsers(): MockUserRow[] {
       password: 'a princess of tiny vinyl heads',
     },
     {
-      id: MOCK_USER_ID + 2,
+      id: MOCK_MEMBER_ID,
       name: 'luke',
       username: 'luke',
       role: UserRoleUtil.MEMBER,

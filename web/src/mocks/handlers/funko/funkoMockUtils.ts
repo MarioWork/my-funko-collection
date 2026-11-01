@@ -7,6 +7,9 @@ import { AuthApiErrorCodes } from '@services/authService/authService';
 import { FORBIDDEN_STATUS } from '@utils/httpStatusUtils';
 
 const ADMIN_ONLY_MESSAGE = 'Only an admin can change a funko in the catalogue';
+// The API's 409 messages for a duplicate funko.
+export const DUPLICATE_FUNKO_MESSAGE = 'This funko already exists';
+export const DUPLICATE_BARCODE_MESSAGE = 'This barcode belongs to another funko';
 
 type BarcodeCandidate = MockSubmissionColumns & { barcode: string | null };
 type ReferenceCandidate = MockSubmissionColumns & { categoryId: number; seriesId: number | null };
