@@ -7,7 +7,13 @@ import { mockStore } from '@mocks/mockStore';
 import type { MockFunkoRow } from '@mocks/mockStore.type';
 import { nextId, nowIso } from '@mocks/mockStoreUtils';
 import type { CreateFunko } from '@services/funkoService/funkoService.type';
-import { findBarcodeTwin, findDuplicate, referenceRefusal } from './funkoMockUtils';
+import {
+  DUPLICATE_BARCODE_MESSAGE,
+  DUPLICATE_FUNKO_MESSAGE,
+  findBarcodeTwin,
+  findDuplicate,
+  referenceRefusal,
+} from './funkoMockUtils';
 
 // An admin's new funko joins the catalogue; a member's is a waiting submission only they see.
 export default (baseUrl: string) => [
@@ -35,11 +41,11 @@ export default (baseUrl: string) => [
 
     const duplicate = findDuplicate(row);
 
-    if (duplicate) return conflict('This funko already exists', duplicate.id);
+    if (duplicate) return conflict(DUPLICATE_FUNKO_MESSAGE, duplicate.id);
 
     const sameBarcode = findBarcodeTwin(row);
 
-    if (sameBarcode) return conflict('This barcode belongs to another funko', sameBarcode.id);
+    if (sameBarcode) return conflict(DUPLICATE_BARCODE_MESSAGE, sameBarcode.id);
 
     mockStore.funkos.push(row);
 

@@ -4,7 +4,14 @@ import { MOCK_DELAY } from '@mocks/handlers';
 import { conflict, toFunkoModel } from '@mocks/mockResponses';
 import { nowIso } from '@mocks/mockStoreUtils';
 import type { UpdateFunko } from '@services/funkoService/funkoService.type';
-import { findBarcodeTwin, findDuplicate, findEditableFunko, referenceRefusal } from './funkoMockUtils';
+import {
+  DUPLICATE_BARCODE_MESSAGE,
+  DUPLICATE_FUNKO_MESSAGE,
+  findBarcodeTwin,
+  findDuplicate,
+  findEditableFunko,
+  referenceRefusal,
+} from './funkoMockUtils';
 
 // An admin changes any funko; a member only their own waiting submission.
 export default (baseUrl: string) => [
@@ -24,11 +31,11 @@ export default (baseUrl: string) => [
 
     const duplicate = findDuplicate(next, row.id);
 
-    if (duplicate) return conflict('This funko already exists', duplicate.id);
+    if (duplicate) return conflict(DUPLICATE_FUNKO_MESSAGE, duplicate.id);
 
     const sameBarcode = findBarcodeTwin(next, row.id);
 
-    if (sameBarcode) return conflict('This barcode belongs to another funko', sameBarcode.id);
+    if (sameBarcode) return conflict(DUPLICATE_BARCODE_MESSAGE, sameBarcode.id);
 
     Object.assign(row, next, { updatedAt: nowIso() });
 

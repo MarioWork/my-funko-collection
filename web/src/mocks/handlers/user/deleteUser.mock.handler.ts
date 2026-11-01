@@ -4,6 +4,7 @@ import { MOCK_DELAY } from '@mocks/handlers';
 import { SubmissionStatusUtil } from '@app-types/utility';
 import { noContent } from '@mocks/mockResponses';
 import { mockStore } from '@mocks/mockStore';
+import type { MockFunkoRow, MockRowWithId, MockSubmissionColumns } from '@mocks/mockStore.type';
 import {
   endMockSessionsOf,
   isLastMockAdmin,
@@ -23,7 +24,7 @@ function forgetUploader(userId: number): void {
 // them, their unused never-approved categories and series go, and everything else stays with no sender (a waiting
 // one waits on for an admin).
 function settleSubmissionsOf(userId: number): void {
-  const isRejectedOfUser = (funko: { status: string; submittedById: number | null }) =>
+  const isRejectedOfUser = (funko: MockFunkoRow) =>
     funko.submittedById === userId && funko.status === SubmissionStatusUtil.REJECTED;
   const rejectedIds = new Set(mockStore.funkos.filter(isRejectedOfUser).map((funko) => funko.id));
 
@@ -40,14 +41,13 @@ function settleSubmissionsOf(userId: number): void {
   }
 }
 
-type SubmittedReference = { id: number; status: string; submittedById: number | null };
+type SubmittedReference = MockRowWithId & MockSubmissionColumns;
+
+// The funko column that points at a category or a series.
+type ReferenceColumn = keyof Pick<MockFunkoRow, 'categoryId' | 'seriesId'>;
 
 // A never-approved category or series the user typed in that no funko uses any more.
-function isUnusedSubmissionOf(
-  reference: SubmittedReference,
-  userId: number,
-  funkoColumn: 'categoryId' | 'seriesId',
-): boolean {
+function isUnusedSubmissionOf(reference: SubmittedReference, userId: number, funkoColumn: ReferenceColumn): boolean {
   const isOwnUnapproved = reference.submittedById === userId && reference.status !== SubmissionStatusUtil.APPROVED;
   const isUsed = mockStore.funkos.some((funko) => funko[funkoColumn] === reference.id);
 

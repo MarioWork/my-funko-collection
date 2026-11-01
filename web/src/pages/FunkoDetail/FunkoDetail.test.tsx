@@ -4,14 +4,12 @@ import { funkoRoutes } from '@application/routes/featureRoutes/funkoRoutes';
 import { FUNKO_ROUTES_PATHS } from '@application/routes/routesUtils';
 import { UserRoleUtil } from '@app-types/utility';
 import RouteError from '@pages/Error/RouteError';
-import { MOCK_USER_ID } from '@mocks/mockAuth';
+import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
 import { addMockSubmission, mockStore, setMockUserRole } from '@mocks/mockStore';
 import { server, TEST_BASE_API_URL } from '@mocks/server';
 import { SERVER_ERROR_STATUS } from '@utils/httpStatusUtils';
 
 const WISHLIST_NAME = 'Wishlist';
-// A member other than the signed-in mock user.
-const OTHER_MEMBER_ID = MOCK_USER_ID + 2;
 
 // A funko the seed does not have on the Wishlist yet.
 function funkoOffTheWishlist() {
@@ -144,7 +142,7 @@ it('offers a member Edit and Delete, and says it is waiting, on their own waitin
 
 it('shows the error page, never the funko, when a member opens another member’s waiting submission', async () => {
   setMockUserRole(UserRoleUtil.MEMBER);
-  const othersSubmission = addMockSubmission({ name: 'Their Funko', submittedById: OTHER_MEMBER_ID });
+  const othersSubmission = addMockSubmission({ name: 'Their Funko', submittedById: MOCK_MEMBER_ID });
   renderRoutes([{ errorElement: <RouteError />, children: funkoRoutes }], {
     initialEntries: [FUNKO_ROUTES_PATHS.detail(String(othersSubmission.id))],
   });

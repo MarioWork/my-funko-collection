@@ -2,11 +2,8 @@ import { renderRoutes, screen, within } from '@test-utils';
 import { SubmissionStatusUtil, UserRoleUtil } from '@app-types/utility';
 import { submissionRoutes } from '@application/routes/featureRoutes/submissionRoutes';
 import { FUNKO_ROUTES_PATHS, SUBMISSION_ROUTES_PATHS } from '@application/routes/routesUtils';
-import { MOCK_USER_ID } from '@mocks/mockAuth';
+import { MOCK_MEMBER_ID } from '@mocks/mockUsers';
 import { addMockSubmission, setMockUserRole } from '@mocks/mockStore';
-
-// A member other than the signed-in mock user.
-const OTHER_MEMBER_ID = MOCK_USER_ID + 2;
 
 const renderSubmissions = () => renderRoutes(submissionRoutes, { initialEntries: [SUBMISSION_ROUTES_PATHS.BASE] });
 
@@ -26,7 +23,7 @@ it('lists what the member sent in, newest first, each with its state in words an
   const approved = addMockSubmission({ name: 'Approved One', status: SubmissionStatusUtil.APPROVED });
   addMockSubmission({ name: 'Rejected One', status: SubmissionStatusUtil.REJECTED });
   addMockSubmission({ name: 'Waiting One' });
-  addMockSubmission({ name: 'Someone Else’s', submittedById: OTHER_MEMBER_ID });
+  addMockSubmission({ name: 'Someone Else’s', submittedById: MOCK_MEMBER_ID });
 
   renderSubmissions();
 

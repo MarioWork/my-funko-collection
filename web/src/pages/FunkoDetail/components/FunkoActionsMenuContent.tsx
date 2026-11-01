@@ -17,7 +17,7 @@ import {
 } from '@components/ui/dropdown-menu';
 import exportService from '@services/exportService/exportService';
 import { DISABLED_REASONS, reasonWhen } from '@utils/disabledReasonUtils';
-import { useCanEditFunko } from '@hooks/useCanEditFunko';
+import { useCanEditFunko } from '../hooks/useCanEditFunko';
 import { useFunkoMemberships } from '../hooks/useFunkoMemberships';
 
 type Props = {
