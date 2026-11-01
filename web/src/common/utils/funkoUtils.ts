@@ -9,6 +9,8 @@ const BARCODE_MAX_LENGTH = 14;
 const BARCODE_PATTERN = /^\d+$/;
 // As the API caps it.
 const REMOVAL_REASON_MAX_LENGTH = 500;
+const CHASE_LABEL = 'Chase';
+const EXCLUSIVE_LABEL = 'Exclusive';
 
 export const funkoNameSchema = string()
   .trim()
@@ -60,3 +62,25 @@ export const funkoRemovalReasonSchema = string()
   .trim()
   .required('Say why, so the users who had it know')
   .max(REMOVAL_REASON_MAX_LENGTH, `Keep it under ${REMOVAL_REASON_MAX_LENGTH} characters`);
+
+// What a one-line funko label reads: the number and name, plus what sets a chase or an exclusive apart.
+type LabelledFunko = { number: string; name: string; isChase: boolean; exclusive: string };
+
+// "Chase", "Exclusive: SDCC", both, or nothing for a regular release.
+function distinguishingMarksOf({ isChase, exclusive }: LabelledFunko): string[] {
+  const marks: string[] = [];
+
+  if (isChase) marks.push(CHASE_LABEL);
+  if (exclusive) marks.push(`${EXCLUSIVE_LABEL}: ${exclusive}`);
+
+  return marks;
+}
+
+// "#78 Thanos", "#78 Thanos (Chase)", "#78 Thanos (Exclusive: SDCC)": a regular, a chase and an exclusive of the same
+// number and name never read the same in a line of text.
+export function funkoLabelOf(funko: LabelledFunko): string {
+  const base = `#${funko.number} ${funko.name}`;
+  const marks = distinguishingMarksOf(funko);
+
+  return marks.length === 0 ? base : `${base} (${marks.join(', ')})`;
+}

@@ -68,7 +68,15 @@ function possibleDoublesOf(row: MockFunkoRow): PossibleDoubleApiModel[] {
       if (matchedOn.length === 0) return [];
 
       return [
-        { id: candidate.id, name: candidate.name, number: candidate.number, status: candidate.status, matchedOn },
+        {
+          id: candidate.id,
+          name: candidate.name,
+          number: candidate.number,
+          isChase: candidate.isChase,
+          exclusive: candidate.exclusive,
+          status: candidate.status,
+          matchedOn,
+        },
       ];
     });
 }

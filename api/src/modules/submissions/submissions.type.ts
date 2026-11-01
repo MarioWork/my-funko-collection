@@ -49,11 +49,14 @@ export const SubmissionListResponseSchema = paginatedResponseSchema(SubmissionRe
 export const DOUBLE_MATCH_FIELDS = ['BARCODE', 'NUMBER_AND_CATEGORY'] as const;
 export type DoubleMatchField = (typeof DOUBLE_MATCH_FIELDS)[number];
 
-// Another approved or waiting funko a waiting submission may be a double of.
+// Another approved or waiting funko a waiting submission may be a double of, with its chase and exclusive so a regular
+// and a chase of the same number and name read apart ("" exclusive: a regular release).
 export const PossibleDoubleSchema = z.object({
   id: z.number().int(),
   name: z.string(),
   number: z.string(),
+  isChase: z.boolean(),
+  exclusive: z.string(),
   status: z.enum(SUBMISSION_STATUSES),
   matchedOn: z.array(z.enum(DOUBLE_MATCH_FIELDS)),
 });

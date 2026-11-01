@@ -455,7 +455,7 @@ type ReviewRow = {
   name: string;
   status: string;
   submittedBy: { id: number; name: string } | null;
-  possibleDoubles: { id: number; matchedOn: string[] }[];
+  possibleDoubles: { id: number; matchedOn: string[]; isChase: boolean; exclusive: string }[];
   rejectionReason: string | null;
 };
 
@@ -528,6 +528,28 @@ describe('GET /submissions/review', () => {
     expect(row?.possibleDoubles).toEqual([
       expect.objectContaining({ id: sameBarcode.id, matchedOn: ['BARCODE'] }),
       expect.objectContaining({ id: sameNumber.id, matchedOn: ['NUMBER_AND_CATEGORY'] }),
+    ]);
+  });
+
+  it('says whether each maybe-double is a chase and which exclusive it is, so look-alikes can be told apart', async () => {
+    const category = await createCategory('Pop! Marvel');
+    const regular = await createFunko({ name: 'Thanos', number: '78', categoryId: category.id });
+    const chase = await createFunko({ name: 'Thanos', number: '78', categoryId: category.id, isChase: true });
+    const exclusive = await createFunko({ name: 'Thanos', number: '78', categoryId: category.id, exclusive: 'SDCC' });
+    await createFunko({
+      name: 'Thanos',
+      number: '78',
+      categoryId: category.id,
+      status: 'WAITING',
+      submittedById: member.userId,
+    });
+
+    const [row] = await reviewList('WAITING');
+
+    expect(row?.possibleDoubles.map(({ id, isChase, exclusive }) => ({ id, isChase, exclusive }))).toEqual([
+      { id: regular.id, isChase: false, exclusive: '' },
+      { id: chase.id, isChase: true, exclusive: '' },
+      { id: exclusive.id, isChase: false, exclusive: 'SDCC' },
     ]);
   });
 

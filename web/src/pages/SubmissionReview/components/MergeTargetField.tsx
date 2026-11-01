@@ -31,9 +31,7 @@ function MergeTargetOption({ target, idPrefix }: OptionProps) {
     <Field orientation="horizontal">
       <RadioGroupItem id={id} value={String(target.id)} />
       <FieldLabel htmlFor={id} className="flex flex-col items-start gap-0.5 font-normal">
-        <span className="font-medium">
-          #{target.number} {target.name}
-        </span>
+        <span className="font-medium">{target.label}</span>
         <span className="text-xs text-muted-foreground">{target.hint}</span>
       </FieldLabel>
     </Field>
