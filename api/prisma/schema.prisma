@@ -116,7 +116,7 @@ model Category {
   @@map("categories")
 }
 
-// The show, film or game a figure comes from: "Daredevil: Born Again", "The Mandalorian". Optional on a funko.
+// The show, film or game a figure comes from: "Daredevil: Born Again", "The Mandalorian". Every funko has one.
 model Series {
   id            Int              @id @default(autoincrement())
   // Unique in the approved catalogue, and among one member's waiting ones (partial indexes in the migration).
@@ -145,8 +145,8 @@ model Funko {
   number           String
   type             FunkoType        @default(POP)
   categoryId       Int              @map("category_id")
-  // Optional: the series it belongs to. Deleting the series clears it here.
-  seriesId         Int?             @map("series_id")
+  // Required: the series it belongs to. A series a funko uses cannot be deleted.
+  seriesId         Int              @map("series_id")
   isChase          Boolean          @default(false) @map("is_chase")
   // "SDCC 2024", "Hot Topic"; empty string means a regular release (not null, so it can be part of a unique index).
   exclusive        String           @default("")
@@ -175,7 +175,7 @@ model Funko {
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   category        Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  series          Series?          @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  series          Series           @relation(fields: [seriesId], references: [id], onDelete: Restrict)
   submittedBy     User?            @relation("FunkoSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
   mergedInto      Funko?           @relation("FunkoMerges", fields: [mergedIntoId], references: [id], onDelete: SetNull)
   mergedFunkos    Funko[]          @relation("FunkoMerges")

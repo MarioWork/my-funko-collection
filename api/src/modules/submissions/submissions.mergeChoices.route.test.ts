@@ -26,7 +26,7 @@ type FunkoBody = {
   exclusive: string;
   barcode: string | null;
   category: { id: number; name: string };
-  series: { id: number; name: string } | null;
+  series: { id: number; name: string };
   images: { id: number; url: string }[];
 };
 
@@ -236,14 +236,15 @@ describe('POST /submissions/:funkoId/merge with a picked category or series', ()
     expect(response.statusCode).toBe(400);
   });
 
-  it('clears the original entry’s series when the submission has none and its series is picked', async () => {
-    const series = await createSeries('Endgame');
-    const target = await createFunko({ seriesId: series.id });
-    const submission = await waitingSubmission({ seriesId: null });
+  it('keeps the original entry’s own series when the submission’s is not picked', async () => {
+    const endgame = await createSeries('Endgame');
+    const infinityWar = await createSeries('Infinity War');
+    const target = await createFunko({ name: 'Thanos', seriesId: endgame.id });
+    const submission = await waitingSubmission({ name: 'Thanos (Snap)', seriesId: infinityWar.id });
 
-    await merge(submission.id, { targetFunkoId: target.id, fieldsFromSubmission: ['SERIES'] });
+    await merge(submission.id, { targetFunkoId: target.id, fieldsFromSubmission: ['NAME'] });
 
-    expect((await funkoOf(target.id)).series).toBeNull();
+    expect(await funkoOf(target.id)).toMatchObject({ name: 'Thanos (Snap)', series: { id: endgame.id } });
   });
 });
 

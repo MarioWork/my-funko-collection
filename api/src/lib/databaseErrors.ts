@@ -33,6 +33,11 @@ export function isForeignKeyViolation(error: unknown): boolean {
   return getSqlState(error) === PG_FOREIGN_KEY_VIOLATION;
 }
 
+// A delete refused because other rows still point at the row (`onDelete: Restrict`).
+export function isRestrictViolation(error: unknown): boolean {
+  return getSqlState(error) === PG_RESTRICT_VIOLATION;
+}
+
 export function getPrismaErrorCode(error: unknown): string | undefined {
   return error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
 }
