@@ -1,17 +1,23 @@
 import { Controller, type Control } from 'react-hook-form';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@components/ui/field';
 import { Textarea } from '@components/ui/textarea';
-import type { RejectSubmissionFormValues } from '../submissionReviewUtils';
+
+// Any form whose one field is the reason someone else reads.
+type ReasonFormValues = {
+  reason: string;
+};
 
 type Props = {
-  control: Control<RejectSubmissionFormValues>;
+  control: Control<ReasonFormValues>;
   idPrefix: string;
+  // Who reads the reason, and where.
+  hint: string;
 };
 
 const REASON_ROWS = 3;
-const REASON_HINT = 'The member reads this on their Submissions page.';
 
-function RejectReasonField({ control, idPrefix }: Props) {
+// "Why?": the reason an admin gives for a rejection or a removal, with who reads it under the box.
+function ReasonField({ control, idPrefix, hint }: Props) {
   const id = `${idPrefix}-reason`;
   const hintId = `${id}-description`;
   const errorId = `${id}-error`;
@@ -30,7 +36,7 @@ function RejectReasonField({ control, idPrefix }: Props) {
             aria-invalid={fieldState.invalid || undefined}
             aria-describedby={fieldState.error ? `${hintId} ${errorId}` : hintId}
           />
-          <FieldDescription id={hintId}>{REASON_HINT}</FieldDescription>
+          <FieldDescription id={hintId}>{hint}</FieldDescription>
           <FieldError id={errorId} errors={fieldState.error ? [fieldState.error] : undefined} />
         </Field>
       )}
@@ -38,4 +44,4 @@ function RejectReasonField({ control, idPrefix }: Props) {
   );
 }
 
-export default RejectReasonField;
+export default ReasonField;
