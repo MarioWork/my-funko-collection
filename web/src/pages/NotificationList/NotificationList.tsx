@@ -3,7 +3,7 @@ import type { LoaderDataUtil } from '@app-types/utility';
 import EmptyState from '@components/EmptyState';
 import PageHeader from '@components/PageHeader';
 import { PAGE_ICONS } from '@utils/navigationUtils';
-import { describeNewNotifications } from '@utils/notificationUtils';
+import { describeUnreadNotifications } from '@utils/notificationUtils';
 import MarkAllReadButton from './components/MarkAllReadButton';
 import NotificationItem from './components/NotificationItem';
 import type { loader } from './notificationListLoader';
@@ -28,7 +28,7 @@ function NotificationList() {
       <PageHeader
         icon={PAGE_ICONS.NOTIFICATIONS}
         title={PAGE_TITLE}
-        description={unreadCount > 0 ? describeNewNotifications(unreadCount) : ALL_READ_DESCRIPTION}
+        description={unreadCount > 0 ? describeUnreadNotifications(unreadCount) : ALL_READ_DESCRIPTION}
         actions={hasNotifications ? <MarkAllReadButton hasUnread={unreadCount > 0} /> : null}
       />
       {hasNotifications ? (

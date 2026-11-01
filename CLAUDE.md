@@ -211,6 +211,10 @@ yarn dlx shadcn@latest add <component>                   # vendors into src/comm
   move the write into the event handler.
 - `VITE_BASE_API_URL` is always `/api` (same origin): Vite proxies it in dev, Caddy in production. Image URLs from
   the API are `/uploads/...` and need no rewriting.
+- The bell's unread count is the one loader value left as a promise (`appShellLoader.ts`, read through
+  `<Suspense>` + `<Await>` in `UnreadCountAwait`), and the one read that is caught (a failed count becomes null and
+  only hides the number). Both on purpose (issue #11): a badge must never take a page down. Don't copy either for
+  page data.
 - `LinkButton` keeps `role="link"` (Base UI would announce a button); the desktop `<main>` is shadcn's
   `SidebarInset`, so the content wrapper is a `div`.
 - Mock mode: `src/mocks/mockStore.ts` is an in-memory copy of the API seed; `resetMockStore()` runs after each
