@@ -1,4 +1,4 @@
-import type { FunkoImage, Prisma } from '../../../generated/prisma/client.ts';
+import type { Prisma } from '../../../generated/prisma/client.ts';
 import { ID_SELECT, prisma } from '../../../lib/prisma.ts';
 
 const IMAGE_SELECT = {
@@ -14,6 +14,8 @@ const IMAGE_SELECT = {
   position: true,
   createdAt: true,
   updatedAt: true,
+  // Who uploaded it; null once that user was deleted (a removed user).
+  uploadedBy: { select: { id: true, name: true } },
 } as const satisfies Prisma.FunkoImageSelect;
 
 const FILE_KEY_SELECT = { fileKey: true } as const;
@@ -21,13 +23,13 @@ const FILE_KEY_SELECT = { fileKey: true } as const;
 // Where the parent funko stands and who sent it in: what the 404 / 403 checks need.
 const FUNKO_ACCESS_SELECT = { status: true, submittedById: true } as const satisfies Prisma.FunkoSelect;
 
-// IMAGE_SELECT is every column, so a selected row is the model's own type.
-export type FunkoImageRow = FunkoImage;
+// Every column, plus the uploader's id and name.
+export type FunkoImageRow = Prisma.FunkoImageGetPayload<{ select: typeof IMAGE_SELECT }>;
 
 export type NewFunkoImage = Omit<Prisma.FunkoImageUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>;
 
 export type StoredFileUpdate = Pick<
-  FunkoImage,
+  FunkoImageRow,
   'fileKey' | 'width' | 'height' | 'sizeBytes' | 'contentHash' | 'placeholder'
 >;
 
@@ -47,10 +49,10 @@ export const funkoImagesRepository = {
     await prisma.funko.updateMany({ where: { id: funkoId }, data: { changedByAdminAt: new Date() } });
   },
 
-  listByFunko: (funkoId: number): Promise<FunkoImage[]> =>
+  listByFunko: (funkoId: number): Promise<FunkoImageRow[]> =>
     prisma.funkoImage.findMany({ where: { funkoId }, select: IMAGE_SELECT, orderBy: [...POSITION_ORDER] }),
 
-  findById: async (funkoId: number, imageId: number): Promise<FunkoImage | undefined> =>
+  findById: async (funkoId: number, imageId: number): Promise<FunkoImageRow | undefined> =>
     (await prisma.funkoImage.findFirst({ where: { funkoId, id: imageId }, select: IMAGE_SELECT })) ?? undefined,
 
   findIdByHash: async (funkoId: number, contentHash: string) =>
@@ -64,9 +66,9 @@ export const funkoImagesRepository = {
     return (totals._max.position ?? -1) + 1;
   },
 
-  create: (data: NewFunkoImage): Promise<FunkoImage> => prisma.funkoImage.create({ data, select: IMAGE_SELECT }),
+  create: (data: NewFunkoImage): Promise<FunkoImageRow> => prisma.funkoImage.create({ data, select: IMAGE_SELECT }),
 
-  replaceFile: async (imageId: number, data: StoredFileUpdate): Promise<FunkoImage | undefined> => {
+  replaceFile: async (imageId: number, data: StoredFileUpdate): Promise<FunkoImageRow | undefined> => {
     const [updated] = await prisma.funkoImage.updateManyAndReturn({
       where: { id: imageId },
       data,

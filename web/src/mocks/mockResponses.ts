@@ -113,13 +113,21 @@ export function toFunkoModel(row: MockFunkoRow): FunkoApiModel {
   };
 }
 
-// An image row as the funko endpoints answer it: without the columns only the store keeps.
-export function toFunkoImageModel({
-  funkoId: _funkoId,
-  uploadedById: _uploadedById,
-  ...image
-}: MockImageRow): FunkoImageApiModel {
-  return image;
+// Who uploaded an image: the signed-in user or another one; an id nobody has belonged to a user who is gone, as the
+// API would have cleared it.
+export function uploaderOf(uploadedById: number | null): NamedApiModel | null {
+  const { auth, users } = mockStore;
+
+  if (uploadedById === auth.userId) return { id: auth.userId, name: auth.userName };
+
+  const uploader = users.find((user) => user.id === uploadedById);
+
+  return uploader ? { id: uploader.id, name: uploader.name } : null;
+}
+
+// An image row as the funko endpoints answer it: without the columns only the store keeps, with its uploader.
+export function toFunkoImageModel({ funkoId: _funkoId, uploadedById, ...image }: MockImageRow): FunkoImageApiModel {
+  return { ...image, uploadedBy: uploaderOf(uploadedById) };
 }
 
 // Who sent a submission in, for an admin: the signed-in user, another user, or null once deleted (a removed user).

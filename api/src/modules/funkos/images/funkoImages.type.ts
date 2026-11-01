@@ -14,6 +14,8 @@ export const FunkoImageResponseSchema = z
     sizeBytes: z.number().int(),
     position: z.number().int(),
     createdAt: z.iso.datetime(),
+    // Who uploaded it; null once that user was deleted (shown as "Removed user").
+    uploadedBy: z.object({ id: z.number().int(), name: z.string() }).nullable(),
   })
   .meta({ id: 'FunkoImage' });
 
